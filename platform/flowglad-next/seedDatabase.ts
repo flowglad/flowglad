@@ -58,7 +58,10 @@ import {
   insertLedgerEntry,
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
-import { insertMembership } from '@/db/tableMethods/membershipMethods'
+import {
+  insertMembership,
+  selectMembershipsAndUsersByMembershipWhere,
+} from '@/db/tableMethods/membershipMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
@@ -1668,40 +1671,98 @@ export const setupUsageMeter = async ({
 export const setupUserAndApiKey = async ({
   organizationId,
   livemode,
+  forceNewUser = false,
 }: {
   organizationId: string
   livemode: boolean
+  /**
+   * When true, always creates a new user even if one exists for the organization.
+   * Use this for tests that need multiple distinct users in the same org
+   * (e.g., cross-user RLS isolation tests).
+   *
+   * WARNING: When forceNewUser is true, the API key's keyVerify may return
+   * a different user than expected due to non-deterministic membership ordering.
+   * Only use this when you need the user/membership for isolation testing,
+   * not for authenticated API operations.
+   */
+  forceNewUser?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const userInsertResult = await transaction
-      .insert(users)
-      .values({
-        id: `usr_test_${core.nanoid()}`,
-        email: `testuser-${core.nanoid()}@example.com`,
-        name: 'Test User',
-      })
-      .returning()
-      .then(R.head)
+    // Get the default pricing model for this org+livemode, or create one if it doesn't exist
+    let defaultPricingModel = await selectDefaultPricingModel(
+      { organizationId, livemode },
+      transaction
+    )
+    if (!defaultPricingModel) {
+      // Create a minimal default pricing model for test setup
+      defaultPricingModel = await insertPricingModel(
+        {
+          name: `Test Pricing Model (${livemode ? 'live' : 'test'})`,
+          organizationId,
+          livemode,
+          isDefault: true,
+        },
+        transaction
+      )
+    }
 
-    if (!userInsertResult)
-      throw new Error('Failed to create user for API key setup')
-    const user = userInsertResult as typeof users.$inferSelect
+    // Check if there's already a membership for this organization.
+    // If so, reuse that user to ensure keyVerify returns the correct user
+    // (since keyVerify looks up the first membership by organizationId).
+    // Skip this check if forceNewUser is true (for isolation tests).
+    const existingMemberships = forceNewUser
+      ? []
+      : await selectMembershipsAndUsersByMembershipWhere(
+          { organizationId },
+          transaction
+        )
 
-    const membershipInsertResult = await transaction
-      .insert(memberships)
-      .values({
-        id: `mem_${core.nanoid()}`,
-        userId: user.id,
-        organizationId,
-        focused: true,
-        livemode,
-      })
-      .returning()
-      .then(R.head)
+    let user: typeof users.$inferSelect
+    let membership: Membership.Record
 
-    if (!membershipInsertResult)
-      throw new Error('Failed to create membership for user setup')
-    const membership = membershipInsertResult as Membership.Record
+    let betterAuthId: string | null = null
+
+    if (existingMemberships.length > 0) {
+      // Reuse existing user and membership
+      const existing = existingMemberships[0]
+      user = existing.user
+      membership = existing.membership
+      betterAuthId = user.betterAuthId ?? null
+    } else {
+      // Create new user and membership
+      // Generate betterAuthId for session-based authentication in tests
+      betterAuthId = `ba_test_${core.nanoid()}`
+      const userInsertResult = await transaction
+        .insert(users)
+        .values({
+          id: `usr_test_${core.nanoid()}`,
+          email: `testuser-${core.nanoid()}@example.com`,
+          name: 'Test User',
+          betterAuthId,
+        })
+        .returning()
+        .then(R.head)
+
+      if (!userInsertResult)
+        throw new Error('Failed to create user for API key setup')
+      user = userInsertResult as typeof users.$inferSelect
+
+      const membershipInsertResult = await transaction
+        .insert(memberships)
+        .values({
+          id: `mem_${core.nanoid()}`,
+          userId: user.id,
+          organizationId,
+          focused: true,
+          livemode,
+        })
+        .returning()
+        .then(R.head)
+
+      if (!membershipInsertResult)
+        throw new Error('Failed to create membership for user setup')
+      membership = membershipInsertResult as Membership.Record
+    }
 
     const apiKeyTokenValue = `test_sk_${core.nanoid()}`
     const apiKeyInsertResult = await transaction
@@ -1710,6 +1771,7 @@ export const setupUserAndApiKey = async ({
         id: `fk_test_${core.nanoid()}`,
         token: apiKeyTokenValue,
         organizationId,
+        pricingModelId: defaultPricingModel.id,
         type: FlowgladApiKeyType.Secret,
         livemode: livemode,
         name: 'Test API Key',
@@ -1726,6 +1788,12 @@ export const setupUserAndApiKey = async ({
       user,
       membership,
       apiKey: { ...apiKey, token: apiKeyTokenValue },
+      /**
+       * The betterAuthId for this user, used for session-based authentication.
+       * Set this in globalThis.__mockedAuthSession to authenticate as this user
+       * without using API keys (useful for same-org different-user RLS tests).
+       */
+      betterAuthId,
     }
   })
 }

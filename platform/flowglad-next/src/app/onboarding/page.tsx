@@ -85,6 +85,13 @@ const OnboardingPage = async () => {
     if (!betterAuthId) {
       throw new Error('User not found')
     }
+    // Find the default testmode pricing model
+    const defaultTestmodePricingModel = results.pricingModels?.find(
+      (pm) => pm.isDefault && !pm.livemode
+    )
+    if (!defaultTestmodePricingModel) {
+      throw new Error('No default testmode pricing model found')
+    }
     secretApiKey = await adminTransaction(
       async ({
         transaction,
@@ -101,6 +108,7 @@ const OnboardingPage = async () => {
             apiKey: {
               name: 'Secret Testmode Key',
               type: FlowgladApiKeyType.Secret,
+              pricingModelId: defaultTestmodePricingModel.id,
             },
           },
           {

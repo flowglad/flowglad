@@ -56,16 +56,18 @@ describe('beforeEach setup', () => {
 // pricingModelsRouter.create
 describe('pricingModelsRouter.create', () => {
   it('creates pricing model, default product, and default price (subscription when interval provided)', async () => {
+    // Use testmode API key to create testmode pricing models
+    // This avoids the business rule conflict: only one livemode pricing model per org
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false, // testmode API key
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false, // testmode context to match API key
+      environment: 'test' as const,
       isApi: true as any,
       path: '',
     }
@@ -98,16 +100,17 @@ describe('pricingModelsRouter.create', () => {
   })
 
   it('creates pricing model with single-payment default price when no interval provided', async () => {
+    // Use testmode API key to create testmode pricing models
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false, // testmode context to match API key
+      environment: 'test' as const,
       isApi: true as any,
       path: '',
     }
@@ -167,16 +170,17 @@ describe('pricingModelsRouter.create', () => {
 // pricesRouter.create
 describe('pricesRouter.create', () => {
   it('auto-defaults the first price for a product when isDefault=false provided', async () => {
+    // Use testmode API key to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false, // testmode context to match API key
+      environment: 'test' as const,
       isApi: true as any,
       path: '',
     }
@@ -199,7 +203,7 @@ describe('pricesRouter.create', () => {
           externalId: null,
           pricingModelId: pricingModel.id,
           organizationId: orgData.organization.id,
-          livemode: true,
+          livemode: false, // testmode to match API key
           active: true,
         },
         txCtx
@@ -223,16 +227,17 @@ describe('pricesRouter.create', () => {
   })
 
   it('allows creating a second default price and deactivates the first', async () => {
+    // Use testmode API key to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false, // testmode context to match API key
+      environment: 'test' as const,
       isApi: true as any,
       path: '',
     }
@@ -255,7 +260,7 @@ describe('pricesRouter.create', () => {
           externalId: null,
           pricingModelId: pricingModel.id,
           organizationId: orgData.organization.id,
-          livemode: true,
+          livemode: false, // testmode to match API key
           active: true,
         },
         ctx
@@ -310,16 +315,17 @@ describe('pricesRouter.create', () => {
   })
 
   it('allows creating the first price for a default product', async () => {
+    // Use testmode API key to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false, // testmode context to match API key
+      environment: 'test' as const,
       isApi: true as any,
       path: '',
     }
@@ -348,16 +354,17 @@ describe('pricesRouter.create', () => {
   })
 
   it('forbids additional prices for default products', async () => {
+    // Use testmode API key to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false, // testmode context to match API key
+      environment: 'test' as const,
       isApi: true as any,
       path: '',
     }
@@ -597,12 +604,14 @@ describe('pricingModelsRouter.clone', () => {
   })
 
   it('clones a pricing model from live mode to test mode when destinationEnvironment is testmode', async () => {
-    const orgData = await setupOrg({ skipPricingModel: true })
+    // Use setupOrg() without skipPricingModel so we get existing livemode pricing model
+    // The API key will use the existing livemode pricing model instead of creating a new one
+    const orgData = await setupOrg() // Creates both livemode and testmode pricing models
 
-    // Create live mode API key and pricing model
+    // Create livemode API key - it will use the existing livemode pricing model
     const { apiKey: liveApiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: true, // livemode API key
     })
     const liveCtx = {
       organizationId: orgData.organization.id,
@@ -613,12 +622,8 @@ describe('pricingModelsRouter.clone', () => {
       path: '',
     }
 
-    const { pricingModel: livePM } = await pricingModelsRouter
-      .createCaller(liveCtx)
-      .create({
-        pricingModel: { name: 'Live Mode PM', isDefault: false },
-      })
-
+    // Use the existing livemode pricing model from setupOrg
+    const livePM = orgData.pricingModel
     expect(livePM.livemode).toBe(true)
 
     // Clone to testmode using the live mode API key
