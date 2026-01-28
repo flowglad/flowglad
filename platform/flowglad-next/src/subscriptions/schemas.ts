@@ -272,3 +272,29 @@ export const uncancelSubscriptionSchema = z
 export type UncancelSubscriptionParams = z.infer<
   typeof uncancelSubscriptionSchema
 >
+
+export const cancelScheduledAdjustmentInputSchema = z
+  .object({
+    id: z.string().describe('The subscription ID'),
+  })
+  .meta({ id: 'CancelScheduledAdjustmentInput' })
+
+export type CancelScheduledAdjustmentParams = z.infer<
+  typeof cancelScheduledAdjustmentInputSchema
+>
+
+export const cancelScheduledAdjustmentOutputSchema = z
+  .object({
+    subscription: subscriptionClientSelectSchema,
+    canceledItemCount: z
+      .number()
+      .int()
+      .describe(
+        'The number of scheduled subscription items that were canceled'
+      ),
+  })
+  .meta({ id: 'CancelScheduledAdjustmentOutput' })
+
+export type CancelScheduledAdjustmentOutput = z.infer<
+  typeof cancelScheduledAdjustmentOutputSchema
+>

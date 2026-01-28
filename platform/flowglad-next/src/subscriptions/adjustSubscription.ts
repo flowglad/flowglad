@@ -934,6 +934,24 @@ export const adjustSubscription = async (
     })
   }
 
+  // Update scheduledAdjustmentAt based on the resolved timing
+  // - For AtEndOfCurrentBillingPeriod: Set to the adjustment date
+  // - For Immediately: Clear any previous scheduled adjustment
+  const scheduledAdjustmentAt =
+    resolvedTiming ===
+    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+      ? adjustmentDate
+      : null
+
+  await updateSubscription(
+    {
+      id: subscription.id,
+      scheduledAdjustmentAt,
+      renews: subscription.renews,
+    },
+    transaction
+  )
+
   // Get currently active subscription items to return
   // Note: New items will be created in processOutcomeForBillingRun after payment succeeds
   const currentSubscriptionItems =
