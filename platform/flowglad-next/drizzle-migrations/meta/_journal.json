@@ -1996,6 +1996,13 @@
       "when": 1769557215360,
       "tag": "0285_shiny_wildside",
       "breakpoints": true
+    },
+    {
+      "idx": 286,
+      "version": "7",
+      "when": 1769611444446,
+      "tag": "0286_thin_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

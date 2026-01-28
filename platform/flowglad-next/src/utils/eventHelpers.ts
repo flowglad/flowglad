@@ -65,3 +65,14 @@ export function constructCustomerCreatedEventHash(
     id: customer.id,
   })
 }
+
+export function constructSyncEventsAvailableEventHash(params: {
+  scopeId: string
+  latestSequence: string
+}) {
+  return constructEventHash({
+    type: FlowgladEventType.SyncEventsAvailable,
+    scopeId: params.scopeId,
+    latestSequence: params.latestSequence,
+  })
+}
