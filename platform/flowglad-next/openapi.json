@@ -4791,6 +4791,83 @@
         }
       }
     },
+    "/api/v1/subscriptions/{id}/cancel-scheduled-adjustment": {
+      "post": {
+        "operationId": "subscriptions-cancelScheduledAdjustment",
+        "summary": "Cancel Scheduled Adjustment",
+        "description": "Cancels a scheduled subscription adjustment. The subscription must have a pending scheduled adjustment (scheduledAdjustmentAt is not null). This will expire any subscription items that were scheduled to become active at the end of the billing period and clear the scheduledAdjustmentAt field.",
+        "tags": ["Subscriptions"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "description": "The subscription ID",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The subscription ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelScheduledAdjustmentOutput"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/subscriptions": {
       "get": {
         "operationId": "subscriptions-list",
@@ -15881,6 +15958,19 @@
           "pricingModelId": {
             "type": "string"
           },
+          "scheduledAdjustmentAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "current": {
             "description": "Whether the subscription is current (statuses \"active\", \"trialing\", \"past_due\", or \"cancellation_scheduled\")",
             "type": "boolean"
@@ -16098,6 +16188,19 @@
           },
           "pricingModelId": {
             "type": "string"
+          },
+          "scheduledAdjustmentAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "current": {
             "description": "Whether the subscription is current (statuses \"active\", \"trialing\", \"past_due\", \"cancellation_scheduled\", or \"credit_trial\")",
@@ -16338,6 +16441,19 @@
           },
           "pricingModelId": {
             "type": "string"
+          },
+          "scheduledAdjustmentAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "current": {
             "type": "boolean"
@@ -17230,6 +17346,19 @@
           },
           "pricingModelId": {
             "type": "string"
+          },
+          "scheduledAdjustmentAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "current": {
             "type": "boolean"
@@ -19427,6 +19556,22 @@
           "resolvedTiming",
           "isUpgrade"
         ],
+        "additionalProperties": false
+      },
+      "CancelScheduledAdjustmentOutput": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
+          },
+          "canceledItemCount": {
+            "description": "The number of scheduled subscription items that were canceled",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["subscription", "canceledItemCount"],
         "additionalProperties": false
       },
       "UsageMeterClientSelectSchema": {
