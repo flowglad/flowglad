@@ -172,6 +172,29 @@ describe('webhookSignature', () => {
       expect(parseSignatureHeader('t=,v1=')).toBeNull()
       expect(parseSignatureHeader('t=abc,v1=def')).toBeNull()
     })
+
+    it('handles headers with spaces after commas', () => {
+      const header = 't=1700000000, v1=' + 'c'.repeat(64)
+
+      const result = parseSignatureHeader(header)
+
+      expect(result).toEqual({
+        timestamp: 1700000000,
+        signature: 'c'.repeat(64),
+      })
+    })
+
+    it('handles headers with spaces around equals signs', () => {
+      // Note: this tests trimming - keys/values with leading/trailing spaces
+      const header = ' t =1700000000, v1 =' + 'd'.repeat(64)
+
+      const result = parseSignatureHeader(header)
+
+      expect(result).toEqual({
+        timestamp: 1700000000,
+        signature: 'd'.repeat(64),
+      })
+    })
   })
 
   describe('verifyWebhookSignature', () => {

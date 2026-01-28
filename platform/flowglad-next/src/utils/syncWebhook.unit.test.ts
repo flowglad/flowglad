@@ -52,6 +52,16 @@ describe('syncWebhook', () => {
       const result = parseScopeId('org_123:live:extra')
       expect(result).toBeNull()
     })
+
+    it('returns null for scope ID with empty organizationId', () => {
+      const result = parseScopeId(':live')
+      expect(result).toBeNull()
+    })
+
+    it('returns null for scope ID with whitespace-only organizationId', () => {
+      const result = parseScopeId('   :test')
+      expect(result).toBeNull()
+    })
   })
 
   describe('createSyncEventsAvailablePayload', () => {
@@ -224,6 +234,47 @@ describe('syncWebhook', () => {
       const result = validateWebhookUrl('', false)
       expect(result.valid).toBe(false)
       expect(result.error).toBe('Invalid URL format')
+    })
+
+    it('rejects FTP URLs in development', () => {
+      const result = validateWebhookUrl(
+        'ftp://localhost/webhook',
+        false
+      )
+      expect(result.valid).toBe(false)
+      expect(result.error).toBe(
+        'Webhook URL must use HTTP or HTTPS protocol'
+      )
+    })
+
+    it('rejects FTP URLs in production', () => {
+      const result = validateWebhookUrl(
+        'ftp://example.com/webhook',
+        true
+      )
+      expect(result.valid).toBe(false)
+      expect(result.error).toBe(
+        'Webhook URL must use HTTP or HTTPS protocol'
+      )
+    })
+
+    it('rejects file:// URLs', () => {
+      const result = validateWebhookUrl('file:///etc/passwd', false)
+      expect(result.valid).toBe(false)
+      expect(result.error).toBe(
+        'Webhook URL must use HTTP or HTTPS protocol'
+      )
+    })
+
+    it('rejects data:// URLs', () => {
+      const result = validateWebhookUrl(
+        'data:text/html,<script>alert(1)</script>',
+        false
+      )
+      expect(result.valid).toBe(false)
+      expect(result.error).toBe(
+        'Webhook URL must use HTTP or HTTPS protocol'
+      )
     })
   })
 })

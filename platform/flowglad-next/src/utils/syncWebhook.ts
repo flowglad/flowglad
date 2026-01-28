@@ -53,6 +53,10 @@ export const parseScopeId = (
     return null
   }
   const [organizationId, mode] = parts
+  // Reject empty or whitespace-only organization IDs (e.g., ":live")
+  if (!organizationId || !organizationId.trim()) {
+    return null
+  }
   if (mode !== 'live' && mode !== 'test') {
     return null
   }
@@ -149,13 +153,22 @@ export const validateWebhookUrl = (
   try {
     const parsed = new URL(url)
 
-    // Check protocol
+    // Only allow http and https protocols
+    const isHttps = parsed.protocol === 'https:'
+    const isHttp = parsed.protocol === 'http:'
+    if (!isHttps && !isHttp) {
+      return {
+        valid: false,
+        error: 'Webhook URL must use HTTP or HTTPS protocol',
+      }
+    }
+
     const isLocalhost =
       parsed.hostname === 'localhost' ||
       parsed.hostname === '127.0.0.1'
 
     if (isProduction) {
-      if (parsed.protocol !== 'https:') {
+      if (!isHttps) {
         return {
           valid: false,
           error: 'Webhook URL must use HTTPS in production',
@@ -169,7 +182,7 @@ export const validateWebhookUrl = (
       }
     } else {
       // Development: allow HTTP for localhost only
-      if (parsed.protocol !== 'https:' && !isLocalhost) {
+      if (!isHttps && !(isHttp && isLocalhost)) {
         return {
           valid: false,
           error: 'Non-localhost URLs must use HTTPS',

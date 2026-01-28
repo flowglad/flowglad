@@ -82,7 +82,10 @@ export const parseSignatureHeader = (
   let signature: string | null = null
 
   for (const part of parts) {
-    const [key, value] = part.split('=')
+    const [rawKey, rawValue] = part.split('=')
+    // Trim whitespace to handle headers with spaces (e.g., "t=..., v1=...")
+    const key = rawKey?.trim()
+    const value = rawValue?.trim()
     if (key === 't' && value) {
       const parsed = parseInt(value, 10)
       if (!isNaN(parsed)) {
