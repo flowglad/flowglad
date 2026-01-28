@@ -26,10 +26,11 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   const editDiscount = trpc.discounts.update.useMutation()
   const { organization } = useAuthenticatedContext()
   const getDefaultValues = (): EditDiscountFormSchema => {
-    const __rawAmountString = countableCurrencyAmountToRawStringAmount(
-      organization!.defaultCurrency,
-      discount.amount
-    )
+    const __rawAmountString =
+      countableCurrencyAmountToRawStringAmount(
+        organization!.defaultCurrency,
+        discount.amount
+      )
     const discountForForm =
       discount.amountType === 'fixed'
         ? (() => {
