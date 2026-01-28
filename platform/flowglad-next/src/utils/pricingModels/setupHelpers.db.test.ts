@@ -22,7 +22,7 @@ import { setupPricingModelTransaction } from './setupTransaction'
 let organization: Organization.Record
 
 beforeEach(async () => {
-  const orgData = await setupOrg()
+  const orgData = (await setupOrg()).unwrap()
   organization = orgData.organization
 })
 

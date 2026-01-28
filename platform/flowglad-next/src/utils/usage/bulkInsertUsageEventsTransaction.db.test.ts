@@ -78,7 +78,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
   let billingPeriod: BillingPeriod.Record
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     pricingModelId = orgSetup.pricingModel.id
     productId = orgSetup.product.id
@@ -253,7 +253,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should correctly resolve slugs when different customers have prices with the same slug', async () => {
       // Create a second organization with its own pricing model
-      const org2Setup = await setupOrg()
+      const org2Setup = (await setupOrg()).unwrap()
       const org2 = org2Setup.organization
       const pricingModel2Id = org2Setup.pricingModel.id
       const product2Id = org2Setup.product.id
@@ -383,7 +383,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       })
 
       // Create a second organization with its own pricing model
-      const org2Setup = await setupOrg()
+      const org2Setup = (await setupOrg()).unwrap()
       const org2 = org2Setup.organization
       const pricingModel2Id = org2Setup.pricingModel.id
 
@@ -1780,7 +1780,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // The implementation deduplicates pricing model fetches (one query for all customers sharing a model),
       // but we verify behavior rather than implementation details (no mocking/spying per test guidelines).
       // Setup: Create 10 customers all sharing the same pricing model
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       const pricingModel = await adminTransaction(
         async ({ transaction }) =>
@@ -1898,7 +1898,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // The implementation fetches pricing models in parallel and deduplicates by model ID,
       // but we verify behavior rather than implementation details
       // Setup: Create 5 different pricing models
-      const orgSetup = await setupOrg()
+      const orgSetup = (await setupOrg()).unwrap()
       const { organization } = orgSetup
 
       // Use the default pricing model from setupOrg as the first pricing model
@@ -2057,7 +2057,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // This test verifies that when resolving priceSlug, only usage prices are considered,
       // not subscription prices (even if they have matching slugs).
       // Setup: Create pricing model with subscription price and usage price
-      const orgSetup = await setupOrg()
+      const orgSetup = (await setupOrg()).unwrap()
       const { organization } = orgSetup
 
       // Use the default pricing model from setupOrg
@@ -2203,8 +2203,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
   describe('batchFetchPricingModelsForCustomers', () => {
     it('should fetch explicit pricing models for customers with pricingModelId', async () => {
-      const orgSetup1 = await setupOrg()
-      const orgSetup2 = await setupOrg()
+      const orgSetup1 = (await setupOrg()).unwrap()
+      const orgSetup2 = (await setupOrg()).unwrap()
 
       const customer1 = await setupCustomer({
         organizationId: orgSetup1.organization.id,
@@ -2239,7 +2239,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should fetch pricing models for customers with default pricing model', async () => {
-      const orgSetup = await setupOrg()
+      const orgSetup = (await setupOrg()).unwrap()
 
       // When no explicit pricingModelId is provided, setupCustomer uses the default
       const customer = await setupCustomer({
@@ -2285,7 +2285,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
   describe('resolvePriceSlugs', () => {
     it('should resolve price slugs to IDs using composite customerId:slug keys', async () => {
-      const orgSetup = await setupOrg()
+      const orgSetup = (await setupOrg()).unwrap()
       const usageMeter = await setupUsageMeter({
         organizationId: orgSetup.organization.id,
         name: 'Test Meter',
@@ -2354,7 +2354,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
   describe('resolvePriceSlugs and resolveUsageMeterSlugs - shared error handling', () => {
     it('should return error when pricing model is not found for customer in both functions', async () => {
-      const orgSetup = await setupOrg()
+      const orgSetup = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: orgSetup.organization.id,
         pricingModelId: orgSetup.pricingModel.id,
@@ -2429,7 +2429,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should return error when slug is not found in both functions', async () => {
-      const orgSetup = await setupOrg()
+      const orgSetup = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: orgSetup.organization.id,
         pricingModelId: orgSetup.pricingModel.id,
@@ -2519,7 +2519,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
   describe('resolveUsageMeterSlugs', () => {
     it('should resolve usage meter slugs to IDs using composite customerId:slug keys', async () => {
-      const orgSetup = await setupOrg()
+      const orgSetup = (await setupOrg()).unwrap()
       const usageMeter = await setupUsageMeter({
         organizationId: orgSetup.organization.id,
         name: 'Test Meter',
@@ -2579,8 +2579,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should handle multiple usage meter slugs for different customers', async () => {
-      const orgSetup1 = await setupOrg()
-      const orgSetup2 = await setupOrg()
+      const orgSetup1 = (await setupOrg()).unwrap()
+      const orgSetup2 = (await setupOrg()).unwrap()
 
       const usageMeter1 = await setupUsageMeter({
         organizationId: orgSetup1.organization.id,

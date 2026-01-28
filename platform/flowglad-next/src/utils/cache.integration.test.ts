@@ -723,7 +723,9 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -800,7 +802,7 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data - customer with no subscriptions
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customerWithNoSubs = await setupCustomer({
         organizationId: organization.id,
       })
@@ -835,7 +837,9 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -916,7 +920,7 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -960,7 +964,7 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data - two customers
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer1 = await setupCustomer({
         organizationId: organization.id,
       })
@@ -1024,7 +1028,7 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -1064,7 +1068,7 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data - two customers
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer1 = await setupCustomer({
         organizationId: organization.id,
       })
@@ -1159,7 +1163,7 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       const { product } = orgData
 
       const price = await setupPrice({
@@ -1273,7 +1277,7 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       const { product } = orgData
 
       const price = await setupPrice({
@@ -1695,7 +1699,9 @@ describeIfRedisKey(
       const client = getRedisTestClient()
 
       // Setup test data
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })

@@ -44,7 +44,7 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
 
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
-    orgData = await setupOrg()
+    orgData = (await setupOrg()).unwrap()
     const userApiKey = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,

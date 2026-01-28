@@ -66,7 +66,7 @@ describe('confirmCheckoutSessionTransaction', () => {
 
   beforeEach(async () => {
     // Set up common test data
-    const setupData = await setupOrg()
+    const setupData = (await setupOrg()).unwrap()
     organization = setupData.organization
     price = setupData.price
     pricingModel = setupData.pricingModel

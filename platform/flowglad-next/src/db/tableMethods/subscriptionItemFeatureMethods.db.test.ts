@@ -66,7 +66,7 @@ describe('subscriptionItemFeatureMethods', () => {
 
   beforeEach(async () => {
     // Setup org, product, price, pricingModel
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     const { product, price, pricingModel } = orgData
 
@@ -512,7 +512,7 @@ describe('pricingModelId derivation', () => {
   let productFeature: ProductFeature.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -698,7 +698,7 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
   let resourceFeature: Feature.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -1055,7 +1055,7 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
 
   beforeEach(async () => {
     // Each test uses its own unique subscriptionItem.id, so no global cleanup needed
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     product = orgData.product
 
     price = await setupPrice({

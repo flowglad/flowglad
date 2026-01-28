@@ -72,7 +72,7 @@ describe('doNotCharge subscription creation', () => {
   beforeEach(async () => {
     mock.clearAllMocks()
 
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
 
     customer = await setupCustomer({

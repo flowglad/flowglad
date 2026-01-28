@@ -106,7 +106,7 @@ describe('grantEntitlementUsageCredits', () => {
   let commandPayload: BillingPeriodTransitionLedgerCommand['payload']
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     basePrice = orgData.price

@@ -123,7 +123,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
   let usageMeter: UsageMeter.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -205,7 +205,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
 
     it('denies merchant from inserting a subscription price for another organization product', async () => {
       // Create another organization
-      const org2Data = await setupOrg()
+      const org2Data = (await setupOrg()).unwrap()
       const org2ApiKey = await setupUserAndApiKey({
         organizationId: org2Data.organization.id,
         livemode: true,
@@ -240,7 +240,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
 
     it('denies merchant from inserting a usage price for another organization usage meter', async () => {
       // Create another organization
-      const org2Data = await setupOrg()
+      const org2Data = (await setupOrg()).unwrap()
       const org2ApiKey = await setupUserAndApiKey({
         organizationId: org2Data.organization.id,
         livemode: true,
@@ -337,7 +337,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
 
     it('denies merchant from selecting prices from another organization products', async () => {
       // Create another organization with a price
-      const org2Data = await setupOrg()
+      const org2Data = (await setupOrg()).unwrap()
       const org2Price = await setupPrice({
         productId: org2Data.product.id,
         name: 'Org2 Price',
@@ -381,7 +381,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
 
     it('denies merchant from selecting usage prices from another organization usage meters', async () => {
       // Create another organization with a usage meter and price
-      const org2Data = await setupOrg()
+      const org2Data = (await setupOrg()).unwrap()
       const org2UsageMeter = await setupUsageMeter({
         organizationId: org2Data.organization.id,
         name: 'Org2 Usage Meter',
@@ -508,7 +508,7 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
   let usagePrice: Price.UsageRecord
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -612,7 +612,7 @@ describe('prices RLS - customer read access', () => {
   let usageMeter: UsageMeter.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

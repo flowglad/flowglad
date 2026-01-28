@@ -34,7 +34,7 @@ describe('getProductTableRows', () => {
 
   beforeEach(async () => {
     // Set up organization
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
 
     const membership = await setupMemberships({ organizationId })
@@ -161,7 +161,7 @@ describe('getProductTableRows', () => {
 
   it('should filter products by organization ID', async () => {
     // Create another organization
-    const { organization: otherOrg } = await setupOrg()
+    const { organization: otherOrg } = (await setupOrg()).unwrap()
     const otherUser = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return insertUser(
@@ -393,7 +393,7 @@ describe('Database Constraints', () => {
   let defaultProductId: string
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
 
     const pricingModel = await setupPricingModel({ organizationId })
@@ -519,7 +519,7 @@ describe('Slug uniqueness policies', () => {
   let organizationId: string
   let pricingModelId: string
   beforeEach(async () => {
-    const setup = await setupOrg()
+    const setup = (await setupOrg()).unwrap()
     organizationId = setup.organization.id
     pricingModelId = setup.pricingModel.id
   })
@@ -622,7 +622,7 @@ describe('Slug uniqueness policies', () => {
 describe('selectProductPriceAndFeaturesByProductId', () => {
   it('should return product with no features', async () => {
     // Set up organization and product
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const pricingModel = await setupPricingModel({
       organizationId: organization.id,
       name: 'Test PricingModel',
@@ -670,7 +670,7 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
 
   it('should return product with prices and features', async () => {
     // Set up organization and product
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const pricingModel = await setupPricingModel({
       organizationId: organization.id,
       name: 'Test PricingModel',
@@ -735,7 +735,7 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
 
 describe('selectProductsCursorPaginated search', () => {
   it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
 
     const product = await setupProduct({
       organizationId: organization.id,
@@ -787,7 +787,7 @@ describe('selectProductsCursorPaginated search', () => {
   })
 
   it('should return all products when search query is empty or undefined', async () => {
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
 
     await setupProduct({
       organizationId: organization.id,
@@ -826,7 +826,7 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
   })
@@ -979,7 +979,7 @@ describe('pricingModelIdsForProducts', () => {
   let product2: Product.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization.id
     pricingModel = orgData.pricingModel
 

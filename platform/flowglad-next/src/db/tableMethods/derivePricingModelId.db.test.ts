@@ -54,7 +54,7 @@ describe('derivePricingModelIdFromProduct', () => {
   let product: Product.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -95,7 +95,7 @@ describe('derivePricingModelIdFromUsageMeter', () => {
   let usageMeter: UsageMeter.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -146,7 +146,7 @@ describe('derivePricingModelIdFromPrice', () => {
   let price: Price.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -194,7 +194,7 @@ describe('derivePricingModelIdFromUsageCredit', () => {
   let usageCredit: UsageCredit.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -276,7 +276,7 @@ describe('derivePricingModelIdForCheckoutSession', () => {
   let invoice: Invoice.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -450,7 +450,7 @@ describe('derivePricingModelIdFromPayment', () => {
   let payment: Payment.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -523,7 +523,7 @@ describe('insertCheckoutSession with derived pricingModelId', () => {
   let customer: Customer.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -596,7 +596,7 @@ describe('insertRefund with derived pricingModelId', () => {
   let payment: Payment.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

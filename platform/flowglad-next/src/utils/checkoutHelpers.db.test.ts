@@ -58,7 +58,9 @@ describe('checkoutHelpers', () => {
       type: PriceType,
       opts?: { productActive?: boolean; priceActive?: boolean }
     ) => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'P',
@@ -178,7 +180,9 @@ describe('checkoutHelpers', () => {
     const makeSession = async (
       type: PriceType = PriceType.Subscription
     ) => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Prod',
@@ -400,7 +404,7 @@ describe('checkoutHelpers', () => {
 
   describe('hasCustomerUsedTrial', () => {
     it('should return false when customer has no subscriptions', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -415,7 +419,9 @@ describe('checkoutHelpers', () => {
     })
 
     it('should return false when customer has subscriptions but none with trialEnd', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',
@@ -458,7 +464,9 @@ describe('checkoutHelpers', () => {
     })
 
     it('should return true when customer has one subscription with trialEnd', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',
@@ -502,7 +510,9 @@ describe('checkoutHelpers', () => {
     })
 
     it('should return true when customer has multiple subscriptions and one has trialEnd', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',
@@ -567,7 +577,9 @@ describe('checkoutHelpers', () => {
     })
 
     it('should return true when customer has cancelled subscription with trialEnd', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',
@@ -613,7 +625,9 @@ describe('checkoutHelpers', () => {
 
   describe('calculateTrialEligibility', () => {
     it('should return undefined for SinglePayment price type', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',
@@ -646,7 +660,9 @@ describe('checkoutHelpers', () => {
     })
 
     it('should return true for Subscription price with anonymous customer', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',
@@ -678,7 +694,9 @@ describe('checkoutHelpers', () => {
     })
 
     it('should return true for Subscription price with customer who has no trial history', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',
@@ -722,7 +740,9 @@ describe('checkoutHelpers', () => {
     })
 
     it('should return false for Subscription price with customer who has used trial', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         name: 'Product',

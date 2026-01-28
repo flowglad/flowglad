@@ -57,7 +57,7 @@ describe('priceMethods.ts', () => {
   let price: Price.Record
 
   beforeEach(async () => {
-    const setup = await setupOrg()
+    const setup = (await setupOrg()).unwrap()
     organization = setup.organization
 
     // Setup product
@@ -1136,7 +1136,7 @@ describe('priceMethods.ts', () => {
     let pricingModelId: string
 
     beforeEach(async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       organization = setup.organization
       pricingModelId = setup.pricingModel.id
 
@@ -1359,7 +1359,7 @@ describe('priceMethods.ts', () => {
     let pricingModelId: string
 
     beforeEach(async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       organization = setup.organization
       pricingModelId = setup.pricingModel.id
 
@@ -2088,7 +2088,7 @@ describe('priceMethods.ts', () => {
     let usageMeter: UsageMeter.Record
 
     beforeEach(async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       organization = setup.organization
       pricingModel = setup.pricingModel
 
@@ -2293,7 +2293,7 @@ describe('priceMethods.ts', () => {
 
   describe('selectResourceFeaturesForPrice', () => {
     it('returns resource features linked to the price via productFeatures', async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       const organization = setup.organization
 
       // Create a resource
@@ -2359,7 +2359,7 @@ describe('priceMethods.ts', () => {
     })
 
     it('returns empty array when price has no resource features', async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
 
       const product = await setupProduct({
         organizationId: setup.organization.id,
@@ -2393,7 +2393,7 @@ describe('priceMethods.ts', () => {
     })
 
     it('excludes expired productFeatures', async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       const organization = setup.organization
 
       const resource = await setupResource({
@@ -2452,7 +2452,7 @@ describe('priceMethods.ts', () => {
     })
 
     it('returns multiple resource features when product has multiple linked', async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       const organization = setup.organization
 
       // Create two resources
@@ -2540,7 +2540,7 @@ describe('priceMethods.ts', () => {
 
   describe('selectResourceFeaturesForPrices', () => {
     it('returns a map of priceId to resource features for multiple prices', async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       const organization = setup.organization
 
       // Create a resource
@@ -2643,7 +2643,7 @@ describe('priceMethods.ts', () => {
     })
 
     it('returns identical resource features for multiple prices of the same product', async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       const organization = setup.organization
 
       const resource = await setupResource({
@@ -2723,7 +2723,7 @@ describe('priceMethods.ts', () => {
     })
 
     it('returns empty arrays for prices that do not exist', async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
 
       const product = await setupProduct({
         organizationId: setup.organization.id,
@@ -2875,7 +2875,7 @@ describe('priceMethods.ts', () => {
     let testUsageMeter: UsageMeter.Record
 
     beforeEach(async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       usageMeterOrg = setup.organization
       usageMeterPricingModel = setup.pricingModel
 

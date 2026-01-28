@@ -1,4 +1,3 @@
-import { Result } from 'better-result'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -70,11 +69,7 @@ export async function POST(request: NextRequest) {
     }
     const txResult = await adminTransaction(
       async ({ transaction }) => {
-        const innerResult = await selectCustomerById(
-          customerId,
-          transaction
-        )
-        return Result.ok(innerResult.unwrap())
+        return selectCustomerById(customerId, transaction)
       }
     )
     const customer = txResult.unwrap()

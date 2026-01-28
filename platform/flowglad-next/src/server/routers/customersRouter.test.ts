@@ -52,7 +52,7 @@ describe('customersRouter.archive', () => {
 
   beforeEach(async () => {
     // Setup organization with API key
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     priceId = orgSetup.price.id
 
@@ -238,7 +238,7 @@ describe('customersRouter.get', () => {
 
   beforeEach(async () => {
     // Setup organization with API key
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
     const userApiKeySetup = await setupUserAndApiKey({
@@ -342,7 +342,7 @@ describe('customersRouter.update', () => {
 
   beforeEach(async () => {
     // Setup organization with API key
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
     const userApiKeySetup = await setupUserAndApiKey({

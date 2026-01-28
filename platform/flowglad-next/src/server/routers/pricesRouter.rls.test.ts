@@ -40,7 +40,7 @@ describe('pricesRouter - Default Price Constraints', () => {
   beforeEach(async () => {
     // Set up organization and pricing model with default product and price
     const result = await adminTransaction(async (ctx) => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       // Create pricing model with default product using the new bookkeeping function
       const bookkeepingResult = await createPricingModelBookkeeping(
@@ -731,7 +731,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       // Create pricing model with default product
       const bookkeepingResult = await createPricingModelBookkeeping(
@@ -1105,7 +1105,7 @@ describe('pricesRouter - API Contract Updates', () => {
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       // Create pricing model with default product
       const bookkeepingResult = await createPricingModelBookkeeping(
@@ -1329,7 +1329,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       // Create pricing model with default product
       const bookkeepingResult = await createPricingModelBookkeeping(
@@ -1696,7 +1696,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       // Create pricing model with default product
       const bookkeepingResult = await createPricingModelBookkeeping(
@@ -2102,7 +2102,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       // Create pricing model
       const bookkeepingResult = await createPricingModelBookkeeping(

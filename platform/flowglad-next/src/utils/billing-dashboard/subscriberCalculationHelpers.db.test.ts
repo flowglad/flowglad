@@ -29,7 +29,7 @@ import {
 
 describe('calculateActiveSubscribersByMonth', () => {
   it('should return zero counts when there are no subscriptions', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
@@ -61,7 +61,7 @@ describe('calculateActiveSubscribersByMonth', () => {
   })
 
   it('should correctly count a single active subscription spanning the entire period', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -112,7 +112,7 @@ describe('calculateActiveSubscribersByMonth', () => {
   })
 
   it('should correctly count multiple subscriptions starting and ending on different dates', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
@@ -196,7 +196,7 @@ describe('calculateActiveSubscribersByMonth', () => {
   })
 
   it('should return zero counts for an organization with no subscriptions', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
@@ -219,7 +219,7 @@ describe('calculateActiveSubscribersByMonth', () => {
   })
 
   it('should correctly count subscriptions that start before the period and end after it', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -261,7 +261,7 @@ describe('calculateActiveSubscribersByMonth', () => {
   })
 
   it('should correctly count subscriptions that start during the period and remain active', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -311,7 +311,7 @@ describe('calculateActiveSubscribersByMonth', () => {
   })
 
   it('should correctly count subscriptions that started before the period and ended during it', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -361,7 +361,7 @@ describe('calculateActiveSubscribersByMonth', () => {
   })
 
   it('should handle edge cases like subscriptions starting/ending exactly on month boundaries', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
@@ -429,7 +429,7 @@ describe('calculateActiveSubscribersByMonth', () => {
 
 describe('calculateSubscriberBreakdown', () => {
   it('should handle no subscriber changes between months', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -466,7 +466,7 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle only new subscribers in the current month', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -503,7 +503,9 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle only churned subscribers in the current month', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -540,7 +542,9 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle both new and churned subscribers', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer1 = await setupCustomer({
       organizationId: organization.id,
     })
@@ -594,7 +598,9 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle equal numbers of new and churned subscribers (zero net change)', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
@@ -657,7 +663,9 @@ describe('calculateSubscriberBreakdown', () => {
   it('should handle more new than churned subscribers (positive net change)', async () => {
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
 
     // Create three subscriptions that started in February
     const startDates = ['2023-02-10', '2023-02-20', '2023-02-25']
@@ -714,7 +722,9 @@ describe('calculateSubscriberBreakdown', () => {
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
 
     // Create one subscription that started in February
     const newCustomer = await setupCustomer({
@@ -768,7 +778,7 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle months that have no active subscriptions', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
@@ -790,7 +800,9 @@ describe('calculateSubscriberBreakdown', () => {
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
 
     // Create a subscription that churned on the first day of February
     const customer1 = await setupCustomer({
@@ -843,7 +855,7 @@ describe('calculateSubscriberBreakdown', () => {
 
 describe('getCurrentActiveSubscribers', () => {
   it('should return the current number of active subscribers', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -876,7 +888,7 @@ describe('getCurrentActiveSubscribers', () => {
   })
 
   it('should return 0 when there are no active subscribers', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
 
     const result = await adminTransaction(async ({ transaction }) => {
       return getCurrentActiveSubscribers(
@@ -892,7 +904,7 @@ describe('getCurrentActiveSubscribers', () => {
   })
 
   it('should count subscriptions canceled during the month as active for that month', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -928,7 +940,7 @@ describe('getCurrentActiveSubscribers', () => {
 
 describe('calculateActiveSubscribersByMonth with productId filter', () => {
   it('should return count of all active subscribers when productId is null', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
@@ -990,7 +1002,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
       product: productA,
       price: priceA,
       pricingModel,
-    } = await setupOrg()
+    } = (await setupOrg()).unwrap()
 
     // Create a second product with its own price
     const productB = await setupProduct({
@@ -1144,7 +1156,9 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
   })
 
   it('should return zero when no subscriptions have that product', async () => {
-    const { organization, price, pricingModel } = await setupOrg()
+    const { organization, price, pricingModel } = (
+      await setupOrg()
+    ).unwrap()
 
     // Create a second product with no subscriptions
     const productB = await setupProduct({
@@ -1193,7 +1207,9 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
   })
 
   it('should count subscription once even if it has multiple items of same product', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -1250,7 +1266,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
       product: productA,
       price: priceA,
       pricingModel,
-    } = await setupOrg()
+    } = (await setupOrg()).unwrap()
 
     // Create a second product
     const productB = await setupProduct({

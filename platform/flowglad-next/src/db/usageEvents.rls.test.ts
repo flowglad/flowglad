@@ -48,7 +48,7 @@ describe('usage_events RLS policies', () => {
 
   beforeEach(async () => {
     // Setup organization 1 with API key
-    org1Data = await setupOrg()
+    org1Data = (await setupOrg()).unwrap()
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
       livemode: true,
@@ -59,7 +59,7 @@ describe('usage_events RLS policies', () => {
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
 
     // Setup organization 2 with API key
-    org2Data = await setupOrg()
+    org2Data = (await setupOrg()).unwrap()
     const userApiKeyOrg2 = await setupUserAndApiKey({
       organizationId: org2Data.organization.id,
       livemode: true,

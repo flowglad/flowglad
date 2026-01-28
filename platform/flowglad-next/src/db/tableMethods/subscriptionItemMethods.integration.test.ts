@@ -49,7 +49,7 @@ describeIfRedisKey(
     let keysToCleanup: string[] = []
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       price = orgData.price
 
@@ -246,7 +246,7 @@ describeIfRedisKey(
     let keysToCleanup: string[] = []
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       price = orgData.price
 

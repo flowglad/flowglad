@@ -31,7 +31,7 @@ describe('Single Free Subscription Constraint', () => {
 
   beforeEach(async () => {
     // Set up organization and products
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
 
     // Create customer

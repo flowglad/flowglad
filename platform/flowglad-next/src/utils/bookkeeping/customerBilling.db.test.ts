@@ -91,7 +91,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
   beforeEach(async () => {
     // Set up organization with pricing model and product
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -938,14 +938,14 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     spyTracker.reset()
 
     // Set up first organization with pricing model and product
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
     price = orgData.price
 
     // Set up second organization with different pricing model to test access control
-    const orgData2 = await setupOrg()
+    const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
     pricingModel2 = orgData2.pricingModel
     product2 = orgData2.product
@@ -1245,7 +1245,7 @@ describe('customerBillingTransaction - currentSubscription field', () => {
 
   beforeEach(async () => {
     // Set up organization with pricing model and product
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

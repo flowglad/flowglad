@@ -14,7 +14,7 @@ describe('generateMetadata for checkout pages', () => {
 
   beforeEach(async () => {
     // Set up organization, product, and price using real database
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     price = orgData.price

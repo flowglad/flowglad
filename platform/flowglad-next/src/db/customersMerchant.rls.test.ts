@@ -38,11 +38,11 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
   let customerOrg2: Customer.Record
 
   beforeEach(async () => {
-    const orgSetup1 = await setupOrg()
+    const orgSetup1 = (await setupOrg()).unwrap()
     org1 = orgSetup1.organization
     pricingModel1Id = orgSetup1.pricingModel.id
 
-    const orgSetup2 = await setupOrg()
+    const orgSetup2 = (await setupOrg()).unwrap()
     org2 = orgSetup2.organization
     pricingModel2Id = orgSetup2.pricingModel.id
 

@@ -174,7 +174,7 @@ describe('Checkout Sessions', () => {
 
   beforeAll(async () => {
     // Setup organization once for all tests in this describe block
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     price = orgSetup.price
     pricingModel = orgSetup.pricingModel

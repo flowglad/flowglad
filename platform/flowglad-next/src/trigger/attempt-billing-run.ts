@@ -1,5 +1,4 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
@@ -42,11 +41,10 @@ export const attemptBillingRunTask = task({
         )
         const txResult = await adminTransaction(
           async ({ transaction }) => {
-            const innerResult = await selectBillingRunById(
+            return selectBillingRunById(
               payload.billingRun.id,
               transaction
             )
-            return Result.ok(innerResult.unwrap())
           }
         )
         const updatedBillingRun = txResult.unwrap()

@@ -47,7 +47,7 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
 
   beforeEach(async () => {
     // Set up organization with pricing model
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

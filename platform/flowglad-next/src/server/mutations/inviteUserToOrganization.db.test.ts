@@ -42,7 +42,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
     ;(
       sendOrganizationInvitationEmail as ReturnType<typeof mock>
     ).mockClear()
-    const { organization: org } = await setupOrg()
+    const { organization: org } = (await setupOrg()).unwrap()
     organization = org
 
     const { user } = await setupUserAndApiKey({
@@ -150,7 +150,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
   describe('Existing User Invitation', () => {
     it('should add an existing user to the organization and send invitation email', async () => {
-      const { organization: otherOrg } = await setupOrg()
+      const { organization: otherOrg } = (await setupOrg()).unwrap()
       const { user: existingUser } = await setupUserAndApiKey({
         organizationId: otherOrg.id,
         livemode: true,

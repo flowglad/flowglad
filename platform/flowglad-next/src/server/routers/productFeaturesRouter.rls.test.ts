@@ -34,7 +34,7 @@ describe('productFeaturesRouter.create - Toggle Feature Validation', () => {
   }
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

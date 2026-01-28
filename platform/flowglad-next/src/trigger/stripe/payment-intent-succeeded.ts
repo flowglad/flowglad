@@ -43,11 +43,10 @@ export const stripePaymentIntentSucceededTask = task({
               emitEvent: params.emitEvent,
               enqueueLedgerCommand: params.enqueueLedgerCommand,
             }
-            const innerResult = await processOutcomeForBillingRun(
+            return processOutcomeForBillingRun(
               { input: payload },
               effectsCtx
             )
-            return Result.ok(innerResult.unwrap())
           })
           return txResult.unwrap()
         }

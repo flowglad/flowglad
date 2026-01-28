@@ -60,7 +60,7 @@ describe('Analytics Upgrade Tracking', () => {
 
   beforeEach(async () => {
     // Set up organization with default pricing model and products
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     price = orgData.price
@@ -2786,7 +2786,7 @@ describe('Analytics Upgrade Tracking', () => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
 
-          const orgData = await setupOrg()
+          const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
           const customer1 = await setupCustomer({
             organizationId: organization.id,
@@ -2874,7 +2874,7 @@ describe('Analytics Upgrade Tracking', () => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
 
-          const orgData = await setupOrg()
+          const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
           const customer = await setupCustomer({
             organizationId: organization.id,
@@ -2948,7 +2948,7 @@ describe('Analytics Upgrade Tracking', () => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
 
-          const orgData = await setupOrg()
+          const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
           const customer = await setupCustomer({
             organizationId: organization.id,
@@ -3035,8 +3035,8 @@ describe('Analytics Upgrade Tracking', () => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
 
-          const orgData1 = await setupOrg()
-          const orgData2 = await setupOrg()
+          const orgData1 = (await setupOrg()).unwrap()
+          const orgData2 = (await setupOrg()).unwrap()
           const { organization: org1, product: product1 } = orgData1
           const { organization: org2, product: product2 } = orgData2
 
@@ -3236,7 +3236,7 @@ describe('Analytics Upgrade Tracking', () => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
 
-          const orgData = await setupOrg()
+          const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
           const customer = await setupCustomer({
             organizationId: organization.id,
@@ -3331,7 +3331,7 @@ describe('Analytics Upgrade Tracking', () => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
 
-          const orgData = await setupOrg()
+          const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
           const customer = await setupCustomer({
             organizationId: organization.id,

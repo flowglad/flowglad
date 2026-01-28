@@ -79,7 +79,7 @@ describe('Ledger Management System', async () => {
   let ledgerAccount: LedgerAccount.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     price = orgData.price
     pricingModel = orgData.pricingModel

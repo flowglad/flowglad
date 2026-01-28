@@ -81,7 +81,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     mockConfirmPaymentIntentForBillingRun.mockReset()
 
     // Setup organization and pricing model
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

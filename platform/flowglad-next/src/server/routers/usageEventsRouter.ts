@@ -118,15 +118,13 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
       async (params) => {
-        // bulkInsertUsageEventsTransaction already returns Result, unwrap and re-wrap
-        const data = await bulkInsertUsageEventsTransaction(
+        return bulkInsertUsageEventsTransaction(
           {
             input,
             livemode: ctx.livemode,
           },
           params
         )
-        return Result.ok(data.unwrap())
       },
       { apiKey: ctx.apiKey }
     )

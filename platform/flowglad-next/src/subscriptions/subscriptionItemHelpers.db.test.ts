@@ -307,7 +307,7 @@ describe('subscriptionItemHelpers', () => {
     const itemAddedDate = billingPeriodStartDate
 
     beforeEach(async () => {
-      orgData = await setupOrg()
+      orgData = (await setupOrg()).unwrap()
       customer = await setupCustomer({
         organizationId: orgData.organization.id,
         livemode: true,

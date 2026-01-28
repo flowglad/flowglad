@@ -11,7 +11,7 @@ describe('createWebhookTransaction', () => {
   let testmodePricingModelId: string
 
   beforeEach(async () => {
-    const result = await setupOrg()
+    const result = (await setupOrg()).unwrap()
     organization = result.organization
     livePricingModelId = result.pricingModel.id
     testmodePricingModelId = result.testmodePricingModel.id
@@ -73,7 +73,7 @@ describe('createWebhookTransaction', () => {
 
     it('rejects webhook creation when pricingModelId belongs to a different organization', async () => {
       // Set up a second organization with its own pricing model
-      const otherOrgSetup = await setupOrg()
+      const otherOrgSetup = (await setupOrg()).unwrap()
       const otherOrgPricingModelId = otherOrgSetup.pricingModel.id
 
       await expect(

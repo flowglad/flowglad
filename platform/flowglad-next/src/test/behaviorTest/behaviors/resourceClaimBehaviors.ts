@@ -234,7 +234,7 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
       const cancelResult =
         await adminTransaction<Subscription.Record>(
           async (ctx) => {
-            const result = await cancelSubscriptionImmediately(
+            return cancelSubscriptionImmediately(
               {
                 subscription,
                 skipNotifications: true,
@@ -242,7 +242,6 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
               },
               ctx
             )
-            return Result.ok(result.unwrap())
           },
           { livemode }
         )

@@ -150,7 +150,7 @@ describe('addFeatureToSubscription mutation', () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
-    orgData = await setupOrg()
+    orgData = (await setupOrg()).unwrap()
     customer = await setupCustomer({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -523,7 +523,7 @@ describe('addFeatureToSubscription mutation', () => {
 
     it('should throw error when feature belongs to different organization', async () => {
       // Create a second organization
-      const otherOrgData = await setupOrg()
+      const otherOrgData = (await setupOrg()).unwrap()
       const otherProduct = await setupProduct({
         organizationId: otherOrgData.organization.id,
         name: 'Other Org Product',

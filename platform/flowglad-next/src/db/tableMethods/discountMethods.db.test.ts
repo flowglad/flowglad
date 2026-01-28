@@ -24,10 +24,10 @@ describe('insertDiscount uniqueness constraints', () => {
   let pricingModel2: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData1 = await setupOrg()
+    const orgData1 = (await setupOrg()).unwrap()
     organization1 = orgData1.organization
     pricingModel1 = orgData1.pricingModel
-    const orgData2 = await setupOrg()
+    const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
     pricingModel2 = orgData2.pricingModel
   })
@@ -190,7 +190,7 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
   >['pricingModel']
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     price = orgData.price
     pricingModel = orgData.pricingModel

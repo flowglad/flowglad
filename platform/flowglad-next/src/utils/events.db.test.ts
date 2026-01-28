@@ -36,7 +36,7 @@ import {
 describe('Webhook Event Payloads - Simple Real Tests', () => {
   it('should include customer.externalId in CustomerCreated event payload', async () => {
     // Set up minimal database state
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
@@ -73,7 +73,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   })
 
   it('should include customer.externalId in CustomerUpdated event payload', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
@@ -107,7 +107,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   })
 
   it('should include customer.externalId in PaymentSucceeded event payload', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
@@ -191,7 +191,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   })
 
   it('should include customer.externalId in PaymentFailed event payload', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
@@ -275,7 +275,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   })
 
   it('should include customer.externalId in PurchaseCompleted event payload', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
@@ -332,7 +332,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   })
 
   it('should include customer.externalId in SubscriptionCreated event payload', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
@@ -395,7 +395,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   })
 
   it('should include customer.externalId in SubscriptionUpdated event payload', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
@@ -458,7 +458,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   })
 
   it('should include customer.externalId in SubscriptionCanceled event payload', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,

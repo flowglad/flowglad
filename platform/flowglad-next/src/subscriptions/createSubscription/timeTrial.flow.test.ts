@@ -74,7 +74,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     // Define trial period length
     trialPeriodDays = 5
     // Setup organization, pricingModel, product
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

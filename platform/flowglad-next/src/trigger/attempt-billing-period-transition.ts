@@ -1,5 +1,4 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
@@ -42,12 +41,10 @@ export const attemptBillingPeriodTransitionTask = task({
               billingPeriod: payload.billingPeriod,
               effectsCtx,
             })
-            const innerResult =
-              await attemptToTransitionSubscriptionBillingPeriod(
-                billingPeriod,
-                effectsCtx
-              )
-            return Result.ok(innerResult.unwrap())
+            return attemptToTransitionSubscriptionBillingPeriod(
+              billingPeriod,
+              effectsCtx
+            )
           }
         )
         const { billingRun } = txResult.unwrap()

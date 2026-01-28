@@ -39,7 +39,7 @@ describe('insertSubscriptionMeterPeriodCalculation', () => {
   let billingRun: BillingRun.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

@@ -19,7 +19,7 @@ describe('memberships notificationPreferences', () => {
   let membership: Membership.Record
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
     membership = await setupMemberships({ organizationId })
   })

@@ -46,11 +46,11 @@ describe('insertFeature uniqueness constraints', () => {
   let pricingModel2: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData1 = await setupOrg()
+    const orgData1 = (await setupOrg()).unwrap()
     organization1 = orgData1.organization
     pricingModel1 = orgData1.pricingModel
 
-    const orgData2 = await setupOrg()
+    const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
     pricingModel2 = orgData2.pricingModel
   })
@@ -243,7 +243,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
   beforeEach(async () => {
     // Setup organization and product
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -592,7 +592,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
 describe('selectFeaturesTableRowData search', () => {
   it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
 
     const feature = await setupToggleFeature({
       organizationId: organization.id,
@@ -645,7 +645,7 @@ describe('selectFeaturesTableRowData search', () => {
   })
 
   it('should return all features when search query is empty or undefined', async () => {
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
 
     await setupToggleFeature({
       organizationId: organization.id,
@@ -686,7 +686,7 @@ describe('Resource Feature schema and methods', () => {
   let resource: Resource.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

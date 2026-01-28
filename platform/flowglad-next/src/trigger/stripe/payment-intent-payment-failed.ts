@@ -1,5 +1,4 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { TransactionEffectsContext } from '@/db/types'
@@ -26,11 +25,10 @@ export const stripePaymentIntentPaymentFailedTask = task({
               emitEvent: params.emitEvent,
               enqueueLedgerCommand: params.enqueueLedgerCommand,
             }
-            const innerResult = await processOutcomeForBillingRun(
+            return processOutcomeForBillingRun(
               { input: payload },
               effectsCtx
             )
-            return Result.ok(innerResult.unwrap())
           })
           return txResult.unwrap()
         } else {

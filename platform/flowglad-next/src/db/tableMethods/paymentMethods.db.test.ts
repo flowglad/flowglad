@@ -53,7 +53,7 @@ describe('paymentMethods.ts', () => {
   let payment: Payment.Record
 
   beforeEach(async () => {
-    const setup = await setupOrg()
+    const setup = (await setupOrg()).unwrap()
     organization = setup.organization
 
     // Setup customer
@@ -435,7 +435,7 @@ describe('selectRevenueDataForOrganization', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     price = orgData.price
@@ -1859,7 +1859,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
   let price: Price.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     price = orgData.price
 
@@ -1942,7 +1942,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
     })
 
     // Setup second organization for isolation tests
-    const orgData2 = await setupOrg()
+    const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
 
     customerOtherOrg = await setupCustomer({
@@ -2390,7 +2390,7 @@ describe('pricingModelId derivation', () => {
   let purchase: Purchase.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

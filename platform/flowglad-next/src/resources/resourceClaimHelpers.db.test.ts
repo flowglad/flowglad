@@ -50,7 +50,7 @@ describe('resourceClaimHelpers', () => {
   let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -1247,7 +1247,7 @@ describe('expired_at functionality', () => {
   let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

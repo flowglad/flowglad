@@ -49,7 +49,7 @@ describe('pricingModelIdsForEventPayloads', () => {
   let paymentMethod: PaymentMethod.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -266,7 +266,7 @@ describe('derivePricingModelIdFromEventPayload', () => {
   let paymentMethod: PaymentMethod.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -414,7 +414,7 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
   let paymentMethod: PaymentMethod.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -762,7 +762,7 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
   })
 
   it('inserts events from multiple organizations in a single batch', async () => {
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
     const customer2 = await setupCustomer({
       organizationId: org2Data.organization.id,
       email: `test2+${Date.now()}@test.com`,

@@ -186,11 +186,11 @@ describe('Customer Role RLS Policies', () => {
 
   beforeEach(async () => {
     // Setup organizations - this ensures clean test isolation
-    const org1Data = await setupOrg()
+    const org1Data = (await setupOrg()).unwrap()
     org1 = org1Data.organization
     org1Price = org1Data.price
 
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
     org2 = org2Data.organization
     org2Price = org2Data.price
 
@@ -2109,7 +2109,7 @@ describe('Customer Role RLS Policies', () => {
 
     beforeEach(async () => {
       // Set up organization with default pricing model
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       defaultPricingModel = orgData.pricingModel
 

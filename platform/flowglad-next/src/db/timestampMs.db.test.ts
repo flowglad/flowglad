@@ -83,7 +83,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
   let featureId: string
 
   beforeEach(async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     orgId = organization.id
     productId = product.id
 

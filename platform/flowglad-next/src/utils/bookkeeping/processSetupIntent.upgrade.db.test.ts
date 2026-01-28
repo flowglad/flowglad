@@ -77,7 +77,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
   beforeEach(async () => {
     // Set up organization with default pricing model
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

@@ -45,9 +45,9 @@ let secretApiKeyTokenTest: string
 
 beforeEach(async () => {
   // Webapp-focused user and memberships across 3 orgs
-  const webOrgSetupA = await setupOrg()
-  const webOrgSetupB = await setupOrg()
-  const webOrgSetupC = await setupOrg()
+  const webOrgSetupA = (await setupOrg()).unwrap()
+  const webOrgSetupB = (await setupOrg()).unwrap()
+  const webOrgSetupC = (await setupOrg()).unwrap()
   webOrgA = webOrgSetupA.organization
   webOrgB = webOrgSetupB.organization
   webOrgC = webOrgSetupC.organization
@@ -99,7 +99,7 @@ beforeEach(async () => {
   })
 
   // Secret API key user inside a dedicated org, with clerkId present
-  const secretOrgSetup = await setupOrg()
+  const secretOrgSetup = (await setupOrg()).unwrap()
   secretOrg = secretOrgSetup.organization
   secretClerkId = `clerk_${core.nanoid()}`
   await adminTransaction(async ({ transaction }) => {
@@ -127,16 +127,20 @@ beforeEach(async () => {
   })
 
   // Secret API key tokens for integration path using test-mode keyVerify
-  const secretApiKeyOrgSetup = await setupOrg()
+  const secretApiKeyOrgSetup = (await setupOrg()).unwrap()
   secretApiKeyOrg = secretApiKeyOrgSetup.organization
-  const liveKey = await setupUserAndApiKey({
-    organizationId: secretApiKeyOrg.id,
-    livemode: true,
-  })
-  const testKey = await setupUserAndApiKey({
-    organizationId: secretApiKeyOrg.id,
-    livemode: false,
-  })
+  const liveKey = (
+    await setupUserAndApiKey({
+      organizationId: secretApiKeyOrg.id,
+      livemode: true,
+    })
+  ).unwrap()
+  const testKey = (
+    await setupUserAndApiKey({
+      organizationId: secretApiKeyOrg.id,
+      livemode: false,
+    })
+  ).unwrap()
   secretApiKeyTokenLive = liveKey.apiKey.token
   secretApiKeyTokenTest = testKey.apiKey.token
 })
@@ -259,7 +263,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // expects: jwtClaim.organization_id === ''
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `deactivated+${core.nanoid()}@test.com`
-    const testOrg = (await setupOrg()).organization
+    const testOrg = (await setupOrg()).unwrap().organization
 
     await adminTransaction(async ({ transaction }) => {
       const [testUser] = await transaction
@@ -312,7 +316,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // expects: jwtClaim.organization_id === the org's id
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `active+${core.nanoid()}@test.com`
-    const testOrg = (await setupOrg()).organization
+    const testOrg = (await setupOrg()).unwrap().organization
 
     let testUserId: string
     await adminTransaction(async ({ transaction }) => {
@@ -359,7 +363,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // This tests the AND condition: both focused=true AND deactivatedAt IS NULL must be true
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `focused-deactivated+${core.nanoid()}@test.com`
-    const testOrg = (await setupOrg()).organization
+    const testOrg = (await setupOrg()).unwrap().organization
 
     await adminTransaction(async ({ transaction }) => {
       const [testUser] = await transaction
@@ -492,7 +496,7 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
     // expects:
     // - function currently attempts to access membershipsForOrganization[0].users.id and will throw when the array is empty
     // - assert that an error is thrown (document existing behavior; candidate for future fix)
-    const otherOrg = (await setupOrg()).organization
+    const otherOrg = (await setupOrg()).unwrap().organization
     const verifyKeyResult = {
       keyType: FlowgladApiKeyType.Secret,
       userId: secretUser.id,
@@ -763,9 +767,9 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
   beforeEach(async () => {
     // Setup organizations
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     customerOrg = orgSetup.organization
-    const otherOrgSetup = await setupOrg()
+    const otherOrgSetup = (await setupOrg()).unwrap()
     differentOrg = otherOrgSetup.organization
 
     // Create merchant user with membership
@@ -1211,8 +1215,8 @@ describe('Focused membership consistency between databaseAuthentication and trpc
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `consistency-test+${core.nanoid()}@test.com`
 
-    const org1 = (await setupOrg()).organization
-    const org2 = (await setupOrg()).organization
+    const org1 = (await setupOrg()).unwrap().organization
+    const org2 = (await setupOrg()).unwrap().organization
 
     await adminTransaction(async ({ transaction }) => {
       const [testUser] = await transaction
@@ -1278,9 +1282,9 @@ describe('Focused membership consistency between databaseAuthentication and trpc
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `consistency-focused+${core.nanoid()}@test.com`
 
-    const org1 = (await setupOrg()).organization
-    const org2 = (await setupOrg()).organization
-    const org3 = (await setupOrg()).organization
+    const org1 = (await setupOrg()).unwrap().organization
+    const org2 = (await setupOrg()).unwrap().organization
+    const org3 = (await setupOrg()).unwrap().organization
 
     let focusedOrgId: string
     let testUserId: string

@@ -20,11 +20,11 @@ describe('validateAndResolvePricingModelId', () => {
       const {
         organization: organization1,
         pricingModel: pricingModel1,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const {
         organization: organization2,
         pricingModel: pricingModel2,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
 
       return {
         org1Id: organization1.id,

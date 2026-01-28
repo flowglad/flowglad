@@ -67,7 +67,7 @@ describe('clonePricingModelTransaction', () => {
   let userId: string
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
     // Use testmode source pricing model to avoid livemode uniqueness constraint
@@ -1924,7 +1924,7 @@ describe('createPriceTransaction', () => {
   let userId: string
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     pricingModel = orgSetup.pricingModel
     defaultProduct = orgSetup.product
@@ -2121,7 +2121,7 @@ describe('createProductTransaction', () => {
   let features: Feature.Record[]
   let org1ApiKey: ApiKey.Record
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     sourcePricingModel = await setupPricingModel({
       organizationId: organization.id,
@@ -2628,7 +2628,7 @@ describe('editProductTransaction - Feature Updates', () => {
   let apiKeyToken: string
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     product = orgSetup.product
 
@@ -2900,7 +2900,7 @@ describe('editProductTransaction - Price Updates', () => {
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product
-    const result = await setupOrg()
+    const result = (await setupOrg()).unwrap()
 
     organizationId = result.organization.id
     pricingModelId = result.pricingModel.id
@@ -3211,7 +3211,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product
-    const result = await setupOrg()
+    const result = (await setupOrg()).unwrap()
 
     organizationId = result.organization.id
     pricingModelId = result.pricingModel.id

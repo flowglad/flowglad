@@ -59,7 +59,7 @@ describe('organizationsRouter - notification preferences', () => {
   let apiKeyToken: string
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
     const userApiKeySetup = await setupUserAndApiKey({
@@ -146,7 +146,7 @@ describe('organizationsRouter - notification preferences', () => {
 
     it('throws NOT_FOUND when membership does not exist', async () => {
       // Setup a second organization to get a user without membership in the first org
-      const secondOrgSetup = await setupOrg()
+      const secondOrgSetup = (await setupOrg()).unwrap()
       const secondUserSetup = await setupUserAndApiKey({
         organizationId: secondOrgSetup.organization.id,
         livemode: true,
@@ -260,7 +260,7 @@ describe('organizationsRouter - notification preferences', () => {
 
     it('throws NOT_FOUND when membership does not exist', async () => {
       // Setup a second organization to get a user without membership in the first org
-      const secondOrgSetup = await setupOrg()
+      const secondOrgSetup = (await setupOrg()).unwrap()
       const secondUserSetup = await setupUserAndApiKey({
         organizationId: secondOrgSetup.organization.id,
         livemode: true,

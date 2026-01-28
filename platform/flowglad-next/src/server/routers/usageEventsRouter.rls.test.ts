@@ -65,7 +65,7 @@ describe('usageEventsRouter', () => {
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
     // Setup organization 1 with API key
-    org1Data = await setupOrg()
+    org1Data = (await setupOrg()).unwrap()
 
     // Parallelize independent setup operations
     const [userApiKeyOrg1, usageMeterResult] = await Promise.all([
@@ -130,7 +130,7 @@ describe('usageEventsRouter', () => {
 
   // Helper to create org2 data only when needed for cross-tenant tests
   async function setupOrg2() {
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
     const userApiKeyOrg2 = await setupUserAndApiKey({
       organizationId: org2Data.organization.id,
       livemode: true,
@@ -269,7 +269,7 @@ describe('usageEventsRouter', () => {
 
     it('should handle empty results when no usage events exist', async () => {
       // Create isolated org quickly (parallel setup)
-      const isolatedOrgData = await setupOrg()
+      const isolatedOrgData = (await setupOrg()).unwrap()
       const userApiKey = await setupUserAndApiKey({
         organizationId: isolatedOrgData.organization.id,
         livemode: true,
@@ -294,7 +294,7 @@ describe('usageEventsRouter', () => {
     it('should respect limit parameter', async () => {
       // Create an isolated org for deterministic testing
       // (the list procedure's customerId filter doesn't affect total count)
-      const isolatedOrgData = await setupOrg()
+      const isolatedOrgData = (await setupOrg()).unwrap()
       const isolatedUserApiKey = await setupUserAndApiKey({
         organizationId: isolatedOrgData.organization.id,
         livemode: true,
@@ -464,7 +464,7 @@ describe('usageEventsRouter', () => {
 
     it('should handle empty results when no usage events exist', async () => {
       // Create isolated org quickly (parallel setup)
-      const isolatedOrgData = await setupOrg()
+      const isolatedOrgData = (await setupOrg()).unwrap()
       const userApiKey = await setupUserAndApiKey({
         organizationId: isolatedOrgData.organization.id,
         livemode: true,

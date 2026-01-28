@@ -38,7 +38,7 @@ import {
 
 describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   it('should return empty array if no billing periods found', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
 
     const startDate = new Date('2023-06-01T05:00:00.000Z')
     const endDate = new Date('2023-06-30T05:00:00.000Z')
@@ -56,7 +56,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should correctly retrieve billing periods that overlap with the date range', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -143,7 +145,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should not return billing periods that do not overlap with the date range', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -206,7 +210,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should handle billing periods that partially overlap with the date range', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -272,7 +278,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should handle billing periods that completely contain the date range', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -338,7 +346,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should handle multiple billing periods that overlap with the date range', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -430,7 +440,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should handle billing periods with multiple items', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -528,7 +540,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should handle billing periods with different subscription intervals', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -636,7 +650,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   })
 
   it('should handle billing periods with different statuses', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -743,7 +759,7 @@ describe('pricingModelId derivation', () => {
   let billingPeriod: BillingPeriod.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

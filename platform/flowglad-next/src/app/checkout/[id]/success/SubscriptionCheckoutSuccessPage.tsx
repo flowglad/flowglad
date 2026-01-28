@@ -54,11 +54,10 @@ const SubscriptionCheckoutSuccessPage = async ({
   if (checkoutSession.customerId) {
     const customerTxResult = await adminTransaction(
       async ({ transaction }) => {
-        const innerResult = await selectCustomerById(
+        return selectCustomerById(
           checkoutSession.customerId!,
           transaction
         )
-        return Result.ok(innerResult.unwrap())
       }
     )
     const customer = customerTxResult.unwrap()

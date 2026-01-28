@@ -76,7 +76,7 @@ describe('createSubscriptionWorkflow', async () => {
   let billingRun: BillingRun.Record | null // Can be null
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     defaultPrice = orgData.price
@@ -802,7 +802,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
   let defaultPriceForBillingRunTests: Price.Record // Specific name for this context
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     defaultPriceForBillingRunTests = orgData.price
@@ -973,8 +973,9 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
 
 describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () => {
   it('should create SubscriptionItemFeatures when a subscription is created for a product with features', async () => {
-    const { organization, product, price, pricingModel } =
+    const { organization, product, price, pricingModel } = (
       await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -1083,8 +1084,9 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
   })
 
   it('should create SubscriptionItemFeatures with correct livemode (false) based on the subscription item', async () => {
-    const { organization, product, price, pricingModel } =
-      await setupOrg() // Create org/product/price with livemode false
+    const { organization, product, price, pricingModel } = (
+      await setupOrg()
+    ).unwrap() // Create org/product/price with livemode false
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: false,
@@ -1156,8 +1158,9 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
 
   it('should associate the correct usageMeterId with usage credit grant SubscriptionItemFeatures', async () => {
     // Setup
-    const { organization, product, price, pricingModel } =
+    const { organization, product, price, pricingModel } = (
       await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1233,7 +1236,9 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
 
   it('should NOT create SubscriptionItemFeatures if the product has no associated features', async () => {
     // Standard setupOrg creates product/price without features
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1281,8 +1286,9 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
 
   // New test for quantity-based usage credit grant amount
   it('should multiply usage credit grant amount by subscription item quantity for usage based product features', async () => {
-    const { organization, product, price, pricingModel } =
+    const { organization, product, price, pricingModel } = (
       await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1364,7 +1370,7 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
   let paymentMethod: PaymentMethod.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     defaultProduct = orgData.product
     defaultSubscriptionPrice = orgData.price
@@ -1478,7 +1484,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     defaultPrice = orgData.price
@@ -2021,7 +2027,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
 
 describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
   it('cancels existing free subscription and preserves billing cycle when preserveBillingCycleAnchor is true', async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2150,7 +2156,7 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
   })
 
   it('cancels existing free subscription and resets billing cycle when preserveBillingCycleAnchor is falsey', async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2280,7 +2286,9 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
 
 describe('createSubscriptionWorkflow cache invalidations', async () => {
   it('returns customerSubscriptions cache invalidation for the customer', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2329,7 +2337,9 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
   })
 
   it('returns customerSubscriptions cache invalidation with the correct customerId', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer1 = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2386,7 +2396,7 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
 
 describe('createSubscriptionWorkflow trial eligibility', async () => {
   it('customer who has never used a trial gets a trial when eligible', async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2443,7 +2453,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
   })
 
   it('customer who has used a trial before does not get another trial', async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2540,7 +2550,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
   })
 
   it('customer with canceled subscription that had a trial does not get another trial', async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2637,7 +2647,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
   })
 
   it('trial eligibility check works when price has trialPeriodDays but no explicit trialEnd provided', async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -2734,7 +2744,7 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
   })
 
   it('trial eligibility is undefined for non-subscription price types', async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,

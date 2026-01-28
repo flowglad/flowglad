@@ -702,7 +702,7 @@ export const setupBillingRun = async ({
 }): Promise<BillingRun.Record> => {
   return (
     await adminTransaction(async ({ transaction }) => {
-      const result = await safelyInsertBillingRun(
+      return safelyInsertBillingRun(
         {
           billingPeriodId,
           paymentMethodId,
@@ -716,7 +716,6 @@ export const setupBillingRun = async ({
         },
         transaction
       )
-      return Result.ok(result.unwrap())
     })
   ).unwrap()
 }
@@ -1511,11 +1510,7 @@ export const setupCheckoutSession = async ({
     insert = activateSubscriptionCheckoutSessionInsert
   }
   return adminTransaction(async ({ transaction }) => {
-    const checkoutSessionResult = await insertCheckoutSession(
-      insert,
-      transaction
-    )
-    return Result.ok(checkoutSessionResult.unwrap())
+    return insertCheckoutSession(insert, transaction)
   })
 }
 
@@ -2171,11 +2166,10 @@ export const setupDebitLedgerEntry = async (
 
   return (
     await adminTransaction(async ({ transaction }) => {
-      const result = await insertLedgerEntry(
+      return insertLedgerEntry(
         debitEntryInsertFromDebigLedgerParams(params),
         transaction
       )
-      return Result.ok(result.unwrap())
     })
   ).unwrap()
 }
@@ -2289,11 +2283,10 @@ export const setupCreditLedgerEntry = async (
 ): Promise<LedgerEntry.Record> => {
   return (
     await adminTransaction(async ({ transaction }) => {
-      const result = await insertLedgerEntry(
+      return insertLedgerEntry(
         creditLedgerEntryInsertFromCreditLedgerParams(params),
         transaction
       )
-      return Result.ok(result.unwrap())
     })
   ).unwrap()
 }
@@ -2547,7 +2540,7 @@ export const setupLedgerEntries = async (params: {
       }),
       transaction
     )
-    return Result.ok(result.unwrap())
+    return result
   })
 }
 

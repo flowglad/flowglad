@@ -9,12 +9,16 @@ import type { Organization } from './schema/organizations'
 import { selectOrganizations } from './tableMethods/organizationMethods'
 
 describe('adminTransaction', () => {
-  it('propagates errors from transaction callback', async () => {
-    await expect(
-      adminTransaction(async () => {
-        throw new Error('Admin transaction rolled back')
-      })
-    ).rejects.toThrow('Admin transaction rolled back')
+  it('returns Result.err when transaction callback throws', async () => {
+    const result = await adminTransaction(async () => {
+      throw new Error('Admin transaction rolled back')
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toBe(
+        'Admin transaction rolled back'
+      )
+    }
   })
 })
 
@@ -22,7 +26,7 @@ describe('adminTransactionUnwrap', () => {
   let testOrg: Organization.Record
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     testOrg = orgSetup.organization
   })
 

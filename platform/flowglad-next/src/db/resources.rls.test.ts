@@ -28,7 +28,7 @@ describe('resources RLS - merchant role sequence permissions', () => {
   let apiKey: ApiKey.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -151,7 +151,7 @@ describe('resources RLS - merchant role sequence permissions', () => {
   describe('cross-organization RLS isolation', () => {
     it('cannot access resources from another organization', async () => {
       // Create a second organization
-      const org2Data = await setupOrg()
+      const org2Data = (await setupOrg()).unwrap()
       const org2ApiKey = await setupUserAndApiKey({
         organizationId: org2Data.organization.id,
         livemode: true,

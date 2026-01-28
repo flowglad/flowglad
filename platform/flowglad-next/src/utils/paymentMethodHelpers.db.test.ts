@@ -102,7 +102,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
   let customer: Customer.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

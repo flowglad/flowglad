@@ -30,7 +30,7 @@ describe('productsRouter - Default Product Constraints', () => {
     // Set up organization and pricing model with default product
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       // Create pricing model with default product using the new bookkeeping function
       const bookkeepingResult = await createPricingModelBookkeeping(

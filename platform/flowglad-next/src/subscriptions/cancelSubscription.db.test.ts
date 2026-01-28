@@ -92,7 +92,7 @@ import {
 import { CacheDependency } from '@/utils/cache'
 
 describe('Subscription Cancellation Test Suite', async () => {
-  const { organization, price } = await setupOrg()
+  const { organization, price } = (await setupOrg()).unwrap()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -140,7 +140,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: defaultPrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -205,7 +205,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: defaultPrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -277,7 +277,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: defaultPrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -344,7 +344,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: defaultPrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -381,7 +381,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: defaultPrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -436,7 +436,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         product,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -496,7 +496,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         product,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -553,7 +553,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: defaultPrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -636,7 +636,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: defaultPrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -2122,7 +2122,9 @@ describe('Subscription Cancellation Test Suite', async () => {
   describe('Subscription Item Expiration on Cancellation', () => {
     it('should expire subscription items and their features when canceling immediately', async () => {
       // Setup
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -2236,7 +2238,9 @@ describe('Subscription Cancellation Test Suite', async () => {
 
     it('should expire multiple subscription items and features when canceling immediately', async () => {
       // Setup
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -2414,7 +2418,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: freePrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -2478,7 +2482,9 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should allow cancellation of paid plan subscriptions', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -2545,7 +2551,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         organization,
         price: freePrice,
         pricingModel,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -3838,7 +3844,9 @@ describe('Subscription Cancellation Test Suite', async () => {
 =========================================================================== */
 describe('cancelSubscription with resources', async () => {
   it('when a subscription is canceled immediately with active resource claims (both cattle and pet), releases all claims with releaseReason set to subscription_canceled', async () => {
-    const { organization, pricingModel, price } = await setupOrg()
+    const { organization, pricingModel, price } = (
+      await setupOrg()
+    ).unwrap()
 
     const resource = await setupResource({
       organizationId: organization.id,
@@ -4017,7 +4025,9 @@ describe('cancelSubscription with resources', async () => {
   })
 
   it('when a subscription cancellation is scheduled for end of billing period, claims remain active until cancellation executes', async () => {
-    const { organization, pricingModel, price } = await setupOrg()
+    const { organization, pricingModel, price } = (
+      await setupOrg()
+    ).unwrap()
 
     const resource = await setupResource({
       organizationId: organization.id,
@@ -4172,7 +4182,7 @@ describe('cancelSubscription with resources', async () => {
 describe('Subscription cancellation cache invalidations', async () => {
   describe('cancelSubscriptionImmediately', () => {
     it('returns customerSubscriptions cache invalidation for the customer', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -4203,7 +4213,7 @@ describe('Subscription cancellation cache invalidations', async () => {
     })
 
     it('returns cache invalidation for the correct customer when canceling', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer1 = await setupCustomer({
         organizationId: organization.id,
       })
@@ -4242,7 +4252,7 @@ describe('Subscription cancellation cache invalidations', async () => {
 
   describe('cancelSubscriptionProcedureTransaction', () => {
     it('returns customerSubscriptions cache invalidation when scheduling cancellation', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -4295,7 +4305,7 @@ describe('Subscription cancellation cache invalidations', async () => {
 
   describe('uncancelSubscription', () => {
     it('returns customerSubscriptions cache invalidation for the customer', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -4326,7 +4336,7 @@ describe('Subscription cancellation cache invalidations', async () => {
     })
 
     it('returns cache invalidation for the correct customer when uncanceling', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer1 = await setupCustomer({
         organizationId: organization.id,
       })

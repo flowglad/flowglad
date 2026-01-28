@@ -32,7 +32,7 @@ describe('membership deactivation filtering', () => {
 
   beforeEach(async () => {
     // Setup organization
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     org = orgData.organization
 
     // Create two memberships - one active, one to be deactivated
@@ -280,7 +280,7 @@ describe('membership deactivation filtering', () => {
   describe('selectMembershipAndOrganizationsByBetterAuthUserId', () => {
     it('excludes deactivated memberships by default and includes them when includeDeactivated is true', async () => {
       // Create a second org for the deactivated membership
-      const org2Data = await setupOrg()
+      const org2Data = (await setupOrg()).unwrap()
 
       // Create a user with betterAuthId and memberships
       const betterAuthUserId = `ba_${core.nanoid()}`

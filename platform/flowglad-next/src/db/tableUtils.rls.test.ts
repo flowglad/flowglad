@@ -35,7 +35,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
   let org2Data: Awaited<ReturnType<typeof setupOrg>>
   let org1UserApiKey: ApiKey.Record & { token: string }
   beforeEach(async () => {
-    org1Data = await setupOrg() // Sets up org, product, price in livemode (presumably true)
+    org1Data = (await setupOrg()).unwrap() // Sets up org, product, price in livemode (presumably true)
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
       livemode: false, // Use testmode API key to allow inserting testmode pricing models
@@ -45,7 +45,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
     org1UserApiKey = userApiKeyOrg1.apiKey
-    org2Data = await setupOrg() // Sets up another org
+    org2Data = (await setupOrg()).unwrap() // Sets up another org
   })
 
   it('should ALLOW a user to manage pricingModels, products, and prices within their organization', async () => {

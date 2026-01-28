@@ -61,7 +61,7 @@ describe('customers.getUsageBalances', () => {
 
   beforeEach(async () => {
     // Setup organization with API key
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     pricingModelId = orgSetup.pricingModel.id
 
@@ -492,7 +492,7 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup a canceled subscription for the same customer
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     const canceledSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
@@ -582,7 +582,7 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup a canceled subscription for the same customer
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     const canceledSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,

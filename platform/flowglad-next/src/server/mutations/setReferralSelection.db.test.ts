@@ -13,7 +13,7 @@ describe('innerSetReferralSelectionHandler', () => {
   let organization: Organization.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     await setupUserAndApiKey({
       organizationId: organization.id,

@@ -73,7 +73,7 @@ describe('Pricing Model Migration Test Suite', async () => {
     price: orgDefaultPrice,
     pricingModel: orgLivePricingModel,
     product: orgDefaultProduct,
-  } = await setupOrg()
+  } = (await setupOrg()).unwrap()
   let customer: Customer.Record
   let pricingModel1: PricingModel.Record
   let pricingModel2: PricingModel.Record
@@ -1280,7 +1280,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should return Result.err when new pricing model belongs to different organization', async () => {
       // Setup: Create pricing model for different organization
-      const { organization: org2 } = await setupOrg()
+      const { organization: org2 } = (await setupOrg()).unwrap()
       const otherPricingModel = await setupPricingModel({
         organizationId: org2.id,
         name: 'Other Org Pricing Model',
@@ -1450,7 +1450,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should throw FORBIDDEN when pricing model belongs to different organization', async () => {
       // Setup: Create pricing model for different organization
-      const { organization: org2 } = await setupOrg()
+      const { organization: org2 } = (await setupOrg()).unwrap()
       const otherPricingModel = await setupPricingModel({
         organizationId: org2.id,
         name: 'Other Org Pricing Model',

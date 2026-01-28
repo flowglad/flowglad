@@ -30,7 +30,7 @@ describe('apiKeyHelpers', () => {
 
   beforeEach(async () => {
     // Setup test data
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
     // Create a test customer

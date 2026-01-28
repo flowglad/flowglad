@@ -57,7 +57,7 @@ describe('subscriptionsRouter', () => {
 
   beforeEach(async () => {
     // Setup organization with API key
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
     const userApiKeySetup = await setupUserAndApiKey({
@@ -125,7 +125,7 @@ describe('validateAndResolvePriceForSubscription', () => {
   let customer: Customer.Record
 
   beforeEach(async () => {
-    const setup = await setupOrg()
+    const setup = (await setupOrg()).unwrap()
     organization = setup.organization
     product = setup.product
 
@@ -280,7 +280,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
   let customer: Customer.Record
 
   beforeEach(async () => {
-    const setup = await setupOrg()
+    const setup = (await setupOrg()).unwrap()
     organization = setup.organization
 
     // Setup customer with externalId

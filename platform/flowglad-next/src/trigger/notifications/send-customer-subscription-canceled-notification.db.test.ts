@@ -33,7 +33,7 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
       error: null,
     })
 
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
     customer = await setupCustomer({
@@ -84,7 +84,7 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
       )
     })
 
-    const orgSetup2 = await setupOrg()
+    const orgSetup2 = (await setupOrg()).unwrap()
     const subscriptionForCustomerWithoutEmail =
       await setupSubscription({
         organizationId: organization.id,
@@ -113,7 +113,7 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
 
   it('returns Result.ok with skip message when subscription has no cancellation date', async () => {
     // Create a subscription without cancellation date
-    const orgSetup2 = await setupOrg()
+    const orgSetup2 = (await setupOrg()).unwrap()
     const activeSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,

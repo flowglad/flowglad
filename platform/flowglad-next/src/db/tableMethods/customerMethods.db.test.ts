@@ -35,8 +35,8 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     stackAuthHostedBillingUserId = `stackauth_${core.nanoid()}`
 
     // Set up two organizations
-    const { organization: org1 } = await setupOrg()
-    const { organization: org2 } = await setupOrg()
+    const { organization: org1 } = (await setupOrg()).unwrap()
+    const { organization: org2 } = (await setupOrg()).unwrap()
     org1Id = org1.id
     org2Id = org2.id
   })
@@ -299,7 +299,7 @@ describe('setUserIdForCustomerRecords', () => {
 
   beforeEach(async () => {
     // Set up organization
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
 
     // Set up users
@@ -506,7 +506,7 @@ describe('setUserIdForCustomerRecords', () => {
 
   it('should update customers across different organizations when they have the same email', async () => {
     // Set up second organization
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
     const organization2 = org2Data.organization
 
     // Create customers with same email in different organizations
@@ -559,7 +559,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
   let organization: Organization.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
   })
 
@@ -701,7 +701,9 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     })
 
     // Create a second organization
-    const { organization: organization2 } = await setupOrg()
+    const { organization: organization2 } = (
+      await setupOrg()
+    ).unwrap()
 
     // Lookup in org2 should return null (customer doesn't exist in org2)
     const result = await adminTransaction(async ({ transaction }) => {
@@ -743,11 +745,11 @@ describe('Customer uniqueness constraints', () => {
 
   beforeEach(async () => {
     // Set up two organizations for testing cross-org scenarios
-    const org1Data = await setupOrg()
+    const org1Data = (await setupOrg()).unwrap()
     organization1 = org1Data.organization
     pricingModel1Id = org1Data.pricingModel.id
 
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
     organization2 = org2Data.organization
     pricingModel2Id = org2Data.pricingModel.id
   })
@@ -1295,7 +1297,7 @@ describe('Customer uniqueness constraints', () => {
     it('should allow customers with the same invoiceNumberBase in same organization but different livemode', async () => {
       const sharedInvoiceBase = `INV${core.nanoid().slice(0, 6)}`
       // Get testmode pricing model for this test
-      const { testmodePricingModel } = await setupOrg()
+      const { testmodePricingModel } = (await setupOrg()).unwrap()
 
       // Create customer with livemode=true
       const customerLive = await adminTransaction(
@@ -1521,7 +1523,7 @@ describe('Customer uniqueness constraints', () => {
 
     it('should allow multiple customers with different stripeCustomerIds', async () => {
       // Get testmode pricing model for this test
-      const { testmodePricingModel } = await setupOrg()
+      const { testmodePricingModel } = (await setupOrg()).unwrap()
       // Create three customers with different stripeCustomerIds
       const customer1 = await adminTransaction(
         async ({ transaction }) => {
@@ -1593,7 +1595,7 @@ describe('Customer uniqueness constraints', () => {
 
     it('should allow null stripeCustomerId values', async () => {
       // Get testmode pricing model for this test
-      const { testmodePricingModel } = await setupOrg()
+      const { testmodePricingModel } = (await setupOrg()).unwrap()
       // Create multiple customers without stripeCustomerId - use insertCustomer directly
       const customer1 = await adminTransaction(
         async ({ transaction }) => {
@@ -1730,7 +1732,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
   let customerOtherOrg: Customer.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -1757,7 +1759,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
     })
 
     // Setup second organization for isolation tests
-    const orgData2 = await setupOrg()
+    const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
 
     customerOtherOrg = await setupCustomer({
@@ -1933,7 +1935,7 @@ describe('selectCustomerPricingInfoBatch', () => {
   let pricingModel2: { id: string }
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel1 = orgData.pricingModel
 

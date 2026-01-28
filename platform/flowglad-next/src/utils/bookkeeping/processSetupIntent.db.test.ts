@@ -136,7 +136,7 @@ const mockRequiresPaymentMethodSetupIntent = (
 
 describe('Process setup intent', async () => {
   // Common variables for all tests
-  const { organization, price } = await setupOrg()
+  const { organization, price } = (await setupOrg()).unwrap()
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
   let paymentMethod: PaymentMethod.Record

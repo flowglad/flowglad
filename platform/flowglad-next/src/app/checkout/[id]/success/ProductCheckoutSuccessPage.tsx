@@ -19,11 +19,7 @@ const ProductCheckoutSuccessPage = async ({
   if (product.customerId) {
     const txResult = await adminTransaction(
       async ({ transaction }) => {
-        const innerResult = await selectCustomerById(
-          product.customerId!,
-          transaction
-        )
-        return Result.ok(innerResult.unwrap())
+        return selectCustomerById(product.customerId!, transaction)
       }
     )
     const customer = txResult.unwrap()

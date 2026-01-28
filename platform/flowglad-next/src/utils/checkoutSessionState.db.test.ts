@@ -29,7 +29,9 @@ describe('createNonInvoiceCheckoutSession', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const { organization: org, pricingModel: pm } = await setupOrg()
+    const { organization: org, pricingModel: pm } = (
+      await setupOrg()
+    ).unwrap()
     pricingModel = pm
     organization = org
     customer = await setupCustomer({
@@ -90,8 +92,9 @@ describe('createNonInvoiceCheckoutSession', () => {
   describe('Default product validation', () => {
     it('should throw an error when trying to create a checkout session for a default product', async () => {
       // Create a default product and price
-      const { organization: defaultOrg, product: defaultProduct } =
+      const { organization: defaultOrg, product: defaultProduct } = (
         await setupOrg()
+      ).unwrap()
       try {
         const defaultPrice = await setupPrice({
           productId: defaultProduct.id,

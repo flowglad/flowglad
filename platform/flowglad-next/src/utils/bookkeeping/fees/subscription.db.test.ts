@@ -49,7 +49,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
   let testDiscount: Discount.Record
 
   beforeEach(async () => {
-    orgData = await setupOrg()
+    orgData = (await setupOrg()).unwrap()
     customer = await setupCustomer({
       organizationId: orgData.organization.id,
     })
@@ -275,7 +275,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
 
 describe('createAndFinalizeSubscriptionFeeCalculation', () => {
   it('creates a fee calculation for subscription with a usage price (no product lookup required)', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
     })

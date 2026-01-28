@@ -28,11 +28,7 @@ export const saveOrganizationCodebaseMarkdown = async ({
   // Fetch organization to get securitySalt
   const orgResult = await adminTransaction(
     async ({ transaction }) => {
-      return Result.ok(
-        (
-          await selectOrganizationById(organizationId, transaction)
-        ).unwrap()
-      )
+      return selectOrganizationById(organizationId, transaction)
     }
   )
   const organization = orgResult.unwrap()
@@ -75,11 +71,7 @@ export const getOrganizationCodebaseMarkdown = async (
   // Fetch hash from database
   const orgResult = await adminTransaction(
     async ({ transaction }) => {
-      return Result.ok(
-        (
-          await selectOrganizationById(organizationId, transaction)
-        ).unwrap()
-      )
+      return selectOrganizationById(organizationId, transaction)
     }
   )
   const organization = orgResult.unwrap()
@@ -114,11 +106,7 @@ export const savePricingModelIntegrationMarkdown = async ({
   // Fetch organization to get securitySalt
   const orgResult = await adminTransaction(
     async ({ transaction }) => {
-      return Result.ok(
-        (
-          await selectOrganizationById(organizationId, transaction)
-        ).unwrap()
-      )
+      return selectOrganizationById(organizationId, transaction)
     }
   )
   const organization = orgResult.unwrap()

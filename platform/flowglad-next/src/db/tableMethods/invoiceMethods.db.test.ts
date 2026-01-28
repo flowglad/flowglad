@@ -46,9 +46,12 @@ describe('selectInvoicesTableRowData', () => {
 
   beforeEach(async () => {
     // Set up organizations
-    const { organization: org1, pricingModel } = await setupOrg()
-    const { organization: org2, pricingModel: pricingModel2 } =
+    const { organization: org1, pricingModel } = (
       await setupOrg()
+    ).unwrap()
+    const { organization: org2, pricingModel: pricingModel2 } = (
+      await setupOrg()
+    ).unwrap()
     org1Id = org1.id
     org2Id = org2.id
 
@@ -569,7 +572,9 @@ describe('selectInvoicesTableRowData', () => {
     let customer: Customer.Record
 
     beforeEach(async () => {
-      const { organization, pricingModel: pm } = await setupOrg()
+      const { organization, pricingModel: pm } = (
+        await setupOrg()
+      ).unwrap()
       pricingModel = pm
 
       const product = await setupProduct({

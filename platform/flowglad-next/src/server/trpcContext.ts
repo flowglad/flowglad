@@ -100,11 +100,7 @@ export const createApiContext = ({
       ?.replace(/^Bearer\s/, '')
     const orgTxResult = await adminTransaction(
       async ({ transaction }) => {
-        const orgResult = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
-        return Result.ok(orgResult.unwrap())
+        return selectOrganizationById(organizationId, transaction)
       }
     )
     const organization = orgTxResult.unwrap()

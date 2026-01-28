@@ -25,7 +25,7 @@ describe('createUsageMeterTransaction', () => {
   let userId: string
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
     pricingModel = orgSetup.pricingModel
 

@@ -110,7 +110,7 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     // - create an active subscription for the customer on the subscription price
     // - create a SinglePayment price to use in positive-path cases
     // - create invoice and payment linked to the customer and organization
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     subscriptionPrice = orgData.price
@@ -498,7 +498,7 @@ describe('Process payment intent status updated', async () => {
   let product: Product.Record
   let price: Price.Record
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
     price = orgData.price
@@ -1570,7 +1570,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res.unwrap())
+          return res
         })
       ).rejects.toThrow(/PaymentIntentMetadata not found/)
     })
@@ -1593,7 +1593,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res.unwrap())
+          return res
         })
       ).rejects.toThrow(/LatestCharge not found/)
     })
@@ -1684,7 +1684,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res.unwrap())
+          return res
         })
         expect(payment).toMatchObject({})
       })
@@ -1794,7 +1794,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res.unwrap())
+          return res
         })
         expect(typeof payment).toBe('object')
         expect(payment.taxCountry).toBe(CountryCode.US)
@@ -1937,7 +1937,7 @@ describe('Process payment intent status updated', async () => {
           fakePI,
           ctx
         )
-        return Result.ok(res.unwrap())
+        return res
       })
       expect(typeof payment).toBe('object')
       const events = await adminTransaction(async ({ transaction }) =>
@@ -2009,7 +2009,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res.unwrap())
+          return res
         }
       )
       const { payment: payment2 } = await adminTransaction(
@@ -2019,7 +2019,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res.unwrap())
+          return res
         }
       )
       expect(payment1.id).toEqual(payment2.id)
@@ -2057,7 +2057,7 @@ describe('Process payment intent status updated', async () => {
 
     beforeEach(async () => {
       // Set up organization with product and price
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       product = orgData.product
       price = orgData.price
@@ -2161,7 +2161,7 @@ describe('Process payment intent status updated', async () => {
           paymentIntent,
           ctx
         )
-        return Result.ok(res.unwrap())
+        return res
       })
 
       expect(payment).toMatchObject({})
@@ -2304,7 +2304,7 @@ describe('Process payment intent status updated', async () => {
           paymentIntent,
           ctx
         )
-        return Result.ok(res.unwrap())
+        return res
       })
 
       expect(payment).toMatchObject({})
@@ -2389,7 +2389,7 @@ describe('Process payment intent status updated', async () => {
           paymentIntent,
           ctx
         )
-        return Result.ok(res.unwrap())
+        return res
       })
 
       expect(payment).toMatchObject({})
@@ -2472,7 +2472,7 @@ describe('Process payment intent status updated', async () => {
           paymentIntent,
           ctx
         )
-        return Result.ok(res.unwrap())
+        return res
       })
 
       expect(payment).toMatchObject({})
@@ -2584,7 +2584,7 @@ describe('Process payment intent status updated', async () => {
           mockPaymentIntent,
           ctx
         )
-        return Result.ok(res.unwrap())
+        return res
       })
 
       // Verify the payment has correct organizationId from checkoutSession
@@ -2783,7 +2783,7 @@ describe('Process payment intent status updated', async () => {
           mockPaymentIntent,
           ctx
         )
-        return Result.ok(res.unwrap())
+        return res
       })
 
       // Query events after transaction completes
@@ -2962,7 +2962,7 @@ describe('Process payment intent status updated', async () => {
     let subscription: import('@/db/schema/subscriptions').Subscription.Record
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       product = orgData.product
 
@@ -3079,7 +3079,7 @@ describe('Process payment intent status updated', async () => {
             invalidateCache,
           }
         )
-        return Result.ok(res.unwrap())
+        return res
       })
 
       // Verify ledger command was enqueued

@@ -69,7 +69,7 @@ describeIfRedisKey('cache recomputation integration', () => {
     const client = getRedisTestClient()
 
     // Setup: Create customer, subscription, and subscription item
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -201,7 +201,7 @@ describeIfRedisKey('cache recomputation integration', () => {
     const client = getRedisTestClient()
 
     // Setup: Create subscription item in testmode (livemode=false)
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: false,
@@ -315,7 +315,7 @@ describeIfRedisKey('cache recomputation integration', () => {
     const client = getRedisTestClient()
 
     // Setup test data
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })

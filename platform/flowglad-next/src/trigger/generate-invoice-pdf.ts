@@ -18,11 +18,7 @@ export const generateInvoicePdfTask = task({
       async () => {
         const invoiceResult = await adminTransaction(
           async ({ transaction }) => {
-            const innerResult = await selectInvoiceById(
-              invoiceId,
-              transaction
-            )
-            return Result.ok(innerResult.unwrap())
+            return selectInvoiceById(invoiceId, transaction)
           }
         )
         const invoice = invoiceResult.unwrap()

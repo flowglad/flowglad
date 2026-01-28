@@ -34,7 +34,7 @@ describe('safelyUpdatePricingModel', () => {
   let testmodeNonDefaultPricingModel: PricingModel.Record // testmode not default
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     livemodePricingModel = orgData.pricingModel // livemode: true, isDefault: true
 
@@ -152,7 +152,7 @@ describe('safelyUpdatePricingModel', () => {
   it('should not affect the default pricingModel of another organization', async () => {
     // The beforeEach creates our primary organization and its pricingModels.
     // Now, set up a completely separate organization with its own default pricingModel.
-    const otherOrgData = await setupOrg()
+    const otherOrgData = (await setupOrg()).unwrap()
     const otherOrgDefaultPricingModel = otherOrgData.pricingModel
 
     // Action: Make testmodeNonDefaultPricingModel the new default for the FIRST organization (testmode).
@@ -252,7 +252,7 @@ describe('safelyInsertPricingModel', () => {
   let existingTestmodeDefaultPricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     existingLivemodeDefaultPricingModel = orgData.pricingModel // livemode: true, isDefault: true
 
@@ -329,7 +329,7 @@ describe('safelyInsertPricingModel', () => {
 
   it('should not affect the default pricingModel of another organization when inserting a new default', async () => {
     // Setup a second organization with its own default pricingModel
-    const otherOrgData = await setupOrg()
+    const otherOrgData = (await setupOrg()).unwrap()
     const otherOrgDefaultPricingModel = otherOrgData.pricingModel
 
     // Insert a new default pricingModel for the FIRST organization (testmode)
@@ -438,7 +438,7 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
   })
@@ -618,7 +618,7 @@ describe('selectPricingModelForCustomer', () => {
 
   beforeEach(async () => {
     // Set up organization and pricing models
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     defaultPricingModel = orgData.pricingModel // This is created as default
 
@@ -833,7 +833,7 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
   let feature3: any
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -1113,7 +1113,7 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
   })
@@ -1352,7 +1352,7 @@ describe('selectPricingModelSlugResolutionData', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
   })
@@ -1680,7 +1680,7 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
   })
@@ -1880,7 +1880,7 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
   })
@@ -2174,7 +2174,7 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
   })

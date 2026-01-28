@@ -108,7 +108,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       }
     )
 
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

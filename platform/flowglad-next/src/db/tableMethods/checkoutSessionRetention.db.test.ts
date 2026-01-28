@@ -32,7 +32,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
   let priceId: string
 
   beforeEach(async () => {
-    const { organization, product } = await setupOrg()
+    const { organization, product } = (await setupOrg()).unwrap()
     organizationId = organization.id
     const customer = await setupCustomer({ organizationId })
     customerId = customer.id

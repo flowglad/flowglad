@@ -78,7 +78,7 @@ describe('memberships RLS - notificationPreferences', () => {
 
   beforeEach(async () => {
     // Setup first organization with user and API key
-    const org1Data = await setupOrg()
+    const org1Data = (await setupOrg()).unwrap()
     org1 = org1Data.organization
 
     const userApiKeyOrg1 = await setupUserAndApiKey({
@@ -103,7 +103,7 @@ describe('memberships RLS - notificationPreferences', () => {
     org1Membership = org1Memberships[0]
 
     // Setup second organization with user and API key
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
     org2 = org2Data.organization
 
     const userApiKeyOrg2 = await setupUserAndApiKey({

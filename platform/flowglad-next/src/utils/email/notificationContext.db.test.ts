@@ -12,7 +12,7 @@ import { buildNotificationContext } from './notificationContext'
 describe('buildNotificationContext', () => {
   describe('base context (organizationId only)', () => {
     it('returns organization record when found', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
 
       const ctx = await adminTransaction(async ({ transaction }) => {
         return buildNotificationContext(
@@ -43,7 +43,7 @@ describe('buildNotificationContext', () => {
 
   describe('customer context', () => {
     it('returns organization and customer when both IDs provided', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -67,7 +67,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('throws error when customer not found', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const nonExistentCustomerId = 'cust_non_existent_12345'
 
       await expect(
@@ -88,7 +88,7 @@ describe('buildNotificationContext', () => {
 
   describe('subscription context', () => {
     it('always fetches subscription when subscriptionId provided, with price and defaultPaymentMethod extras', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -135,7 +135,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('fetches subscription without extras when include is omitted', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -180,7 +180,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('fetches price when subscription has priceId and price is in include array', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -211,7 +211,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('returns null for paymentMethod when customer has no payment methods', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -243,7 +243,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('returns default payment method when multiple exist', async () => {
-      const { organization, price } = await setupOrg()
+      const { organization, price } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -285,7 +285,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('throws error when subscription not found', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -309,7 +309,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('throws error when subscription not found even without include array', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -335,7 +335,7 @@ describe('buildNotificationContext', () => {
 
   describe('organization members context', () => {
     it('returns usersAndMemberships when include contains usersAndMemberships', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -374,7 +374,7 @@ describe('buildNotificationContext', () => {
     })
 
     it('returns empty array when organization has no members', async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })

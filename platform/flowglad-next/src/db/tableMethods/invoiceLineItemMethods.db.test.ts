@@ -36,7 +36,7 @@ describe('pricingModelId derivation', () => {
     let invoice: Invoice.Record
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       pricingModel = orgData.pricingModel
       product = orgData.product
@@ -124,7 +124,7 @@ describe('pricingModelId derivation', () => {
     let invoice: Invoice.Record
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       pricingModel = orgData.pricingModel
       product = orgData.product
@@ -227,7 +227,7 @@ describe('pricingModelId derivation', () => {
     let invoice: Invoice.Record
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       pricingModel = orgData.pricingModel
       product = orgData.product
@@ -358,7 +358,7 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
   let invoice: Invoice.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

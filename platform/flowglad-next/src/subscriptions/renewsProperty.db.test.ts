@@ -59,7 +59,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
   let paymentMethod: PaymentMethod.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

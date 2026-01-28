@@ -78,7 +78,7 @@ describe('resourceClaimsRouter', () => {
   // This runs once per test file, significantly reducing setup time
   beforeAll(async () => {
     // Setup organization 1
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -169,7 +169,7 @@ describe('resourceClaimsRouter', () => {
     // Setup organization 2 for cross-tenant tests (shared)
     // NOTE: org2's subscription is created in beforeAll (not beforeEach) because
     // it's only used for read-only permission boundary tests, never mutated
-    org2Data = await setupOrg()
+    org2Data = (await setupOrg()).unwrap()
     const userApiKeyOrg2 = await setupUserAndApiKey({
       organizationId: org2Data.organization.id,
       livemode: true,

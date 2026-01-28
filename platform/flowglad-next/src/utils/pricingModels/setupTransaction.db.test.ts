@@ -24,7 +24,7 @@ let organization: Organization.Record
 
 beforeEach(async () => {
   // Set up a fresh organization for each test to ensure isolation
-  const orgData = await setupOrg()
+  const orgData = (await setupOrg()).unwrap()
   organization = orgData.organization
 })
 

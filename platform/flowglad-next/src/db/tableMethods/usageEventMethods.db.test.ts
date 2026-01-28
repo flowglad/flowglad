@@ -47,7 +47,7 @@ describe('selectUsageEventsPaginated', () => {
 
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
-    org1Data = await setupOrg()
+    org1Data = (await setupOrg()).unwrap()
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
       livemode: true,
@@ -106,7 +106,7 @@ describe('selectUsageEventsPaginated', () => {
 
   // Helper to create org2 data only when needed for cross-tenant tests
   async function setupOrg2() {
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
 
     const customer2 = await setupCustomer({
       organizationId: org2Data.organization.id,
@@ -232,7 +232,7 @@ describe('selectUsageEventsPaginated', () => {
 
   it('should handle empty results when no usage events exist', async () => {
     // Create an isolated org with no usage events to test empty results
-    const isolatedOrgData = await setupOrg()
+    const isolatedOrgData = (await setupOrg()).unwrap()
     const userApiKeyIsolatedOrg = await setupUserAndApiKey({
       organizationId: isolatedOrgData.organization.id,
       livemode: true,
@@ -264,7 +264,7 @@ describe('selectUsageEventsPaginated', () => {
 
   it('should respect limit parameter', async () => {
     // Create an isolated org to test limit behavior with known event count
-    const isolatedOrgData = await setupOrg()
+    const isolatedOrgData = (await setupOrg()).unwrap()
     const userApiKeyIsolatedOrg = await setupUserAndApiKey({
       organizationId: isolatedOrgData.organization.id,
       livemode: true,
@@ -452,7 +452,7 @@ describe('selectUsageEventsPaginated', () => {
 
   it('should handle invalid cursor gracefully by treating it as no cursor (returning first page)', async () => {
     // Create an isolated org to test invalid cursor behavior
-    const isolatedOrgData = await setupOrg()
+    const isolatedOrgData = (await setupOrg()).unwrap()
     const userApiKeyIsolatedOrg = await setupUserAndApiKey({
       organizationId: isolatedOrgData.organization.id,
       livemode: true,
@@ -560,7 +560,7 @@ describe('insertUsageEvent', () => {
 
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
-    org1Data = await setupOrg()
+    org1Data = (await setupOrg()).unwrap()
 
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
@@ -721,7 +721,7 @@ describe('selectUsageEventsTableRowData', () => {
 
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
-    org1Data = await setupOrg()
+    org1Data = (await setupOrg()).unwrap()
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
       livemode: true,
@@ -909,7 +909,7 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
 
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
-    org1Data = await setupOrg()
+    org1Data = (await setupOrg()).unwrap()
 
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,

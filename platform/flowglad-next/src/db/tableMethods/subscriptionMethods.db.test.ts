@@ -42,7 +42,7 @@ describe('selectDistinctSubscriptionProductNames', () => {
   let paymentMethod: PaymentMethod.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -56,7 +56,7 @@ describe('selectDistinctSubscriptionProductNames', () => {
     })
 
     // Setup second organization for isolation tests
-    const orgData2 = await setupOrg()
+    const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
     pricingModel2 = orgData2.pricingModel
   })
@@ -294,7 +294,7 @@ describe('selectSubscriptionsTableRowData', () => {
   let subscriptionOtherOrg: Subscription.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -393,7 +393,7 @@ describe('selectSubscriptionsTableRowData', () => {
     })
 
     // Setup second organization for isolation tests
-    const orgData2 = await setupOrg()
+    const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
     pricingModel2 = orgData2.pricingModel
 
@@ -1237,7 +1237,9 @@ describe('selectSubscriptionsTableRowData', () => {
   describe('usage price handling', () => {
     it('returns subscription with null product when price is a usage price (which has null productId)', async () => {
       // Setup a new organization with a usage meter and usage price
-      const { organization: org, pricingModel: pm } = await setupOrg()
+      const { organization: org, pricingModel: pm } = (
+        await setupOrg()
+      ).unwrap()
       const usageMeter = await setupUsageMeter({
         organizationId: org.id,
         pricingModelId: pm.id,
@@ -1314,7 +1316,7 @@ describe('insertSubscription', () => {
   let price: { id: string }
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -1437,7 +1439,7 @@ describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
   let price2: { id: string }
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
@@ -1572,7 +1574,7 @@ describe('derivePricingModelIdFromSubscription', () => {
   let subscription: Subscription.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

@@ -212,7 +212,7 @@ describe('refundPaymentTransaction', () => {
   beforeEach(async () => {
     mock.clearAllMocks()
 
-    const setup = await setupOrg()
+    const setup = (await setupOrg()).unwrap()
     organization = setup.organization
 
     customer = await setupCustomer({

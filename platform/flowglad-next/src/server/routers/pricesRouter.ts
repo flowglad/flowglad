@@ -251,7 +251,7 @@ export const getPrice = protectedProcedure
             message: 'Price not found',
           })
         }
-        return Result.ok({ price: priceResult.unwrap() })
+        return priceResult.map((price) => ({ price }))
       },
       { apiKey: ctx.apiKey }
     )

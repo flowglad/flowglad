@@ -56,7 +56,7 @@ describe('usageEventHelpers', () => {
   let orgSetup: Awaited<ReturnType<typeof setupOrg>>
   beforeEach(async () => {
     await adminTransaction(async ({ transaction }) => {
-      orgSetup = await setupOrg()
+      orgSetup = (await setupOrg()).unwrap()
       organization = orgSetup.organization
       customer = await setupCustomer({
         organizationId: organization.id,
@@ -886,7 +886,7 @@ describe('usageEventHelpers', () => {
       // Create a usage meter and price in a different organization
       const { otherOrgUsageMeter, otherOrgPrice } =
         await adminTransaction(async ({ transaction }) => {
-          const orgSetup = await setupOrg()
+          const orgSetup = (await setupOrg()).unwrap()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
             name: 'Other Org Usage Meter',
@@ -942,7 +942,7 @@ describe('usageEventHelpers', () => {
       // Create a usage price in a different organization/pricing model
       const otherOrgPrice = await adminTransaction(
         async ({ transaction }) => {
-          const otherOrgSetup = await setupOrg()
+          const otherOrgSetup = (await setupOrg()).unwrap()
           const otherUsageMeter = await setupUsageMeter({
             organizationId: otherOrgSetup.organization.id,
             name: 'Other Org Usage Meter',
@@ -1318,7 +1318,7 @@ describe('usageEventHelpers', () => {
       // First, we need to set up a price with a slug
       const priceWithSlug = await adminTransaction(
         async ({ transaction }) => {
-          const orgSetup = await setupOrg()
+          const orgSetup = (await setupOrg()).unwrap()
           const testCustomer = await setupCustomer({
             organizationId: orgSetup.organization.id,
           })
@@ -1538,7 +1538,7 @@ describe('usageEventHelpers', () => {
       // First, we need to set up a usage meter with a slug and a default price
       const usageMeterWithSlug = await adminTransaction(
         async ({ transaction }) => {
-          const orgSetup = await setupOrg()
+          const orgSetup = (await setupOrg()).unwrap()
           const testCustomer = await setupCustomer({
             organizationId: orgSetup.organization.id,
             pricingModelId: orgSetup.pricingModel.id,
@@ -1626,7 +1626,7 @@ describe('usageEventHelpers', () => {
       // Create a usage meter in a different organization
       const otherOrgUsageMeter = await adminTransaction(
         async ({ transaction }) => {
-          const orgSetup = await setupOrg()
+          const orgSetup = (await setupOrg()).unwrap()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
             name: 'Other Org Usage Meter',

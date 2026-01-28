@@ -366,7 +366,9 @@ describe('createCheckoutSessionTransaction', () => {
   let targetSubscription: Subscription.Record
 
   beforeEach(async () => {
-    const { organization: org, pricingModel } = await setupOrg()
+    const { organization: org, pricingModel } = (
+      await setupOrg()
+    ).unwrap()
     organization = org
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -634,8 +636,9 @@ describe('createCheckoutSessionTransaction', () => {
   describe('Default product validation', () => {
     it('should throw an error when trying to create a checkout session for a default product', async () => {
       // Create a default product and price
-      const { organization: defaultOrg, product: defaultProduct } =
+      const { organization: defaultOrg, product: defaultProduct } = (
         await setupOrg()
+      ).unwrap()
       try {
         const defaultPrice = await setupPrice({
           productId: defaultProduct.id,
@@ -901,8 +904,9 @@ describe('createCheckoutSessionTransaction', () => {
     })
 
     it('should throw when the target subscription belongs to another organization', async () => {
-      const { organization: otherOrg, price: otherPrice } =
+      const { organization: otherOrg, price: otherPrice } = (
         await setupOrg()
+      ).unwrap()
       try {
         const otherCustomer = await setupCustomer({
           organizationId: otherOrg.id,
@@ -987,7 +991,7 @@ describe('createCheckoutSessionTransaction', () => {
     let nonDefaultProduct: Product.Record
 
     beforeEach(async () => {
-      const setup = await setupOrg()
+      const setup = (await setupOrg()).unwrap()
       organization = setup.organization
       const testmodePricingModel = setup.testmodePricingModel
       customer = await setupCustomer({

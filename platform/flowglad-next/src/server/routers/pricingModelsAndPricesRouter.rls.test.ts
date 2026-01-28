@@ -28,7 +28,7 @@ describe('beforeEach setup', () => {
   }
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organizationId = orgData.organization.id
     const { apiKey } = await setupUserAndApiKey({
       organizationId,
@@ -397,7 +397,7 @@ describe('pricesRouter.create', () => {
   })
 
   it('sets currency from organization and livemode from ctx', async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,

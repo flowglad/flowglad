@@ -73,10 +73,10 @@ describe('authenticatedTransaction', () => {
     globalThis.__mockedAuthSession = null
 
     // Setup two test organizations
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
-    const org2Setup = await setupOrg()
+    const org2Setup = (await setupOrg()).unwrap()
     testOrg2 = org2Setup.organization
 
     // Setup users and API keys for each organization
@@ -318,11 +318,11 @@ describe('authenticatedTransaction', () => {
 
   beforeEach(async () => {
     // Setup test organizations and users
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
     pricingModel1 = org1Setup.pricingModel
 
-    const org2Setup = await setupOrg()
+    const org2Setup = (await setupOrg()).unwrap()
     testOrg2 = org2Setup.organization
 
     const userApiKeyA = await setupUserAndApiKey({
@@ -433,7 +433,7 @@ describe('Authentication Method Tests', () => {
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
     const userApiKeyA = await setupUserAndApiKey({
@@ -501,7 +501,7 @@ describe('Error Handling Tests', () => {
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
     const userApiKeyA = await setupUserAndApiKey({
@@ -619,7 +619,7 @@ describe('Procedure Wrapper Functions', () => {
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
     const userApiKeyA = await setupUserAndApiKey({
@@ -716,7 +716,7 @@ describe('Edge Cases', () => {
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
     const userApiKeyA = await setupUserAndApiKey({
@@ -783,7 +783,7 @@ describe('Edge Cases', () => {
 describe('cacheRecomputationContext derivation', () => {
   it('sets type to customer with customerId from JWT metadata when using customer billing portal auth', async () => {
     // Setup organization with a customer linked to a user with betterAuthId
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const { user } = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: true,
@@ -848,7 +848,7 @@ describe('cacheRecomputationContext derivation', () => {
   })
 
   it('sets type to merchant when using API key auth (non-customer role)', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const { user, apiKey } = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: true,
@@ -882,7 +882,7 @@ describe('authenticatedTransactionUnwrap', () => {
   let apiKey: ApiKey.Record
 
   beforeEach(async () => {
-    const orgSetup = await setupOrg()
+    const orgSetup = (await setupOrg()).unwrap()
     testOrg = orgSetup.organization
 
     const userApiKey = await setupUserAndApiKey({

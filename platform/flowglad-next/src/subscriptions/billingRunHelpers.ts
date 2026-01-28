@@ -787,9 +787,7 @@ export const executeBillingRun = async (
 ) => {
   const billingRunResult = await adminTransaction(
     ({ transaction }) => {
-      return selectBillingRunById(billingRunId, transaction).then(
-        (r) => Result.ok(r.unwrap())
-      )
+      return selectBillingRunById(billingRunId, transaction)
     }
   )
   const billingRun = billingRunResult.unwrap()

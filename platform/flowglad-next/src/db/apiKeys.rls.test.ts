@@ -54,7 +54,7 @@ describe('API Key RLS', () => {
 
   beforeEach(async () => {
     // Setup two organizations
-    const orgASetup = await setupOrg()
+    const orgASetup = (await setupOrg()).unwrap()
     orgA = orgASetup.organization
     // Create testmode products for testing with testmode API keys
     productInOrgA = await setupProduct({
@@ -65,7 +65,7 @@ describe('API Key RLS', () => {
       active: true,
     })
 
-    const orgBSetup = await setupOrg()
+    const orgBSetup = (await setupOrg()).unwrap()
     orgB = orgBSetup.organization
     productInOrgB = await setupProduct({
       organizationId: orgB.id,

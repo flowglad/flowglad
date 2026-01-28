@@ -197,11 +197,7 @@ const processSetupIntent = async ({
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
   const txResult = await adminTransaction(async (ctx) => {
-    const innerResult = await processSetupIntentSucceeded(
-      setupIntent,
-      ctx
-    )
-    return Result.ok(innerResult.unwrap())
+    return processSetupIntentSucceeded(setupIntent, ctx)
   })
   const setupSuceededResult = txResult.unwrap()
 

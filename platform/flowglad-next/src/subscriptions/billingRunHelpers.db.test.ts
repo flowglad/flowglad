@@ -185,7 +185,7 @@ describe('billingRunHelpers', async () => {
       }
     )
 
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -410,7 +410,7 @@ describe('billingRunHelpers', async () => {
 
     it('should handle different currencies correctly', async () => {
       // Create an organization with a different default currency
-      const originalOrg = await setupOrg()
+      const originalOrg = (await setupOrg()).unwrap()
       const orgWithDifferentCurrency = await adminTransaction(
         async ({ transaction }) => {
           return await updateOrganization(
@@ -765,7 +765,7 @@ describe('billingRunHelpers', async () => {
 
     it('should handle different currencies correctly', async () => {
       // Create an organization with a different default currency
-      const originalOrg = await setupOrg()
+      const originalOrg = (await setupOrg()).unwrap()
       const orgWithDifferentCurrency = await adminTransaction(
         async ({ transaction }) => {
           return await updateOrganization(
@@ -2597,7 +2597,7 @@ describe('billingRunHelpers', async () => {
     let usageMeter: UsageMeter.Record
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       product = orgData.product
       price = orgData.price
@@ -3442,7 +3442,7 @@ describe('billingRunHelpers', async () => {
     let doNotChargeBillingPeriod: BillingPeriod.Record
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       pricingModel = orgData.pricingModel
       product = orgData.product
@@ -3586,7 +3586,7 @@ describe('billingRunHelpers', async () => {
     let subscriptionItem: SubscriptionItem.Record
 
     beforeEach(async () => {
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       organization = orgData.organization
       pricingModel = orgData.pricingModel
       product = orgData.product

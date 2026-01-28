@@ -70,7 +70,7 @@ describe('subscriptionItemMethods', async () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     price = orgData.price
 
@@ -1435,7 +1435,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('insertSubscriptionItem should honor provided pricingModelId', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const orgData = await setupOrg()
+        const orgData = (await setupOrg()).unwrap()
         const item = await insertSubscriptionItem(
           {
             subscriptionId: subscription.id,

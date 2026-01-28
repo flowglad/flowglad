@@ -27,7 +27,7 @@ describe('usageMeterMethods', () => {
   let defaultPricingModelId: string
 
   beforeEach(async () => {
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
     organizationId = organization.id
     defaultPricingModelId = pricingModel.id // This is the default pricing model
     const nonDefaultPricingModel = await setupPricingModel({
@@ -134,7 +134,7 @@ describe('usageMeterMethods', () => {
         pricingModelId,
       })
       // other org
-      const otherOrg = await setupOrg()
+      const otherOrg = (await setupOrg()).unwrap()
       await setupUsageMeter({
         organizationId: otherOrg.organization.id,
         name: 'Other',
@@ -321,7 +321,7 @@ describe('usageMeterMethods', () => {
 
     it("should throw an error when customer's pricing model cannot be found and no default exists", async () => {
       // Create a customer with a valid pricing model first
-      const orgData = await setupOrg()
+      const orgData = (await setupOrg()).unwrap()
       const customer = await setupCustomer({
         organizationId: orgData.organization.id,
         pricingModelId: orgData.pricingModel.id,

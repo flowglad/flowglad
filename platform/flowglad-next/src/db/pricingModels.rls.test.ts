@@ -24,7 +24,7 @@ describe('Pricing Models RLS - Organization Policy', async () => {
 
   beforeEach(async () => {
     // Setup Org 1 and its API key
-    org1Data = await setupOrg()
+    org1Data = (await setupOrg()).unwrap()
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
       livemode: false,
@@ -45,7 +45,7 @@ describe('Pricing Models RLS - Organization Policy', async () => {
     })
 
     // Setup Org 2 and its pricingModel
-    org2Data = await setupOrg()
+    org2Data = (await setupOrg()).unwrap()
     // Use the testmode pricing model that setupOrg already created
     org2DefaultPricingModel = org2Data.testmodePricingModel
   })

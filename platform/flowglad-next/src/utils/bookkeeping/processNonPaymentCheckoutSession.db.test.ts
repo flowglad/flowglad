@@ -38,7 +38,7 @@ describe('processNonPaymentCheckoutSession', () => {
   >['pricingModel']
 
   beforeEach(async () => {
-    const setupData = await setupOrg()
+    const setupData = (await setupOrg()).unwrap()
     organization = setupData.organization
     product = setupData.product
     pricingModel = setupData.pricingModel

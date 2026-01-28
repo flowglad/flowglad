@@ -146,8 +146,9 @@ function expectSubscriptionItemsToMatch(
 }
 
 describe('adjustSubscription Integration Tests', async () => {
-  const { organization, price, product, pricingModel } =
+  const { organization, price, product, pricingModel } = (
     await setupOrg()
+  ).unwrap()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record

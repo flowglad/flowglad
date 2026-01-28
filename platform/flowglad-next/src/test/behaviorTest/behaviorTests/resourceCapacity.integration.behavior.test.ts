@@ -57,7 +57,9 @@ describe('Resource Capacity Integration Tests', () => {
     const nanoid = core.nanoid()
 
     // Setup organization - this creates a default livemode pricing model and product
-    const { organization, pricingModel, product } = await setupOrg()
+    const { organization, pricingModel, product } = (
+      await setupOrg()
+    ).unwrap()
     organizationId = organization.id
     // Use the existing default livemode pricing model from setupOrg
     // (each org can only have one livemode pricing model)

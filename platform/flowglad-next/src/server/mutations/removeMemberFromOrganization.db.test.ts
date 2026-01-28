@@ -59,7 +59,7 @@ describe('innerRemoveMemberFromOrganization', () => {
   let ownerMembership: Membership.Record
 
   beforeEach(async () => {
-    const { organization: org } = await setupOrg()
+    const { organization: org } = (await setupOrg()).unwrap()
     organization = org
 
     // Create an owner for this org
@@ -288,7 +288,7 @@ describe('innerRemoveMemberFromOrganization', () => {
 
     it('returns NotFoundError when target membership is in different org (avoids info leakage)', async () => {
       // Create another org with a member
-      const { organization: otherOrg } = await setupOrg()
+      const { organization: otherOrg } = (await setupOrg()).unwrap()
       const { membership: otherOrgMembership } =
         await createUserWithMembership({
           organizationId: otherOrg.id,

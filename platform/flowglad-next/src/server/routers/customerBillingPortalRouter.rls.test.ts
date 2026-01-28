@@ -97,7 +97,7 @@ beforeEach(async () => {
   globalThis.__mockedAuthSession = null
 
   // Set up organization with products and prices
-  const orgSetup = await setupOrg()
+  const orgSetup = (await setupOrg()).unwrap()
   organization = orgSetup.organization
   pricingModel = orgSetup.pricingModel
   product = orgSetup.product
@@ -948,7 +948,7 @@ describe('Customer Billing Portal Router', () => {
 
     it('throws UNAUTHORIZED when customerId belongs to a different organization', async () => {
       // Create a second organization with a customer
-      const otherOrgSetup = await setupOrg()
+      const otherOrgSetup = (await setupOrg()).unwrap()
       const otherOrganization = otherOrgSetup.organization
 
       const otherOrgUserAndCustomer = await setupUserAndCustomer({

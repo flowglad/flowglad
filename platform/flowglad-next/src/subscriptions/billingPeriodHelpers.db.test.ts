@@ -97,8 +97,9 @@ let price: Price.Record
 let product: Product.Record
 
 describe('Subscription Billing Period Transition', async () => {
-  const { organization, price, product, pricingModel } =
+  const { organization, price, product, pricingModel } = (
     await setupOrg()
+  ).unwrap()
 
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -2266,7 +2267,9 @@ describe('Ledger Interactions', () => {
 })
 
 describe('Resource claim expiration during billing period transition', async () => {
-  const { organization, price, pricingModel } = await setupOrg()
+  const { organization, price, pricingModel } = (
+    await setupOrg()
+  ).unwrap()
 
   it('releases resource claims with expiredAt set during billing period transition', async () => {
     // Setup customer and payment method

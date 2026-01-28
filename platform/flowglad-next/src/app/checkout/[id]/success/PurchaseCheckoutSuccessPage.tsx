@@ -19,11 +19,10 @@ const PurchaseCheckoutSuccessPage = async ({
   if (checkoutSession.customerId) {
     const txResult = await adminTransaction(
       async ({ transaction }) => {
-        const innerResult = await selectCustomerById(
+        return selectCustomerById(
           checkoutSession.customerId!,
           transaction
         )
-        return Result.ok(innerResult.unwrap())
       }
     )
     const customer = txResult.unwrap()

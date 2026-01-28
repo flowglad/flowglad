@@ -70,7 +70,7 @@ export const createCheckoutSession = protectedProcedure
 
     const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        const txResult = await createCheckoutSessionTransaction(
+        return createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: ctx.organizationId!,
@@ -78,9 +78,6 @@ export const createCheckoutSession = protectedProcedure
           },
           transaction
         )
-        // createCheckoutSessionTransaction returns Result<{checkoutSession, url}, ValidationError>
-        // Unwrap it to get the value or throw on error
-        return Result.ok(txResult.unwrap())
       },
       { apiKey: ctx.apiKey }
     )
@@ -270,7 +267,9 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
               input,
               transaction
             )
-          return Result.ok({ checkoutSession: updateResult.unwrap() })
+          return updateResult.map((checkoutSession) => ({
+            checkoutSession,
+          }))
         }
       )
       return result.unwrap()

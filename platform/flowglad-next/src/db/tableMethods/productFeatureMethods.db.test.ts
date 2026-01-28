@@ -41,7 +41,7 @@ let featureC: Feature.Record
 let featureD: Feature.Record
 
 beforeEach(async () => {
-  const orgData = await setupOrg()
+  const orgData = (await setupOrg()).unwrap()
   organization = orgData.organization
   product = orgData.product
 

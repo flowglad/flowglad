@@ -663,7 +663,7 @@ describe('finalizeFeeCalculation', () => {
   }
 
   it('applies full fee when no payments exist in current month', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
 
     const feeCalculation = await adminTransaction(
       async ({ transaction }) => {
@@ -710,7 +710,7 @@ describe('finalizeFeeCalculation', () => {
     const stripePaymentIntentId2 = `pi_${core.nanoid()}`
     const stripeChargeId1 = `ch_${core.nanoid()}`
     const stripeChargeId2 = `ch_${core.nanoid()}`
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -782,7 +782,7 @@ describe('finalizeFeeCalculation', () => {
   it('applies full fee regardless of total resolved payments amount', async () => {
     const stripePaymentIntentId = `pi_${core.nanoid()}`
     const stripeChargeId = `ch_${core.nanoid()}`
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -843,7 +843,7 @@ describe('finalizeFeeCalculation', () => {
   })
 
   it('applies full fee regardless of resolved payment status', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -914,7 +914,7 @@ describe('finalizeFeeCalculation', () => {
   })
 
   it('applies full org fee regardless of resolved payments amount', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1039,7 +1039,7 @@ describe('finalizeFeeCalculation', () => {
 
   it('does not exclude refunded payments from fee calculation', async () => {
     const stripeChargeId = `ch_${core.nanoid()}`
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1101,7 +1101,7 @@ describe('finalizeFeeCalculation', () => {
 
   it('ignores payments from previous months', async () => {
     const stripeChargeId = `ch_${core.nanoid()}`
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1181,8 +1181,10 @@ describe('finalizeFeeCalculation', () => {
   it('only considers payments from the same organization', async () => {
     const stripeChargeId1 = `ch_${core.nanoid()}`
     const stripeChargeId2 = `ch_${core.nanoid()}`
-    const { organization: org1, price: price1 } = await setupOrg()
-    const { organization: org2 } = await setupOrg()
+    const { organization: org1, price: price1 } = (
+      await setupOrg()
+    ).unwrap()
+    const { organization: org2 } = (await setupOrg()).unwrap()
 
     const customer1 = await setupCustomer({
       organizationId: org1.id,

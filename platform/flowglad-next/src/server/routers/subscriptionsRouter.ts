@@ -944,7 +944,7 @@ const retryBillingRunProcedure = protectedProcedure
           })
         }
 
-        const billingRunResult = await createBillingRun(
+        return createBillingRun(
           {
             billingPeriod,
             scheduledFor: new Date(),
@@ -952,7 +952,6 @@ const retryBillingRunProcedure = protectedProcedure
           },
           transaction
         )
-        return Result.ok(billingRunResult.unwrap())
       },
       { apiKey: ctx.apiKey }
     )

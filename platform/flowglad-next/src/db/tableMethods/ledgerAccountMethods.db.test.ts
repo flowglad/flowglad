@@ -51,7 +51,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
   let ledgerAccountForUsageMeter1: LedgerAccount.Record // Pre-existing for subscription & usageMeter1
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -347,7 +347,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
   let usageMeter1: UsageMeter.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

@@ -442,7 +442,7 @@ describe('calculateBillingPeriodItemsValue', () => {
 
 describe('getBillingPeriodsForDateRange', () => {
   it('should return empty array if no billing periods found', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
 
     const startDate = new Date('2023-06-01T05:00:00.000Z')
     const endDate = new Date('2023-06-30T05:00:00.000Z')
@@ -460,7 +460,9 @@ describe('getBillingPeriodsForDateRange', () => {
   })
 
   it('should correctly map and return billing periods with associated items and subscription data', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -540,7 +542,7 @@ describe('getBillingPeriodsForDateRange', () => {
 
 describe('calculateMRRByMonth', () => {
   it('should generate array of months between startDate and endDate', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
 
     const startDate = new Date('2023-01-15T05:00:00.000Z')
     const endDate = new Date('2023-03-15T05:00:00.000Z')
@@ -571,7 +573,7 @@ describe('calculateMRRByMonth', () => {
   })
 
   it('should return zero MRR when no billing periods exist', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -593,7 +595,9 @@ describe('calculateMRRByMonth', () => {
   })
 
   it('should correctly calculate MRR for a single monthly subscription fully within one month', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -659,7 +663,9 @@ describe('calculateMRRByMonth', () => {
   })
 
   it('should correctly calculate MRR for a yearly subscription spanning multiple months', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -730,7 +736,9 @@ describe('calculateMRRByMonth', () => {
   })
 
   it('should correctly handle prorated subscription spanning two months', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -808,7 +816,9 @@ describe('calculateMRRByMonth', () => {
   })
 
   it('should handle multiple subscriptions with different intervals', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1011,7 +1021,9 @@ describe('calculateMRRByMonth', () => {
   }
 
   it('should handle mixed interval types (month/year/week/day)', async () => {
-    const { organization, product, price } = await setupOrg()
+    const { organization, product, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1161,7 +1173,7 @@ describe('Edge Cases and Error Handling', () => {
 
 describe('calculateMRRByMonth with productId filter', () => {
   it('should return MRR for all products when productId is null', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1221,7 +1233,7 @@ describe('calculateMRRByMonth with productId filter', () => {
       product: productA,
       price: priceA,
       pricingModel,
-    } = await setupOrg()
+    } = (await setupOrg()).unwrap()
 
     // Create a second product with its own price
     const productB = await setupProduct({
@@ -1382,7 +1394,7 @@ describe('calculateMRRByMonth with productId filter', () => {
       product: productA,
       price: priceA,
       pricingModel,
-    } = await setupOrg()
+    } = (await setupOrg()).unwrap()
 
     // Create a second product with no subscriptions
     const productB = await setupProduct({
@@ -1446,7 +1458,7 @@ describe('calculateMRRByMonth with productId filter', () => {
   })
 
   it('should return zero MRR when productId does not exist', async () => {
-    const { organization, price } = await setupOrg()
+    const { organization, price } = (await setupOrg()).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })

@@ -56,7 +56,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
   let organization: Organization.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     mockPutMarkdownFile.mockReset()
     mockGetMarkdownFile.mockReset()
@@ -209,7 +209,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
   let organization: Organization.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     mockPutMarkdownFile.mockReset()
     mockGetMarkdownFile.mockReset()
@@ -330,7 +330,7 @@ describe('savePricingModelIntegrationMarkdown', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = await setupPricingModel({
       organizationId: organization.id,
@@ -405,7 +405,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
   let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = await setupPricingModel({
       organizationId: organization.id,

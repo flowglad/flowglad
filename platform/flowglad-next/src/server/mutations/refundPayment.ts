@@ -1,4 +1,3 @@
-import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -25,11 +24,7 @@ export const refundPayment = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const paymentResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        const innerResult = await selectPaymentById(
-          input.id,
-          transaction
-        )
-        return Result.ok(innerResult.unwrap())
+        return selectPaymentById(input.id, transaction)
       }
     )
     const payment = paymentResult.unwrap()
@@ -38,14 +33,13 @@ export const refundPayment = protectedProcedure
     }
     const updatedPaymentResult = await adminTransaction(
       async ({ transaction }) => {
-        const innerResult = await refundPaymentTransaction(
+        return refundPaymentTransaction(
           {
             id: input.id,
             partialAmount: input.partialAmount ?? null,
           },
           transaction
         )
-        return Result.ok(innerResult.unwrap())
       }
     )
     return { payment: updatedPaymentResult.unwrap() }

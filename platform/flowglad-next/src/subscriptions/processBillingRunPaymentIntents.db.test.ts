@@ -85,7 +85,7 @@ import { processOutcomeForBillingRun } from './processBillingRunPaymentIntents'
  */
 
 describe('processOutcomeForBillingRun integration tests', async () => {
-  const { organization, price, product } = await setupOrg()
+  const { organization, price, product } = (await setupOrg()).unwrap()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -1292,8 +1292,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 })
 
 describe('processOutcomeForBillingRun - usage credit grants', async () => {
-  const { organization: orgForGrants, pricingModel } =
+  const { organization: orgForGrants, pricingModel } = (
     await setupOrg()
+  ).unwrap()
 
   it('should grant a "Once" usage credit after payment confirmation', async () => {
     // Create fresh product and price for this test to ensure isolation
@@ -1919,7 +1920,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 })
 
 describe('processOutcomeForBillingRun - effects callbacks', async () => {
-  const { organization, price, product } = await setupOrg()
+  const { organization, price, product } = (await setupOrg()).unwrap()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record

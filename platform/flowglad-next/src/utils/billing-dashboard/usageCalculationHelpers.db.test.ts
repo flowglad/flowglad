@@ -26,7 +26,9 @@ import {
 describe('calculateUsageVolumeByInterval', () => {
   describe('Sum aggregation', () => {
     it('returns zeros for org with no usage events', async () => {
-      const { organization, pricingModel } = await setupOrg()
+      const { organization, pricingModel } = (
+        await setupOrg()
+      ).unwrap()
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'API Calls',
@@ -61,7 +63,9 @@ describe('calculateUsageVolumeByInterval', () => {
     })
 
     it('correctly sums usage by day', async () => {
-      const { organization, pricingModel, price } = await setupOrg()
+      const { organization, pricingModel, price } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -158,7 +162,9 @@ describe('calculateUsageVolumeByInterval', () => {
     })
 
     it('fills missing intervals with zero', async () => {
-      const { organization, pricingModel, price } = await setupOrg()
+      const { organization, pricingModel, price } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -240,7 +246,9 @@ describe('calculateUsageVolumeByInterval', () => {
     })
 
     it('only includes livemode=true events', async () => {
-      const { organization, pricingModel, price } = await setupOrg()
+      const { organization, pricingModel, price } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -321,7 +329,9 @@ describe('calculateUsageVolumeByInterval', () => {
 
   describe('CountDistinctProperties aggregation', () => {
     it('counts distinct properties per interval', async () => {
-      const { organization, pricingModel, price } = await setupOrg()
+      const { organization, pricingModel, price } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -411,7 +421,9 @@ describe('calculateUsageVolumeByInterval', () => {
     })
 
     it('counts same user in multiple intervals (DAU semantics)', async () => {
-      const { organization, pricingModel, price } = await setupOrg()
+      const { organization, pricingModel, price } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -493,9 +505,10 @@ describe('calculateUsageVolumeByInterval', () => {
 
   describe('Security', () => {
     it('throws NOT_FOUND when meter belongs to different org', async () => {
-      const { organization: org1, pricingModel: pm1 } =
+      const { organization: org1, pricingModel: pm1 } = (
         await setupOrg()
-      const { organization: org2 } = await setupOrg()
+      ).unwrap()
+      const { organization: org2 } = (await setupOrg()).unwrap()
 
       // Create meter in org1
       const usageMeter = await setupUsageMeter({
@@ -530,9 +543,10 @@ describe('calculateUsageVolumeByInterval', () => {
         organization: org1,
         pricingModel: pm1,
         product: productInOrg1,
-      } = await setupOrg()
-      const { organization: org2, pricingModel: pm2 } =
+      } = (await setupOrg()).unwrap()
+      const { organization: org2, pricingModel: pm2 } = (
         await setupOrg()
+      ).unwrap()
 
       // Create meter in org2
       const usageMeter = await setupUsageMeter({
@@ -578,7 +592,7 @@ describe('calculateUsageVolumeByInterval', () => {
         pricingModel: pm1,
         product: product1,
         price,
-      } = await setupOrg()
+      } = (await setupOrg()).unwrap()
 
       // Create second product with different pricing model
       const product2 = await setupProduct({
@@ -654,7 +668,9 @@ describe('calculateUsageVolumeByInterval', () => {
     })
 
     it('returns zeros when product not found', async () => {
-      const { organization, pricingModel, price } = await setupOrg()
+      const { organization, pricingModel, price } = (
+        await setupOrg()
+      ).unwrap()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -724,7 +740,9 @@ describe('calculateUsageVolumeByInterval', () => {
 
 describe('getUsageMetersWithEvents', () => {
   it('returns only meters with livemode events', async () => {
-    const { organization, pricingModel, price } = await setupOrg()
+    const { organization, pricingModel, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -814,7 +832,7 @@ describe('getUsageMetersWithEvents', () => {
   })
 
   it('returns empty array when no meters have events', async () => {
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
 
     // Create meter with no events
     await setupUsageMeter({
@@ -835,7 +853,7 @@ describe('getUsageMetersWithEvents', () => {
   })
 
   it('returns empty array when organization has no customers', async () => {
-    const { organization, pricingModel } = await setupOrg()
+    const { organization, pricingModel } = (await setupOrg()).unwrap()
 
     await setupUsageMeter({
       organizationId: organization.id,
@@ -860,7 +878,7 @@ describe('getUsageMetersWithEvents', () => {
       organization,
       pricingModel: pm1,
       price: price1,
-    } = await setupOrg()
+    } = (await setupOrg()).unwrap()
 
     // Create a second pricing model within the same organization
     const pm2 = await setupPricingModel({
@@ -952,7 +970,9 @@ describe('getUsageMetersWithEvents', () => {
   })
 
   it('includes pricingModelId in response', async () => {
-    const { organization, pricingModel, price } = await setupOrg()
+    const { organization, pricingModel, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1011,7 +1031,9 @@ describe('getUsageMetersWithEvents', () => {
   })
 
   it('returns aggregationType for each meter', async () => {
-    const { organization, pricingModel, price } = await setupOrg()
+    const { organization, pricingModel, price } = (
+      await setupOrg()
+    ).unwrap()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })

@@ -42,7 +42,7 @@ describe('Usage Credit Application Methods', () => {
   let usageCredit: UsageCredit.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

@@ -163,7 +163,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
-    orgData = await setupOrg() // Sets up org, default product, default price, default pricingModel
+    orgData = (await setupOrg()).unwrap() // Sets up org, default product, default price, default pricingModel
     customer = await setupCustomer({
       organizationId: orgData.organization.id,
       livemode: true,

@@ -98,7 +98,7 @@ describe('Subscription Upgrade with Proration', () => {
 
   beforeEach(async () => {
     // Set up organization
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 

@@ -45,10 +45,10 @@ describe('RLS Access Control with selectOrganizations', () => {
 
   beforeEach(async () => {
     // Setup two test organizations
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
-    const org2Setup = await setupOrg()
+    const org2Setup = (await setupOrg()).unwrap()
     testOrg2 = org2Setup.organization
 
     // Setup users and API keys for each organization
@@ -117,7 +117,7 @@ describe('RLS Access Control with selectOrganizations', () => {
       // expects:
       // - selectOrganizations should return organizations user has access to
       // - new organization should not be returned due to RLS filtering
-      const org3Setup = await setupOrg()
+      const org3Setup = (await setupOrg()).unwrap()
       const testOrg3 = org3Setup.organization
 
       const result = await authenticatedTransaction(
@@ -184,10 +184,10 @@ describe('RLS Access Control with selectMemberships', () => {
 
   beforeEach(async () => {
     // Setup two test organizations
-    const org1Setup = await setupOrg()
+    const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
-    const org2Setup = await setupOrg()
+    const org2Setup = (await setupOrg()).unwrap()
     testOrg2 = org2Setup.organization
 
     // Setup userA and API key for testOrg1
@@ -360,12 +360,12 @@ describe('RLS for selectProducts', () => {
 
   beforeEach(async () => {
     // Create two orgs, each with a default product and pricingModel
-    const orgSetup1 = await setupOrg()
+    const orgSetup1 = (await setupOrg()).unwrap()
     prodOrg1 = orgSetup1.organization
     product1 = orgSetup1.product
     prodPricingModel1 = orgSetup1.pricingModel
 
-    const orgSetup2 = await setupOrg()
+    const orgSetup2 = (await setupOrg()).unwrap()
     prodOrg2 = orgSetup2.organization
     product2 = orgSetup2.product
     prodPricingModel2 = orgSetup2.pricingModel
@@ -628,11 +628,11 @@ describe('RLS for selectPricingModels', () => {
 
   beforeEach(async () => {
     // Create two orgs, capture default pricingModels
-    const orgSetup1 = await setupOrg()
+    const orgSetup1 = (await setupOrg()).unwrap()
     catOrg1 = orgSetup1.organization
     pricingModel1 = orgSetup1.pricingModel
 
-    const orgSetup2 = await setupOrg()
+    const orgSetup2 = (await setupOrg()).unwrap()
     catOrg2 = orgSetup2.organization
     pricingModel2 = orgSetup2.pricingModel
 
@@ -865,8 +865,10 @@ describe('RLS for selectPricingModels', () => {
 
 describe('Second-order RLS defense in depth', () => {
   it('explicitly querying by ID from another organization still fails RLS', async () => {
-    const { organization: o1 } = await setupOrg()
-    const { pricingModel: c2, product: p2 } = await setupOrg()
+    const { organization: o1 } = (await setupOrg()).unwrap()
+    const { pricingModel: c2, product: p2 } = (
+      await setupOrg()
+    ).unwrap()
     const k1 = (
       await setupUserAndApiKey({
         organizationId: o1.id,
@@ -888,7 +890,7 @@ describe('Second-order RLS defense in depth', () => {
   })
 
   it('joining tables indirectly cannot bypass RLS', async () => {
-    const { organization: o1 } = await setupOrg()
+    const { organization: o1 } = (await setupOrg()).unwrap()
     const key = (
       await setupUserAndApiKey({
         organizationId: o1.id,
@@ -910,8 +912,10 @@ describe('Second-order RLS defense in depth', () => {
   })
 
   it('attempting to set organizationId during update across orgs is denied', async () => {
-    const { organization: o1, product: p1 } = await setupOrg()
-    const { organization: o2 } = await setupOrg()
+    const { organization: o1, product: p1 } = (
+      await setupOrg()
+    ).unwrap()
+    const { organization: o2 } = (await setupOrg()).unwrap()
     const k1 = (
       await setupUserAndApiKey({
         organizationId: o1.id,
@@ -933,7 +937,7 @@ describe('Second-order RLS defense in depth', () => {
   })
 
   it('attempting to insert with mismatched livemode vs app.livemode is denied (if check policies exist)', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const liveKey = (
       await setupUserAndApiKey({
         organizationId: organization.id,
@@ -959,8 +963,8 @@ describe('Second-order RLS defense in depth', () => {
   })
 
   it('no access when user has no membership in the organization', async () => {
-    const { organization: o1 } = await setupOrg()
-    const o2 = await setupOrg()
+    const { organization: o1 } = (await setupOrg()).unwrap()
+    const o2 = (await setupOrg()).unwrap()
     const onlyOrg2 = (
       await setupUserAndApiKey({
         organizationId: o2.organization.id,
@@ -1001,7 +1005,7 @@ describe('Second-order RLS defense in depth', () => {
   })
 
   it('API key and session both set RLS context correctly: parity test', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const { apiKey } = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: true,
@@ -1018,8 +1022,8 @@ describe('Second-order RLS defense in depth', () => {
 
 describe('Edge cases and robustness for second-order RLS', () => {
   it('API key always accesses its own org regardless of focused state', async () => {
-    const { organization: o1 } = await setupOrg()
-    const { organization: o2 } = await setupOrg()
+    const { organization: o1 } = (await setupOrg()).unwrap()
+    const { organization: o2 } = (await setupOrg()).unwrap()
     const { user, apiKey } = await setupUserAndApiKey({
       organizationId: o1.id,
       livemode: true,
@@ -1065,7 +1069,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
   })
 
   it('livemode toggling via different API keys switches visibility across transactions', async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     const liveKey = (
       await setupUserAndApiKey({
         organizationId: organization.id,

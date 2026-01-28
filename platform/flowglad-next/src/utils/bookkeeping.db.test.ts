@@ -94,7 +94,7 @@ describe('createCustomerBookkeeping', () => {
     )
 
     // Set up organization with default product and pricing
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     defaultProduct = orgData.product
     price = orgData.price
@@ -653,7 +653,9 @@ describe('createCustomerBookkeeping', () => {
 
     it('should prevent cross-organization customer creation', async () => {
       // Setup: Create a second organization
-      const { organization: otherOrganization } = await setupOrg()
+      const { organization: otherOrganization } = (
+        await setupOrg()
+      ).unwrap()
 
       // Attempt to create a customer with mismatched organizationId
       await expect(
@@ -1192,7 +1194,7 @@ describe('createPricingModelBookkeeping', () => {
 
   beforeEach(async () => {
     // Set up a basic organization
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
   })
 
@@ -2030,7 +2032,7 @@ describe('createFreePlanPriceInsert', () => {
 
   beforeEach(async () => {
     // Set up a basic organization and product for testing
-    const { product } = await setupOrg()
+    const { product } = (await setupOrg()).unwrap()
     defaultProduct = product
   })
 
@@ -2371,7 +2373,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
   let invoice: Invoice.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -2580,7 +2582,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
   let invoice: Invoice.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product

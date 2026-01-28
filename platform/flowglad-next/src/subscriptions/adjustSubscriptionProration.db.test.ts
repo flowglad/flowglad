@@ -68,7 +68,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     })
 
     // Set up organization and price
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     price = orgData.price
 

@@ -33,7 +33,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   beforeEach(async () => {
     // Set up organization
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
 
     // Clear previous customer IDs and emails
@@ -779,7 +779,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     let testCustomer3: Customer.Record
 
     beforeEach(async () => {
-      const { organization } = await setupOrg()
+      const { organization } = (await setupOrg()).unwrap()
       testOrgId = organization.id
 
       // Create test customers with different names
@@ -1518,7 +1518,7 @@ describe('createPaginatedSelectFunction', () => {
   let customerIds: string[] = []
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
     customerIds = []
 
@@ -1938,7 +1938,7 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
   let organizationId: string
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
 
     // Seed 12 customers with deterministic names in creation order
@@ -2139,7 +2139,7 @@ describe('buildWhereClauses', () => {
   let customer3: Customer.Record
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
 
     customer1 = await setupCustomer({

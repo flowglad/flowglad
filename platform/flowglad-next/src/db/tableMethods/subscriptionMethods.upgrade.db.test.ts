@@ -54,7 +54,7 @@ describe('Subscription Upgrade Selection Logic', () => {
 
   beforeEach(async () => {
     // Setup organization with default product
-    const orgData = await setupOrg()
+    const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
     product = orgData.product
 
@@ -127,7 +127,7 @@ describe('Subscription Upgrade Selection Logic', () => {
 
     // Setup second organization for org isolation tests (lazy init)
     // Will be set up in specific tests that need it
-    const org2Data = await setupOrg()
+    const org2Data = (await setupOrg()).unwrap()
     organization2 = org2Data.organization
     product2 = org2Data.product
   })

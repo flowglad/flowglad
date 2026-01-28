@@ -52,7 +52,7 @@ describe('Discount Redemption Tracking', () => {
 
   beforeEach(async () => {
     // Set up common test data
-    const setupResult = await setupOrg()
+    const setupResult = (await setupOrg()).unwrap()
     organization = setupResult.organization
     price = setupResult.price
     pricingModel = setupResult.pricingModel
