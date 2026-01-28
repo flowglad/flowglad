@@ -38,6 +38,10 @@ Read the relevant reference file(s) based on the diff to get area-specific check
 
 ## Review Process
 
+### 0. Checkout PR
+
+Run `gh pr checkout <PR>` to get the PR code locally. If it fails, continue with the review.
+
 ### 1. Gather Context
 
 First, understand the scope of changes:
@@ -176,8 +180,9 @@ This PR adds user authentication using JWT tokens with refresh token support.
 
 ## Workflow
 
-1. Get diff statistics with `GetWorkspaceDiff(stat: true)`
-2. Review changed files systematically
-3. Use `DiffComment` for inline feedback
-4. Provide overall summary and recommendation
-5. Offer to help fix any critical issues
+1. Attempt to checkout the PR with `gh pr checkout <PR>` (continue if it fails)
+2. Get diff statistics with `GetWorkspaceDiff(stat: true)`
+3. Review changed files systematically
+4. Use `DiffComment` for inline feedback
+5. Provide overall summary and recommendation
+6. Offer to help fix any critical issues
