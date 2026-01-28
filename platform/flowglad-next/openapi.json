@@ -19243,6 +19243,9 @@
               "organizationId": {
                 "type": "string"
               },
+              "pricingModelId": {
+                "type": "string"
+              },
               "name": {
                 "type": "string"
               },
@@ -19296,6 +19299,7 @@
               "updatedAt",
               "livemode",
               "organizationId",
+              "pricingModelId",
               "name",
               "token",
               "active",
@@ -19330,6 +19334,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -19385,6 +19392,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "token",
           "active",
