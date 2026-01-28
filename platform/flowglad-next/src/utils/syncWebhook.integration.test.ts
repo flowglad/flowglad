@@ -208,7 +208,6 @@ describeIfRedisKey('syncWebhook integration', () => {
     const webhookPayload = createSyncEventsAvailablePayload({
       scopeId,
       latestSequence: sequences[4], // Latest sequence in stream
-      eventCount: 5,
     })
 
     // Merchant's lastSequence from their local state is sequences[2] (event index 2)
@@ -289,11 +288,9 @@ describeIfRedisKey('syncWebhook integration', () => {
     const failedWebhookPayload = createSyncEventsAvailablePayload({
       scopeId,
       latestSequence: sequences[2],
-      eventCount: 3,
     })
 
     // Verify the payload was created correctly (webhook would carry this)
-    expect(failedWebhookPayload.eventCount).toBe(3)
     expect(failedWebhookPayload.latestSequence).toBe(sequences[2])
 
     // Even if webhook failed, merchant can still read all events from stream
