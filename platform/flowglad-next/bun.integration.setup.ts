@@ -30,6 +30,20 @@ if (!existsSync(integrationEnvPath)) {
   process.exit(1)
 }
 
+// Verify STRIPE_MOCK_HOST is NOT set - integration tests must use real Stripe API
+if (process.env.STRIPE_MOCK_HOST) {
+  console.error(
+    '\n❌ STRIPE_MOCK_HOST is set but integration tests require real Stripe API.\n'
+  )
+  console.error(
+    'Integration tests use .env.integration which should NOT contain STRIPE_MOCK_HOST.'
+  )
+  console.error(
+    'If you see this error, check your .env.integration file and remove STRIPE_MOCK_HOST.\n'
+  )
+  process.exit(1)
+}
+
 // Import integration-specific mocks first (required for bun:test)
 // Uses bun.integration.mocks.ts which does NOT mock Redis/Svix,
 // allowing integration tests to make real API calls or use _setTestRedisClient()
