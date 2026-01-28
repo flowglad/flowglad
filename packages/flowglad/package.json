@@ -2,6 +2,7 @@
   "name": "flowglad",
   "version": "0.0.1",
   "description": "Flowglad CLI - Manage your Flowglad configuration from the command line",
+  "license": "MIT",
   "bin": {
     "flowglad": "./dist/cli.js"
   },
