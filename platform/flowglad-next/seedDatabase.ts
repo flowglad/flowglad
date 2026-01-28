@@ -18,7 +18,7 @@ import {
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
 import { type LedgerTransaction } from '@/db/schema/ledgerTransactions'
-import { memberships } from '@/db/schema/memberships'
+import { type Membership, memberships } from '@/db/schema/memberships'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
 import { nulledPriceColumns, type Price } from '@/db/schema/prices'
@@ -156,14 +156,22 @@ const insertCountries = async () => {
     .onConflictDoNothing()
 }
 
+// Track if database has been seeded to prevent duplicate seeding in parallel test runs
+let isSeeded = false
+
 export const seedDatabase = async () => {
+  if (isSeeded) {
+    return // Already seeded, skip
+  }
   //   await migrateDb()
   await insertCountries()
+  isSeeded = true
 }
 
 export const dropDatabase = async () => {
   console.log('drop database....')
   await db.delete(countries)
+  isSeeded = false // Reset so seedDatabase() can reseed after drop
 }
 
 export const setupOrg = async (params?: {
@@ -171,6 +179,8 @@ export const setupOrg = async (params?: {
   feePercentage?: string
   stripeConnectContractType?: StripeConnectContractType
   countryCode?: CountryCode
+  /** Skip creating pricing models, products, and prices. Useful for tests that need to create their own. */
+  skipPricingModel?: boolean
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -209,6 +219,17 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
+
+    // If skipPricingModel is true, return just the organization
+    if (params?.skipPricingModel) {
+      return {
+        organization,
+        product: undefined,
+        price: undefined,
+        pricingModel: undefined,
+        testmodePricingModel: undefined,
+      } as any
+    }
 
     // Create both live and testmode default pricing models
     const livePricingModel = await insertPricingModel(
@@ -1236,10 +1257,9 @@ export const setupSubscriptionItem = async ({
   usageEventsPerUnit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const subscription = await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap()
     if (!subscription) {
       throw new Error('Subscription not found')
     }
@@ -1646,13 +1666,21 @@ export const setupUserAndApiKey = async ({
       throw new Error('Failed to create user for API key setup')
     const user = userInsertResult as typeof users.$inferSelect
 
-    await transaction.insert(memberships).values({
-      id: `mem_${core.nanoid()}`,
-      userId: user.id,
-      organizationId,
-      focused: true,
-      livemode,
-    })
+    const membershipInsertResult = await transaction
+      .insert(memberships)
+      .values({
+        id: `mem_${core.nanoid()}`,
+        userId: user.id,
+        organizationId,
+        focused: true,
+        livemode,
+      })
+      .returning()
+      .then(R.head)
+
+    if (!membershipInsertResult)
+      throw new Error('Failed to create membership for user setup')
+    const membership = membershipInsertResult as Membership.Record
 
     const apiKeyTokenValue = `test_sk_${core.nanoid()}`
     const apiKeyInsertResult = await transaction
@@ -1673,7 +1701,11 @@ export const setupUserAndApiKey = async ({
       throw new Error('Failed to create API key')
     const apiKey = apiKeyInsertResult as ApiKey.Record
 
-    return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
+    return {
+      user,
+      membership,
+      apiKey: { ...apiKey, token: apiKeyTokenValue },
+    }
   })
 }
 

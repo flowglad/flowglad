@@ -78,10 +78,12 @@ export const updateWebhook = protectedProcedure
           },
           transaction
         )
-        const organization = await selectOrganizationById(
-          webhook.organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            webhook.organizationId,
+            transaction
+          )
+        ).unwrap()
         await updateSvixEndpoint({
           webhook,
           organization,
@@ -99,7 +101,9 @@ export const getWebhook = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const webhook = await selectWebhookById(input.id, transaction)
+        const webhook = (
+          await selectWebhookById(input.id, transaction)
+        ).unwrap()
         return { webhook }
       }
     )

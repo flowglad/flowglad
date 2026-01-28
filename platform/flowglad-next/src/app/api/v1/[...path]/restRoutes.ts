@@ -1,6 +1,7 @@
 import { apiKeysRouteConfigs } from '@/server/routers/apiKeysRouter'
 import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
 import {
+  customerArchiveRouteConfig,
   customerBillingRouteConfig,
   customersRouteConfigs,
   customerUsageBalancesRouteConfig,
@@ -68,6 +69,7 @@ export const routes: Record<string, RouteConfig> = {
   ...getDefaultPricingModelRouteConfig,
   ...setupPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
+  ...customerArchiveRouteConfig,
   ...customerBillingRouteConfig,
   ...customerUsageBalancesRouteConfig,
   ...usageEventsBulkRouteConfig,

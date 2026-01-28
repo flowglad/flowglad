@@ -81,14 +81,9 @@ export const editCheckoutSession = async (
 ) => {
   const { transaction, invalidateCache } = ctx
   const { checkoutSession, purchaseId } = input
-  const previousCheckoutSession = await selectCheckoutSessionById(
-    checkoutSession.id,
-    transaction
-  )
-
-  if (!previousCheckoutSession) {
-    throw new Error('Purchase session not found')
-  }
+  const previousCheckoutSession = (
+    await selectCheckoutSessionById(checkoutSession.id, transaction)
+  ).unwrap()
 
   if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
     throw new Error('Checkout session is not open')
@@ -133,10 +128,9 @@ export const editCheckoutSession = async (
   }
   let purchase: Purchase.Record | null = null
   if (purchaseId) {
-    purchase = await selectPurchaseById(purchaseId, transaction)
-    if (!purchase) {
-      throw new Error('Purchase not found')
-    }
+    purchase = (
+      await selectPurchaseById(purchaseId, transaction)
+    ).unwrap()
     if (purchase.status !== PurchaseStatus.Pending) {
       throw new Error('Purchase is not pending')
     }
@@ -202,14 +196,12 @@ export const editCheckoutSessionBillingAddress = async (
   checkoutSession: CheckoutSession.Record
   feeCalculation: FeeCalculation.Record | null
 }> => {
-  const previousCheckoutSession = await selectCheckoutSessionById(
-    input.checkoutSessionId,
-    transaction
-  )
-
-  if (!previousCheckoutSession) {
-    throw new Error('Checkout session not found')
-  }
+  const previousCheckoutSession = (
+    await selectCheckoutSessionById(
+      input.checkoutSessionId,
+      transaction
+    )
+  ).unwrap()
 
   if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
     throw new Error('Checkout session is not open')
@@ -225,10 +217,12 @@ export const editCheckoutSessionBillingAddress = async (
   )
 
   // Check if we should calculate fees (MOR orgs only, and only if fee-ready)
-  const organization = await selectOrganizationById(
-    updatedCheckoutSession.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      updatedCheckoutSession.organizationId,
+      transaction
+    )
+  ).unwrap()
 
   let feeCalculation: FeeCalculation.Record | null = null
 
@@ -352,20 +346,23 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
 
   // Step 1: Try to find existing customer by checkout session customer ID (logged-in user)
   if (checkoutSession.purchaseId) {
-    purchase = await selectPurchaseById(
-      checkoutSession.purchaseId,
-      transaction
-    )
-    customer = await selectCustomerById(
-      purchase.customerId!,
-      transaction
-    )
+    purchase = (
+      await selectPurchaseById(
+        checkoutSession.purchaseId,
+        transaction
+      )
+    ).unwrap()
+    customer = (
+      await selectCustomerById(purchase.customerId!, transaction)
+    ).unwrap()
   }
   if (checkoutSession.customerId) {
-    customer = await selectCustomerById(
-      checkoutSession.customerId,
-      transaction
-    )
+    customer = (
+      await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    ).unwrap()
   }
 
   // Step 2: Validate that provided Stripe customer ID matches existing customer
@@ -577,10 +574,9 @@ export const processStripeChargeForCheckoutSession = async (
 }> => {
   const { transaction } = ctx
   let purchase: Purchase.Record | null = null
-  let checkoutSession = await selectCheckoutSessionById(
-    checkoutSessionId,
-    transaction
-  )
+  let checkoutSession = (
+    await selectCheckoutSessionById(checkoutSessionId, transaction)
+  ).unwrap()
 
   let invoice: Invoice.Record | null = null
 

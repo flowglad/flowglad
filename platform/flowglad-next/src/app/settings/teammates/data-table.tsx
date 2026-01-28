@@ -12,9 +12,11 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table'
 import { UserPlus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import RemoveMemberModal from '@/components/forms/RemoveMemberModal'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import {
@@ -27,6 +29,7 @@ import {
 } from '@/components/ui/table'
 import {
   columns,
+  type OrganizationMemberTableMeta,
   type OrganizationMemberTableRowData,
 } from './columns'
 
@@ -41,8 +44,39 @@ export function OrganizationMembersDataTable({
   filters = {},
   onInviteMember,
 }: OrganizationMembersDataTableProps) {
+  const router = useRouter()
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+
+  // State for remove member modal
+  const [memberToRemove, setMemberToRemove] =
+    React.useState<OrganizationMemberTableRowData | null>(null)
+
+  // tRPC utils for cache invalidation
+  const utils = trpc.useUtils()
+
+  // Fetch current user's focused membership to determine their role
+  const { data: focusedMembershipData } =
+    trpc.organizations.getFocusedMembership.useQuery()
+
+  // Remove member mutation
+  const removeMemberMutation =
+    trpc.organizations.removeMember.useMutation({
+      onSuccess: (result, variables) => {
+        setMemberToRemove(null)
+        // Invalidate the members list to refresh the table
+        utils.organizations.getMembersTableRowData.invalidate()
+        utils.organizations.getMembers.invalidate()
+        // If user removed themselves, redirect to settings
+        if (
+          focusedMembershipData?.membership.id ===
+          variables.membershipId
+        ) {
+          router.push('/settings')
+          router.refresh()
+        }
+      },
+    })
 
   const {
     pageIndex,
@@ -77,6 +111,17 @@ export function OrganizationMembersDataTable({
     React.useState<VisibilityState>({})
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
+
+  // Build the table meta for passing context to cells
+  const tableMeta: OrganizationMemberTableMeta = React.useMemo(
+    () => ({
+      currentMembership: focusedMembershipData?.membership ?? null,
+      onRemoveMember: (member: OrganizationMemberTableRowData) => {
+        setMemberToRemove(member)
+      },
+    }),
+    [focusedMembershipData?.membership]
+  )
 
   const table = useReactTable({
     data: data?.items || [],
@@ -122,6 +167,7 @@ export function OrganizationMembersDataTable({
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
     },
+    meta: tableMeta,
   })
 
   return (
@@ -215,6 +261,26 @@ export function OrganizationMembersDataTable({
           entityName="teammate"
         />
       </div>
+
+      {/* Remove Member Modal */}
+      {memberToRemove && (
+        <RemoveMemberModal
+          isOpen={true}
+          setIsOpen={(open) => {
+            if (!open) setMemberToRemove(null)
+          }}
+          membershipId={memberToRemove.membership.id}
+          memberName={memberToRemove.user.name ?? ''}
+          memberEmail={memberToRemove.user.email ?? ''}
+          isLeaving={
+            focusedMembershipData?.membership.id ===
+            memberToRemove.membership.id
+          }
+          onConfirm={async (membershipId) => {
+            await removeMemberMutation.mutateAsync({ membershipId })
+          }}
+        />
+      )}
     </div>
   )
 }

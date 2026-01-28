@@ -145,10 +145,9 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
         `Organization: ${organization.id}; Billing Period: ${billingPeriod.id}`
     )
   }
-  const organizationCountry = await selectCountryById(
-    countryId,
-    transaction
-  )
+  const organizationCountry = (
+    await selectCountryById(countryId, transaction)
+  ).unwrap()
   const claimResult = await claimLedgerEntriesWithOutstandingBalances(
     usageOverages.flatMap(
       (usageOverage) => usageOverage.usageEventIds
@@ -436,10 +435,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
 
-  const paymentMethod = await selectPaymentMethodById(
-    billingRun.paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(
+      billingRun.paymentMethodId,
+      transaction
+    )
+  ).unwrap()
 
   // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
   const { rawOutstandingUsageCosts } =

@@ -21,15 +21,16 @@ export const generatePaymentReceiptPdfTask = task({
       async () => {
         const { payment, invoice } = await adminTransaction(
           async ({ transaction }) => {
-            const payment = await selectPaymentById(
-              paymentId,
-              transaction
-            )
+            const payment = (
+              await selectPaymentById(paymentId, transaction)
+            ).unwrap()
             const invoice = payment.invoiceId
-              ? await selectInvoiceById(
-                  payment.invoiceId,
-                  transaction
-                )
+              ? (
+                  await selectInvoiceById(
+                    payment.invoiceId,
+                    transaction
+                  )
+                ).unwrap()
               : null
             return { payment, invoice }
           }

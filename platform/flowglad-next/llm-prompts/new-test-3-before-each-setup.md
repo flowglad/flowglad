@@ -36,7 +36,7 @@ it('should do something', () => {
 
 ## Examples
 ```ts
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import { core } from '@/utils/core'
 import {
   setupOrg,
@@ -146,7 +146,7 @@ describe('Ledger Management System', async () => {
 ```
 
 ```ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { DbTransaction } from '@/db/types'
 import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
@@ -269,7 +269,7 @@ describe('tabulateOutstandingUsageCosts', () => {
 ```
 
 ```ts
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupOrg,

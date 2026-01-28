@@ -1,4 +1,5 @@
 {
+  "files": ["src/test/globals.ts"],
   "compilerOptions": {
     "types": ["bun-types"],
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -38,8 +39,6 @@
     "src/test/**/*",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "slow-tests/**/*",
-    "rls-tests/**/*",
-    "integration-tests/**/*"
+    "slow-tests/**/*"
   ]
 }

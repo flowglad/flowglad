@@ -288,10 +288,12 @@ export const processOutcomeForBillingRun = async (
     })
   }
 
-  const paymentMethod = await selectPaymentMethodById(
-    billingRun.paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(
+      billingRun.paymentMethodId,
+      transaction
+    )
+  ).unwrap()
 
   const {
     billingPeriodItems,
@@ -439,7 +441,9 @@ export const processOutcomeForBillingRun = async (
   }
 
   // Re-Select Invoice after changes have been made
-  invoice = await selectInvoiceById(invoice.id, transaction)
+  invoice = (
+    await selectInvoiceById(invoice.id, transaction)
+  ).unwrap()
 
   // Handle subscription item adjustments after successful payment
   if (

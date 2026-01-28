@@ -37,7 +37,9 @@ export const derivePricingModelIdFromPayment = async (
   paymentId: string,
   transaction: DbTransaction
 ): Promise<string> => {
-  const payment = await selectPaymentById(paymentId, transaction)
+  const payment = (
+    await selectPaymentById(paymentId, transaction)
+  ).unwrap()
   if (!payment.pricingModelId) {
     throw new Error(
       `Payment ${paymentId} does not have a pricingModelId`

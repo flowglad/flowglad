@@ -94,12 +94,10 @@ export const runSendOrganizationSubscriptionAdjustedNotification =
               { organizationId },
               transaction
             ),
-            selectSubscriptionById(subscriptionId, transaction),
+            selectSubscriptionById(subscriptionId, transaction).then(
+              (r) => r.unwrap()
+            ),
           ])
-
-        if (!subscriptionRecord) {
-          throw new NotFoundError('Subscription', subscriptionId)
-        }
 
         return {
           ...context,

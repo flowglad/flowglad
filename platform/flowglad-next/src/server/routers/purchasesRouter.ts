@@ -34,7 +34,9 @@ const getPurchaseProcedure = protectedProcedure
   .query(async ({ ctx, input }) => {
     const purchase = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPurchaseById(input.id, transaction)
+        return (
+          await selectPurchaseById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,

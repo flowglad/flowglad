@@ -323,7 +323,7 @@ function InnerPricingModelDetailsPage({
           contentPadding={false}
         >
           <CustomersDataTable
-            filters={{ pricingModelId: pricingModel.id }}
+            externalFilters={{ pricingModelId: pricingModel.id }}
             onCreateCustomer={() =>
               setIsCreateCustomerModalOpen(true)
             }

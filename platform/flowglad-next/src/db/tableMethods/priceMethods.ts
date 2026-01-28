@@ -25,7 +25,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -131,7 +131,7 @@ export const derivePricingModelIdForPrice = async (
   return pricingModelId
 }
 
-export const selectPriceById = createSelectByIdResult(prices, config)
+export const selectPriceById = createSelectById(prices, config)
 
 /**
  * Derives pricingModelId from a price by reading directly from the price table.
@@ -617,10 +617,9 @@ export const selectPriceBySlugAndCustomerId = async (
   transaction: DbTransaction
 ): Promise<Price.ClientRecord | null> => {
   // First, get the customer to determine their pricing model
-  const customer = await selectCustomerById(
-    params.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(params.customerId, transaction)
+  ).unwrap()
 
   // Get the pricing model for the customer (includes products and prices)
   // Note: selectPricingModelForCustomer already filters for active prices
@@ -1006,13 +1005,9 @@ export const ensureUsageMeterHasDefaultPrice = async (
   }
 
   // Set the no_charge price as default
-  const usageMeter = await selectUsageMeterById(
-    usageMeterId,
-    ctx.transaction
-  )
-  if (!usageMeter) {
-    throw new Error(`Usage meter ${usageMeterId} not found`)
-  }
+  const usageMeter = (
+    await selectUsageMeterById(usageMeterId, ctx.transaction)
+  ).unwrap()
 
   const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
 
@@ -1325,9 +1320,14 @@ export const selectResourceFeaturesForPrices = async (
       new Map<string, Feature.ResourceRecord>()
 
     const existingForResource = existingMapForProduct.get(resourceId)
+    // Use createdAt as primary sort key, with position as tiebreaker
+    // (position is a bigserial that preserves insertion order even within a transaction,
+    // unlike timestamps which are fixed at transaction start in PostgreSQL)
     if (
       !existingForResource ||
-      feature.createdAt > existingForResource.createdAt
+      feature.createdAt > existingForResource.createdAt ||
+      (feature.createdAt === existingForResource.createdAt &&
+        (feature.position ?? 0) > (existingForResource.position ?? 0))
     ) {
       existingMapForProduct.set(resourceId, feature)
       productIdToLatestByResourceId.set(

@@ -84,10 +84,11 @@ export const derivePricingModelIdForInvoice = async (
   }
 
   // Fall back to customer
-  const customer = await selectCustomerById(
+  const customerResult = await selectCustomerById(
     data.customerId,
     transaction
   )
+  const customer = customerResult.unwrap()
   if (!customer.pricingModelId) {
     throw new Error(
       `Customer ${data.customerId} does not have a pricingModelId`

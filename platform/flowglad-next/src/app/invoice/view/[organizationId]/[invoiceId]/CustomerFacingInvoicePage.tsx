@@ -26,14 +26,18 @@ export const CustomerFacingInvoicePage = (
       if (invoicesWithLineItems.length === 0) {
         return null
       }
-      const customer = await selectCustomerById(
-        invoicesWithLineItems[0].invoice.customerId,
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        invoicesWithLineItems[0].invoice.organizationId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(
+          invoicesWithLineItems[0].invoice.customerId,
+          transaction
+        )
+      ).unwrap()
+      const organization = (
+        await selectOrganizationById(
+          invoicesWithLineItems[0].invoice.organizationId,
+          transaction
+        )
+      ).unwrap()
       const payments =
         await selectPaymentsAndPaymentMethodsByPaymentsWhere(
           { invoiceId: invoiceId },

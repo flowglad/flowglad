@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -24,6 +24,14 @@ import Providers from './Providers'
 export const metadata: Metadata = {
   title: 'Flowglad',
   description: 'Make more internet money',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // Resize content when virtual keyboard appears, making fixed bottom
+  // elements move up with the keyboard on mobile devices
+  interactiveWidget: 'resizes-content',
 }
 
 export default async function RootLayout({

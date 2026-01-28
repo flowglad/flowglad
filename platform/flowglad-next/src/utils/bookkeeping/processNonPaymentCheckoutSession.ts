@@ -47,10 +47,12 @@ export const processNonPaymentCheckoutSession = async (
   ).unwrap()
 
   let purchase = checkoutSession.purchaseId
-    ? await selectPurchaseById(
-        checkoutSession.purchaseId,
-        transaction
-      )
+    ? (
+        await selectPurchaseById(
+          checkoutSession.purchaseId,
+          transaction
+        )
+      ).unwrap()
     : null
   const priceType = purchase?.priceType ?? price.type
   if (priceType === PriceType.Subscription) {

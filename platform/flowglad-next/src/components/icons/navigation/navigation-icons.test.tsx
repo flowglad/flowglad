@@ -1,11 +1,7 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it } from 'bun:test'
 import { render, screen } from '@testing-library/react'
 import { Gauge } from 'lucide-react'
 import React from 'react'
-import { describe, expect, it } from 'vitest'
 import { FinishSetupIcon } from '../FinishSetupIcon'
 import { MoreIcon } from '../MoreIcon'
 import { PaymentsIcon } from '../PaymentsIcon'

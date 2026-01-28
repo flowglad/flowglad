@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
   type UsageMeter,
@@ -57,7 +58,13 @@ export const derivePricingModelIdFromUsageMeter =
   createDerivePricingModelId(
     usageMeters,
     config,
-    selectUsageMeterById
+    async (id, transaction) => {
+      const result = await selectUsageMeterById(id, transaction)
+      if (Result.isError(result)) {
+        throw result.error
+      }
+      return result.value
+    }
   )
 
 /**
@@ -270,14 +277,9 @@ export const selectUsageMeterBySlugAndCustomerId = async (
   transaction: DbTransaction
 ): Promise<UsageMeter.ClientRecord | null> => {
   // First, get the customer to determine their pricing model
-  const customer = await selectCustomerById(
-    params.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer ${params.customerId} not found`)
-  }
+  const customer = (
+    await selectCustomerById(params.customerId, transaction)
+  ).unwrap()
 
   // Get the pricing model for the customer (includes usage meters)
   const pricingModel = await selectPricingModelForCustomer(

@@ -1,9 +1,9 @@
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
-import { NotFoundError } from '@/db/tableUtils'
 import { FeatureType } from '@/types'
 import InnerFeatureDetailsPage from './InnerFeatureDetailsPage'
 
@@ -16,20 +16,15 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
 
   const { feature, pricingModel, usageMeter } =
     await authenticatedTransaction(async ({ transaction }) => {
-      let feature
-      try {
-        feature = await selectFeatureById(id, transaction)
-      } catch (error) {
-        // Only treat "not found" errors as expected; let other DB failures propagate
-        if (error instanceof NotFoundError) {
-          return {
-            feature: null,
-            pricingModel: null,
-            usageMeter: null,
-          }
+      const featureResult = await selectFeatureById(id, transaction)
+      if (Result.isError(featureResult)) {
+        return {
+          feature: null,
+          pricingModel: null,
+          usageMeter: null,
         }
-        throw error
       }
+      const feature = featureResult.unwrap()
 
       const [pricingModel] = await selectPricingModels(
         { id: feature.pricingModelId },
@@ -42,10 +37,12 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
         feature.type === FeatureType.UsageCreditGrant &&
         feature.usageMeterId
       ) {
-        usageMeter = await selectUsageMeterById(
-          feature.usageMeterId,
-          transaction
-        )
+        usageMeter = (
+          await selectUsageMeterById(
+            feature.usageMeterId,
+            transaction
+          )
+        ).unwrap()
       }
 
       return {

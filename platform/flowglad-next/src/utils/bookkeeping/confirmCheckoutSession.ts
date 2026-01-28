@@ -43,13 +43,14 @@ export const confirmCheckoutSessionTransaction = async (
 > => {
   const { transaction, emitEvent, enqueueLedgerCommand } = ctx
   // Find purchase session
-  const checkoutSession = await selectCheckoutSessionById(
+  const checkoutSessionResult = await selectCheckoutSessionById(
     input.id,
     transaction
   )
-  if (!checkoutSession) {
+  if (Result.isError(checkoutSessionResult)) {
     return Result.err(new NotFoundError('CheckoutSession', input.id))
   }
+  const checkoutSession = checkoutSessionResult.unwrap()
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
     return Result.err(
       new ValidationError(
@@ -91,10 +92,12 @@ export const confirmCheckoutSessionTransaction = async (
 
   if (checkoutSession.customerId) {
     // Find customer
-    customer = await selectCustomerById(
-      checkoutSession.customerId,
-      transaction
-    )
+    customer = (
+      await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    ).unwrap()
   } else if (checkoutSession.purchaseId) {
     const purchaseAndCustomer =
       await selectPurchaseAndCustomersByPurchaseWhere(

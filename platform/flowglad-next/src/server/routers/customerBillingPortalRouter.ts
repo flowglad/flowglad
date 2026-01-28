@@ -222,10 +222,9 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     await authenticatedTransaction(
       async ({ transaction }) => {
         // Verify the subscription belongs to the customer
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
 
         if (subscription.customerId !== customer.id) {
           throw new TRPCError({
@@ -334,10 +333,9 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     await authenticatedTransaction(
       async ({ transaction }) => {
         // Verify the subscription belongs to the customer
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
 
         if (subscription.customerId !== customer.id) {
           throw new TRPCError({
@@ -387,10 +385,9 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
           emitEvent,
           enqueueLedgerCommand,
         }
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
         const uncancelResult = await uncancelSubscription(
           subscription,
           ctx
@@ -430,18 +427,19 @@ const requestMagicLinkProcedure = publicProcedure
 
     try {
       // Verify organization exists
-      const organization = await adminTransaction(
+      const organizationResult = await adminTransaction(
         async ({ transaction }) => {
           return selectOrganizationById(organizationId, transaction)
         }
       )
 
-      if (!organization) {
+      if (Result.isError(organizationResult)) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Organization not found',
         })
       }
+      const organization = organizationResult.unwrap()
 
       // Set the organization ID for the billing portal session
       await setCustomerBillingPortalOrganizationId(organizationId)
@@ -597,10 +595,9 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
         enqueueLedgerCommand,
       }) => {
         // Verify ownership BEFORE making any mutations
-        const existingPaymentMethod = await selectPaymentMethodById(
-          paymentMethodId,
-          transaction
-        )
+        const existingPaymentMethod = (
+          await selectPaymentMethodById(paymentMethodId, transaction)
+        ).unwrap()
         if (existingPaymentMethod.customerId !== customer.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -755,17 +752,18 @@ const sendOTPToCustomerProcedure = publicProcedure
       // 1. Fetch customer and organization, verify they match in a single transaction
       const { customer, organization } = await adminTransaction(
         async ({ transaction }) => {
-          const customer = await selectCustomerById(
+          const customerResult = await selectCustomerById(
             customerId,
             transaction
           )
 
-          if (!customer) {
+          if (Result.isError(customerResult)) {
             throw new TRPCError({
               code: 'NOT_FOUND',
               message: 'Customer not found',
             })
           }
+          const customer = customerResult.unwrap()
 
           // Verify customer belongs to organization
           if (customer.organizationId !== organizationId) {
@@ -783,19 +781,22 @@ const sendOTPToCustomerProcedure = publicProcedure
           }
 
           // Fetch and verify organization exists
-          const organization = await selectOrganizationById(
+          const organizationResult = await selectOrganizationById(
             organizationId,
             transaction
           )
 
-          if (!organization) {
+          if (Result.isError(organizationResult)) {
             throw new TRPCError({
               code: 'NOT_FOUND',
               message: 'Organization not found',
             })
           }
 
-          return { customer, organization }
+          return {
+            customer,
+            organization: organizationResult.unwrap(),
+          }
         }
       )
 

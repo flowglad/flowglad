@@ -126,20 +126,27 @@ export const _setTestRedisClient = (client: any) => {
 /**
  * Returns a Redis client.
  *
- * In unit tests (NODE_ENV=test), returns either:
- * - A custom client set via _setTestRedisClient(), or
- * - The default testStubClient (no-op stub)
- *
- * In integration tests (REDIS_INTEGRATION_TEST_MODE=true), returns real Redis.
- * In production, returns real Redis.
+ * Priority:
+ * 1. If _setTestRedisClient() was called, always use that client (test override)
+ * 2. In integration tests (REDIS_INTEGRATION_TEST_MODE=true), returns real Redis
+ * 3. In unit/db tests (NODE_ENV=test without integration mode), returns testStubClient
+ * 4. In production, returns real Redis
  */
 export const redis = () => {
+  // Always respect explicit test client injection (used for testing specific behaviors)
+  if (_testRedisClient !== null) {
+    return _testRedisClient
+  }
+
+  // In non-integration tests, use the no-op stub
   if (
     core.IS_TEST &&
     process.env.REDIS_INTEGRATION_TEST_MODE !== 'true'
   ) {
-    return _testRedisClient ?? testStubClient
+    return testStubClient
   }
+
+  // Integration tests and production use real Redis
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
     token: core.envVariable('UPSTASH_REDIS_REST_TOKEN'),

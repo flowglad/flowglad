@@ -148,10 +148,9 @@ const getCheckoutSessionProcedure = protectedProcedure
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const checkoutSession = await selectCheckoutSessionById(
-          input.id,
-          transaction
-        )
+        const checkoutSession = (
+          await selectCheckoutSessionById(input.id, transaction)
+        ).unwrap()
         return {
           checkoutSession,
           url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,

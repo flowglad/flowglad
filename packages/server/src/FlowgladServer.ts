@@ -999,4 +999,37 @@ export class FlowgladServer {
       }
     )
   }
+
+  /**
+   * Archives a customer by setting archived=true and canceling all active subscriptions.
+   *
+   * This is a dedicated method for archiving customers because archiving is a significant
+   * state change with cascade effects (subscription cancellation), not just a field update.
+   *
+   * Behavior:
+   * - If customer is already archived, returns immediately (idempotent)
+   * - Cancels all active subscriptions with reason 'customer_archived'
+   * - Sets archived=true on the customer
+   *
+   * After archiving:
+   * - The customer's externalId is freed for reuse by a new customer
+   * - ExternalId lookups will not return this customer by default
+   * - Operations that create records attached to this customer will be blocked
+   *
+   * @param externalId - The external ID of the customer to archive
+   * @returns The archived customer record
+   */
+  public archiveCustomer = async (
+    externalId: string
+  ): Promise<FlowgladNode.Customers.CustomerClientSelectSchema> => {
+    const result = await this.flowgladNode.post<{
+      customer: FlowgladNode.Customers.CustomerClientSelectSchema
+    }>(
+      `/api/v1/customers/${encodeURIComponent(externalId)}/archive`,
+      {
+        body: {},
+      }
+    )
+    return result.customer
+  }
 }

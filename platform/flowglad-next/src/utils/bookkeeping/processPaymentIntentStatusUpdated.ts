@@ -156,10 +156,12 @@ export const upsertPaymentForStripeCharge = async (
       )
     }
     const billingRun = billingRunResult.value
-    const subscription = await selectSubscriptionById(
-      billingRun.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        billingRun.subscriptionId,
+        transaction
+      )
+    ).unwrap()
     const [invoice] = await selectInvoices(
       {
         billingPeriodId: billingRun.billingPeriodId,
@@ -607,12 +609,13 @@ export const processPaymentIntentStatusUpdated = async (
   // Fetch customer data for event payload
   // Re-fetch purchase after update to get the latest status
   const purchase = payment.purchaseId
-    ? await selectPurchaseById(payment.purchaseId, transaction)
+    ? (
+        await selectPurchaseById(payment.purchaseId, transaction)
+      ).unwrap()
     : null
-  const customer = await selectCustomerById(
-    payment.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(payment.customerId, transaction)
+  ).unwrap()
   const timestamp = Date.now()
   if (paymentIntent.status === 'succeeded') {
     emitEvent({
@@ -634,10 +637,12 @@ export const processPaymentIntentStatusUpdated = async (
       processedAt: null,
     })
     if (metadata.type === IntentMetadataType.CheckoutSession) {
-      const checkoutSession = await selectCheckoutSessionById(
-        metadata.checkoutSessionId,
-        transaction
-      )
+      const checkoutSession = (
+        await selectCheckoutSessionById(
+          metadata.checkoutSessionId,
+          transaction
+        )
+      ).unwrap()
       if (checkoutSession.priceId) {
         const ledgerCommandResult =
           await ledgerCommandForPaymentSucceeded(
@@ -677,14 +682,9 @@ export const processPaymentIntentStatusUpdated = async (
     })
   }
   if (purchase && purchase.status === PurchaseStatus.Paid) {
-    const purchaseCustomer = await selectCustomerById(
-      purchase.customerId,
-      transaction
-    )
-
-    if (!purchaseCustomer) {
-      return Result.err(new NotFoundError('Customer', purchase.id))
-    }
+    const purchaseCustomer = (
+      await selectCustomerById(purchase.customerId, transaction)
+    ).unwrap()
 
     emitEvent({
       type: FlowgladEventType.PurchaseCompleted,
