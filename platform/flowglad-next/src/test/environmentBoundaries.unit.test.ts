@@ -127,9 +127,8 @@ describe('Environment boundaries', () => {
         /mock\.module\(['"]@\/db\/adminTransaction['"].*throw/
       )
 
-      // Integration tests should enable real Stripe and Redis
-      expect(content).toMatch(/STRIPE_INTEGRATION_TEST_MODE/)
-      expect(content).toMatch(/REDIS_INTEGRATION_TEST_MODE/)
+      // Integration tests should verify .env.integration exists
+      expect(content).toMatch(/\.env\.integration/)
     })
 
     it('should run with extended timeout (30000ms) for real API calls', () => {

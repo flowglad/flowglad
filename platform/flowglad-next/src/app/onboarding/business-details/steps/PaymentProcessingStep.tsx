@@ -73,7 +73,7 @@ export function PaymentProcessingStep() {
                   <div
                     key={option.value}
                     className={cn(
-                      'border rounded-lg p-4 transition-all',
+                      'border rounded-lg p-4 transition-all bg-card-muted',
                       option.enabled
                         ? 'cursor-pointer hover:border-primary'
                         : 'opacity-50 cursor-not-allowed',

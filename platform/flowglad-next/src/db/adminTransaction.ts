@@ -40,8 +40,11 @@ export async function adminTransaction<T>(
 /**
  * Core comprehensive admin transaction logic without tracing.
  * Returns the full Result plus processed counts so the traced wrapper can extract accurate metrics.
+ *
+ * Note: This is a function declaration (not const arrow function) to ensure hoisting.
+ * This prevents TDZ errors when there are circular import dependencies.
  */
-const executeComprehensiveAdminTransaction = async <T>(
+async function executeComprehensiveAdminTransaction<T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
   ) => Promise<Result<T, Error>>,
@@ -50,7 +53,7 @@ const executeComprehensiveAdminTransaction = async <T>(
   output: Result<T, Error>
   processedEventsCount: number
   processedLedgerCommandsCount: number
-}> => {
+}> {
   // Create effects accumulator and callbacks
   const {
     effects,

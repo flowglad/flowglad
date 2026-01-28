@@ -38,7 +38,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
       setIsOpen={setIsOpen}
       title="Create Feature"
       formSchema={createFeatureSchema}
-      defaultValues={{
+      defaultValues={() => ({
         feature: {
           type: FeatureType.Toggle, // Default to Toggle
           name: '',
@@ -50,7 +50,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           renewalFrequency: null,
           active: true,
         },
-      }}
+      })}
       onSubmit={async (data) => {
         await createFeatureMutation.mutateAsync(data)
       }}

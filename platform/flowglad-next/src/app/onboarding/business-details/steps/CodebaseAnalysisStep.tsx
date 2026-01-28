@@ -25,7 +25,7 @@ export function CodebaseAnalysisStep() {
   return (
     <StepContainer
       title="Codebase Context"
-      description="Use the prompt to have AI analyze your codebase, then paste the result here. This is optional but helps us provide better integration guidance."
+      description="Get tailored integration recommendations by sharing your stack. Optional but recommended."
     >
       <div className="space-y-4">
         <div className="flex gap-2">
