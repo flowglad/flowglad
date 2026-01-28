@@ -7,6 +7,16 @@ description: Review pull requests for code quality, security vulnerabilities, be
 
 Perform comprehensive reviews of code changes, implementation plans, and architecture decisions. Analyzes for quality, correctness, security, and adherence to project standards.
 
+## First: Read the Base Guidelines
+
+**Before reviewing any code, read [base-review.md](base-review.md).** It establishes:
+- Reviewer philosophy (respect existing patterns, burden of proof on changes)
+- Core quality standards (type safety, transaction integrity, data access, caching)
+- Severity calibration with codebase-specific examples
+- Common blind spots that reviewers unfamiliar with this codebase miss
+
+The base guidelines apply to ALL reviews. Area-specific guides add targeted checklists.
+
 ## When to Use
 
 - Reviewing pull request changes
