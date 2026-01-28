@@ -153,7 +153,9 @@ describe('Billing Period Methods', () => {
       ]
       for (const status of terminalStatuses) {
         const billingPeriod = createMockBillingPeriod(status)
-        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(true)
+        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
+          true
+        )
       }
     })
 
@@ -166,7 +168,9 @@ describe('Billing Period Methods', () => {
       ]
       for (const status of nonTerminalStatuses) {
         const billingPeriod = createMockBillingPeriod(status)
-        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(false)
+        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
+          false
+        )
       }
     })
   })

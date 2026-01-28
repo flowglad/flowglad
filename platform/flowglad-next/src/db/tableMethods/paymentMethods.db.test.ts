@@ -2567,7 +2567,9 @@ describe('pricingModelId derivation', () => {
 })
 
 describe('isPaymentInTerminalState', () => {
-  const createMockPayment = (status: PaymentStatus): Payment.Record => ({
+  const createMockPayment = (
+    status: PaymentStatus
+  ): Payment.Record => ({
     id: 'pay_test',
     organizationId: 'org_test',
     customerId: 'cust_test',
