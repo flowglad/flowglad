@@ -6,7 +6,7 @@
  *
  * Run with: bun run test:integration src/subscriptions/billingRunHelpers.integration.test.ts
  */
-import { afterEach, beforeEach, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -53,7 +53,12 @@ import {
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
-import { describeIfStripeKey } from '@/test/stripeIntegrationHelpers'
+import {
+  cleanupStripeTestData,
+  createTestPaymentMethod,
+  createTestStripeCustomer,
+  describeIfStripeKey,
+} from '@/test/stripeIntegrationHelpers'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -98,6 +103,7 @@ describeIfStripeKey(
     let usageBasedPrice: Price.Record
     let ledgerAccount: LedgerAccount.Record
     let subscriptionItem: SubscriptionItem.Record
+    let stripeCustomerId: string | undefined
 
     beforeEach(async () => {
       const orgData = await setupOrg()
@@ -106,19 +112,36 @@ describeIfStripeKey(
       product = orgData.product
       staticPrice = orgData.price
 
+      // Create a real Stripe customer for integration testing
+      const stripeCustomer = await createTestStripeCustomer({
+        email: `billing-run-test-${Date.now()}@flowglad-test.com`,
+        name: 'Billing Run Test Customer',
+      })
+      stripeCustomerId = stripeCustomer.id
+
       customer = await setupCustomer({
         organizationId: organization.id,
+        stripeCustomerId: stripeCustomer.id,
       })
+
+      // Create a real Stripe payment method with a valid card
+      const stripePaymentMethod = await createTestPaymentMethod({
+        stripeCustomerId: stripeCustomer.id,
+        livemode: false,
+        tokenType: 'success', // Use a successful card for success scenarios
+      })
+
       paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
         customerId: customer.id,
+        stripePaymentMethodId: stripePaymentMethod.id,
       })
 
       usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Integration Test Usage Meter',
         pricingModelId: pricingModel.id,
-        livemode: true,
+        livemode: false,
       })
 
       usageBasedPrice = await setupPrice({
@@ -127,7 +150,7 @@ describeIfStripeKey(
         unitPrice: 15,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
-        livemode: true,
+        livemode: false,
         isDefault: false,
         currency: organization.defaultCurrency,
         usageMeterId: usageMeter.id,
@@ -162,6 +185,7 @@ describeIfStripeKey(
         paymentMethodId: paymentMethod.id,
         subscriptionId: subscription.id,
         status: BillingRunStatus.Scheduled,
+        livemode: false,
       })
 
       staticBillingPeriodItem = await setupBillingPeriodItem({
@@ -177,11 +201,18 @@ describeIfStripeKey(
         organizationId: organization.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
-        livemode: true,
+        livemode: false,
       })
     })
 
     afterEach(async () => {
+      // Clean up Stripe resources
+      if (stripeCustomerId) {
+        await cleanupStripeTestData({
+          stripeCustomerId,
+        })
+      }
+
       if (organization) {
         await teardownOrg({ organizationId: organization.id })
       }
@@ -377,14 +408,14 @@ describeIfStripeKey(
           usageMeterId: usageMeter.id,
           renewalFrequency: FeatureUsageGrantFrequency.Once,
           amount: grantAmount,
-          livemode: true,
+          livemode: false,
         })
 
         await setupProductFeature({
           organizationId: organization.id,
           productId: product.id,
           featureId: feature.id,
-          livemode: true,
+          livemode: false,
         })
 
         await adminTransaction(async ({ transaction }) => {

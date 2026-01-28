@@ -147,19 +147,22 @@ export const cleanupStripeTestData = async (params: {
 /**
  * Stripe test card tokens for various scenarios.
  * See: https://docs.stripe.com/testing#cards
+ *
+ * Note: For PaymentMethods, tokens like `tok_chargeDeclined` may fail during
+ * creation/attachment. Use SetupIntents to attach declined cards.
  */
 export const STRIPE_TEST_TOKENS = {
   /** Successful payment */
   success: 'tok_visa',
-  /** Card declined (generic) */
+  /** Card declined (generic) - use with SetupIntent */
   declined: 'tok_chargeDeclined',
-  /** Card declined - expired */
+  /** Card declined - expired - use with SetupIntent */
   declinedExpired: 'tok_chargeDeclinedExpiredCard',
-  /** Card declined - insufficient funds */
+  /** Card declined - insufficient funds - use with SetupIntent */
   declinedInsufficientFunds: 'tok_chargeDeclinedInsufficientFunds',
-  /** Card declined - fraud */
+  /** Card declined - fraud - use with SetupIntent */
   declinedFraud: 'tok_chargeDeclinedFraudulent',
-  /** Card declined - processing error */
+  /** Card declined - processing error - use with SetupIntent */
   declinedProcessingError: 'tok_chargeDeclinedProcessingError',
 } as const
 
@@ -168,6 +171,10 @@ export type StripeTestTokenType = keyof typeof STRIPE_TEST_TOKENS
 /**
  * Creates a test card payment method attached to a customer.
  * Uses Stripe's test card tokens for reliable test scenarios.
+ *
+ * For success cards, uses the token directly with paymentMethods.create.
+ * For decline cards, uses SetupIntent to attach the payment method, since
+ * tok_chargeDeclined and similar tokens fail during direct PaymentMethod creation.
  *
  * @param params - Object containing customer ID, livemode flag, and optional token type
  * @returns The created PaymentMethod
@@ -185,9 +192,10 @@ export const createTestPaymentMethod = async (params: {
   }
 
   const stripe = getStripeTestClient()
-  const token = STRIPE_TEST_TOKENS[params.tokenType ?? 'success']
+  const tokenType = params.tokenType ?? 'success'
+  const token = STRIPE_TEST_TOKENS[tokenType]
 
-  // Create a payment method using Stripe's test card token
+  // For success cards, create and attach normally
   const paymentMethod = await stripe.paymentMethods.create({
     type: 'card',
     card: {
