@@ -52,6 +52,9 @@ export const CreateProductModal = ({
 }) => {
   const { organization } = useAuthenticatedContext()
   const createProduct = trpc.products.create.useMutation()
+  if (!isOpen) {
+    return null
+  }
   if (!organization) {
     return <></>
   }
