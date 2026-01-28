@@ -54,17 +54,11 @@ export function CountryStep() {
     (c) => c.id === selectedCountryId
   )
 
-  // Reset selection if country no longer exists in eligible list
-  React.useEffect(() => {
-    if (selectedCountryId && !isLoading) {
-      const countryExists = eligibleCountries.some(
-        (c) => c.id === selectedCountryId
-      )
-      if (!countryExists) {
-        form.setValue('organization.countryId', '')
-      }
-    }
-  }, [selectedCountryId, eligibleCountries, isLoading, form])
+  // Note: If the selected country no longer exists in the eligible list,
+  // selectedCountry will be undefined and the UI will show the placeholder,
+  // prompting the user to select a valid country. We intentionally don't reset
+  // the form value to empty string to avoid triggering validation errors from
+  // the .min(1) schema constraint.
 
   // Loading state (preserve existing skeleton layout)
   if (isLoading) {

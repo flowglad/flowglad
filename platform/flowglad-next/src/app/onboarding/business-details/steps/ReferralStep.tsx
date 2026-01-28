@@ -31,6 +31,8 @@ import { type BusinessDetailsFormData } from './schemas'
 const selectTriggerClasses =
   'flex h-12 w-full items-center justify-between whitespace-nowrap rounded border border-input bg-input-bg text-card-foreground px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-50'
 
+const LISTBOX_ID = 'referral-source-listbox'
+
 export function ReferralStep() {
   const { form } = useMultiStepForm<BusinessDetailsFormData>()
   const [open, setOpen] = React.useState(false)
@@ -55,6 +57,8 @@ export function ReferralStep() {
                     type="button"
                     role="combobox"
                     aria-expanded={open}
+                    aria-haspopup="listbox"
+                    aria-controls={LISTBOX_ID}
                     className={selectTriggerClasses}
                   >
                     <span
@@ -74,7 +78,7 @@ export function ReferralStep() {
                 >
                   <Command>
                     <CommandInput placeholder="Search..." />
-                    <CommandList className="max-h-64">
+                    <CommandList id={LISTBOX_ID} className="max-h-64">
                       <CommandEmpty>No option found.</CommandEmpty>
                       <CommandGroup>
                         {REFERRAL_OPTIONS.map((option) => (
