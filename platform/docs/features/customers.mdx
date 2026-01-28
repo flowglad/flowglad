@@ -101,7 +101,7 @@ Archiving removes a customer from active use while preserving their historical d
 
 When you archive a customer:
 
-1. **All active subscriptions are canceled** - Any subscriptions in `active`, `trialing`, `past_due`, or `cancellation_scheduled` status are immediately canceled
+1. **Active subscriptions are canceled** - Subscriptions with `active` status are immediately canceled
 2. **The customer is marked as archived** - The `archived` field is set to `true`
 3. **The externalId becomes available** - You can create a new customer with the same `externalId`
 4. **API returns 404** - The `GET /customers/:externalId` endpoint returns 404 for archived customers
@@ -125,7 +125,7 @@ Archiving is a significant action that cancels all active subscriptions. Review 
 
 ```bash
 curl -X POST https://app.flowglad.com/api/v1/customers/user_123/archive \
-  -H "Authorization: Bearer your_api_key"
+  -H "Authorization: Bearer $FLOWGLAD_API_KEY"
 ```
 
 #### Via SDK
