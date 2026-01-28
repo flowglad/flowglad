@@ -549,4 +549,297 @@ describeIfRedisKey('syncWebhook integration', () => {
     expect(subscriptionEvents[0].entityId).toBe('sub_mixed_1')
     expect(subscriptionEvents[1].entityId).toBe('sub_mixed_2')
   })
+
+  it('reading from stream does NOT consume events: same events are returned on subsequent reads', async () => {
+    // This verifies that Redis Streams are durable, NOT a queue.
+    // Reading events does not remove them - they remain available for:
+    // - Re-reading by the same merchant (e.g., after a crash/restart)
+    // - Reading by other merchants in the same scope
+    // - Auditing and debugging
+    const scopeId = `${testKeyPrefix}_org_stream_durability:live`
+    const streamKey = getSyncStreamKey(scopeId)
+    keysToCleanup.push(streamKey)
+
+    // Append 3 subscription events
+    const sequences: string[] = []
+    for (let i = 0; i < 3; i++) {
+      const subscriptionId = `sub_durable_${i}`
+      const result = await appendSyncEvent({
+        namespace: 'customerSubscriptions',
+        entityId: subscriptionId,
+        scopeId,
+        eventType: 'update',
+        data: createSubscriptionPayload(subscriptionId, {
+          status: SubscriptionStatus.Active,
+        }),
+        livemode: true,
+      })
+      sequences.push(result.sequence)
+    }
+
+    // First read - merchant catches up
+    const firstRead = await readSyncEvents({ scopeId })
+    expect(firstRead.length).toBe(3)
+    expect(firstRead.map((e: SyncEvent) => e.entityId)).toEqual([
+      'sub_durable_0',
+      'sub_durable_1',
+      'sub_durable_2',
+    ])
+
+    // Second read - same merchant reads again (e.g., after restart)
+    // Events should still be there
+    const secondRead = await readSyncEvents({ scopeId })
+    expect(secondRead.length).toBe(3)
+    expect(secondRead.map((e: SyncEvent) => e.entityId)).toEqual([
+      'sub_durable_0',
+      'sub_durable_1',
+      'sub_durable_2',
+    ])
+
+    // Third read - verify exact same sequences
+    const thirdRead = await readSyncEvents({ scopeId })
+    expect(thirdRead.map((e: SyncEvent) => e.sequence)).toEqual(
+      sequences
+    )
+
+    // Payloads are identical across reads
+    type SubscriptionPayload = ReturnType<
+      typeof createSubscriptionPayload
+    >
+    const payload1 = firstRead[0].data as SubscriptionPayload
+    const payload3 = thirdRead[0].data as SubscriptionPayload
+    expect(payload1.id).toBe(payload3.id)
+    expect(payload1.status).toBe(payload3.status)
+    expect(payload1.customerId).toBe(payload3.customerId)
+  })
+
+  it('reading with cursor does not affect earlier events: all events remain accessible from stream start', async () => {
+    // Verify that using lastSequence cursor only affects the read window,
+    // not the actual stream contents. Earlier events remain accessible.
+    const scopeId = `${testKeyPrefix}_org_cursor_nondestructive:live`
+    const streamKey = getSyncStreamKey(scopeId)
+    keysToCleanup.push(streamKey)
+
+    // Append 5 events
+    const sequences: string[] = []
+    for (let i = 0; i < 5; i++) {
+      const invoiceId = `inv_cursor_${i}`
+      const result = await appendSyncEvent({
+        namespace: 'invoices',
+        entityId: invoiceId,
+        scopeId,
+        eventType: 'update',
+        data: createInvoicePayload(invoiceId, {
+          invoiceNumber: `INV-CURSOR-${i}`,
+          status: InvoiceStatus.Paid,
+        }),
+        livemode: true,
+      })
+      sequences.push(result.sequence)
+    }
+
+    // Merchant reads starting from event 2 (skipping events 0, 1)
+    const cursoredRead = await readSyncEvents({
+      scopeId,
+      lastSequence: sequences[1], // Read after event 1
+    })
+    expect(cursoredRead.length).toBe(3) // Events 2, 3, 4
+    expect(cursoredRead.map((e: SyncEvent) => e.entityId)).toEqual([
+      'inv_cursor_2',
+      'inv_cursor_3',
+      'inv_cursor_4',
+    ])
+
+    // Verify events 0 and 1 are still accessible from stream start
+    const fromStartRead = await readSyncEvents({ scopeId })
+    expect(fromStartRead.length).toBe(5) // All 5 events
+    expect(fromStartRead.map((e: SyncEvent) => e.entityId)).toEqual([
+      'inv_cursor_0',
+      'inv_cursor_1',
+      'inv_cursor_2',
+      'inv_cursor_3',
+      'inv_cursor_4',
+    ])
+
+    // Even after multiple cursored reads, stream start remains intact
+    await readSyncEvents({ scopeId, lastSequence: sequences[3] }) // Skip to event 4
+    await readSyncEvents({ scopeId, lastSequence: sequences[2] }) // Different cursor
+
+    const finalCheck = await readSyncEvents({ scopeId })
+    expect(finalCheck.length).toBe(5)
+    expect(finalCheck[0].entityId).toBe('inv_cursor_0')
+    expect(finalCheck[0].sequence).toBe(sequences[0])
+  })
+
+  it('multiple independent readers can read the same events from stream', async () => {
+    // This simulates multiple webhook handlers or SDK instances
+    // reading from the same scope. Each reader maintains independent
+    // cursor state, but the stream contents are shared.
+    const scopeId = `${testKeyPrefix}_org_multi_reader:live`
+    const streamKey = getSyncStreamKey(scopeId)
+    keysToCleanup.push(streamKey)
+
+    // Append 4 subscription item events
+    const sequences: string[] = []
+    for (let i = 0; i < 4; i++) {
+      const itemId = `si_multi_${i}`
+      const result = await appendSyncEvent({
+        namespace: 'subscriptionItems',
+        entityId: itemId,
+        scopeId,
+        eventType: 'update',
+        data: createSubscriptionItemPayload(itemId, {
+          quantity: i + 1,
+          unitPrice: (i + 1) * 1000,
+        }),
+        livemode: true,
+      })
+      sequences.push(result.sequence)
+    }
+
+    // Simulate Reader A: reads all events
+    const readerA_events = await readSyncEvents({ scopeId })
+    expect(readerA_events.length).toBe(4)
+
+    // Simulate Reader B: also reads all events (independent reader)
+    const readerB_events = await readSyncEvents({ scopeId })
+    expect(readerB_events.length).toBe(4)
+
+    // Both readers see identical data
+    expect(readerA_events.map((e: SyncEvent) => e.sequence)).toEqual(
+      readerB_events.map((e: SyncEvent) => e.sequence)
+    )
+    expect(readerA_events.map((e: SyncEvent) => e.entityId)).toEqual(
+      readerB_events.map((e: SyncEvent) => e.entityId)
+    )
+
+    // Reader A advances their cursor
+    const readerA_cursor = readerA_events[1].sequence // After event 1
+    const readerA_catchup = await readSyncEvents({
+      scopeId,
+      lastSequence: readerA_cursor,
+    })
+    expect(readerA_catchup.length).toBe(2) // Events 2, 3
+
+    // Reader B still has access to all events (independent cursor)
+    const readerB_allEvents = await readSyncEvents({ scopeId })
+    expect(readerB_allEvents.length).toBe(4)
+
+    // Reader B can use a different cursor position
+    const readerB_cursor = readerB_events[0].sequence // After event 0
+    const readerB_catchup = await readSyncEvents({
+      scopeId,
+      lastSequence: readerB_cursor,
+    })
+    expect(readerB_catchup.length).toBe(3) // Events 1, 2, 3
+
+    // Final verification: stream still has all events
+    const finalRead = await readSyncEvents({ scopeId })
+    expect(finalRead.length).toBe(4)
+    type SubscriptionItemPayload = ReturnType<
+      typeof createSubscriptionItemPayload
+    >
+    const lastItem = finalRead[3].data as SubscriptionItemPayload
+    expect(lastItem.quantity).toBe(4)
+    expect(lastItem.unitPrice).toBe(4000)
+  })
+
+  it('stream state after partial read: unread events remain, read events are preserved', async () => {
+    // Simulates a merchant that reads in batches, then fails.
+    // Verifies that both read and unread events remain in the stream.
+    const scopeId = `${testKeyPrefix}_org_partial_read:live`
+    const streamKey = getSyncStreamKey(scopeId)
+    keysToCleanup.push(streamKey)
+
+    // Append 6 events
+    const sequences: string[] = []
+    for (let i = 0; i < 6; i++) {
+      const subscriptionId = `sub_partial_${i}`
+      const result = await appendSyncEvent({
+        namespace: 'customerSubscriptions',
+        entityId: subscriptionId,
+        scopeId,
+        eventType: 'update',
+        data: createSubscriptionPayload(subscriptionId, {
+          status:
+            i % 2 === 0
+              ? SubscriptionStatus.Active
+              : SubscriptionStatus.Canceled,
+        }),
+        livemode: true,
+      })
+      sequences.push(result.sequence)
+    }
+
+    // Merchant reads first 3 events
+    const batch1 = await readSyncEvents({
+      scopeId,
+      count: 3,
+    })
+    expect(batch1.length).toBe(3)
+    expect(batch1.map((e: SyncEvent) => e.entityId)).toEqual([
+      'sub_partial_0',
+      'sub_partial_1',
+      'sub_partial_2',
+    ])
+
+    // Simulate: merchant processes batch1, saves cursor, then crashes
+    const savedCursor = batch1[2].sequence
+
+    // After recovery, merchant can:
+    // 1. Continue from saved cursor
+    const resumedRead = await readSyncEvents({
+      scopeId,
+      lastSequence: savedCursor,
+    })
+    expect(resumedRead.length).toBe(3)
+    expect(resumedRead.map((e: SyncEvent) => e.entityId)).toEqual([
+      'sub_partial_3',
+      'sub_partial_4',
+      'sub_partial_5',
+    ])
+
+    // 2. Re-read from start if needed (e.g., for verification)
+    const fullReread = await readSyncEvents({ scopeId })
+    expect(fullReread.length).toBe(6)
+
+    // 3. Re-read the batch they already processed
+    const reprocessBatch = await readSyncEvents({
+      scopeId,
+      count: 3,
+    })
+    expect(reprocessBatch.length).toBe(3)
+    expect(reprocessBatch.map((e: SyncEvent) => e.entityId)).toEqual([
+      'sub_partial_0',
+      'sub_partial_1',
+      'sub_partial_2',
+    ])
+
+    // Verify the full stream state is intact
+    type SubscriptionPayload = ReturnType<
+      typeof createSubscriptionPayload
+    >
+    const allEvents = await readSyncEvents({ scopeId })
+    expect(allEvents.length).toBe(6)
+
+    // Check alternating statuses are preserved
+    expect((allEvents[0].data as SubscriptionPayload).status).toBe(
+      SubscriptionStatus.Active
+    )
+    expect((allEvents[1].data as SubscriptionPayload).status).toBe(
+      SubscriptionStatus.Canceled
+    )
+    expect((allEvents[2].data as SubscriptionPayload).status).toBe(
+      SubscriptionStatus.Active
+    )
+    expect((allEvents[3].data as SubscriptionPayload).status).toBe(
+      SubscriptionStatus.Canceled
+    )
+    expect((allEvents[4].data as SubscriptionPayload).status).toBe(
+      SubscriptionStatus.Active
+    )
+    expect((allEvents[5].data as SubscriptionPayload).status).toBe(
+      SubscriptionStatus.Canceled
+    )
+  })
 })
