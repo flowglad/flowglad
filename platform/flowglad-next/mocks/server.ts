@@ -15,10 +15,8 @@ import { triggerHandlers } from './triggerServer'
 import { unkeyHandlers } from './unkeyServer'
 
 // Passthrough handler for stripe-mock - let requests reach the actual container
-const stripeMockPort = process.env.STRIPE_MOCK_PORT || '12111'
-const stripeMockHost = process.env.STRIPE_MOCK_HOST || 'localhost'
 const stripeMockPassthrough = http.all(
-  `http://${stripeMockHost}:${stripeMockPort}/*`,
+  'http://localhost:12111/*',
   () => passthrough()
 )
 

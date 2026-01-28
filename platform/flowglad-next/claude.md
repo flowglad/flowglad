@@ -128,7 +128,7 @@ bun run test:setup  # Starts postgres AND stripe-mock via docker compose
 **Configuration:**
 - `docker-compose.test.yml` - Defines the stripe-mock service
 - `src/utils/stripe.ts` - Configures Stripe SDK to use stripe-mock when `STRIPE_MOCK_HOST` is set
-- `.env.test` - Contains `STRIPE_MOCK_HOST`, `STRIPE_MOCK_PORT`, `STRIPE_PROTOCOL`
+- `.env.test` - Contains `STRIPE_MOCK_HOST` (presence triggers stripe-mock usage)
 
 **Benefits over MSW mocking:**
 - No mock handlers to maintain (~480 lines removed)

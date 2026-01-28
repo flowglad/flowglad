@@ -403,9 +403,15 @@ export const rawStringAmountToCountableCurrencyAmount = (
   return Math.round(Number(amount) * 100)
 }
 
+/**
+ * Returns true if we're using stripe-mock instead of real Stripe API.
+ * This is determined by the presence of STRIPE_MOCK_HOST in the environment.
+ */
+export const isUsingStripeMock = () => !!process.env.STRIPE_MOCK_HOST
+
 const stripeApiKey = (livemode: boolean) => {
   // When using stripe-mock, use a dummy key (stripe-mock accepts any sk_test_* format)
-  if (process.env.STRIPE_MOCK_HOST) {
+  if (isUsingStripeMock()) {
     return 'sk_test_mock'
   }
   return livemode
@@ -419,11 +425,10 @@ export const stripe = (livemode: boolean) => {
 
   // Use stripe-mock when STRIPE_MOCK_HOST is configured (via .env.test)
   // Integration tests use .env.integration which does NOT set STRIPE_MOCK_HOST
-  if (process.env.STRIPE_MOCK_HOST) {
+  if (isUsingStripeMock()) {
     config.host = process.env.STRIPE_MOCK_HOST
-    config.port = Number(process.env.STRIPE_MOCK_PORT || 12111)
-    config.protocol =
-      (process.env.STRIPE_PROTOCOL as 'http' | 'https') || 'http'
+    config.port = 12111
+    config.protocol = 'http'
   }
 
   // Bun requires fetch-based HTTP client in test environment
@@ -922,11 +927,7 @@ export const createStripeTaxCalculationByPrice = async ({
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
   // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
-  // or when SKIP_STRIPE_TAX_CALCULATIONS is set (to avoid 1000 req/24hr rate limit)
-  if (
-    process.env.STRIPE_MOCK_HOST ||
-    process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true'
-  ) {
+  if (isUsingStripeMock()) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -977,11 +978,7 @@ export const createStripeTaxCalculationByPurchase = async ({
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
   // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
-  // or when SKIP_STRIPE_TAX_CALCULATIONS is set (to avoid 1000 req/24hr rate limit)
-  if (
-    process.env.STRIPE_MOCK_HOST ||
-    process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true'
-  ) {
+  if (isUsingStripeMock()) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,

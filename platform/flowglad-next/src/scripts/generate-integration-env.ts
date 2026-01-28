@@ -27,12 +27,8 @@ const KEYS_FROM_DEVELOPMENT = [
   'UPSTASH_REDIS_REST_TOKEN',
 ]
 
-// Keys to exclude from .env.integration (they trigger stripe-mock)
-const KEYS_TO_EXCLUDE = [
-  'STRIPE_MOCK_HOST',
-  'STRIPE_MOCK_PORT',
-  'STRIPE_PROTOCOL',
-]
+// Keys to exclude from .env.integration (triggers stripe-mock)
+const KEYS_TO_EXCLUDE = ['STRIPE_MOCK_HOST']
 
 function parseEnvFile(path: string): Map<string, string> {
   const content = readFileSync(path, 'utf-8')
@@ -96,9 +92,6 @@ function main() {
       console.warn(`⚠️  ${key} not found in .env.development`)
     }
   }
-
-  // Add integration-specific settings
-  integrationEnv.set('SKIP_STRIPE_TAX_CALCULATIONS', 'true')
 
   // Generate output
   const lines = [

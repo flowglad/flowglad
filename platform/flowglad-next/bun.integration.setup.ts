@@ -39,10 +39,7 @@ import { beforeAll } from 'bun:test'
 import { seedDatabase } from './seedDatabase'
 
 // NO MSW servers - we want real API calls
-
-// Enable integration test mode for Redis client
-// This allows the redis() function to use real Upstash connection instead of test stub
-process.env.REDIS_INTEGRATION_TEST_MODE = 'true'
+// Redis will automatically use real credentials from .env.integration
 
 beforeAll(async () => {
   await seedDatabase()

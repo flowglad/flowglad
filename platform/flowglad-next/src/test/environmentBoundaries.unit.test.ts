@@ -127,9 +127,8 @@ describe('Environment boundaries', () => {
         /mock\.module\(['"]@\/db\/adminTransaction['"].*throw/
       )
 
-      // Integration tests should verify .env.integration exists and enable real Redis
+      // Integration tests should verify .env.integration exists
       expect(content).toMatch(/\.env\.integration/)
-      expect(content).toMatch(/REDIS_INTEGRATION_TEST_MODE/)
     })
 
     it('should run with extended timeout (30000ms) for real API calls', () => {

@@ -28,7 +28,6 @@ describe('stripe client configuration', () => {
   it('uses stripe-mock config when STRIPE_MOCK_HOST is set', () => {
     // Set STRIPE_MOCK_HOST to simulate .env.test configuration
     process.env.STRIPE_MOCK_HOST = 'localhost'
-    process.env.STRIPE_MOCK_PORT = '12111'
     const client = stripe(false)
     expect(client).toBeInstanceOf(Stripe)
   })
