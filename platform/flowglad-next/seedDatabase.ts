@@ -1652,13 +1652,22 @@ export const setupUserAndApiKey = async ({
   livemode: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    // Get the default pricing model for this org+livemode
-    const defaultPricingModel = await selectDefaultPricingModel(
+    // Get the default pricing model for this org+livemode, or create one if it doesn't exist
+    let defaultPricingModel = await selectDefaultPricingModel(
       { organizationId, livemode },
       transaction
     )
     if (!defaultPricingModel) {
-      throw new Error('Default pricing model not found')
+      // Create a minimal default pricing model for test setup
+      defaultPricingModel = await insertPricingModel(
+        {
+          name: `Test Pricing Model (${livemode ? 'live' : 'test'})`,
+          organizationId,
+          livemode,
+          isDefault: true,
+        },
+        transaction
+      )
     }
 
     const userInsertResult = await transaction
@@ -1703,6 +1712,9 @@ export const setupUserAndApiKey = async ({
         livemode: livemode,
         name: 'Test API Key',
         active: true,
+        // Store userId in hashText for test-mode keyVerify to retrieve
+        // This enables proper RLS user_id matching in tests
+        hashText: `test_user:${user.id}`,
       })
       .returning()
       .then(R.head)

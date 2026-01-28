@@ -91,11 +91,31 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       },
       transaction
     )
+
+    // In test mode, extract userId from hashText if it's stored there
+    // Format: "test_user:{userId}"
+    let userId: string | undefined
+    if (
+      apiKeyRecord.hashText &&
+      apiKeyRecord.hashText.startsWith('test_user:')
+    ) {
+      userId = apiKeyRecord.hashText.replace('test_user:', '')
+    }
+
+    // Look up membership by userId if available, otherwise fall back to org
+    const whereConditions: {
+      organizationId: string
+      userId?: string
+    } = {
+      organizationId: apiKeyRecord.organizationId,
+    }
+    if (userId) {
+      whereConditions.userId = userId
+    }
+
     const [membershipAndUser] =
       await selectMembershipsAndUsersByMembershipWhere(
-        {
-          organizationId: apiKeyRecord.organizationId,
-        },
+        whereConditions,
         transaction
       )
     return {
