@@ -1,5 +1,5 @@
 import { Result } from 'better-result'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { editCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import { publicProcedure } from '@/server/trpc'
 import { editCheckoutSession as editCheckoutSessionFn } from '@/utils/bookkeeping/checkoutSessions'
@@ -7,7 +7,7 @@ import { editCheckoutSession as editCheckoutSessionFn } from '@/utils/bookkeepin
 export const editCheckoutSession = publicProcedure
   .input(editCheckoutSessionInputSchema)
   .mutation(async ({ input }) => {
-    return comprehensiveAdminTransaction(async (ctx) => {
+    return adminTransaction(async (ctx) => {
       const result = await editCheckoutSessionFn(input, ctx)
       return Result.ok(result)
     })

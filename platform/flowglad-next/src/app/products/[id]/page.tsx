@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
@@ -12,7 +13,7 @@ interface ProductPageProps {
 
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params
-  const { product, prices, pricingModel, features } =
+  const { product, prices, pricingModel, features } = (
     await authenticatedTransaction(async ({ transaction }) => {
       const { prices, ...product } =
         await selectPricesAndProductByProductId(id, transaction)
@@ -30,8 +31,9 @@ const ProductPage = async ({ params }: ProductPageProps) => {
       const features = productFeaturesWithDetails.map(
         ({ feature }) => feature
       )
-      return { product, prices, pricingModel, features }
+      return Result.ok({ product, prices, pricingModel, features })
     })
+  ).unwrap()
   return (
     <InternalProductDetailsPage
       product={product}

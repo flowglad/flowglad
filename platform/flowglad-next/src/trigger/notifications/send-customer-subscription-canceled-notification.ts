@@ -48,47 +48,55 @@ export const runSendCustomerSubscriptionCanceledNotification =
       NotFoundError | ValidationError
     >
     try {
-      const data = await adminTransaction(async ({ transaction }) => {
-        // First fetch subscription to get organizationId and customerId
-        const subscriptionResult = await selectSubscriptionById(
-          subscriptionId,
-          transaction
-        )
-        if (Result.isError(subscriptionResult)) {
-          throw subscriptionResult.error
-        }
-        const subscription = subscriptionResult.value
-
-        // Use buildNotificationContext for organization and customer
-        const { organization, customer } =
-          await buildNotificationContext(
-            {
-              organizationId: subscription.organizationId,
-              customerId: subscription.customerId,
-            },
+      const data = (
+        await adminTransaction(async ({ transaction }) => {
+          // First fetch subscription to get organizationId and customerId
+          const subscriptionResult = await selectSubscriptionById(
+            subscriptionId,
             transaction
           )
+          if (Result.isError(subscriptionResult)) {
+            throw subscriptionResult.error
+          }
+          const subscription = subscriptionResult.value
 
-        // Fetch the product associated with the subscription for user-friendly naming
-        const price = subscription.priceId
-          ? (
-              await selectPriceById(subscription.priceId, transaction)
-            ).unwrap()
-          : null
-        const product =
-          price && Price.hasProductId(price)
+          // Use buildNotificationContext for organization and customer
+          const { organization, customer } =
+            await buildNotificationContext(
+              {
+                organizationId: subscription.organizationId,
+                customerId: subscription.customerId,
+              },
+              transaction
+            )
+
+          // Fetch the product associated with the subscription for user-friendly naming
+          const price = subscription.priceId
             ? (
-                await selectProductById(price.productId, transaction)
+                await selectPriceById(
+                  subscription.priceId,
+                  transaction
+                )
               ).unwrap()
             : null
+          const product =
+            price && Price.hasProductId(price)
+              ? (
+                  await selectProductById(
+                    price.productId,
+                    transaction
+                  )
+                ).unwrap()
+              : null
 
-        return {
-          subscription,
-          organization,
-          customer,
-          product,
-        }
-      })
+          return Result.ok({
+            subscription,
+            organization,
+            customer,
+            product,
+          })
+        })
+      ).unwrap()
       dataResult = Result.ok(data)
     } catch (error) {
       // Only convert NotFoundError to Result.err; rethrow other errors

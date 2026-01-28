@@ -13,6 +13,7 @@
  */
 
 import { SpanKind, trace } from '@opentelemetry/api'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -377,16 +378,18 @@ export function cachedRecomputable<
     // Set up transaction context and call the cached wrapper (not fn directly)
     // so cache repopulation and TTL refresh occur
     if (cacheRecomputationContext.type === 'admin') {
-      return adminTransaction(
+      const result = await adminTransaction(
         async ({ transaction }) => {
-          return cachedWrapper(
+          const value = await cachedWrapper(
             validatedParams,
             transaction,
             cacheRecomputationContext
           )
+          return Result.ok(value)
         },
         { livemode: cacheRecomputationContext.livemode }
       )
+      return result.unwrap()
     } else if (cacheRecomputationContext.type === 'merchant') {
       return recomputeWithMerchantContext(
         cacheRecomputationContext,

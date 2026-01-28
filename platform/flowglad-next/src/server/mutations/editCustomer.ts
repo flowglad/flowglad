@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   editCustomerInputSchema,
@@ -14,7 +15,7 @@ export const editCustomer = protectedProcedure
   .input(editCustomerInputSchema)
   .output(editCustomerOutputSchema)
   .mutation(async ({ input }) => {
-    return authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction, organizationId }) => {
         const { customer } = input
         const customerRecord =
@@ -38,9 +39,10 @@ export const editCustomer = protectedProcedure
           },
           transaction
         )
-        return {
+        return Result.ok({
           customer: updatedCustomer,
-        }
+        })
       }
     )
+    return txResult.unwrap()
   })

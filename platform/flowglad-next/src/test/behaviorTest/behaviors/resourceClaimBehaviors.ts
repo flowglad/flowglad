@@ -19,10 +19,7 @@
 
 import { Result } from 'better-result'
 import { setupResourceClaim } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
@@ -235,7 +232,7 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
 
       // Cancel the subscription
       const cancelResult =
-        await comprehensiveAdminTransaction<Subscription.Record>(
+        await adminTransaction<Subscription.Record>(
           async (ctx) => {
             const result = await cancelSubscriptionImmediately(
               {

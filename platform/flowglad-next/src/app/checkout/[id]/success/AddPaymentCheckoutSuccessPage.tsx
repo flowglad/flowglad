@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -16,8 +17,8 @@ const AddPaymentCheckoutSuccessPage = async ({
   const targetSubscriptionId = checkoutSession.targetSubscriptionId
   if (typeof targetSubscriptionId === 'string') {
     try {
-      const { subscription, price, organization } =
-        await adminTransaction(async ({ transaction }) => {
+      const txResult = await adminTransaction(
+        async ({ transaction }) => {
           const subscription = (
             await selectSubscriptionById(
               targetSubscriptionId,
@@ -34,12 +35,14 @@ const AddPaymentCheckoutSuccessPage = async ({
               transaction
             )
 
-          return {
+          return Result.ok({
             subscription,
             price: data.price,
             organization: data.organization,
-          }
-        })
+          })
+        }
+      )
+      const { subscription, price, organization } = txResult.unwrap()
 
       return (
         <SubscriptionCheckoutSuccessPage

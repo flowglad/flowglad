@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
@@ -140,7 +137,7 @@ describe('updatePricingModelTransaction', () => {
         name: 'Old Name',
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -203,7 +200,7 @@ describe('updatePricingModelTransaction', () => {
         isDefault: false,
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -281,7 +278,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -410,7 +407,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -526,7 +523,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -605,7 +602,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Update with resources array
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -675,7 +672,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources first
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -730,7 +727,7 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Now update the resource name
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -796,7 +793,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources first
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -852,7 +849,7 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Now remove 'projects' resource
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -927,7 +924,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources first
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -984,7 +981,7 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Now update with same resources
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1052,7 +1049,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource first
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1114,7 +1111,7 @@ describe('updatePricingModelTransaction', () => {
       const seatsResource = resources.find((r) => r.slug === 'seats')
 
       // Now add a Resource feature referencing the resource
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1190,7 +1187,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources and a Resource feature
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1267,7 +1264,7 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Now update the Resource feature to reference projects instead of seats
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1343,7 +1340,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource first
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1397,7 +1394,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Try to add a Resource feature referencing a non-existent resource
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -1465,7 +1462,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource and Resource feature
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1527,7 +1524,7 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Now remove the Resource feature
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1603,7 +1600,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add both resources and Resource features in a single update
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1715,7 +1712,7 @@ describe('updatePricingModelTransaction', () => {
     it('creates new features', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1780,7 +1777,7 @@ describe('updatePricingModelTransaction', () => {
     it('updates existing feature name', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1879,7 +1876,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -1960,7 +1957,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -2042,7 +2039,7 @@ describe('updatePricingModelTransaction', () => {
     it('creates new products with prices', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2128,7 +2125,7 @@ describe('updatePricingModelTransaction', () => {
     it('updates existing product metadata without affecting price', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2238,7 +2235,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2313,7 +2310,7 @@ describe('updatePricingModelTransaction', () => {
     it('creates new price and deactivates old price when price changes', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2428,7 +2425,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2532,7 +2529,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2597,7 +2594,7 @@ describe('updatePricingModelTransaction', () => {
     it('does not modify productFeatures when no changes', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2657,7 +2654,7 @@ describe('updatePricingModelTransaction', () => {
     it('creates new features and products that use those features in the same update', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2757,7 +2754,7 @@ describe('updatePricingModelTransaction', () => {
     it('creates new usage meters and features that use those meters in the same update', async () => {
       const setupResult = await createBasicPricingModel()
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -2920,7 +2917,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -3091,7 +3088,7 @@ describe('updatePricingModelTransaction', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -3286,7 +3283,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Try to update without the default product - only include Pro
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -3388,7 +3385,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Try to update with protected field changes on the default product
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -3510,7 +3507,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Update only allowed fields on the default product
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(
@@ -3657,7 +3654,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       // Attempt to demote the default product by setting default: false
-      const updateResult = await comprehensiveAdminTransaction(
+      const updateResult = await adminTransaction(
         async (params) => {
           const result = (
             await updatePricingModelTransaction(

@@ -1,9 +1,6 @@
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -788,11 +785,14 @@ export const executeBillingRun = async (
     adjustmentDate: Date | number
   }
 ) => {
-  const billingRun = await adminTransaction(({ transaction }) => {
-    return selectBillingRunById(billingRunId, transaction).then((r) =>
-      r.unwrap()
-    )
-  })
+  const billingRunResult = await adminTransaction(
+    ({ transaction }) => {
+      return selectBillingRunById(billingRunId, transaction).then(
+        (r) => Result.ok(r.unwrap())
+      )
+    }
+  )
+  const billingRun = billingRunResult.unwrap()
 
   if (billingRun.status !== BillingRunStatus.Scheduled) {
     return
@@ -804,20 +804,8 @@ export const executeBillingRun = async (
       )
     }
 
-    const {
-      invoice,
-      payment,
-      feeCalculation,
-      customer,
-      billingPeriod,
-      paymentMethod,
-      totalDueAmount,
-      totalAmountPaid,
-      organization,
-      payments,
-      paymentIntent,
-    } =
-      await comprehensiveAdminTransaction<ExecuteBillingRunStepsResult>(
+    const billingTxResult =
+      await adminTransaction<ExecuteBillingRunStepsResult>(
         async ({ transaction }) => {
           const resultFromSteps =
             await executeBillingRunCalculationAndBookkeepingSteps(
@@ -964,6 +952,20 @@ export const executeBillingRun = async (
         }
       )
 
+    const {
+      invoice,
+      payment,
+      feeCalculation,
+      customer,
+      billingPeriod,
+      paymentMethod,
+      totalDueAmount,
+      totalAmountPaid,
+      organization,
+      payments,
+      paymentIntent,
+    } = billingTxResult.unwrap()
+
     // Trigger PDF generation as a non-failing side effect
     if (!core.IS_TEST) {
       await tracedTrigger(
@@ -1003,6 +1005,7 @@ export const executeBillingRun = async (
             },
             transaction
           )
+          return Result.ok(undefined)
         },
         {
           livemode: billingRun.livemode,
@@ -1015,7 +1018,7 @@ export const executeBillingRun = async (
       confirmationResult.status === 'succeeded' ||
       confirmationResult.status === 'requires_payment_method'
     ) {
-      await comprehensiveAdminTransaction(async (params) => {
+      await adminTransaction(async (params) => {
         const effectsCtx: TransactionEffectsContext = {
           transaction: params.transaction,
           cacheRecomputationContext: params.cacheRecomputationContext,
@@ -1051,21 +1054,25 @@ export const executeBillingRun = async (
       billingRunId,
       error,
     })
-    return adminTransaction(async ({ transaction }) => {
-      const isError = error instanceof Error
-      return updateBillingRun(
-        {
-          id: billingRun.id,
-          status: BillingRunStatus.Failed,
-          errorDetails: {
-            message: isError ? error.message : String(error),
-            name: isError ? error.name : 'Error',
-            stack: isError ? error.stack : undefined,
+    const errorResult = await adminTransaction(
+      async ({ transaction }) => {
+        const isError = error instanceof Error
+        const updatedBillingRun = await updateBillingRun(
+          {
+            id: billingRun.id,
+            status: BillingRunStatus.Failed,
+            errorDetails: {
+              message: isError ? error.message : String(error),
+              name: isError ? error.name : 'Error',
+              stack: isError ? error.stack : undefined,
+            },
           },
-        },
-        transaction
-      )
-    })
+          transaction
+        )
+        return Result.ok(updatedBillingRun)
+      }
+    )
+    return errorResult.unwrap()
   }
 }
 

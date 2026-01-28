@@ -1,10 +1,6 @@
 import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createFeatureSchema,
   editFeatureSchema,
@@ -19,7 +15,6 @@ import {
   selectFeaturesTableRowData,
   updateFeatureTransaction,
 } from '@/db/tableMethods/featureMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -49,75 +44,80 @@ export const createFeature = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createFeatureSchema)
   .output(z.object({ feature: featuresClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { livemode, organizationId } = ctx
-        if (!organizationId) {
-          throw new Error('organizationId is required')
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    if (!organizationId) {
+      throw new Error('organizationId is required')
+    }
+    const result = await authenticatedTransaction(
+      async (params) => {
         const feature = await insertFeature(
           {
             ...input.feature,
             organizationId,
             livemode,
           },
-          transactionCtx
+          params
         )
-        return { feature }
-      }
+        return Result.ok({ feature })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const listFeaturesProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(featuresPaginatedSelectSchema)
   .output(featuresPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectFeaturesPaginated(input, transaction)
+        const data = await selectFeaturesPaginated(input, transaction)
+        return Result.ok(data)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 export const updateFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editFeatureSchema)
   .output(z.object({ feature: featuresClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async (params) => {
         const feature = await updateFeatureTransaction(
           {
             ...input.feature,
             id: input.id,
           },
-          transactionCtx
+          params
         )
         return Result.ok({ feature })
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getFeature = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ feature: featuresClientSelectSchema }))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const feature = (
           await selectFeatureById(input.id, transaction)
         ).unwrap()
-        return { feature }
-      }
+        return Result.ok({ feature })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getTableRows = protectedProcedure
   .input(
@@ -131,14 +131,19 @@ export const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(featuresTableRowOutputSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectFeaturesTableRowData({ input, transaction })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectFeaturesTableRowData({
+          input,
+          transaction,
+        })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getFeaturesForPricingModel = protectedProcedure
   .input(
@@ -151,20 +156,21 @@ const getFeaturesForPricingModel = protectedProcedure
       features: z.array(featuresClientSelectSchema),
     })
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const features = await selectFeatures(
           {
             pricingModelId: input.pricingModelId,
           },
           transaction
         )
-        return { features }
-      }
+        return Result.ok({ features })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const featuresRouter = router({
   get: getFeature,

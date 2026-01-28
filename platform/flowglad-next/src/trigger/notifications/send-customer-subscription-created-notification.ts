@@ -53,33 +53,35 @@ export const runSendCustomerSubscriptionCreatedNotification =
       NotFoundError | ValidationError
     >
     try {
-      const data = await adminTransaction(async ({ transaction }) => {
-        const context = await buildNotificationContext(
-          {
-            organizationId: params.organizationId,
-            customerId: params.customerId,
-            subscriptionId: params.subscriptionId,
-            include: ['price', 'defaultPaymentMethod'],
-          },
-          transaction
-        )
+      const data = (
+        await adminTransaction(async ({ transaction }) => {
+          const context = await buildNotificationContext(
+            {
+              organizationId: params.organizationId,
+              customerId: params.customerId,
+              subscriptionId: params.subscriptionId,
+              include: ['price', 'defaultPaymentMethod'],
+            },
+            transaction
+          )
 
-        // Fetch the product associated with the price for user-friendly naming
-        const product =
-          context.price && Price.hasProductId(context.price)
-            ? (
-                await selectProductById(
-                  context.price.productId,
-                  transaction
-                )
-              ).unwrap()
-            : null
+          // Fetch the product associated with the price for user-friendly naming
+          const product =
+            context.price && Price.hasProductId(context.price)
+              ? (
+                  await selectProductById(
+                    context.price.productId,
+                    transaction
+                  )
+                ).unwrap()
+              : null
 
-        return {
-          ...context,
-          product,
-        }
-      })
+          return Result.ok({
+            ...context,
+            product,
+          })
+        })
+      ).unwrap()
       dataResult = Result.ok(data)
     } catch (error) {
       // Only convert NotFoundError to Result.err; rethrow other errors

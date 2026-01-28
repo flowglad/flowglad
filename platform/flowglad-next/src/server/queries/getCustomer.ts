@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { customerClientSelectSchema } from '@/db/schema/customers'
@@ -38,17 +39,19 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customers = await authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCustomers(
+        const customers = await selectCustomers(
           { ...input, organizationId },
           transaction
         )
+        return Result.ok(customers)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    const customers = txResult.unwrap()
 
     if (!customers.length) {
       throw new TRPCError({

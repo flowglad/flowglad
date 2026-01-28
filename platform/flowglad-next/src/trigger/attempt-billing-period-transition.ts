@@ -1,5 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { Result } from 'better-result'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
@@ -16,7 +17,7 @@ export const attemptBillingPeriodTransitionTask = task({
     return tracedTaskRun(
       'attemptBillingPeriodTransition',
       async () => {
-        const { billingRun } = await comprehensiveAdminTransaction(
+        const txResult = await adminTransaction(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -24,7 +25,7 @@ export const attemptBillingPeriodTransitionTask = task({
             emitEvent,
             enqueueLedgerCommand,
           }) => {
-            const ctx = {
+            const effectsCtx = {
               transaction,
               cacheRecomputationContext,
               invalidateCache,
@@ -39,14 +40,17 @@ export const attemptBillingPeriodTransitionTask = task({
             ).unwrap()
             logger.log('Attempting to transition billing period', {
               billingPeriod: payload.billingPeriod,
-              ctx,
+              effectsCtx,
             })
-            return attemptToTransitionSubscriptionBillingPeriod(
-              billingPeriod,
-              ctx
-            )
+            const innerResult =
+              await attemptToTransitionSubscriptionBillingPeriod(
+                billingPeriod,
+                effectsCtx
+              )
+            return Result.ok(innerResult.unwrap())
           }
         )
+        const { billingRun } = txResult.unwrap()
 
         if (billingRun) {
           await executeBillingRun(billingRun.id)

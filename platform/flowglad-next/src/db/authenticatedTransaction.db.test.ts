@@ -13,11 +13,9 @@ import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
 import { adminTransaction } from './adminTransaction'
 import {
-  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
   authenticatedTransactionUnwrap,
-  comprehensiveAuthenticatedTransaction,
 } from './authenticatedTransaction'
 import type { ApiKey } from './schema/apiKeys'
 import type { Event } from './schema/events'
@@ -310,7 +308,7 @@ describe('authenticatedTransaction', () => {
   })
 })
 
-describe('comprehensiveAuthenticatedTransaction', () => {
+describe('authenticatedTransaction', () => {
   // Reuse the same global test state
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
@@ -338,14 +336,14 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   describe('JWT Claims Validation', () => {
     it('should throw error when invalid API key is provided', async () => {
       // setup:
-      // - call comprehensiveAuthenticatedTransaction with invalid API key
+      // - call authenticatedTransaction with invalid API key
       // - provide transaction function that should not execute
 
       // expects:
       // - function should throw authentication error
       // - no database transaction should be started
       await expect(
-        comprehensiveAuthenticatedTransaction(
+        authenticatedTransaction(
           async () => Result.ok('should not reach here'),
           { apiKey: 'invalid_key_that_does_not_exist' }
         )
@@ -360,7 +358,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - function should execute successfully
       // - organizationId should be available in transaction params
-      const result = await comprehensiveAuthenticatedTransaction(
+      const result = await authenticatedTransaction(
         async ({ organizationId, userId }) => {
           expect(organizationId).toBe(testOrg1.id)
           expect(userId).toBe(userA.id)
@@ -402,7 +400,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
         pricingModelId: pricingModel1.id,
       }
 
-      const result = await comprehensiveAuthenticatedTransaction(
+      const result = await authenticatedTransaction(
         async ({ emitEvent }) => {
           emitEvent(mockEvent)
           return Result.ok('events_processed')
@@ -420,7 +418,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - transaction should complete successfully
       // - result should be returned from output.result
-      const result = await comprehensiveAuthenticatedTransaction(
+      const result = await authenticatedTransaction(
         async () => Result.ok('simple_result'),
         { apiKey: apiKeyA.token }
       )
@@ -533,9 +531,9 @@ describe('Error Handling Tests', () => {
           'Attempted to use test organization id in a non-test environment'
         )
 
-        // Also verify comprehensiveAuthenticatedTransaction has the same check
+        // Also verify authenticatedTransaction has the same check
         await expect(
-          comprehensiveAuthenticatedTransaction(
+          authenticatedTransaction(
             async () => Result.ok('should not reach here'),
             { __testOnlyOrganizationId: testOrg1.id }
           )
@@ -670,7 +668,7 @@ describe('Procedure Wrapper Functions', () => {
     })
   })
 
-  describe('authenticatedProcedureComprehensiveTransaction', () => {
+  describe('authenticatedProcedureTransaction', () => {
     it('should pass input and context to handler function', async () => {
       // setup:
       // - create test input object and context with apiKey
@@ -679,30 +677,29 @@ describe('Procedure Wrapper Functions', () => {
       // expects:
       // - handler should be called with transaction params plus input and ctx
       // - result from output.result should be returned
-      // - apiKey from context should be passed to comprehensiveAuthenticatedTransaction
+      // - apiKey from context should be passed to authenticatedTransaction
       const testInput = { testValue: 'comprehensive_input_test' }
       const testContext = { apiKey: apiKeyA.token }
 
-      const procedureHandler =
-        authenticatedProcedureComprehensiveTransaction(
-          async ({ input, ctx, transactionCtx }) => {
-            expect(input).toEqual(testInput)
-            expect(ctx).toEqual(testContext)
-            // Verify transactionCtx has expected properties
-            expect(typeof transactionCtx.transaction.execute).toBe(
-              'function'
-            )
-            expect(typeof transactionCtx.invalidateCache).toBe(
-              'function'
-            )
-            expect(typeof transactionCtx.emitEvent).toBe('function')
-            expect(typeof transactionCtx.enqueueLedgerCommand).toBe(
-              'function'
-            )
+      const procedureHandler = authenticatedProcedureTransaction(
+        async ({ input, ctx, transactionCtx }) => {
+          expect(input).toEqual(testInput)
+          expect(ctx).toEqual(testContext)
+          // Verify transactionCtx has expected properties
+          expect(typeof transactionCtx.transaction.execute).toBe(
+            'function'
+          )
+          expect(typeof transactionCtx.invalidateCache).toBe(
+            'function'
+          )
+          expect(typeof transactionCtx.emitEvent).toBe('function')
+          expect(typeof transactionCtx.enqueueLedgerCommand).toBe(
+            'function'
+          )
 
-            return Result.ok('comprehensive_procedure_success')
-          }
-        )
+          return Result.ok('comprehensive_procedure_success')
+        }
+      )
 
       const result = await procedureHandler({
         input: testInput,
@@ -816,10 +813,10 @@ describe('cacheRecomputationContext derivation', () => {
       user: { id: betterAuthId, email: user.email! },
     }
 
-    // Call comprehensiveAuthenticatedTransaction WITHOUT explicit customerId
+    // Call authenticatedTransaction WITHOUT explicit customerId
     // to verify that the cacheRecomputationContext.customerId is derived from
     // JWT metadata (jwtClaim.user_metadata.app_metadata.customer_id).
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         // Verify the cacheRecomputationContext is correctly derived from JWT role
         expect(params.cacheRecomputationContext.type).toBe('customer')
@@ -858,7 +855,7 @@ describe('cacheRecomputationContext derivation', () => {
     })
 
     // API key auth should result in merchant context, not customer
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         expect(params.cacheRecomputationContext.type).toBe('merchant')
 

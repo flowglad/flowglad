@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -14,32 +15,35 @@ export const toggleTestMode = protectedProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const membershipToUpdate = await authenticatedTransaction(
+    const txResult1 = await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const { membership } =
           await selectFocusedMembershipAndOrganization(
             userId,
             transaction
           )
-        return { membership }
+        return Result.ok({ membership })
       }
     )
+    const membershipToUpdate = txResult1.unwrap()
     /**
      * Need to bypass RLS to update the membership here,
      * so that we can continue the "can't update your own membership"
      * rule.
      */
-    const updatedMembership = await adminTransaction(
+    const txResult2 = await adminTransaction(
       async ({ transaction }) => {
-        return updateMembership(
+        const result = await updateMembership(
           {
             id: membershipToUpdate.membership.id,
             livemode: input.livemode,
           },
           transaction
         )
+        return Result.ok(result)
       }
     )
+    const updatedMembership = txResult2.unwrap()
     return {
       data: { membership: updatedMembership },
     }

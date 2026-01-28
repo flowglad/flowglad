@@ -12,10 +12,7 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
@@ -1408,7 +1405,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: terminalCheckoutSession.livemode,
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1481,7 +1478,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: failedCheckoutSession.livemode,
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1550,7 +1547,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1613,7 +1610,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1692,7 +1689,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1767,7 +1764,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       }
 
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           return processSetupIntentSucceeded(
             setupIntentNoPM,
             createDiscardingEffectsContext(transaction)
@@ -1813,7 +1810,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         },
       }
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Create the new payment method first
         const newPM = await setupPaymentMethod({
           organizationId: organization.id,
@@ -1883,7 +1880,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         type: PaymentMethodType.Card,
         organizationId: organization.id,
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1933,7 +1930,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1985,7 +1982,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -2030,7 +2027,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
         const result = await processSetupIntentSucceeded(

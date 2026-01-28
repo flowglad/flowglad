@@ -6,7 +6,7 @@ import {
   setupOrg,
   setupPaymentMethod,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -116,7 +116,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
   it('should create a new payment method when no existing payment method with the stripePaymentMethodId exists', async () => {
     const stripePaymentMethodId = `pm_${core.nanoid()}`
 
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({
         transaction,
         cacheRecomputationContext,
@@ -159,7 +159,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
     )
 
     // Verify the payment method was persisted to the database
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const [persistedPaymentMethod] = await selectPaymentMethods(
         { stripePaymentMethodId },
         transaction
@@ -186,7 +186,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
       stripePaymentMethodId,
     })
 
-    await comprehensiveAdminTransaction(
+    await adminTransaction(
       async ({
         transaction,
         cacheRecomputationContext,
@@ -225,7 +225,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
     )
 
     // Verify no duplicate payment methods were created
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const paymentMethodsWithStripeId = await selectPaymentMethods(
         { stripePaymentMethodId },
         transaction

@@ -1,8 +1,6 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   paymentsClientSelectSchema,
   paymentsPaginatedListSchema,
@@ -50,14 +48,14 @@ const listPaymentsProcedure = protectedProcedure
   .input(paymentsPaginatedSelectSchema)
   .output(paymentsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPaymentsPaginated(input, transaction)
+        const data = await selectPaymentsPaginated(input, transaction)
+        return Result.ok(data)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 const getPaymentProcedure = protectedProcedure
@@ -65,17 +63,16 @@ const getPaymentProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ payment: paymentsClientSelectSchema }))
   .query(async ({ ctx, input }) => {
-    const payment = await authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return (
+        const payment = (
           await selectPaymentById(input.id, transaction)
         ).unwrap()
+        return Result.ok({ payment })
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
-    return { payment }
+    return result.unwrap()
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -91,17 +88,20 @@ const getTableRowsProcedure = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(paymentsTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectPaymentsCursorPaginatedWithTableRowData({
-          input,
-          transaction,
-        })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectPaymentsCursorPaginatedWithTableRowData({
+            input,
+            transaction,
+          })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getCountsByStatusProcedure = protectedProcedure
   .input(z.object({}))
@@ -114,27 +114,27 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPaymentCountsByStatus(transaction)
+        const data = await selectPaymentCountsByStatus(transaction)
+        return Result.ok(data)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 export const retryPayment = protectedProcedure
   .input(z.object({ id: z.string() }))
   .mutation(async ({ ctx, input }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return retryPaymentTransaction(input, transaction)
+        const data = await retryPaymentTransaction(input, transaction)
+        return Result.ok(data)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 export const paymentsRouter = router({

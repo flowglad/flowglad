@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { requestStripeConnectOnboardingLinkInputSchema } from '@/db/schema/countries'
@@ -14,7 +15,7 @@ import {
 export const requestStripeConnectOnboardingLink = protectedProcedure
   .input(requestStripeConnectOnboardingLinkInputSchema)
   .mutation(async () => {
-    const { organization, country } = await authenticatedTransaction(
+    const txResult1 = await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const [membership] = await selectMembershipAndOrganizations(
           {
@@ -44,9 +45,10 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
           await selectCountryById(organization.countryId, transaction)
         ).unwrap()
 
-        return { organization, country }
+        return Result.ok({ organization, country })
       }
     )
+    const { organization, country } = txResult1.unwrap()
 
     let stripeAccountId = organization.stripeAccountId
 
@@ -71,7 +73,7 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
       true
     )
 
-    await adminTransaction(
+    const txResult2 = await adminTransaction(
       async ({ transaction }) => {
         await updateOrganization(
           {
@@ -82,9 +84,11 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
           },
           transaction
         )
+        return Result.ok(undefined)
       },
       { livemode: true }
     )
+    txResult2.unwrap()
 
     return {
       onboardingLink,

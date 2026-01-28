@@ -1,8 +1,6 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   purchaseClientSelectSchema,
   purchasesTableRowDataSchema,
@@ -32,17 +30,16 @@ const getPurchaseProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ purchase: purchaseClientSelectSchema }))
   .query(async ({ ctx, input }) => {
-    const purchase = await authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return (
+        const purchase = (
           await selectPurchaseById(input.id, transaction)
         ).unwrap()
+        return Result.ok({ purchase })
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
-    return { purchase }
+    return result.unwrap()
   })
 
 const getTableRows = protectedProcedure
@@ -58,14 +55,19 @@ const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(purchasesTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectPurchasesTableRowData({ input, transaction })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectPurchasesTableRowData({
+          input,
+          transaction,
+        })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const purchasesRouter = router({
   // Get single purchase

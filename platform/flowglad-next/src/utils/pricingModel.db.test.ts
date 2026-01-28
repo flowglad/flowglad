@@ -13,7 +13,7 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { comprehensiveAuthenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import type { ApiKey } from '@/db/schema/apiKeys'
 import type { Feature } from '@/db/schema/features'
 import type { Organization } from '@/db/schema/organizations'
@@ -2154,7 +2154,7 @@ describe('createProductTransaction', () => {
     features = [featureA, featureB]
   })
   it('should create a product with a default price', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         const txResult = await createProductTransaction(
           {
@@ -2219,7 +2219,7 @@ describe('createProductTransaction', () => {
 
   it('should create a product and associate features with it', async () => {
     const featureIds = features.map((f) => f.id)
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         const txResult = await createProductTransaction(
           {
@@ -2275,7 +2275,7 @@ describe('createProductTransaction', () => {
   })
 
   it('should create a product without features if featureIds is not provided', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         const txResult = await createProductTransaction(
           {
@@ -2340,7 +2340,7 @@ describe('createProductTransaction', () => {
 
     // Test: Attempting to create a usage price with featureIds should throw
     await expect(
-      comprehensiveAuthenticatedTransaction(
+      authenticatedTransaction(
         async (params) => {
           const txResult = await createProductTransaction(
             {
@@ -2398,7 +2398,7 @@ describe('createProductTransaction', () => {
     })
 
     // Test: Create a usage price product without featureIds - should succeed
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         const txResult = await createProductTransaction(
           {
@@ -2493,7 +2493,7 @@ describe('createProductTransaction', () => {
     ]
 
     await expect(
-      comprehensiveAuthenticatedTransaction(
+      authenticatedTransaction(
         async (params) => {
           const txResult = await createProductTransaction(
             {
@@ -2560,7 +2560,7 @@ describe('createProductTransaction', () => {
         amount: 1000,
       })
 
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         const txResult = await createProductTransaction(
           {
@@ -2665,7 +2665,7 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should add features to a product', async () => {
     const featureIds = [features[0].id, features[1].id]
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -2694,7 +2694,7 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should remove features from a product', async () => {
     // First, add features
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -2709,7 +2709,7 @@ describe('editProductTransaction - Feature Updates', () => {
     )
 
     // Then, remove one
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -2743,7 +2743,7 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should not change features if featureIds is not provided', async () => {
     // First, add features
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -2758,7 +2758,7 @@ describe('editProductTransaction - Feature Updates', () => {
     )
 
     // Then, edit product without featureIds
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -2803,7 +2803,7 @@ describe('editProductTransaction - Feature Updates', () => {
     const toggleFeatureIds = [features[0].id]
 
     await expect(
-      comprehensiveAuthenticatedTransaction(
+      authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {
@@ -2858,7 +2858,7 @@ describe('editProductTransaction - Feature Updates', () => {
         amount: 500,
       })
 
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -2979,7 +2979,7 @@ describe('editProductTransaction - Price Updates', () => {
     }
 
     // Should succeed without error - price updates are silently ignored for default products
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -3027,7 +3027,7 @@ describe('editProductTransaction - Price Updates', () => {
   })
 
   it('should allow updating allowed fields on default products', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -3090,7 +3090,7 @@ describe('editProductTransaction - Price Updates', () => {
       active: currentPrice.active,
     }
 
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -3167,7 +3167,7 @@ describe('editProductTransaction - Price Updates', () => {
       slug: currentPrice.slug ?? null, // Same - preserve slug
     }
 
-    await comprehensiveAuthenticatedTransaction(
+    await authenticatedTransaction(
       async (params) => {
         const txResult = await editProductTransaction(
           {
@@ -3258,7 +3258,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
   describe('when product slug is mutating', () => {
     it('should update active default price slug when no price input is provided', async () => {
       // Update product with new slug, no price input
-      await comprehensiveAuthenticatedTransaction(
+      await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {
@@ -3329,7 +3329,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         slug: 'different-slug', // This should be overridden
       }
 
-      await comprehensiveAuthenticatedTransaction(
+      await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {
@@ -3372,7 +3372,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     it('should not update price slug when product slug is not changing', async () => {
       // Update product name but keep same slug, no price input
-      await comprehensiveAuthenticatedTransaction(
+      await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {
@@ -3449,7 +3449,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       })
 
       // Update product slug
-      await comprehensiveAuthenticatedTransaction(
+      await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {
@@ -3523,7 +3523,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Try to update product slug to conflict with existing price slug
       await expect(
-        comprehensiveAuthenticatedTransaction(
+        authenticatedTransaction(
           async (params) => {
             const txResult = await editProductTransaction(
               {
@@ -3564,7 +3564,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       // Use the default product from setupOrg (already exists in beforeEach)
       // Try to update default product slug (should be blocked by existing validation)
       await expect(
-        comprehensiveAuthenticatedTransaction(
+        authenticatedTransaction(
           async (params) => {
             const txResult = await editProductTransaction(
               {
@@ -3632,7 +3632,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       })
 
       // Update product slug from null to a value
-      await comprehensiveAuthenticatedTransaction(
+      await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {
@@ -3696,7 +3696,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         active: currentPrice.active,
       }
 
-      await comprehensiveAuthenticatedTransaction(
+      await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {
@@ -3764,7 +3764,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         // Note: slug is not provided, but will be synced to product slug if product slug changes
       }
 
-      await comprehensiveAuthenticatedTransaction(
+      await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
             {

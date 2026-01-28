@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import CheckoutNotValidPage from '@/components/CheckoutNotValidPage'
@@ -18,14 +19,16 @@ export async function generateMetadata({
   const { productId } = await params
 
   try {
-    const [{ product, organization }] = await adminTransaction(
-      async ({ transaction }) => {
-        return await selectPriceProductAndOrganizationByPriceWhere(
-          { productId, isDefault: true },
-          transaction
+    const [{ product, organization }] = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectPriceProductAndOrganizationByPriceWhere(
+            { productId, isDefault: true },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     return {
       title: `${organization.name} | ${product.name}`,

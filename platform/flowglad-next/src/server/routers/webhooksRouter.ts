@@ -1,5 +1,6 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createWebhookInputSchema,
   editWebhookInputSchema,
@@ -43,34 +44,34 @@ export const createWebhook = protectedProcedure
       secret: z.string(),
     })
   )
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { livemode } = ctx
-        const organization = ctx.organization
-        if (!organization) {
-          throw new Error('Organization not found')
-        }
-
-        return createWebhookTransaction({
+  .mutation(async ({ input, ctx }) => {
+    const organization = ctx.organization
+    if (!organization) {
+      throw new Error('Organization not found')
+    }
+    const { livemode } = ctx
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await createWebhookTransaction({
           webhook: input.webhook,
           organization,
           livemode,
           transaction,
         })
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const updateWebhook = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editWebhookInputSchema)
   .output(z.object({ webhook: webhookClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const webhook = await updateWebhookDB(
           {
             ...input.webhook,
@@ -88,34 +89,36 @@ export const updateWebhook = protectedProcedure
           webhook,
           organization,
         })
-        return { webhook }
-      }
+        return Result.ok({ webhook })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getWebhook = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ webhook: webhookClientSelectSchema }))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const webhook = (
           await selectWebhookById(input.id, transaction)
         ).unwrap()
-        return { webhook }
-      }
+        return Result.ok({ webhook })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const requestWebhookSigningSecret = protectedProcedure
   .input(z.object({ webhookId: z.string() }))
   .output(z.object({ secret: z.string() }))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const { webhook, organization } =
           await selectWebhookAndOrganizationByWebhookId(
             input.webhookId,
@@ -125,10 +128,12 @@ export const requestWebhookSigningSecret = protectedProcedure
           webhook,
           organization,
         })
-        return { secret: secret.key }
-      }
+        return Result.ok({ secret: secret.key })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getTableRows = protectedProcedure
   .input(
@@ -141,14 +146,19 @@ export const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(webhooksTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectWebhooksTableRowData({ input, transaction })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectWebhooksTableRowData({
+          input,
+          transaction,
+        })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const webhooksRouter = router({
   get: getWebhook,

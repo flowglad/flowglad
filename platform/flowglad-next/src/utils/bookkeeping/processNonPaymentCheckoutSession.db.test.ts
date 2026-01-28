@@ -7,7 +7,7 @@ import {
   setupOrg,
   setupPrice,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
@@ -84,22 +84,21 @@ describe('processNonPaymentCheckoutSession', () => {
       })
 
       // Update checkout session to include the full discount
-      const updatedCheckoutSession =
-        await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const result = await updateCheckoutSession(
-              {
-                ...checkoutSession,
-                discountId: fullDiscount.id,
-              } as CheckoutSession.Update,
-              transaction
-            )
-            return Result.ok(result)
-          }
-        )
+      const updatedCheckoutSession = await adminTransaction(
+        async ({ transaction }) => {
+          const result = await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              discountId: fullDiscount.id,
+            } as CheckoutSession.Update,
+            transaction
+          )
+          return Result.ok(result)
+        }
+      )
 
       // Create fee calculation with the discount applied
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await createFeeCalculationForCheckoutSession(
           updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
           transaction
@@ -108,16 +107,14 @@ describe('processNonPaymentCheckoutSession', () => {
       })
 
       // Process the non-payment checkout session
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          return Result.ok(
-            await processNonPaymentCheckoutSession(
-              updatedCheckoutSession,
-              createProcessingEffectsContext(params)
-            )
+      const result = await adminTransaction(async (params) => {
+        return Result.ok(
+          await processNonPaymentCheckoutSession(
+            updatedCheckoutSession,
+            createProcessingEffectsContext(params)
           )
-        }
-      )
+        )
+      })
 
       // Verify purchase status is Paid
       expect(result.purchase.status).toEqual(PurchaseStatus.Paid)
@@ -141,7 +138,7 @@ describe('processNonPaymentCheckoutSession', () => {
 
     it('throws error when total due is not zero', async () => {
       // Create fee calculation without discount (non-zero total)
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await createFeeCalculationForCheckoutSession(
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
@@ -151,7 +148,7 @@ describe('processNonPaymentCheckoutSession', () => {
 
       // Attempt to process non-payment checkout should fail
       await expect(
-        comprehensiveAdminTransaction(async (params) => {
+        adminTransaction(async (params) => {
           return Result.ok(
             await processNonPaymentCheckoutSession(
               checkoutSession,

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
@@ -13,7 +14,7 @@ const getPresignedURLSchema = z.object({
 export const getPresignedURL = protectedProcedure
   .input(getPresignedURLSchema)
   .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const { key, contentType, directory } = input
 
@@ -39,13 +40,14 @@ export const getPresignedURL = protectedProcedure
             organizationId: organization.id,
           })
 
-        return {
+        return Result.ok({
           data: {
             objectKey,
             presignedURL,
             publicURL,
           },
-        }
+        })
       }
     )
+    return txResult.unwrap()
   })

@@ -18,10 +18,7 @@ import {
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { Invoice } from '@/db/schema/invoices'
@@ -1567,7 +1564,7 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded',
       }
       await expect(
-        comprehensiveAdminTransaction(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const res = await processPaymentIntentStatusUpdated(
             fakePI,
@@ -1590,7 +1587,7 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded',
       }
       await expect(
-        comprehensiveAdminTransaction(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const res = await processPaymentIntentStatusUpdated(
             fakePI,
@@ -1681,16 +1678,14 @@ describe('Process payment intent status updated', async () => {
 
         // Mock getStripeCharge to return the fake charge
         mockGetStripeCharge.mockResolvedValue(fakeCharge)
-        const { payment } = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            const res = await processPaymentIntentStatusUpdated(
-              fakePI,
-              ctx
-            )
-            return Result.ok(res.unwrap())
-          }
-        )
+        const { payment } = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return Result.ok(res.unwrap())
+        })
         expect(payment).toMatchObject({})
       })
       it('throws an error when no invoice exists for the billing run', async () => {
@@ -1738,7 +1733,7 @@ describe('Process payment intent status updated', async () => {
         // Mock getStripeCharge to return the fake charge so test can proceed to billing run check
         mockGetStripeCharge.mockResolvedValue(fakeCharge as any)
         await expect(
-          comprehensiveAdminTransaction(async (ctx) => {
+          adminTransaction(async (ctx) => {
             return processPaymentIntentStatusUpdated(fakePI, ctx)
           })
         ).rejects.toThrow('BillingRun not found: br_err')
@@ -1793,16 +1788,14 @@ describe('Process payment intent status updated', async () => {
         })
         mockGetStripeCharge.mockResolvedValue(fakeCharge)
 
-        const { payment } = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            const res = await processPaymentIntentStatusUpdated(
-              fakePI,
-              ctx
-            )
-            return Result.ok(res.unwrap())
-          }
-        )
+        const { payment } = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return Result.ok(res.unwrap())
+        })
         expect(typeof payment).toBe('object')
         expect(payment.taxCountry).toBe(CountryCode.US)
       })
@@ -1938,16 +1931,14 @@ describe('Process payment intent status updated', async () => {
         billing_details: { address: { country: 'US' } } as any,
       })
       mockGetStripeCharge.mockResolvedValue(fakeCharge)
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            fakePI,
-            ctx
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+      const { payment } = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const res = await processPaymentIntentStatusUpdated(
+          fakePI,
+          ctx
+        )
+        return Result.ok(res.unwrap())
+      })
       expect(typeof payment).toBe('object')
       const events = await adminTransaction(async ({ transaction }) =>
         selectEvents(
@@ -2011,24 +2002,26 @@ describe('Process payment intent status updated', async () => {
         billing_details: { address: { country: 'US' } } as any,
       })
       mockGetStripeCharge.mockResolvedValue(fakeCharge)
-      const { payment: payment1 } =
-        await comprehensiveAdminTransaction(async (ctx) => {
+      const { payment: payment1 } = await adminTransaction(
+        async (ctx) => {
           const { transaction } = ctx
           const res = await processPaymentIntentStatusUpdated(
             fakePI,
             ctx
           )
           return Result.ok(res.unwrap())
-        })
-      const { payment: payment2 } =
-        await comprehensiveAdminTransaction(async (ctx) => {
+        }
+      )
+      const { payment: payment2 } = await adminTransaction(
+        async (ctx) => {
           const { transaction } = ctx
           const res = await processPaymentIntentStatusUpdated(
             fakePI,
             ctx
           )
           return Result.ok(res.unwrap())
-        })
+        }
+      )
       expect(payment1.id).toEqual(payment2.id)
     })
   })
@@ -2162,16 +2155,14 @@ describe('Process payment intent status updated', async () => {
         metadata,
       })
 
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            ctx
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+      const { payment } = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const res = await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          ctx
+        )
+        return Result.ok(res.unwrap())
+      })
 
       expect(payment).toMatchObject({})
       expect(payment.status).toBe(PaymentStatus.Succeeded)
@@ -2307,16 +2298,14 @@ describe('Process payment intent status updated', async () => {
         metadata: brMetadata,
       })
 
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            ctx
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+      const { payment } = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const res = await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          ctx
+        )
+        return Result.ok(res.unwrap())
+      })
 
       expect(payment).toMatchObject({})
       expect(payment.status).toBe(PaymentStatus.Succeeded)
@@ -2394,16 +2383,14 @@ describe('Process payment intent status updated', async () => {
         metadata: processingMetadata,
       })
 
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            ctx
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+      const { payment } = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const res = await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          ctx
+        )
+        return Result.ok(res.unwrap())
+      })
 
       expect(payment).toMatchObject({})
       expect(payment.status).toBe(PaymentStatus.Processing)
@@ -2479,16 +2466,14 @@ describe('Process payment intent status updated', async () => {
         metadata: successMetadata,
       })
 
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            ctx
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+      const { payment } = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const res = await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          ctx
+        )
+        return Result.ok(res.unwrap())
+      })
 
       expect(payment).toMatchObject({})
 
@@ -2594,15 +2579,13 @@ describe('Process payment intent status updated', async () => {
       mockGetStripeCharge.mockResolvedValue(stripeCharge)
 
       // Process the payment intent
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const res = await processPaymentIntentStatusUpdated(
-            mockPaymentIntent,
-            ctx
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+      const { payment } = await adminTransaction(async (ctx) => {
+        const res = await processPaymentIntentStatusUpdated(
+          mockPaymentIntent,
+          ctx
+        )
+        return Result.ok(res.unwrap())
+      })
 
       // Verify the payment has correct organizationId from checkoutSession
       expect(payment.organizationId).toBe(organization.id)
@@ -2678,7 +2661,7 @@ describe('Process payment intent status updated', async () => {
       // Mock charge retrieval
       mockGetStripeCharge.mockResolvedValue(stripeCharge as any)
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         await processPaymentIntentStatusUpdated(
           mockPaymentIntent,
           ctx
@@ -2722,7 +2705,7 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Process same payment intent again
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         await processPaymentIntentStatusUpdated(
           mockPaymentIntent,
           ctx
@@ -2795,15 +2778,13 @@ describe('Process payment intent status updated', async () => {
       // Mock charge retrieval
       mockGetStripeCharge.mockResolvedValue(stripeCharge as any)
 
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const res = await processPaymentIntentStatusUpdated(
-            mockPaymentIntent,
-            ctx
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+      const { payment } = await adminTransaction(async (ctx) => {
+        const res = await processPaymentIntentStatusUpdated(
+          mockPaymentIntent,
+          ctx
+        )
+        return Result.ok(res.unwrap())
+      })
 
       // Query events after transaction completes
       const eventsCreated = await adminTransaction(async (ctx) => {
@@ -2933,7 +2914,7 @@ describe('Process payment intent status updated', async () => {
       })
       mockGetStripeCharge.mockResolvedValue(mockCharge)
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         await processPaymentIntentStatusUpdated(
           mockPaymentIntent,
           ctx
@@ -3077,31 +3058,29 @@ describe('Process payment intent status updated', async () => {
 
       // Track enqueued ledger commands
       const enqueuedLedgerCommands: unknown[] = []
-      const { payment } = await comprehensiveAdminTransaction(
-        async (ctx) => {
-          const {
+      const { payment } = await adminTransaction(async (ctx) => {
+        const {
+          transaction,
+          emitEvent,
+          enqueueLedgerCommand,
+          invalidateCache,
+          cacheRecomputationContext,
+        } = ctx
+        const res = await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          {
             transaction,
-            emitEvent,
-            enqueueLedgerCommand,
-            invalidateCache,
             cacheRecomputationContext,
-          } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            {
-              transaction,
-              cacheRecomputationContext,
-              emitEvent,
-              enqueueLedgerCommand: (cmd) => {
-                enqueuedLedgerCommands.push(cmd)
-                enqueueLedgerCommand(cmd)
-              },
-              invalidateCache,
-            }
-          )
-          return Result.ok(res.unwrap())
-        }
-      )
+            emitEvent,
+            enqueueLedgerCommand: (cmd) => {
+              enqueuedLedgerCommands.push(cmd)
+              enqueueLedgerCommand(cmd)
+            },
+            invalidateCache,
+          }
+        )
+        return Result.ok(res.unwrap())
+      })
 
       // Verify ledger command was enqueued
       expect(enqueuedLedgerCommands.length).toBeGreaterThan(0)

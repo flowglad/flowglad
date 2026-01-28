@@ -1,4 +1,5 @@
 import type { User } from 'better-auth'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { User as UserSchema } from '@/db/schema/users'
 import {
@@ -10,7 +11,7 @@ import {
 export const betterAuthUserToApplicationUser = async (
   betterAuthUser: User
 ): Promise<UserSchema.Record> => {
-  return await adminTransaction(async ({ transaction }) => {
+  const result = await adminTransaction(async ({ transaction }) => {
     const [existingUser] = await selectUsers(
       {
         email: betterAuthUser.email,
@@ -18,7 +19,7 @@ export const betterAuthUserToApplicationUser = async (
       transaction
     )
     if (!existingUser) {
-      return await insertUser(
+      const user = await insertUser(
         {
           id: betterAuthUser.id,
           email: betterAuthUser.email,
@@ -27,16 +28,19 @@ export const betterAuthUserToApplicationUser = async (
         },
         transaction
       )
+      return Result.ok(user)
     }
     if (existingUser.betterAuthId !== betterAuthUser.id) {
-      return await updateUser(
+      const user = await updateUser(
         {
           id: existingUser.id,
           betterAuthId: betterAuthUser.id,
         },
         transaction
       )
+      return Result.ok(user)
     }
-    return existingUser
+    return Result.ok(existingUser)
   })
+  return result.unwrap()
 }

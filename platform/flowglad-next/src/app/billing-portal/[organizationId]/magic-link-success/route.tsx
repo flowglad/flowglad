@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { type NextRequest, NextResponse } from 'next/server'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -23,14 +24,14 @@ export const GET = async (
 
   const user = await betterAuthUserToApplicationUser(session.user)
   const { organizationId } = await params
-  const customers = await adminTransaction(
-    async ({ transaction }) => {
-      return selectCustomers(
-        { userId: user.id, organizationId },
-        transaction
-      )
-    }
-  )
+  const txResult = await adminTransaction(async ({ transaction }) => {
+    const result = await selectCustomers(
+      { userId: user.id, organizationId },
+      transaction
+    )
+    return Result.ok(result)
+  })
+  const customers = txResult.unwrap()
 
   if (customers.length === 0) {
     await clearCustomerBillingPortalOrganizationId()

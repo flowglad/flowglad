@@ -1,14 +1,8 @@
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   membershipsClientSelectSchema,
@@ -90,15 +84,16 @@ const getMembers = protectedProcedure
       throw new Error('organizationId is required')
     }
 
-    const members = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMembershipsAndUsersByMembershipWhere(
+    const result = await adminTransaction(async ({ transaction }) => {
+      const members =
+        await selectMembershipsAndUsersByMembershipWhere(
           { organizationId: ctx.organizationId },
           transaction
         )
-      }
-    )
+      return Result.ok(members)
+    })
 
+    const members = result.unwrap()
     // Sort members by date of creation, newest first
     const sortedMembers = members.sort((a, b) => {
       return (
@@ -121,26 +116,27 @@ const getFocusedMembership = protectedProcedure
       organization: organizationsClientSelectSchema,
     })
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ ctx, transactionCtx }) => {
-        const userId = ctx.user?.id
-        const { transaction } = transactionCtx
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User authentication required',
-          })
-        }
+  .query(async ({ ctx }) => {
+    const userId = ctx.user?.id
+    if (!userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User authentication required',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
             userId,
             transaction
           )
-        return focusedMembership
-      }
+        return Result.ok(focusedMembership)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getRevenueData = protectedProcedure
   .input(getRevenueDataInputSchema)
@@ -152,14 +148,19 @@ const getRevenueData = protectedProcedure
       })
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectRevenueDataForOrganization(input, transaction)
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectRevenueDataForOrganization(
+          input,
+          transaction
+        )
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
@@ -178,15 +179,13 @@ const getMRR = protectedProcedure
       })
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        if (!ctx.organizationId) {
-          throw new Error('organizationId is required')
-        }
-
-        return calculateMRRByMonth(
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await calculateMRRByMonth(
           ctx.organizationId!,
           {
             ...input,
@@ -194,22 +193,26 @@ const getMRR = protectedProcedure
           },
           transaction
         )
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
-const getARR = protectedProcedure.query(
-  authenticatedProcedureTransaction(
-    async ({ ctx, transactionCtx }) => {
-      const { transaction } = transactionCtx
-      if (!ctx.organizationId) {
-        throw new Error('organizationId is required')
-      }
-
-      return calculateARR(ctx.organizationId!, transaction)
-    }
+const getARR = protectedProcedure.query(async ({ ctx }) => {
+  if (!ctx.organizationId) {
+    throw new Error('organizationId is required')
+  }
+  const result = await authenticatedTransaction(
+    async ({ transaction }) => {
+      const arr = await calculateARR(ctx.organizationId!, transaction)
+      return Result.ok(arr)
+    },
+    { apiKey: ctx.apiKey }
   )
-)
+  return result.unwrap()
+})
 
 const getMRRBreakdownInputSchema = z.object({
   currentMonth: z.date(),
@@ -218,23 +221,24 @@ const getMRRBreakdownInputSchema = z.object({
 
 const getMRRBreakdown = protectedProcedure
   .input(getMRRBreakdownInputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        if (!ctx.organizationId) {
-          throw new Error('organizationId is required')
-        }
-
-        return calculateMRRBreakdown(
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await calculateMRRBreakdown(
           ctx.organizationId!,
           input.currentMonth,
           input.previousMonth,
           transaction
         )
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
@@ -253,15 +257,13 @@ const getActiveSubscribers = protectedProcedure
       })
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        if (!ctx.organizationId) {
-          throw new Error('organizationId is required')
-        }
-
-        return calculateActiveSubscribersByMonth(
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await calculateActiveSubscribersByMonth(
           ctx.organizationId!,
           {
             ...input,
@@ -269,9 +271,12 @@ const getActiveSubscribers = protectedProcedure
           },
           transaction
         )
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getSubscriberBreakdownInputSchema = z.object({
   currentMonth: z.date(),
@@ -280,38 +285,42 @@ const getSubscriberBreakdownInputSchema = z.object({
 
 const getSubscriberBreakdown = protectedProcedure
   .input(getSubscriberBreakdownInputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        if (!ctx.organizationId) {
-          throw new Error('organizationId is required')
-        }
-
-        return calculateSubscriberBreakdown(
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await calculateSubscriberBreakdown(
           ctx.organizationId!,
           input.currentMonth,
           input.previousMonth,
           transaction
         )
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getCurrentSubscribers = protectedProcedure.query(
-  authenticatedProcedureTransaction(
-    async ({ ctx, transactionCtx }) => {
-      const { transaction } = transactionCtx
-      if (!ctx.organizationId) {
-        throw new Error('organizationId is required')
-      }
-
-      return getCurrentActiveSubscribers(
-        { organizationId: ctx.organizationId! },
-        transaction
-      )
+  async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
     }
-  )
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const count = await getCurrentActiveSubscribers(
+          { organizationId: ctx.organizationId! },
+          transaction
+        )
+        return Result.ok(count)
+      },
+      { apiKey: ctx.apiKey }
+    )
+    return result.unwrap()
+  }
 )
 
 // Usage volume endpoints for billing dashboard
@@ -333,27 +342,26 @@ const getUsageVolume = protectedProcedure
       })
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        if (!ctx.organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'organizationId is required',
-          })
-        }
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
 
-        // Validate date range
-        if (input.startDate >= input.endDate) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'startDate must be before endDate',
-          })
-        }
+    // Validate date range
+    if (input.startDate >= input.endDate) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'startDate must be before endDate',
+      })
+    }
 
-        return calculateUsageVolumeByInterval(
-          ctx.organizationId,
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await calculateUsageVolumeByInterval(
+          ctx.organizationId!,
           {
             startDate: input.startDate,
             endDate: input.endDate,
@@ -364,9 +372,12 @@ const getUsageVolume = protectedProcedure
           },
           transaction
         )
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 // Empty input - meter list is decoupled from product filter
 const getUsageMetersWithEventsInputSchema = z.object({})
@@ -383,28 +394,29 @@ const getUsageMetersWithEventsOutput = z.array(
 const getUsageMetersWithEventsProcedure = protectedProcedure
   .input(getUsageMetersWithEventsInputSchema)
   .output(getUsageMetersWithEventsOutput)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        if (!ctx.organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'organizationId is required',
-          })
-        }
-
-        return getUsageMetersWithEvents(
-          ctx.organizationId,
+  .query(async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await getUsageMetersWithEvents(
+          ctx.organizationId!,
           ctx.livemode,
           transaction
         )
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
-  return adminTransaction(async ({ transaction }) => {
+  const result = await adminTransaction(async ({ transaction }) => {
     // Get all memberships and organizations for the user
     const membershipsAndOrganizations =
       await selectMembershipsAndOrganizationsByMembershipWhere(
@@ -417,8 +429,9 @@ const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
       ({ organization }) => organization
     )
 
-    return organizations
+    return Result.ok(organizations)
   }, {})
+  return result.unwrap()
 })
 
 const createOrganization = protectedProcedure
@@ -435,7 +448,7 @@ const createOrganization = protectedProcedure
       throw new Error('User not found')
     }
 
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, cacheRecomputationContext }) => {
         const [user] = await selectUsers(
           {
@@ -457,15 +470,14 @@ const createOrganization = protectedProcedure
         return Result.ok(organizationResult)
       }
     )
+    const { organization } = result.unwrap()
     if (input.codebaseMarkdown) {
       await saveOrganizationCodebaseMarkdown({
-        organizationId: result.organization.id,
+        organizationId: organization.id,
         markdown: input.codebaseMarkdown,
       })
     }
-    return {
-      organization: result.organization,
-    }
+    return { organization }
   })
 
 const getCodebaseMarkdown = protectedProcedure
@@ -493,18 +505,17 @@ const updateCodebaseMarkdown = protectedProcedure
 
 const updateOrganization = protectedProcedure
   .input(editOrganizationSchema)
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const { organization } = input
         await updateOrganizationDB(organization, transaction)
-        return {
-          data: organization,
-        }
-      }
+        return Result.ok({ data: organization })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const updateFocusedMembershipSchema = z.object({
   organizationId: z.string(),
@@ -513,14 +524,17 @@ const updateFocusedMembershipSchema = z.object({
 const updateFocusedMembership = protectedProcedure
   .input(updateFocusedMembershipSchema)
   .mutation(async ({ input, ctx }) => {
-    const memberships = await adminTransaction(
+    const membershipsResult = await adminTransaction(
       async ({ transaction }) => {
-        return selectMembershipsAndOrganizationsByMembershipWhere(
-          { userId: ctx.user!.id },
-          transaction
-        )
+        const data =
+          await selectMembershipsAndOrganizationsByMembershipWhere(
+            { userId: ctx.user!.id },
+            transaction
+          )
+        return Result.ok(data)
       }
     )
+    const memberships = membershipsResult.unwrap()
     const membershipToFocus = memberships.find(
       (m) => m.membership.organizationId === input.organizationId
     )
@@ -530,19 +544,21 @@ const updateFocusedMembership = protectedProcedure
         message: 'Membership not found',
       })
     }
-    return adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
       await unfocusMembershipsForUser(
         membershipToFocus.membership.userId,
         transaction
       )
-      return updateMembership(
+      const updated = await updateMembership(
         {
           id: membershipToFocus.membership.id,
           focused: true,
         },
         transaction
       )
+      return Result.ok(updated)
     })
+    return result.unwrap()
   })
 
 const getMembersTableRowData = protectedProcedure
@@ -551,22 +567,25 @@ const getMembersTableRowData = protectedProcedure
     createPaginatedTableRowOutputSchema(membershipsTableRowDataSchema)
   )
   .query(async (args) => {
-    const focusedMembership = await authenticatedTransaction(
+    const focusedMembershipResult = await authenticatedTransaction(
       async ({ transaction, userId }) => {
-        return selectFocusedMembershipAndOrganization(
+        const data = await selectFocusedMembershipAndOrganization(
           userId,
           transaction
         )
-      }
+        return Result.ok(data)
+      },
+      { apiKey: args.ctx.apiKey }
     )
+    const focusedMembership = focusedMembershipResult.unwrap()
     /**
      * Force overwrite the organizationId because we need to do an admin transaction
      * to give the user visbility into their teammates. Due to limitations of RLS,
      * we can't do this in the authenticated transaction as memberships
      * is the "root" basis of most of our RLS policies.
      */
-    return adminTransaction(async ({ transaction }) => {
-      return selectMembershipsTableRowData({
+    const result = await adminTransaction(async ({ transaction }) => {
+      const data = await selectMembershipsTableRowData({
         input: {
           ...args.input,
           filters: {
@@ -577,7 +596,9 @@ const getMembersTableRowData = protectedProcedure
         },
         transaction,
       })
+      return Result.ok(data)
     })
+    return result.unwrap()
   })
 
 /**
@@ -586,25 +607,24 @@ const getMembersTableRowData = protectedProcedure
  */
 const getNotificationPreferences = protectedProcedure
   .output(notificationPreferencesSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ ctx, transactionCtx }) => {
-        const userId = ctx.user?.id
-        const { transaction } = transactionCtx
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User authentication required',
-          })
-        }
-        if (!ctx.organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'organizationId is required',
-          })
-        }
+  .query(async ({ ctx }) => {
+    const userId = ctx.user?.id
+    if (!userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User authentication required',
+      })
+    }
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const [membership] = await selectMemberships(
-          { userId, organizationId: ctx.organizationId },
+          { userId, organizationId: ctx.organizationId! },
           transaction
         )
         if (!membership) {
@@ -613,10 +633,14 @@ const getNotificationPreferences = protectedProcedure
             message: 'Membership not found',
           })
         }
-        return getMembershipNotificationPreferences(membership)
-      }
+        return Result.ok(
+          getMembershipNotificationPreferences(membership)
+        )
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 /**
  * Input schema for updating notification preferences.
@@ -648,25 +672,24 @@ const updateNotificationPreferencesOutputSchema = z.object({
 const updateNotificationPreferences = protectedProcedure
   .input(updateNotificationPreferencesInputSchema)
   .output(updateNotificationPreferencesOutputSchema)
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const userId = ctx.user?.id
-        const { transaction } = transactionCtx
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User authentication required',
-          })
-        }
-        if (!ctx.organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'organizationId is required',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const userId = ctx.user?.id
+    if (!userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User authentication required',
+      })
+    }
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const [membership] = await selectMemberships(
-          { userId, organizationId: ctx.organizationId },
+          { userId, organizationId: ctx.organizationId! },
           transaction
         )
         if (!membership) {
@@ -689,13 +712,15 @@ const updateNotificationPreferences = protectedProcedure
           transaction
         )
         // Return full preferences merged with defaults to ensure all fields are present
-        return {
+        return Result.ok({
           preferences:
             getMembershipNotificationPreferences(updatedMembership),
-        }
-      }
+        })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const organizationsRouter = router({
   create: createOrganization,

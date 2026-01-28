@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { countriesSelectSchema } from '@/db/schema/countries'
@@ -11,13 +12,14 @@ const listCountries = protectedProcedure
     })
   )
   .query(async () => {
-    const countries = await adminTransaction(
+    const txResult = await adminTransaction(
       async ({ transaction }) => {
-        return selectCountries({}, transaction)
+        const countries = await selectCountries({}, transaction)
+        return Result.ok(countries)
       }
     )
     return {
-      countries,
+      countries: txResult.unwrap(),
     }
   })
 

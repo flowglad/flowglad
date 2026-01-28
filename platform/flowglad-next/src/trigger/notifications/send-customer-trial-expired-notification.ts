@@ -45,45 +45,53 @@ export const runSendCustomerTrialExpiredNotification =
       NotFoundError | ValidationError
     >
     try {
-      const data = await adminTransaction(async ({ transaction }) => {
-        const subscription = (
-          await selectSubscriptionById(
-            params.subscriptionId,
-            transaction
-          )
-        ).unwrap()
+      const data = (
+        await adminTransaction(async ({ transaction }) => {
+          const subscription = (
+            await selectSubscriptionById(
+              params.subscriptionId,
+              transaction
+            )
+          ).unwrap()
 
-        const { organization, customer } =
-          await buildNotificationContext(
-            {
-              organizationId: subscription.organizationId,
-              customerId: subscription.customerId,
-            },
-            transaction
-          )
+          const { organization, customer } =
+            await buildNotificationContext(
+              {
+                organizationId: subscription.organizationId,
+                customerId: subscription.customerId,
+              },
+              transaction
+            )
 
-        const price = subscription.priceId
-          ? (
-              await selectPriceById(subscription.priceId, transaction)
-            ).unwrap()
-          : null
-
-        // Fetch the product associated with the price for user-friendly naming
-        const product =
-          price && Price.hasProductId(price)
+          const price = subscription.priceId
             ? (
-                await selectProductById(price.productId, transaction)
+                await selectPriceById(
+                  subscription.priceId,
+                  transaction
+                )
               ).unwrap()
             : null
 
-        return {
-          organization,
-          customer,
-          subscription,
-          price,
-          product,
-        }
-      })
+          // Fetch the product associated with the price for user-friendly naming
+          const product =
+            price && Price.hasProductId(price)
+              ? (
+                  await selectProductById(
+                    price.productId,
+                    transaction
+                  )
+                ).unwrap()
+              : null
+
+          return Result.ok({
+            organization,
+            customer,
+            subscription,
+            price,
+            product,
+          })
+        })
+      ).unwrap()
       dataResult = Result.ok(data)
     } catch (error) {
       // Only convert NotFoundError to Result.err; rethrow other errors

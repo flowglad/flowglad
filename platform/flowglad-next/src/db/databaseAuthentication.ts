@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import type { User } from 'better-auth'
+import { Result } from 'better-result'
 import { and, desc, eq, isNull, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
 import { z } from 'zod'
@@ -78,12 +79,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     }
   }
 
-  const {
-    membershipAndUser,
-    organizationId,
-    apiKeyType,
-    apiKeyLivemode,
-  } = await adminTransaction(async ({ transaction }) => {
+  const txResult = await adminTransaction(async ({ transaction }) => {
     const [apiKeyRecord] = await selectApiKeys(
       {
         token: key,
@@ -97,13 +93,19 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
         },
         transaction
       )
-    return {
+    return Result.ok({
       membershipAndUser,
       organizationId: apiKeyRecord.organizationId,
       apiKeyType: apiKeyRecord.type,
       apiKeyLivemode: apiKeyRecord.livemode,
-    }
+    })
   })
+  const {
+    membershipAndUser,
+    organizationId,
+    apiKeyType,
+    apiKeyLivemode,
+  } = txResult.unwrap()
   return {
     keyType: apiKeyType,
     userId: membershipAndUser.user.id,

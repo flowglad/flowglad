@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
 import PageContainer from '@/components/PageContainer'
@@ -17,12 +18,12 @@ import {
   OnboardingItemType,
 } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
-import { auth, getSession } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
 import OnboardingStatusTable from './OnboardingStatusTable'
 
 const OnboardingPage = async () => {
-  const results = await authenticatedTransaction(
+  const txResult = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       const membershipsAndOrganizations =
         await selectMembershipAndOrganizations(
@@ -33,12 +34,7 @@ const OnboardingPage = async () => {
           transaction
         )
       if (membershipsAndOrganizations.length === 0) {
-        return {
-          organization: undefined,
-          products: undefined,
-          discounts: undefined,
-          pricingModels: undefined,
-        }
+        return Result.ok(null)
       }
       const organization = membershipsAndOrganizations[0].organization
       const products = await selectPricesAndProductsForOrganization(
@@ -54,27 +50,30 @@ const OnboardingPage = async () => {
         { organizationId: organization.id },
         transaction
       )
-      return {
+      return Result.ok({
         organization,
         products,
         discounts,
         pricingModels,
-      }
+      })
     }
   )
+  const results = txResult.unwrap()
 
-  if (!results.organization) {
+  if (!results) {
     return redirect('/onboarding/business-details')
   }
   let organization = results.organization
-  const testmodeApiKeys: ApiKey.Record[] = await adminTransaction(
-    async ({ transaction }) => {
-      return selectApiKeys(
-        { organizationId: organization.id, livemode: false },
-        transaction
+  const testmodeApiKeys: ApiKey.Record[] = (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await selectApiKeys(
+          { organizationId: organization.id, livemode: false },
+          transaction
+        )
       )
-    }
-  )
+    })
+  ).unwrap()
   let secretApiKey: ApiKey.Record | undefined = testmodeApiKeys.find(
     (key) => key.type === FlowgladApiKeyType.Secret
   )
@@ -85,35 +84,34 @@ const OnboardingPage = async () => {
     if (!betterAuthId) {
       throw new Error('User not found')
     }
-    secretApiKey = await adminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-      }): Promise<ApiKey.Record> => {
-        const [user] = await selectUsers(
-          {
-            betterAuthId,
-          },
-          transaction
-        )
-        const { apiKey } = await createSecretApiKeyTransaction(
-          {
-            apiKey: {
-              name: 'Secret Testmode Key',
-              type: FlowgladApiKeyType.Secret,
+    secretApiKey = (
+      await adminTransaction(
+        async ({
+          transaction,
+        }): Promise<Result<ApiKey.Record, Error>> => {
+          const [user] = await selectUsers(
+            {
+              betterAuthId,
             },
-          },
-          {
-            transaction,
-            livemode: false,
-            userId: user!.id,
-            organizationId: organization.id,
-            cacheRecomputationContext,
-          }
-        )
-        return apiKey
-      }
-    )
+            transaction
+          )
+          const { apiKey } = await createSecretApiKeyTransaction(
+            {
+              apiKey: {
+                name: 'Secret Testmode Key',
+                type: FlowgladApiKeyType.Secret,
+              },
+            },
+            {
+              transaction,
+              livemode: false,
+              userId: user!.id,
+            }
+          )
+          return Result.ok(apiKey)
+        }
+      )
+    ).unwrap()
   }
   /**
    * Sync the organization's payouts enabled status if they have a stripe account

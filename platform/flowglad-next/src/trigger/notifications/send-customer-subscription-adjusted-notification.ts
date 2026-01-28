@@ -58,17 +58,21 @@ export const runSendCustomerSubscriptionAdjustedNotification = async (
     NotFoundError | ValidationError
   >
   try {
-    const data = await adminTransaction(async ({ transaction }) => {
-      return buildNotificationContext(
-        {
-          organizationId: payload.organizationId,
-          customerId: payload.customerId,
-          subscriptionId: payload.subscriptionId,
-          include: ['price'],
-        },
-        transaction
-      )
-    })
+    const data = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await buildNotificationContext(
+            {
+              organizationId: payload.organizationId,
+              customerId: payload.customerId,
+              subscriptionId: payload.subscriptionId,
+              include: ['price'],
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     dataResult = Result.ok(data)
   } catch (error) {
     // Only convert NotFoundError to Result.err; rethrow other errors

@@ -3,6 +3,7 @@ import { Result } from 'better-result'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { type Event, eventsSelectSchema } from '@/db/schema/events'
+import type { Organization } from '@/db/schema/organizations'
 import { supabaseInsertPayloadSchema } from '@/db/supabase'
 import {
   selectEventById,
@@ -14,6 +15,13 @@ import type { SupabaseInsertPayload } from '@/types'
 import { keysToCamelCase } from '@/utils/core'
 import { storeTelemetry } from '@/utils/redis'
 import { sendSvixEvent } from '@/utils/svix'
+
+interface EventInsertedResult {
+  eventId: string
+  result: 'already_processed' | 'processed'
+  organization?: Organization.Record
+  event?: Event.Record
+}
 
 const eventInsertSchema = supabaseInsertPayloadSchema(
   eventsSelectSchema
@@ -84,39 +92,45 @@ export const eventInsertedTask = task({
       result,
       organization,
       event: mostUpToDateEvent,
-    } = await adminTransaction(async ({ transaction }) => {
-      const existingEvent = (
-        await selectEventById(event.id, transaction)
-      ).unwrap()
+    } = (
+      await adminTransaction(
+        async ({
+          transaction,
+        }): Promise<Result<EventInsertedResult, Error>> => {
+          const existingEvent = (
+            await selectEventById(event.id, transaction)
+          ).unwrap()
 
-      if (existingEvent?.processedAt) {
-        return {
-          eventId: event.id,
-          result: 'already_processed',
+          if (existingEvent?.processedAt) {
+            return Result.ok({
+              eventId: event.id,
+              result: 'already_processed',
+            })
+          }
+
+          const updatedEvent = await updateEvent(
+            { id: event.id, processedAt: Date.now() },
+            transaction
+          )
+          const organization = (
+            await selectOrganizationById(
+              event.organizationId,
+              transaction
+            )
+          ).unwrap()
+          return Result.ok({
+            eventId: event.id,
+            result: 'processed',
+            organization,
+            event: updatedEvent,
+          })
         }
-      }
-
-      const updatedEvent = await updateEvent(
-        { id: event.id, processedAt: Date.now() },
-        transaction
       )
-      const organization = (
-        await selectOrganizationById(
-          event.organizationId,
-          transaction
-        )
-      ).unwrap()
-      return {
-        eventId: event.id,
-        result: 'processed',
-        organization,
-        event: updatedEvent,
-      }
-    })
+    ).unwrap()
     if (result === 'already_processed') {
       return result
     }
-    if (mostUpToDateEvent) {
+    if (mostUpToDateEvent && organization) {
       await sendSvixEvent({
         event: mostUpToDateEvent,
         organization,

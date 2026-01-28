@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { snakeCase } from 'change-case'
 import { sql } from 'drizzle-orm'
 import * as R from 'ramda'
@@ -222,13 +223,13 @@ export const setupOrg = async (params?: {
 
     // If skipPricingModel is true, return just the organization
     if (params?.skipPricingModel) {
-      return {
+      return Result.ok({
         organization,
         product: undefined,
         price: undefined,
         pricingModel: undefined,
         testmodePricingModel: undefined,
-      } as any
+      } as any)
     }
 
     // Create both live and testmode default pricing models
@@ -289,13 +290,13 @@ export const setupOrg = async (params?: {
       },
       ctx
     )) as Price.SubscriptionRecord
-    return {
+    return Result.ok({
       organization,
       product,
       price,
       pricingModel: livePricingModel,
       testmodePricingModel,
-    }
+    })
   })
 }
 
@@ -323,22 +324,25 @@ export const setupProduct = async ({
       type: 'admin',
       livemode: effectiveLivemode,
     })
-    return await insertProduct(
-      {
-        name,
-        organizationId,
-        livemode: effectiveLivemode,
-        description: 'Flowglad Live Product',
-        imageURL: 'https://flowglad.com/logo.png',
-        active,
-        singularQuantityLabel: 'seat',
-        pluralQuantityLabel: 'seats',
-        pricingModelId,
-        externalId: null,
-        default: isDefault,
-        slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
-      },
-      ctx
+    return Result.ok(
+      await insertProduct(
+        {
+          name,
+          organizationId,
+          livemode: effectiveLivemode,
+          description: 'Flowglad Live Product',
+          imageURL: 'https://flowglad.com/logo.png',
+          active,
+          singularQuantityLabel: 'seat',
+          pluralQuantityLabel: 'seats',
+          pricingModelId,
+          externalId: null,
+          default: isDefault,
+          slug:
+            slug ?? `flowglad-test-product-price+${core.nanoid()}`,
+        },
+        ctx
+      )
     )
   })
 }
@@ -367,31 +371,33 @@ export const setupPaymentMethod = async (params: {
         emitEvent: emitEvent!,
         enqueueLedgerCommand: enqueueLedgerCommand!,
       }
-      return safelyInsertPaymentMethod(
-        {
-          customerId: params.customerId,
-          type: params.type ?? PaymentMethodType.Card,
-          livemode: params.livemode ?? true,
-          default: params.default ?? true,
-          externalId: null,
-          billingDetails: {
-            name: 'Test',
-            email: 'test@test.com',
-            address: {
-              line1: '123 Test St',
-              line2: 'Apt 1',
-              country: 'US',
-              city: 'Test City',
-              state: 'Test State',
-              postal_code: '12345',
+      return Result.ok(
+        await safelyInsertPaymentMethod(
+          {
+            customerId: params.customerId,
+            type: params.type ?? PaymentMethodType.Card,
+            livemode: params.livemode ?? true,
+            default: params.default ?? true,
+            externalId: null,
+            billingDetails: {
+              name: 'Test',
+              email: 'test@test.com',
+              address: {
+                line1: '123 Test St',
+                line2: 'Apt 1',
+                country: 'US',
+                city: 'Test City',
+                state: 'Test State',
+                postal_code: '12345',
+              },
             },
+            paymentMethodData: params.paymentMethodData ?? {},
+            metadata: {},
+            stripePaymentMethodId:
+              params.stripePaymentMethodId ?? `pm_${core.nanoid()}`,
           },
-          paymentMethodData: params.paymentMethodData ?? {},
-          metadata: {},
-          stripePaymentMethodId:
-            params.stripePaymentMethodId ?? `pm_${core.nanoid()}`,
-        },
-        ctx
+          ctx
+        )
       )
     }
   )
@@ -429,20 +435,23 @@ export const setupCustomer = async (params: SetupCustomerParams) => {
       pricingModelId = defaultPricingModel.id
     }
 
-    return insertCustomer(
-      {
-        organizationId: params.organizationId,
-        email,
-        name: params.name ?? email,
-        externalId: params.externalId?.trim() || core.nanoid(),
-        livemode,
-        stripeCustomerId:
-          params.stripeCustomerId ?? `cus_${core.nanoid()}`,
-        invoiceNumberBase: params.invoiceNumberBase ?? core.nanoid(),
-        userId: params.userId,
-        pricingModelId,
-      },
-      transaction
+    return Result.ok(
+      await insertCustomer(
+        {
+          organizationId: params.organizationId,
+          email,
+          name: params.name ?? email,
+          externalId: params.externalId?.trim() || core.nanoid(),
+          livemode,
+          stripeCustomerId:
+            params.stripeCustomerId ?? `cus_${core.nanoid()}`,
+          invoiceNumberBase:
+            params.invoiceNumberBase ?? core.nanoid(),
+          userId: params.userId,
+          pricingModelId,
+        },
+        transaction
+      )
     )
   })
 }
@@ -458,25 +467,29 @@ export const setupUserAndCustomer = async (
   params: SetupUserAndCustomerParams
 ) => {
   const userId = core.nanoid()
-  const user = await adminTransaction(async ({ transaction }) => {
-    return await insertUser(
-      {
-        email: `test+${userId}@test.com`,
-        name: `Test ${userId}`,
-        betterAuthId: params.betterAuthUserId,
-        id: userId,
-      },
-      transaction
-    )
-  })
-  const customer = await setupCustomer({
+  const user = (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await insertUser(
+          {
+            email: `test+${userId}@test.com`,
+            name: `Test ${userId}`,
+            betterAuthId: params.betterAuthUserId,
+            id: userId,
+          },
+          transaction
+        )
+      )
+    })
+  ).unwrap()
+  const customerResult = await setupCustomer({
     ...params,
     userId,
   })
-  return {
+  return Result.ok({
     user,
-    customer,
-  }
+    customer: customerResult.unwrap(),
+  })
 }
 
 export const teardownOrg = async ({
@@ -535,102 +548,108 @@ export const setupSubscription = async (params: {
     )
   }
   const status = params.status ?? SubscriptionStatus.Active
-  return adminTransaction(async ({ transaction }) => {
-    const price = (
-      await selectPriceById(params.priceId, transaction)
-    ).unwrap()
-    if (params.renews === false) {
-      return (await insertSubscription(
-        {
-          organizationId: params.organizationId,
-          customerId: params.customerId,
-          defaultPaymentMethodId:
-            params.defaultPaymentMethodId ??
-            params.paymentMethodId ??
-            null,
-          status: status as
-            | SubscriptionStatus.CreditTrial
-            | SubscriptionStatus.Active
-            | SubscriptionStatus.Canceled,
-          livemode: params.livemode ?? true,
-          billingCycleAnchorDate: null,
-          currentBillingPeriodStart: null,
-          currentBillingPeriodEnd: null,
-          canceledAt: params.canceledAt ?? null,
-          cancelScheduledAt: params.cancelScheduledAt ?? null,
-          trialEnd: null,
-          backupPaymentMethodId: null,
-          priceId: params.priceId,
-          interval: null,
-          intervalCount: null,
-          metadata: params.metadata ?? {},
-          stripeSetupIntentId: `setupintent_${core.nanoid()}`,
-          name: params.name ?? null,
-          runBillingAtPeriodStart:
-            price.type === PriceType.Subscription ? true : false,
-          externalId: null,
-          startDate: Date.now(),
-          renews: false,
-          isFreePlan: params.isFreePlan ?? false,
-          doNotCharge: params.doNotCharge ?? false,
-          cancellationReason: params.cancellationReason ?? null,
-          replacedBySubscriptionId:
-            params.replacedBySubscriptionId ?? null,
-        } as Subscription.NonRenewingInsert,
-        transaction
-      )) as Subscription.NonRenewingRecord
-    } else {
-      return (await insertSubscription(
-        {
-          organizationId: params.organizationId,
-          customerId: params.customerId,
-          defaultPaymentMethodId:
-            params.defaultPaymentMethodId ??
-            params.paymentMethodId ??
-            null,
-          status: status as
-            | SubscriptionStatus.Trialing
-            | SubscriptionStatus.Active
-            | SubscriptionStatus.PastDue
-            | SubscriptionStatus.Unpaid
-            | SubscriptionStatus.CancellationScheduled
-            | SubscriptionStatus.Incomplete
-            | SubscriptionStatus.IncompleteExpired
-            | SubscriptionStatus.Canceled
-            | SubscriptionStatus.Paused,
-          livemode: params.livemode ?? true,
-          billingCycleAnchorDate:
-            params.billingCycleAnchorDate ?? Date.now(),
-          currentBillingPeriodEnd:
-            params.currentBillingPeriodEnd ??
-            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
-          currentBillingPeriodStart:
-            params.currentBillingPeriodStart ?? Date.now(),
-          canceledAt: params.canceledAt ?? null,
-          cancelScheduledAt: params.cancelScheduledAt ?? null,
-          trialEnd: params.trialEnd ?? null,
-          backupPaymentMethodId: null,
-          priceId: params.priceId,
-          interval: params.interval ?? IntervalUnit.Month,
-          intervalCount: params.intervalCount ?? 1,
-          metadata: params.metadata ?? {},
-          stripeSetupIntentId: `setupintent_${core.nanoid()}`,
-          name: null,
-          runBillingAtPeriodStart:
-            price.type === PriceType.Subscription ? true : false,
-          externalId: null,
-          startDate: params.startDate ?? Date.now(),
-          renews: isNil(params.renews) ? true : params.renews,
-          isFreePlan: params.isFreePlan ?? false,
-          cancellationReason: params.cancellationReason ?? null,
-          replacedBySubscriptionId:
-            params.replacedBySubscriptionId ?? null,
-          doNotCharge: params.doNotCharge ?? false,
-        },
-        transaction
-      )) as Subscription.StandardRecord
-    }
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const price = (
+        await selectPriceById(params.priceId, transaction)
+      ).unwrap()
+      if (params.renews === false) {
+        const subscription = (await insertSubscription(
+          {
+            organizationId: params.organizationId,
+            customerId: params.customerId,
+            defaultPaymentMethodId:
+              params.defaultPaymentMethodId ??
+              params.paymentMethodId ??
+              null,
+            status: status as
+              | SubscriptionStatus.CreditTrial
+              | SubscriptionStatus.Active
+              | SubscriptionStatus.Canceled,
+            livemode: params.livemode ?? true,
+            billingCycleAnchorDate: null,
+            currentBillingPeriodStart: null,
+            currentBillingPeriodEnd: null,
+            canceledAt: params.canceledAt ?? null,
+            cancelScheduledAt: params.cancelScheduledAt ?? null,
+            trialEnd: null,
+            backupPaymentMethodId: null,
+            priceId: params.priceId,
+            interval: null,
+            intervalCount: null,
+            metadata: params.metadata ?? {},
+            stripeSetupIntentId: `setupintent_${core.nanoid()}`,
+            name: params.name ?? null,
+            runBillingAtPeriodStart:
+              price.type === PriceType.Subscription ? true : false,
+            externalId: null,
+            startDate: Date.now(),
+            renews: false,
+            isFreePlan: params.isFreePlan ?? false,
+            doNotCharge: params.doNotCharge ?? false,
+            cancellationReason: params.cancellationReason ?? null,
+            replacedBySubscriptionId:
+              params.replacedBySubscriptionId ?? null,
+          } as Subscription.NonRenewingInsert,
+          transaction
+        )) as Subscription.Record
+        return Result.ok(subscription)
+      } else {
+        const subscription = (await insertSubscription(
+          {
+            organizationId: params.organizationId,
+            customerId: params.customerId,
+            defaultPaymentMethodId:
+              params.defaultPaymentMethodId ??
+              params.paymentMethodId ??
+              null,
+            status: status as
+              | SubscriptionStatus.Trialing
+              | SubscriptionStatus.Active
+              | SubscriptionStatus.PastDue
+              | SubscriptionStatus.Unpaid
+              | SubscriptionStatus.CancellationScheduled
+              | SubscriptionStatus.Incomplete
+              | SubscriptionStatus.IncompleteExpired
+              | SubscriptionStatus.Canceled
+              | SubscriptionStatus.Paused,
+            livemode: params.livemode ?? true,
+            billingCycleAnchorDate:
+              params.billingCycleAnchorDate ?? Date.now(),
+            currentBillingPeriodEnd:
+              params.currentBillingPeriodEnd ??
+              new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+              ).getTime(),
+            currentBillingPeriodStart:
+              params.currentBillingPeriodStart ?? Date.now(),
+            canceledAt: params.canceledAt ?? null,
+            cancelScheduledAt: params.cancelScheduledAt ?? null,
+            trialEnd: params.trialEnd ?? null,
+            backupPaymentMethodId: null,
+            priceId: params.priceId,
+            interval: params.interval ?? IntervalUnit.Month,
+            intervalCount: params.intervalCount ?? 1,
+            metadata: params.metadata ?? {},
+            stripeSetupIntentId: `setupintent_${core.nanoid()}`,
+            name: null,
+            runBillingAtPeriodStart:
+              price.type === PriceType.Subscription ? true : false,
+            externalId: null,
+            startDate: params.startDate ?? Date.now(),
+            renews: isNil(params.renews) ? true : params.renews,
+            isFreePlan: params.isFreePlan ?? false,
+            cancellationReason: params.cancellationReason ?? null,
+            replacedBySubscriptionId:
+              params.replacedBySubscriptionId ?? null,
+            doNotCharge: params.doNotCharge ?? false,
+          },
+          transaction
+        )) as Subscription.Record
+        return Result.ok(subscription)
+      }
+    })
+  ).unwrap()
 }
 
 export const setupBillingPeriod = async ({
@@ -647,17 +666,21 @@ export const setupBillingPeriod = async ({
   livemode?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertBillingPeriod(
-      {
-        subscriptionId,
-        startDate:
-          startDate instanceof Date ? startDate.getTime() : startDate,
-        endDate:
-          endDate instanceof Date ? endDate.getTime() : endDate,
-        status,
-        livemode,
-      },
-      transaction
+    return Result.ok(
+      await insertBillingPeriod(
+        {
+          subscriptionId,
+          startDate:
+            startDate instanceof Date
+              ? startDate.getTime()
+              : startDate,
+          endDate:
+            endDate instanceof Date ? endDate.getTime() : endDate,
+          status,
+          livemode,
+        },
+        transaction
+      )
     )
   })
 }
@@ -677,23 +700,25 @@ export const setupBillingRun = async ({
   paymentMethodId: string
   subscriptionId: string
 }): Promise<BillingRun.Record> => {
-  return await adminTransaction(async ({ transaction }) => {
-    const result = await safelyInsertBillingRun(
-      {
-        billingPeriodId,
-        paymentMethodId,
-        status,
-        scheduledFor,
-        livemode,
-        subscriptionId,
-        stripePaymentIntentId,
-        lastPaymentIntentEventTimestamp,
-        isAdjustment,
-      },
-      transaction
-    )
-    return result.unwrap()
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const result = await safelyInsertBillingRun(
+        {
+          billingPeriodId,
+          paymentMethodId,
+          status,
+          scheduledFor,
+          livemode,
+          subscriptionId,
+          stripePaymentIntentId,
+          lastPaymentIntentEventTimestamp,
+          isAdjustment,
+        },
+        transaction
+      )
+      return Result.ok(result.unwrap())
+    })
+  ).unwrap()
 }
 
 export const setupBillingPeriodItem = async ({
@@ -749,7 +774,9 @@ export const setupBillingPeriodItem = async ({
         discountRedemptionId: null,
         livemode,
       }
-      return insertBillingPeriodItem(insert, transaction)
+      return Result.ok(
+        await insertBillingPeriodItem(insert, transaction)
+      )
     } else {
       if (usageMeterId) {
         throw new Error(
@@ -776,7 +803,9 @@ export const setupBillingPeriodItem = async ({
         livemode,
         discountRedemptionId: null,
       }
-      return insertBillingPeriodItem(insert, transaction)
+      return Result.ok(
+        await insertBillingPeriodItem(insert, transaction)
+      )
     }
   })
 }
@@ -812,39 +841,47 @@ export const setupPurchase = async ({
       status,
     } as const
     if (price.type === PriceType.Usage) {
-      return await insertPurchase(
-        {
-          ...coreFields,
-          trialPeriodDays: null,
-          pricePerBillingCycle: null,
-          intervalUnit: null,
-          intervalCount: null,
-        } as Purchase.Insert,
-        transaction
+      return Result.ok(
+        await insertPurchase(
+          {
+            ...coreFields,
+            trialPeriodDays: null,
+            pricePerBillingCycle: null,
+            intervalUnit: null,
+            intervalCount: null,
+          } as Purchase.Insert,
+          transaction
+        )
       )
     } else if (price.type === PriceType.Subscription) {
-      return await insertPurchase(
-        {
-          ...coreFields,
-          ...purchaseFields,
-        } as Purchase.Insert,
-        transaction
+      return Result.ok(
+        await insertPurchase(
+          {
+            ...coreFields,
+            ...purchaseFields,
+          } as Purchase.Insert,
+          transaction
+        )
       )
     } else if (price.type === PriceType.SinglePayment) {
-      return await insertPurchase(
+      return Result.ok(
+        await insertPurchase(
+          {
+            ...coreFields,
+            ...purchaseFields,
+          } as Purchase.Insert,
+          transaction
+        )
+      )
+    }
+    return Result.ok(
+      await insertPurchase(
         {
           ...coreFields,
           ...purchaseFields,
         } as Purchase.Insert,
         transaction
       )
-    }
-    return await insertPurchase(
-      {
-        ...coreFields,
-        ...purchaseFields,
-      } as Purchase.Insert,
-      transaction
     )
   })
 }
@@ -883,13 +920,13 @@ export const setupInvoice = async ({
         )
       }
     } else if (!purchaseIdToUse) {
-      const newInternalPurchase = await setupPurchase({
+      const newInternalPurchaseResult = await setupPurchase({
         customerId,
         organizationId,
         livemode,
         priceId,
       })
-      purchaseIdToUse = newInternalPurchase.id
+      purchaseIdToUse = newInternalPurchaseResult.unwrap().id
     }
 
     const invoice = await insertInvoice(
@@ -930,7 +967,7 @@ export const setupInvoice = async ({
       },
       transaction
     )
-    return invoice
+    return Result.ok(invoice)
   })
 }
 
@@ -1029,98 +1066,106 @@ export const setupPrice = async (
   const productId =
     type !== PriceType.Usage ? validatedInput.productId : null
 
-  return adminTransaction(async ({ transaction }) => {
-    const ctx = createTransactionEffectsContext(transaction, {
-      type: 'admin',
-      livemode,
-    })
-    // For usage prices, derive pricingModelId from usage meter
-    const pricingModelId =
-      type === PriceType.Usage && usageMeterId
-        ? await derivePricingModelIdFromUsageMeter(
-            usageMeterId,
-            transaction
-          )
-        : undefined
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const ctx = createTransactionEffectsContext(transaction, {
+        type: 'admin',
+        livemode,
+      })
+      // For usage prices, derive pricingModelId from usage meter
+      const pricingModelId =
+        type === PriceType.Usage && usageMeterId
+          ? await derivePricingModelIdFromUsageMeter(
+              usageMeterId,
+              transaction
+            )
+          : undefined
 
-    const basePrice = {
-      ...nulledPriceColumns,
-      productId,
-      type,
-      unitPrice,
-      livemode,
-      isDefault,
-      active,
-      currency: currency ?? CurrencyCode.USD,
-      externalId: externalId ?? core.nanoid(),
-      slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
-    }
-
-    const priceConfig = {
-      [PriceType.SinglePayment]: {
-        name: `${name} (Single Payment)`,
+      const basePrice = {
         ...nulledPriceColumns,
-      },
-      [PriceType.Usage]: {
-        name,
-        intervalUnit,
-        intervalCount,
-        trialPeriodDays: null,
-        usageMeterId,
-        usageEventsPerUnit: 1,
-        pricingModelId, // Derived from usage meter
-      },
-      [PriceType.Subscription]: {
-        name,
-        intervalUnit,
-        intervalCount,
-        trialPeriodDays: trialPeriodDays ?? null,
-        usageEventsPerUnit: null,
-      },
-    }
-    if (type === PriceType.Usage && !usageMeterId) {
-      throw new Error('Usage price must have a usage meter')
-    }
-    switch (type) {
-      case PriceType.SinglePayment:
-        return safelyInsertPrice(
-          {
-            ...basePrice,
-            ...priceConfig[PriceType.SinglePayment],
-            type: PriceType.SinglePayment,
-          },
-          ctx
-        )
-      case PriceType.Subscription:
-        return safelyInsertPrice(
-          {
-            ...basePrice,
-            ...priceConfig[PriceType.Subscription],
-            type: PriceType.Subscription,
-            intervalUnit: intervalUnit ?? IntervalUnit.Month,
-            intervalCount: intervalCount ?? 1,
-          },
-          ctx
-        )
-      case PriceType.Usage:
-        // Use insertPrice for usage prices to respect isDefault and active flags
-        // safelyInsertPrice always sets isDefault: false for usage prices
-        return insertPrice(
-          {
-            ...basePrice,
-            ...priceConfig[PriceType.Usage],
-            usageMeterId: usageMeterId!,
-            productId: null, // Usage prices don't have products
-            type: PriceType.Usage,
-            intervalUnit: intervalUnit ?? IntervalUnit.Month,
-            intervalCount: intervalCount ?? 1,
-          },
-          ctx
-        )
-      default:
-        throw new Error(`Invalid price type: ${type}`)
-    }
-  })
+        productId,
+        type,
+        unitPrice,
+        livemode,
+        isDefault,
+        active,
+        currency: currency ?? CurrencyCode.USD,
+        externalId: externalId ?? core.nanoid(),
+        slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
+      }
+
+      const priceConfig = {
+        [PriceType.SinglePayment]: {
+          name: `${name} (Single Payment)`,
+          ...nulledPriceColumns,
+        },
+        [PriceType.Usage]: {
+          name,
+          intervalUnit,
+          intervalCount,
+          trialPeriodDays: null,
+          usageMeterId,
+          usageEventsPerUnit: 1,
+          pricingModelId, // Derived from usage meter
+        },
+        [PriceType.Subscription]: {
+          name,
+          intervalUnit,
+          intervalCount,
+          trialPeriodDays: trialPeriodDays ?? null,
+          usageEventsPerUnit: null,
+        },
+      }
+      if (type === PriceType.Usage && !usageMeterId) {
+        throw new Error('Usage price must have a usage meter')
+      }
+      switch (type) {
+        case PriceType.SinglePayment:
+          return Result.ok(
+            await safelyInsertPrice(
+              {
+                ...basePrice,
+                ...priceConfig[PriceType.SinglePayment],
+                type: PriceType.SinglePayment,
+              },
+              ctx
+            )
+          )
+        case PriceType.Subscription:
+          return Result.ok(
+            await safelyInsertPrice(
+              {
+                ...basePrice,
+                ...priceConfig[PriceType.Subscription],
+                type: PriceType.Subscription,
+                intervalUnit: intervalUnit ?? IntervalUnit.Month,
+                intervalCount: intervalCount ?? 1,
+              },
+              ctx
+            )
+          )
+        case PriceType.Usage:
+          // Use insertPrice for usage prices to respect isDefault and active flags
+          // safelyInsertPrice always sets isDefault: false for usage prices
+          return Result.ok(
+            await insertPrice(
+              {
+                ...basePrice,
+                ...priceConfig[PriceType.Usage],
+                usageMeterId: usageMeterId!,
+                productId: null, // Usage prices don't have products
+                type: PriceType.Usage,
+                intervalUnit: intervalUnit ?? IntervalUnit.Month,
+                intervalCount: intervalCount ?? 1,
+              },
+              ctx
+            )
+          )
+        default:
+          throw new Error(`Invalid price type: ${type}`)
+      }
+    })
+  ).unwrap()
 }
 
 export const setupPayment = async ({
@@ -1168,40 +1213,42 @@ export const setupPayment = async ({
   taxAmount?: number
   subtotal?: number
 }): Promise<Payment.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    const payment = (
-      await insertPayment(
-        {
-          stripeChargeId,
-          status,
-          amount,
-          livemode,
-          customerId,
-          organizationId,
-          stripePaymentIntentId:
-            stripePaymentIntentId ?? core.nanoid(),
-          invoiceId,
-          billingPeriodId,
-          currency: CurrencyCode.USD,
-          paymentMethod: paymentMethod ?? PaymentMethodType.Card,
-          chargeDate: chargeDate ?? Date.now(),
-          taxCountry: CountryCode.US,
-          subscriptionId: subscriptionId ?? null,
-          purchaseId: purchaseId ?? null,
-          refunded,
-          refundedAmount,
-          refundedAt,
-          paymentMethodId,
-          stripeTaxTransactionId: stripeTaxTransactionId ?? null,
-          stripeTaxCalculationId: stripeTaxCalculationId ?? null,
-          taxAmount: taxAmount ?? 0,
-          subtotal: subtotal ?? amount,
-        },
-        transaction
-      )
-    ).unwrap()
-    return payment
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const payment = (
+        await insertPayment(
+          {
+            stripeChargeId,
+            status,
+            amount,
+            livemode,
+            customerId,
+            organizationId,
+            stripePaymentIntentId:
+              stripePaymentIntentId ?? core.nanoid(),
+            invoiceId,
+            billingPeriodId,
+            currency: CurrencyCode.USD,
+            paymentMethod: paymentMethod ?? PaymentMethodType.Card,
+            chargeDate: chargeDate ?? Date.now(),
+            taxCountry: CountryCode.US,
+            subscriptionId: subscriptionId ?? null,
+            purchaseId: purchaseId ?? null,
+            refunded,
+            refundedAmount,
+            refundedAt,
+            paymentMethodId,
+            stripeTaxTransactionId: stripeTaxTransactionId ?? null,
+            stripeTaxCalculationId: stripeTaxCalculationId ?? null,
+            taxAmount: taxAmount ?? 0,
+            subtotal: subtotal ?? amount,
+          },
+          transaction
+        )
+      ).unwrap()
+      return Result.ok(payment)
+    })
+  ).unwrap()
 }
 
 export const setupMemberships = async ({
@@ -1219,15 +1266,17 @@ export const setupMemberships = async ({
       },
       transaction
     )
-    return insertMembership(
-      {
-        organizationId,
-        userId: user.id,
-        focused: true,
-        livemode: true,
-        role: MembershipRole.Member,
-      },
-      transaction
+    return Result.ok(
+      await insertMembership(
+        {
+          organizationId,
+          userId: user.id,
+          focused: true,
+          livemode: true,
+          role: MembershipRole.Member,
+        },
+        transaction
+      )
     )
   })
 }
@@ -1311,7 +1360,9 @@ export const setupSubscriptionItem = async ({
       type: SubscriptionItemType.Static,
       manuallyCreated,
     }
-    return insertSubscriptionItem(insert, transaction)
+    return Result.ok(
+      await insertSubscriptionItem(insert, transaction)
+    )
   })
 }
 
@@ -1327,14 +1378,16 @@ export const setupPricingModel = async ({
   isDefault?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertPricingModel(
-      {
-        name,
-        organizationId,
-        livemode,
-        isDefault,
-      },
-      transaction
+    return Result.ok(
+      await insertPricingModel(
+        {
+          name,
+          organizationId,
+          livemode,
+          isDefault,
+        },
+        transaction
+      )
     )
   })
 }
@@ -1462,7 +1515,7 @@ export const setupCheckoutSession = async ({
       insert,
       transaction
     )
-    return checkoutSessionResult.unwrap()
+    return Result.ok(checkoutSessionResult.unwrap())
   })
 }
 
@@ -1484,21 +1537,23 @@ export const setupDiscount = async ({
   livemode?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertDiscount(
-      {
-        organizationId,
-        pricingModelId,
-        name,
-        amount,
-        livemode,
-        amountType,
-        duration: DiscountDuration.Forever,
-        numberOfPayments: null,
-        active: true,
-        code,
-        // externalId: core.nanoid(),
-      },
-      transaction
+    return Result.ok(
+      await insertDiscount(
+        {
+          organizationId,
+          pricingModelId,
+          name,
+          amount,
+          livemode,
+          amountType,
+          duration: DiscountDuration.Forever,
+          numberOfPayments: null,
+          active: true,
+          code,
+          // externalId: core.nanoid(),
+        },
+        transaction
+      )
     )
   })
 }
@@ -1531,7 +1586,26 @@ export const setupInvoiceLineItem = async ({
           'Usage invoice line items must have a billing run id, ledger account id, and ledger account credit'
         )
       }
-      return insertInvoiceLineItem(
+      return Result.ok(
+        await insertInvoiceLineItem(
+          {
+            invoiceId,
+            priceId,
+            quantity,
+            price,
+            livemode,
+            description: 'Test Description',
+            type,
+            billingRunId,
+            ledgerAccountId,
+            ledgerAccountCredit,
+          },
+          transaction
+        )
+      )
+    }
+    return Result.ok(
+      await insertInvoiceLineItem(
         {
           invoiceId,
           priceId,
@@ -1540,27 +1614,12 @@ export const setupInvoiceLineItem = async ({
           livemode,
           description: 'Test Description',
           type,
-          billingRunId,
-          ledgerAccountId,
-          ledgerAccountCredit,
+          billingRunId: null,
+          ledgerAccountId: null,
+          ledgerAccountCredit: null,
         },
         transaction
       )
-    }
-    return insertInvoiceLineItem(
-      {
-        invoiceId,
-        priceId,
-        quantity,
-        price,
-        livemode,
-        description: 'Test Description',
-        type,
-        billingRunId: null,
-        ledgerAccountId: null,
-        ledgerAccountCredit: null,
-      },
-      transaction
     )
   })
 }
@@ -1577,37 +1636,39 @@ export const setupFeeCalculation = async ({
   livemode?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertFeeCalculation(
-      {
-        checkoutSessionId,
-        organizationId,
-        priceId,
-        livemode,
-        currency: CurrencyCode.USD,
-        type: FeeCalculationType.CheckoutSessionPayment,
-        billingAddress: {
-          address: {
-            line1: '123 Test St',
-            line2: 'Apt 1',
-            city: 'Test City',
-            state: 'Test State',
-            postal_code: '12345',
-            country: CountryCode.US,
+    return Result.ok(
+      await insertFeeCalculation(
+        {
+          checkoutSessionId,
+          organizationId,
+          priceId,
+          livemode,
+          currency: CurrencyCode.USD,
+          type: FeeCalculationType.CheckoutSessionPayment,
+          billingAddress: {
+            address: {
+              line1: '123 Test St',
+              line2: 'Apt 1',
+              city: 'Test City',
+              state: 'Test State',
+              postal_code: '12345',
+              country: CountryCode.US,
+            },
           },
+          billingPeriodId: null,
+          paymentMethodType: PaymentMethodType.Card,
+          discountAmountFixed: 0,
+          discountId: null,
+          paymentMethodFeeFixed: 0,
+          baseAmount: 1000,
+          internationalFeePercentage: '0',
+          flowgladFeePercentage: '0.65',
+          taxAmountFixed: 0,
+          pretaxTotal: 1000,
+          internalNotes: 'Test Fee Calculation',
         },
-        billingPeriodId: null,
-        paymentMethodType: PaymentMethodType.Card,
-        discountAmountFixed: 0,
-        discountId: null,
-        paymentMethodFeeFixed: 0,
-        baseAmount: 1000,
-        internationalFeePercentage: '0',
-        flowgladFeePercentage: '0.65',
-        taxAmountFixed: 0,
-        pretaxTotal: 1000,
-        internalNotes: 'Test Fee Calculation',
-      },
-      transaction
+        transaction
+      )
     )
   })
 }
@@ -1651,16 +1712,18 @@ export const setupUsageMeter = async ({
     if (!pricingModelToUseId) {
       throw new Error('setupUsageMeter: Pricing model not found')
     }
-    return insertUsageMeter(
-      {
-        organizationId,
-        name,
-        livemode,
-        pricingModelId: pricingModelToUseId,
-        slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
-        ...(aggregationType && { aggregationType }),
-      },
-      ctx
+    return Result.ok(
+      await insertUsageMeter(
+        {
+          organizationId,
+          name,
+          livemode,
+          pricingModelId: pricingModelToUseId,
+          slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
+          ...(aggregationType && { aggregationType }),
+        },
+        ctx
+      )
     )
   })
 }
@@ -1722,11 +1785,11 @@ export const setupUserAndApiKey = async ({
       throw new Error('Failed to create API key')
     const apiKey = apiKeyInsertResult as ApiKey.Record
 
-    return {
+    return Result.ok({
       user,
       membership,
       apiKey: { ...apiKey, token: apiKeyTokenValue },
-    }
+    })
   })
 }
 
@@ -1742,16 +1805,18 @@ export const setupLedgerAccount = async ({
   organizationId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertLedgerAccount(
-      {
-        subscriptionId,
-        usageMeterId,
-        livemode,
-        organizationId,
-        normalBalance: NormalBalanceType.CREDIT,
-        version: 0,
-      },
-      transaction
+    return Result.ok(
+      await insertLedgerAccount(
+        {
+          subscriptionId,
+          usageMeterId,
+          livemode,
+          organizationId,
+          normalBalance: NormalBalanceType.CREDIT,
+          version: 0,
+        },
+        transaction
+      )
     )
   })
 }
@@ -1774,91 +1839,93 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
   }>
 > => {
   const { organizationId, productId, livemode, featureSpecs } = params
-  return adminTransaction(async ({ transaction }) => {
-    const ctx = createTransactionEffectsContext(transaction, {
-      type: 'admin',
-      livemode,
-    })
-    const productResult = await selectProductById(
-      productId,
-      transaction
-    )
-    if (productResult.status === 'error') {
-      throw new Error('Product not found')
-    }
-    const product = productResult.unwrap()
-    const createdData: Array<{
-      feature: Feature.Record
-      productFeature: ProductFeature.Record
-    }> = []
-    for (const spec of featureSpecs) {
-      let usageMeterId: string | null = null
-      if (
-        spec.type === FeatureType.UsageCreditGrant &&
-        spec.usageMeterName
-      ) {
-        const usageMeter = await setupUsageMeter({
-          organizationId,
-          name: spec.usageMeterName,
-          livemode,
-          pricingModelId: product.pricingModelId,
-        })
-        usageMeterId = usageMeter.id
-      }
-
-      const baseFeatureInsertData = {
-        organizationId,
-        name: spec.name,
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const ctx = createTransactionEffectsContext(transaction, {
+        type: 'admin',
         livemode,
-        description: `${spec.name} description`,
-        slug: `${spec.name.toLowerCase().replace(/\s+/g, '-')}-${core.nanoid(6)}`,
-      }
-
-      let featureInsertData: Feature.Insert
-
-      if (spec.type === FeatureType.UsageCreditGrant) {
-        featureInsertData = {
-          ...baseFeatureInsertData,
-          type: FeatureType.UsageCreditGrant,
-          amount: spec.amount ?? 0,
-          renewalFrequency:
-            spec.renewalFrequency ??
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          usageMeterId:
-            usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
-          pricingModelId: product.pricingModelId,
-          active: true,
-        }
-      } else if (spec.type === FeatureType.Toggle) {
-        featureInsertData = {
-          ...baseFeatureInsertData,
-          type: FeatureType.Toggle,
-          amount: null,
-          renewalFrequency: null,
-          usageMeterId: null,
-          pricingModelId: product.pricingModelId,
-          active: true,
-        }
-      } else {
-        throw new Error(
-          `Unsupported feature type in test setup: ${spec.type}`
-        )
-      }
-
-      const feature = await insertFeature(featureInsertData, ctx)
-      const productFeature = await insertProductFeature(
-        {
-          organizationId,
-          livemode,
-          productId,
-          featureId: feature.id,
-        },
-        ctx
+      })
+      const productResult = await selectProductById(
+        productId,
+        transaction
       )
-      createdData.push({ feature, productFeature })
-    }
-    return createdData
-  })
+      if (productResult.status === 'error') {
+        throw new Error('Product not found')
+      }
+      const product = productResult.unwrap()
+      const createdData: Array<{
+        feature: Feature.Record
+        productFeature: ProductFeature.Record
+      }> = []
+      for (const spec of featureSpecs) {
+        let usageMeterId: string | null = null
+        if (
+          spec.type === FeatureType.UsageCreditGrant &&
+          spec.usageMeterName
+        ) {
+          const usageMeterResult = await setupUsageMeter({
+            organizationId,
+            name: spec.usageMeterName,
+            livemode,
+            pricingModelId: product.pricingModelId,
+          })
+          usageMeterId = usageMeterResult.unwrap().id
+        }
+
+        const baseFeatureInsertData = {
+          organizationId,
+          name: spec.name,
+          livemode,
+          description: `${spec.name} description`,
+          slug: `${spec.name.toLowerCase().replace(/\s+/g, '-')}-${core.nanoid(6)}`,
+        }
+
+        let featureInsertData: Feature.Insert
+
+        if (spec.type === FeatureType.UsageCreditGrant) {
+          featureInsertData = {
+            ...baseFeatureInsertData,
+            type: FeatureType.UsageCreditGrant,
+            amount: spec.amount ?? 0,
+            renewalFrequency:
+              spec.renewalFrequency ??
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            usageMeterId:
+              usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
+            pricingModelId: product.pricingModelId,
+            active: true,
+          }
+        } else if (spec.type === FeatureType.Toggle) {
+          featureInsertData = {
+            ...baseFeatureInsertData,
+            type: FeatureType.Toggle,
+            amount: null,
+            renewalFrequency: null,
+            usageMeterId: null,
+            pricingModelId: product.pricingModelId,
+            active: true,
+          }
+        } else {
+          throw new Error(
+            `Unsupported feature type in test setup: ${spec.type}`
+          )
+        }
+
+        const feature = await insertFeature(featureInsertData, ctx)
+        const productFeature = await insertProductFeature(
+          {
+            organizationId,
+            livemode,
+            productId,
+            featureId: feature.id,
+          },
+          ctx
+        )
+        createdData.push({ feature, productFeature })
+      }
+      return Result.ok(createdData)
+    })
+  ).unwrap()
 }
 
 export const setupUsageEvent = async (
@@ -1872,17 +1939,21 @@ export const setupUsageEvent = async (
     customerId: string
   }
 ): Promise<UsageEvent.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    return insertUsageEvent(
-      {
-        livemode: true,
-        usageDate: params.usageDate ?? Date.now(),
-        properties: params.properties ?? {},
-        ...params,
-      },
-      transaction
-    )
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await insertUsageEvent(
+          {
+            livemode: true,
+            usageDate: params.usageDate ?? Date.now(),
+            properties: params.properties ?? {},
+            ...params,
+          },
+          transaction
+        )
+      )
+    })
+  ).unwrap()
 }
 
 export const setupLedgerTransaction = async (
@@ -1892,20 +1963,24 @@ export const setupLedgerTransaction = async (
     type: LedgerTransactionType
   }
 ): Promise<LedgerTransaction.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    return insertLedgerTransaction(
-      {
-        livemode: true,
-        initiatingSourceType: 'test_setup',
-        initiatingSourceId: `src_${core.nanoid()}`,
-        description: 'Test Ledger Transaction',
-        metadata:
-          params.metadata === undefined ? null : params.metadata,
-        ...params,
-      },
-      transaction
-    )
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await insertLedgerTransaction(
+          {
+            livemode: true,
+            initiatingSourceType: 'test_setup',
+            initiatingSourceId: `src_${core.nanoid()}`,
+            description: 'Test Ledger Transaction',
+            metadata:
+              params.metadata === undefined ? null : params.metadata,
+            ...params,
+          },
+          transaction
+        )
+      )
+    })
+  ).unwrap()
 }
 
 interface CoreLedgerEntryUserParams {
@@ -2094,13 +2169,15 @@ export const setupDebitLedgerEntry = async (
     )
   }
 
-  return adminTransaction(async ({ transaction }) => {
-    const result = await insertLedgerEntry(
-      debitEntryInsertFromDebigLedgerParams(params),
-      transaction
-    )
-    return result.unwrap()
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const result = await insertLedgerEntry(
+        debitEntryInsertFromDebigLedgerParams(params),
+        transaction
+      )
+      return Result.ok(result.unwrap())
+    })
+  ).unwrap()
 }
 
 interface SetupLedgerEntryCoreParams {
@@ -2210,13 +2287,15 @@ const creditLedgerEntryInsertFromCreditLedgerParams = (
 export const setupCreditLedgerEntry = async (
   params: CreditLedgerEntrySetupParams & CoreLedgerEntryUserParams
 ): Promise<LedgerEntry.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    const result = await insertLedgerEntry(
-      creditLedgerEntryInsertFromCreditLedgerParams(params),
-      transaction
-    )
-    return result.unwrap()
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const result = await insertLedgerEntry(
+        creditLedgerEntryInsertFromCreditLedgerParams(params),
+        transaction
+      )
+      return Result.ok(result.unwrap())
+    })
+  ).unwrap()
 }
 
 export const setupUsageCredit = async (
@@ -2228,26 +2307,30 @@ export const setupUsageCredit = async (
     usageMeterId: string
   }
 ): Promise<UsageCredit.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    const now = new Date()
-    return insertUsageCredit(
-      {
-        livemode: params.livemode ?? true,
-        issuedAt: params.issuedAt ?? now.getTime(),
-        sourceReferenceId:
-          params.sourceReferenceId ?? `src_ref_${core.nanoid()}`,
-        metadata: params.metadata ?? {},
-        notes: params.notes ?? 'Test Usage Credit',
-        status: params.status ?? UsageCreditStatus.Posted,
-        sourceReferenceType:
-          UsageCreditSourceReferenceType.InvoiceSettlement,
-        paymentId: params.paymentId ?? null,
-        expiresAt: params.expiresAt ?? null,
-        ...params,
-      },
-      transaction
-    )
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const now = new Date()
+      return Result.ok(
+        await insertUsageCredit(
+          {
+            livemode: params.livemode ?? true,
+            issuedAt: params.issuedAt ?? now.getTime(),
+            sourceReferenceId:
+              params.sourceReferenceId ?? `src_ref_${core.nanoid()}`,
+            metadata: params.metadata ?? {},
+            notes: params.notes ?? 'Test Usage Credit',
+            status: params.status ?? UsageCreditStatus.Posted,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.InvoiceSettlement,
+            paymentId: params.paymentId ?? null,
+            expiresAt: params.expiresAt ?? null,
+            ...params,
+          },
+          transaction
+        )
+      )
+    })
+  ).unwrap()
 }
 
 export const setupUsageCreditApplication = async (
@@ -2259,18 +2342,23 @@ export const setupUsageCreditApplication = async (
     status?: UsageCreditApplicationStatus
   }
 ): Promise<UsageCreditApplication.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    const now = new Date()
-    return insertUsageCreditApplication(
-      {
-        livemode: true,
-        appliedAt: now.getTime(),
-        status: params.status ?? UsageCreditApplicationStatus.Posted,
-        ...params,
-      },
-      transaction
-    )
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const now = new Date()
+      return Result.ok(
+        await insertUsageCreditApplication(
+          {
+            livemode: true,
+            appliedAt: now.getTime(),
+            status:
+              params.status ?? UsageCreditApplicationStatus.Posted,
+            ...params,
+          },
+          transaction
+        )
+      )
+    })
+  ).unwrap()
 }
 
 export const setupUsageCreditBalanceAdjustment = async (
@@ -2284,18 +2372,22 @@ export const setupUsageCreditBalanceAdjustment = async (
     reason: string
   }
 ): Promise<UsageCreditBalanceAdjustment.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    return insertUsageCreditBalanceAdjustment(
-      {
-        livemode: true,
-        adjustmentInitiatedAt: Date.now(),
-        adjustedByUserId: null,
-        notes: 'Test Usage Credit Balance Adjustment',
-        ...params,
-      } as UsageCreditBalanceAdjustment.Insert,
-      transaction
-    )
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await insertUsageCreditBalanceAdjustment(
+          {
+            livemode: true,
+            adjustmentInitiatedAt: Date.now(),
+            adjustedByUserId: null,
+            notes: 'Test Usage Credit Balance Adjustment',
+            ...params,
+          } as UsageCreditBalanceAdjustment.Insert,
+          transaction
+        )
+      )
+    })
+  ).unwrap()
 }
 
 export const setupRefund = async (
@@ -2307,20 +2399,24 @@ export const setupRefund = async (
     currency: CurrencyCode
   }
 ): Promise<typeof refunds.$inferSelect> => {
-  return adminTransaction(async ({ transaction }) => {
-    return insertRefund(
-      {
-        livemode: true,
-        status: RefundStatus.Succeeded,
-        reason: 'Test Refund',
-        gatewayRefundId: `ref_gw_${core.nanoid()}`,
-        refundProcessedAt: Date.now(),
-        notes: 'Test Refund Notes',
-        ...params,
-      },
-      transaction
-    )
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await insertRefund(
+          {
+            livemode: true,
+            status: RefundStatus.Succeeded,
+            reason: 'Test Refund',
+            gatewayRefundId: `ref_gw_${core.nanoid()}`,
+            refundProcessedAt: Date.now(),
+            notes: 'Test Refund Notes',
+            ...params,
+          },
+          transaction
+        )
+      )
+    })
+  ).unwrap()
 }
 
 export type SMPCalculationStatus =
@@ -2349,22 +2445,25 @@ export const setupSubscriptionMeterPeriodCalculation = async (
 ): Promise<
   typeof subscriptionMeterPeriodCalculations.$inferSelect
 > => {
-  return adminTransaction(async ({ transaction }) => {
-    const now = new Date()
-    // @ts-expect-error Assume insertSubscriptionMeterPeriodCalculation is defined and imported
-    return insertSubscriptionMeterPeriodCalculation(
-      {
-        livemode: true,
-        calculatedAt: now,
-        calculationType: 'billing_run' as SMPCalculationType,
-        status: 'active' as SMPCalculationStatus,
-        metadata: {},
-        notes: 'Test SMPC',
-        ...params,
-      },
-      transaction
-    )
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const now = new Date()
+      // @ts-expect-error Assume insertSubscriptionMeterPeriodCalculation is defined and imported
+      const result = await insertSubscriptionMeterPeriodCalculation(
+        {
+          livemode: true,
+          calculatedAt: now,
+          calculationType: 'billing_run' as SMPCalculationType,
+          status: 'active' as SMPCalculationStatus,
+          metadata: {},
+          notes: 'Test SMPC',
+          ...params,
+        },
+        transaction
+      )
+      return Result.ok(result)
+    })
+  ).unwrap()
 }
 
 type QuickLedgerEntry =
@@ -2448,7 +2547,7 @@ export const setupLedgerEntries = async (params: {
       }),
       transaction
     )
-    return result.unwrap()
+    return Result.ok(result.unwrap())
   })
 }
 
@@ -2485,7 +2584,7 @@ export const setupToggleFeature = async (
       pricingModelId: pricingModelId ?? '',
       ...params,
     }
-    return insertFeature(insert, ctx)
+    return Result.ok(await insertFeature(insert, ctx))
   })
 }
 
@@ -2498,35 +2597,39 @@ export const setupUsageCreditGrantFeature = async (
     livemode: boolean
   }
 ): Promise<Feature.UsageCreditGrantRecord> => {
-  return adminTransaction(async ({ transaction }) => {
-    const ctx = createTransactionEffectsContext(transaction, {
-      type: 'admin',
-      livemode: params.livemode,
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const ctx = createTransactionEffectsContext(transaction, {
+        type: 'admin',
+        livemode: params.livemode,
+      })
+      const pricingModelId =
+        params.pricingModelId ??
+        (
+          await selectDefaultPricingModel(
+            {
+              organizationId: params.organizationId,
+              livemode: params.livemode,
+            },
+            transaction
+          )
+        )?.id
+      const insert: Feature.UsageCreditGrantInsert = {
+        type: FeatureType.UsageCreditGrant,
+        description: params.description ?? '',
+        slug: params.slug ?? `test-feature-${core.nanoid()}`,
+        amount: params.amount ?? 1,
+        pricingModelId: pricingModelId ?? '',
+        ...params,
+      }
+      return Result.ok(
+        (await insertFeature(
+          insert,
+          ctx
+        )) as Feature.UsageCreditGrantRecord
+      )
     })
-    const pricingModelId =
-      params.pricingModelId ??
-      (
-        await selectDefaultPricingModel(
-          {
-            organizationId: params.organizationId,
-            livemode: params.livemode,
-          },
-          transaction
-        )
-      )?.id
-    const insert: Feature.UsageCreditGrantInsert = {
-      type: FeatureType.UsageCreditGrant,
-      description: params.description ?? '',
-      slug: params.slug ?? `test-feature-${core.nanoid()}`,
-      amount: params.amount ?? 1,
-      pricingModelId: pricingModelId ?? '',
-      ...params,
-    }
-    return insertFeature(
-      insert,
-      ctx
-    ) as Promise<Feature.UsageCreditGrantRecord>
-  })
+  ).unwrap()
 }
 
 export const setupProductFeature = async (
@@ -2545,19 +2648,21 @@ export const setupProductFeature = async (
       enqueueLedgerCommand,
       cacheRecomputationContext,
     }) => {
-      return insertProductFeature(
-        {
-          livemode: params.livemode ?? true,
-          expiredAt: params.expiredAt ?? null,
-          ...params,
-        },
-        {
-          transaction,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-          cacheRecomputationContext,
-        }
+      return Result.ok(
+        await insertProductFeature(
+          {
+            livemode: params.livemode ?? true,
+            expiredAt: params.expiredAt ?? null,
+            ...params,
+          },
+          {
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+            cacheRecomputationContext,
+          }
+        )
       )
     },
     { livemode: params.livemode ?? false }
@@ -2573,17 +2678,19 @@ export const setupSubscriptionItemFeature = async (
   }
 ) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertSubscriptionItemFeature(
-      {
-        livemode: true,
-        type: FeatureType.UsageCreditGrant,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-        amount: params.amount ?? 1,
-        manuallyCreated: params.manuallyCreated ?? false,
-        ...params,
-      },
-      transaction
+    return Result.ok(
+      await insertSubscriptionItemFeature(
+        {
+          livemode: true,
+          type: FeatureType.UsageCreditGrant,
+          renewalFrequency:
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          amount: params.amount ?? 1,
+          manuallyCreated: params.manuallyCreated ?? false,
+          ...params,
+        },
+        transaction
+      )
     )
   })
 }
@@ -2596,23 +2703,25 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
     productFeatureId: string
   }
 ): Promise<SubscriptionItemFeature.UsageCreditGrantRecord> => {
-  return adminTransaction(async ({ transaction }) => {
-    const result = await insertSubscriptionItemFeature(
-      {
-        livemode: true,
-        type: FeatureType.UsageCreditGrant,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-        amount: params.amount ?? 1,
-        ...params,
-      },
-      transaction
-    )
-    if (result.type !== FeatureType.UsageCreditGrant) {
-      throw new Error('Expected UsageCreditGrant feature')
-    }
-    return result
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const result = await insertSubscriptionItemFeature(
+        {
+          livemode: true,
+          type: FeatureType.UsageCreditGrant,
+          renewalFrequency:
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          amount: params.amount ?? 1,
+          ...params,
+        },
+        transaction
+      )
+      if (result.type !== FeatureType.UsageCreditGrant) {
+        throw new Error('Expected UsageCreditGrant feature')
+      }
+      return Result.ok(result)
+    })
+  ).unwrap()
 }
 
 export const setupResourceSubscriptionItemFeature = async (
@@ -2623,24 +2732,26 @@ export const setupResourceSubscriptionItemFeature = async (
     pricingModelId: string
   }
 ): Promise<SubscriptionItemFeature.ResourceRecord> => {
-  return adminTransaction(async ({ transaction }) => {
-    const result = await insertSubscriptionItemFeature(
-      {
-        livemode: true,
-        type: FeatureType.Resource,
-        amount: params.amount ?? 5,
-        renewalFrequency: null,
-        usageMeterId: null,
-        productFeatureId: params.productFeatureId ?? null,
-        ...params,
-      },
-      transaction
-    )
-    if (result.type !== FeatureType.Resource) {
-      throw new Error('Expected Resource feature')
-    }
-    return result
-  })
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const result = await insertSubscriptionItemFeature(
+        {
+          livemode: true,
+          type: FeatureType.Resource,
+          amount: params.amount ?? 5,
+          renewalFrequency: null,
+          usageMeterId: null,
+          productFeatureId: params.productFeatureId ?? null,
+          ...params,
+        },
+        transaction
+      )
+      if (result.type !== FeatureType.Resource) {
+        throw new Error('Expected Resource feature')
+      }
+      return Result.ok(result)
+    })
+  ).unwrap()
 }
 
 /**
@@ -2673,25 +2784,33 @@ export const setupUsageLedgerScenario = async (params: {
   livemode?: boolean
 }) => {
   const livemode = params.livemode ?? true
-  const { organization, product, pricingModel } = await setupOrg()
-  const customer = await setupCustomer({
-    organizationId: organization.id,
-    email: 'test@test.com',
-    livemode,
-    ...(params.customerArgs ?? {}),
-  })
-  const paymentMethod = await setupPaymentMethod({
-    organizationId: organization.id,
-    customerId: customer.id,
-    livemode,
-    ...(params.paymentMethodArgs ?? {}),
-  })
-  const usageMeter = await setupUsageMeter({
-    organizationId: organization.id,
-    name: 'Test Usage Meter',
-    livemode,
-    pricingModelId: pricingModel.id,
-  })
+  const { organization, product, pricingModel } = (
+    await setupOrg()
+  ).unwrap()
+  const customer = (
+    await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@test.com',
+      livemode,
+      ...(params.customerArgs ?? {}),
+    })
+  ).unwrap()
+  const paymentMethod = (
+    await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode,
+      ...(params.paymentMethodArgs ?? {}),
+    })
+  ).unwrap()
+  const usageMeter = (
+    await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter',
+      livemode,
+      pricingModelId: pricingModel.id,
+    })
+  ).unwrap()
   // Build price params for Usage type, excluding incompatible fields from priceArgs
   // Usage prices don't have productId - they belong to usage meters
   const { trialPeriodDays: _, ...compatiblePriceArgs } =
@@ -2718,25 +2837,29 @@ export const setupUsageLedgerScenario = async (params: {
     ...(params.subscriptionArgs ?? {}),
   })
 
-  const subscriptionItem = await setupSubscriptionItem({
-    subscriptionId: subscription.id,
-    name: 'Test Subscription Item',
-    quantity: 1,
-    unitPrice: price.unitPrice,
-    // type: SubscriptionItemType.Usage,
-    // usageMeterId: usageMeter.id,
-    // usageEventsPerUnit: 1,
-    ...(params.subscriptionItemArgs ?? {}),
-  })
-  const billingPeriod = await setupBillingPeriod({
-    subscriptionId: subscription.id,
-    startDate: subscription.currentBillingPeriodStart ?? Date.now(),
-    endDate:
-      subscription.currentBillingPeriodEnd ??
-      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
-    status: BillingPeriodStatus.Active,
-    livemode,
-  })
+  const subscriptionItem = (
+    await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Test Subscription Item',
+      quantity: 1,
+      unitPrice: price.unitPrice,
+      // type: SubscriptionItemType.Usage,
+      // usageMeterId: usageMeter.id,
+      // usageEventsPerUnit: 1,
+      ...(params.subscriptionItemArgs ?? {}),
+    })
+  ).unwrap()
+  const billingPeriod = (
+    await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: subscription.currentBillingPeriodStart ?? Date.now(),
+      endDate:
+        subscription.currentBillingPeriodEnd ??
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
+      status: BillingPeriodStatus.Active,
+      livemode,
+    })
+  ).unwrap()
   const usageEvents: UsageEvent.Record[] = []
   for (const amount of params.usageEventAmounts ?? []) {
     const usageEvent = await setupUsageEvent({
@@ -2753,12 +2876,14 @@ export const setupUsageLedgerScenario = async (params: {
     usageEvents.push(usageEvent)
   }
 
-  const ledgerAccount = await setupLedgerAccount({
-    organizationId: organization.id,
-    subscriptionId: subscription.id,
-    usageMeterId: usageMeter.id,
-    livemode,
-  })
+  const ledgerAccount = (
+    await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      livemode,
+    })
+  ).unwrap()
   const ledgerTransactions: LedgerTransaction.Record[] = []
   const ledgerEntries: LedgerEntry.Record[] = []
   if (params.quickEntries && params.quickEntries.length > 0) {
@@ -2767,14 +2892,16 @@ export const setupUsageLedgerScenario = async (params: {
       subscriptionId: subscription.id,
       type: LedgerTransactionType.AdminCreditAdjusted,
     })
-    const ledgerEntriesCreated = await setupLedgerEntries({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      ledgerTransactionId: ledgerTransaction.id,
-      ledgerAccountId: ledgerAccount.id,
-      usageMeterId: usageMeter.id,
-      entries: params.quickEntries,
-    })
+    const ledgerEntriesCreated = (
+      await setupLedgerEntries({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
+        entries: params.quickEntries,
+      })
+    ).unwrap()
     ledgerEntries.push(...ledgerEntriesCreated)
     ledgerTransactions.push(ledgerTransaction)
   }
@@ -2784,19 +2911,21 @@ export const setupUsageLedgerScenario = async (params: {
       subscriptionId: subscription.id,
       type: LedgerTransactionType.UsageEventProcessed,
     })
-    const ledgerEntriesCreated = await setupLedgerEntries({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      ledgerTransactionId: ledgerTransaction.id,
-      ledgerAccountId: ledgerAccount.id,
-      usageMeterId: usageMeter.id,
-      entries: usageEvents.map((usageEvent) => ({
-        entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: usageEvent.id,
-        amount: usageEvent.amount,
-        status: LedgerEntryStatus.Posted,
-      })),
-    })
+    const ledgerEntriesCreated = (
+      await setupLedgerEntries({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
+        entries: usageEvents.map((usageEvent) => ({
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: usageEvent.id,
+          amount: usageEvent.amount,
+          status: LedgerEntryStatus.Posted,
+        })),
+      })
+    ).unwrap()
     ledgerEntries.push(...ledgerEntriesCreated)
     ledgerTransactions.push(ledgerTransaction)
   }
@@ -2823,53 +2952,59 @@ export const setupDiscountRedemption = async (params: {
 }) => {
   return adminTransaction(async ({ transaction }) => {
     if (params.discount.duration === DiscountDuration.Once) {
-      return insertDiscountRedemption(
-        {
-          purchaseId: params.purchaseId,
-          livemode: true,
-          duration: DiscountDuration.Forever,
-          numberOfPayments: null,
-          discountName: params.discount.name,
-          discountCode: params.discount.code,
-          discountId: params.discount.id,
-          discountAmount: params.discount.amount,
-          discountAmountType: params.discount.amountType,
-        },
-        transaction
+      return Result.ok(
+        await insertDiscountRedemption(
+          {
+            purchaseId: params.purchaseId,
+            livemode: true,
+            duration: DiscountDuration.Forever,
+            numberOfPayments: null,
+            discountName: params.discount.name,
+            discountCode: params.discount.code,
+            discountId: params.discount.id,
+            discountAmount: params.discount.amount,
+            discountAmountType: params.discount.amountType,
+          },
+          transaction
+        )
       )
     } else if (
       params.discount.duration === DiscountDuration.NumberOfPayments
     ) {
-      return insertDiscountRedemption(
-        {
-          purchaseId: params.purchaseId,
-          livemode: true,
-          duration: DiscountDuration.NumberOfPayments,
-          numberOfPayments: params.discount.numberOfPayments,
-          discountName: params.discount.name,
-          discountCode: params.discount.code,
-          discountId: params.discount.id,
-          discountAmount: params.discount.amount,
-          discountAmountType: params.discount.amountType,
-        },
-        transaction
+      return Result.ok(
+        await insertDiscountRedemption(
+          {
+            purchaseId: params.purchaseId,
+            livemode: true,
+            duration: DiscountDuration.NumberOfPayments,
+            numberOfPayments: params.discount.numberOfPayments,
+            discountName: params.discount.name,
+            discountCode: params.discount.code,
+            discountId: params.discount.id,
+            discountAmount: params.discount.amount,
+            discountAmountType: params.discount.amountType,
+          },
+          transaction
+        )
       )
     } else if (
       params.discount.duration === DiscountDuration.Forever
     ) {
-      return insertDiscountRedemption(
-        {
-          purchaseId: params.purchaseId,
-          livemode: true,
-          duration: DiscountDuration.Forever,
-          numberOfPayments: null,
-          discountName: params.discount.name,
-          discountCode: params.discount.code,
-          discountId: params.discount.id,
-          discountAmount: params.discount.amount,
-          discountAmountType: params.discount.amountType,
-        },
-        transaction
+      return Result.ok(
+        await insertDiscountRedemption(
+          {
+            purchaseId: params.purchaseId,
+            livemode: true,
+            duration: DiscountDuration.Forever,
+            numberOfPayments: null,
+            discountName: params.discount.name,
+            discountCode: params.discount.code,
+            discountId: params.discount.id,
+            discountAmount: params.discount.amount,
+            discountAmountType: params.discount.amountType,
+          },
+          transaction
+        )
       )
     } else {
       throw new Error('Invalid discount duration')
@@ -2886,16 +3021,18 @@ export const setupResource = async (params: {
   active?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertResource(
-      {
-        organizationId: params.organizationId,
-        pricingModelId: params.pricingModelId,
-        slug: params.slug ?? `resource-${core.nanoid()}`,
-        name: params.name ?? 'Seats',
-        livemode: true,
-        active: params.active ?? true,
-      },
-      transaction
+    return Result.ok(
+      await insertResource(
+        {
+          organizationId: params.organizationId,
+          pricingModelId: params.pricingModelId,
+          slug: params.slug ?? `resource-${core.nanoid()}`,
+          name: params.name ?? 'Seats',
+          livemode: true,
+          active: params.active ?? true,
+        },
+        transaction
+      )
     )
   })
 }
@@ -2910,18 +3047,20 @@ export const setupResourceClaim = async (params: {
   expiredAt?: number | null
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertResourceClaim(
-      {
-        organizationId: params.organizationId,
-        resourceId: params.resourceId,
-        subscriptionId: params.subscriptionId,
-        pricingModelId: params.pricingModelId,
-        externalId: params.externalId ?? null,
-        metadata: params.metadata ?? null,
-        expiredAt: params.expiredAt ?? null,
-        livemode: true,
-      },
-      transaction
+    return Result.ok(
+      await insertResourceClaim(
+        {
+          organizationId: params.organizationId,
+          resourceId: params.resourceId,
+          subscriptionId: params.subscriptionId,
+          pricingModelId: params.pricingModelId,
+          externalId: params.externalId ?? null,
+          metadata: params.metadata ?? null,
+          expiredAt: params.expiredAt ?? null,
+          livemode: true,
+        },
+        transaction
+      )
     )
   })
 }
@@ -2934,42 +3073,43 @@ export const setupResourceFeature = async (
     livemode: boolean
   }
 ): Promise<Feature.ResourceRecord> => {
-  return adminTransaction(async ({ transaction }) => {
-    const ctx = createTransactionEffectsContext(transaction, {
-      type: 'admin',
-      livemode: params.livemode,
-    })
-    const resolvedPricingModelId =
-      params.pricingModelId ??
-      (
-        await selectDefaultPricingModel(
-          {
-            organizationId: params.organizationId,
-            livemode: params.livemode,
-          },
-          transaction
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const ctx = createTransactionEffectsContext(transaction, {
+        type: 'admin',
+        livemode: params.livemode,
+      })
+      const resolvedPricingModelId =
+        params.pricingModelId ??
+        (
+          await selectDefaultPricingModel(
+            {
+              organizationId: params.organizationId,
+              livemode: params.livemode,
+            },
+            transaction
+          )
+        )?.id
+      if (!resolvedPricingModelId) {
+        throw new Error(
+          'setupResourceFeature: No pricingModelId provided and no default pricing model found'
         )
-      )?.id
-    if (!resolvedPricingModelId) {
-      throw new Error(
-        'setupResourceFeature: No pricingModelId provided and no default pricing model found'
+      }
+      const { resourceId, pricingModelId: _, ...restParams } = params
+      const insert: Feature.ResourceInsert = {
+        ...restParams,
+        type: FeatureType.Resource,
+        description: params.description ?? '',
+        slug: params.slug ?? `resource-feature-${core.nanoid()}`,
+        amount: params.amount ?? 5,
+        usageMeterId: null,
+        renewalFrequency: null,
+        pricingModelId: resolvedPricingModelId,
+        resourceId,
+      }
+      return Result.ok(
+        (await insertFeature(insert, ctx)) as Feature.ResourceRecord
       )
-    }
-    const { resourceId, pricingModelId: _, ...restParams } = params
-    const insert: Feature.ResourceInsert = {
-      ...restParams,
-      type: FeatureType.Resource,
-      description: params.description ?? '',
-      slug: params.slug ?? `resource-feature-${core.nanoid()}`,
-      amount: params.amount ?? 5,
-      usageMeterId: null,
-      renewalFrequency: null,
-      pricingModelId: resolvedPricingModelId,
-      resourceId,
-    }
-    return insertFeature(
-      insert,
-      ctx
-    ) as Promise<Feature.ResourceRecord>
-  })
+    })
+  ).unwrap()
 }

@@ -27,10 +27,7 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -256,7 +253,7 @@ describe('adjustSubscription Integration Tests', async () => {
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
       })
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -306,7 +303,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should throw error for non-renewing / credit trial subscriptions', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const creditTrialSubscription = await updateSubscription(
           {
@@ -371,7 +368,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 0,
       })
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const result = await adjustSubscription(
           {
             id: doNotChargeSubscription.id,
@@ -436,7 +433,7 @@ describe('adjustSubscription Integration Tests', async () => {
         },
       ]
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -472,7 +469,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should return NotFoundError when adjusting a non-existent subscription id', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const result = await adjustSubscription(
           {
             id: 'sub_nonexistent123',
@@ -506,7 +503,7 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
@@ -551,7 +548,7 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -595,7 +592,7 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -638,7 +635,7 @@ describe('adjustSubscription Integration Tests', async () => {
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
       })
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
@@ -694,7 +691,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -753,7 +750,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -834,7 +831,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -910,7 +907,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 200,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1002,7 +999,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1071,7 +1068,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1140,7 +1137,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1199,7 +1196,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1263,7 +1260,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1338,7 +1335,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 4999,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const start = Date.now() - 5 * 24 * 60 * 60 * 1000
         const end = Date.now() + 25 * 24 * 60 * 60 * 1000
@@ -1444,7 +1441,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1507,7 +1504,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1578,7 +1575,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
         const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
@@ -1674,7 +1671,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 1000,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const futureDate = Date.now() + 7 * 24 * 60 * 60 * 1000
         await updateBillingPeriod(
@@ -1760,7 +1757,7 @@ describe('adjustSubscription Integration Tests', async () => {
         priceId: price.id,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
         const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
@@ -1869,7 +1866,7 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('Edge Cases', () => {
     it('should trigger billing run if net charge > 0, or sync immediately if net charge = 0 when no existing subscription items exist', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1940,7 +1937,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -1998,7 +1995,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
@@ -2040,7 +2037,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should return error when attempting adjustment with billing periods in the past or future', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const pastBP = await updateBillingPeriod(
           {
@@ -2137,7 +2134,7 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('syncSubscriptionWithActiveItems', () => {
     it('should sync subscription with currently active items', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = new Date()
         const futureDate = addDays(now, 1).getTime()
@@ -2181,7 +2178,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should handle multiple items becoming active and choose the most expensive as primary', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
         const pastDate = subDays(new Date(now), 1).getTime()
@@ -2231,7 +2228,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should handle subscription becoming active but not primary (lower price than existing)', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
 
@@ -2270,7 +2267,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should update primary when current primary item gets cancelled', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
 
@@ -2336,7 +2333,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should handle multiple items becoming active and inactive simultaneously', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
 
@@ -2394,7 +2391,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should maintain subscription state when all items expire with no replacements', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
 
@@ -2443,7 +2440,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should handle quantity changes affecting total price calculations', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
 
@@ -2482,7 +2479,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should use addedDate as tiebreaker when items have same total price', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
 
@@ -2586,7 +2583,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -2643,7 +2640,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 4999,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -2736,7 +2733,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -2816,7 +2813,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -2876,7 +2873,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 4999,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
         const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
@@ -2969,7 +2966,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 1000,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3064,7 +3061,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3125,7 +3122,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3188,7 +3185,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3255,7 +3252,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
       const uniqueSlug = `premium-mixed-${Date.now()}`
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const slugPrice = await insertPrice(
           {
@@ -3385,7 +3382,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3451,7 +3448,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3531,7 +3528,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3615,7 +3612,7 @@ describe('adjustSubscription Integration Tests', async () => {
         priceId: price.id,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
@@ -3740,7 +3737,7 @@ describe('adjustSubscription Integration Tests', async () => {
         amount: 100,
       })
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const adjustmentDate = Date.now()
         const newStartDate = adjustmentDate - 15 * 24 * 60 * 60 * 1000 // 15 days ago
@@ -4079,7 +4076,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4243,7 +4240,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4403,7 +4400,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4570,7 +4567,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4734,7 +4731,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4909,7 +4906,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5066,7 +5063,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5259,7 +5256,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5435,7 +5432,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5586,7 +5583,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // has a seats feature. We intentionally do NOT attach a second seats
         // feature, otherwise capacity would double (5 + 5) after adjustment.
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5760,7 +5757,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // has a seats feature. We intentionally do NOT attach a second seats
         // feature, otherwise capacity would double (5 + 5) after adjustment.
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5944,7 +5941,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -6132,7 +6129,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Set billing period to end in the future
         const periodEnd = Date.now() + 24 * 60 * 60 * 1000 // 1 day from now
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -6245,7 +6242,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Use anchorDate parameter to simulate checking capacity after period end
         const afterTransitionAnchor = periodEnd + 1000 // 1 second after period end
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
 
           // Update billing period to reflect the new period

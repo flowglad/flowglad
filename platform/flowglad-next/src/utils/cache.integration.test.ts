@@ -12,10 +12,7 @@ import {
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import db from '@/db/client'
 import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
 import {
@@ -915,7 +912,7 @@ describeIfRedisKey(
       keysToCleanup = []
     })
 
-    it('comprehensiveAdminTransaction invalidateCache callback clears cache after transaction commits', async () => {
+    it('adminTransaction invalidateCache callback clears cache after transaction commits', async () => {
       const client = getRedisTestClient()
 
       // Setup test data
@@ -943,15 +940,13 @@ describeIfRedisKey(
       const beforeTransaction = await client.get(cacheKey)
       expect(Array.isArray(beforeTransaction)).toBe(true)
 
-      // Call comprehensiveAdminTransaction with a function that uses invalidateCache
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
-          // Simulate what a workflow function does - call invalidateCache with dependency key
-          // Non-null assertion: comprehensiveAdminTransaction always provides invalidateCache
-          invalidateCache(dependencyKey)
-          return Result.ok('success')
-        }
-      )
+      // Call adminTransaction with a function that uses invalidateCache
+      await adminTransaction(async ({ invalidateCache }) => {
+        // Simulate what a workflow function does - call invalidateCache with dependency key
+        // Non-null assertion: adminTransaction always provides invalidateCache
+        invalidateCache(dependencyKey)
+        return Result.ok('success')
+      })
 
       // Poll until cache is invalidated
       await waitForCacheInvalidation(client, cacheKey)
@@ -1007,14 +1002,12 @@ describeIfRedisKey(
       expect(Array.isArray(await client.get(cacheKey1))).toBe(true)
       expect(Array.isArray(await client.get(cacheKey2))).toBe(true)
 
-      // Call comprehensiveAdminTransaction with multiple invalidateCache calls
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
-          invalidateCache(depKey1)
-          invalidateCache(depKey2)
-          return Result.ok('success')
-        }
-      )
+      // Call adminTransaction with multiple invalidateCache calls
+      await adminTransaction(async ({ invalidateCache }) => {
+        invalidateCache(depKey1)
+        invalidateCache(depKey2)
+        return Result.ok('success')
+      })
 
       // Poll until both caches are invalidated
       await Promise.all([
@@ -1052,15 +1045,13 @@ describeIfRedisKey(
       await client.sadd(registryKey, cacheKey)
 
       // Call with duplicate invalidation keys (simulating nested function calls)
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
-          // Same key called multiple times - should be deduplicated
-          invalidateCache(dependencyKey)
-          invalidateCache(dependencyKey)
-          invalidateCache(dependencyKey)
-          return Result.ok('success')
-        }
-      )
+      await adminTransaction(async ({ invalidateCache }) => {
+        // Same key called multiple times - should be deduplicated
+        invalidateCache(dependencyKey)
+        invalidateCache(dependencyKey)
+        invalidateCache(dependencyKey)
+        return Result.ok('success')
+      })
 
       // Poll until cache is invalidated
       await waitForCacheInvalidation(client, cacheKey)
@@ -1112,13 +1103,11 @@ describeIfRedisKey(
       await client.sadd(registryKey2, cacheKey2)
 
       // Use callback for both keys
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
-          invalidateCache(depKey1)
-          invalidateCache(depKey2)
-          return Result.ok('success')
-        }
-      )
+      await adminTransaction(async ({ invalidateCache }) => {
+        invalidateCache(depKey1)
+        invalidateCache(depKey2)
+        return Result.ok('success')
+      })
 
       // Poll until both caches are invalidated
       await Promise.all([

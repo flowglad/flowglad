@@ -30,7 +30,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
   type AdjustSubscriptionResult,
@@ -169,26 +169,25 @@ describe('adjustSubscription error cases', () => {
       renews: true,
     })) as Subscription.StandardRecord
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: canceledSubscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: canceledSubscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow('is in terminal state')
   })
@@ -219,26 +218,25 @@ describe('adjustSubscription error cases', () => {
       renews: true,
     })) as Subscription.Record
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: creditTrialSubscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: creditTrialSubscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow(
       'Credit trial subscriptions cannot be adjusted'
@@ -266,26 +264,25 @@ describe('adjustSubscription error cases', () => {
       renews: false,
     })) as Subscription.StandardRecord
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: nonRenewingSubscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: nonRenewingSubscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow(
       'is a non-renewing subscription'
@@ -314,26 +311,25 @@ describe('adjustSubscription error cases', () => {
       doNotCharge: true,
     })) as Subscription.StandardRecord
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: doNotChargeSubscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: doNotChargeSubscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow('Cannot adjust doNotCharge')
   })
@@ -360,26 +356,25 @@ describe('adjustSubscription error cases', () => {
       isFreePlan: true,
     })) as Subscription.StandardRecord
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: freePlanSubscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: freePlanSubscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow('Cannot adjust free plan')
   })
@@ -390,26 +385,25 @@ describe('adjustSubscription error cases', () => {
     })
     const livemode = true
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: setup.subscription.id,
-              adjustment: {
-                timing:
-                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: setup.subscription.id,
+            adjustment: {
+              timing:
+                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow(
       'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
@@ -430,26 +424,25 @@ describe('adjustSubscription error cases', () => {
       isDefault: false,
     })
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: setup.subscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: oneTimePrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: setup.subscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: oneTimePrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow(
       'Only recurring prices can be used in subscriptions'
@@ -514,26 +507,25 @@ describe('adjustSubscription resource capacity validation', () => {
     }
 
     // Attempt the downgrade - should fail due to capacity validation
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: setup.subscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: setup.subscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow(/Cannot reduce.*capacity/)
   })
@@ -561,26 +553,25 @@ describe('adjustSubscription priceSlug resolution', () => {
       slug: `test-price-slug-${Date.now()}`,
     })
 
-    const result =
-      await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: setup.subscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceSlug: priceWithSlug.slug!, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const result = await adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: setup.subscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceSlug: priceWithSlug.slug!, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     // Verify the subscription was adjusted to the price identified by slug
     expect(result.subscription.priceId).toBe(priceWithSlug.id)
@@ -595,26 +586,25 @@ describe('adjustSubscription priceSlug resolution', () => {
     const setup = await setupTestSubscriptionWithTargetPrice()
     const livemode = true
 
-    const promise =
-      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: setup.subscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceSlug: 'non-existent-slug', quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const promise = adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: setup.subscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceSlug: 'non-existent-slug', quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     await expect(promise).rejects.toThrow(/Price.*not found/)
   })
@@ -641,26 +631,25 @@ describe('adjustSubscription manual items preservation', () => {
       metadata: { manual: true },
     })
 
-    const result =
-      await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
-          return adjustSubscription(
-            {
-              id: setup.subscription.id,
-              adjustment: {
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                newSubscriptionItems: [
-                  { priceId: setup.targetPrice.id, quantity: 1 },
-                ],
-                prorateCurrentBillingPeriod: false,
-              },
+    const result = await adminTransaction<AdjustSubscriptionResult>(
+      async (ctx) => {
+        return adjustSubscription(
+          {
+            id: setup.subscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                { priceId: setup.targetPrice.id, quantity: 1 },
+              ],
+              prorateCurrentBillingPeriod: false,
             },
-            setup.organization,
-            ctx
-          )
-        },
-        { livemode }
-      )
+          },
+          setup.organization,
+          ctx
+        )
+      },
+      { livemode }
+    )
 
     // Manual item should still exist after adjustment
     const preservedManualItem = result.subscriptionItems.find(

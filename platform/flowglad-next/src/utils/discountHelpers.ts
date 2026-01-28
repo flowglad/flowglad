@@ -222,9 +222,9 @@ export const calculateInvoiceTotalsRaw = (
 export const fetchDiscountInfoForInvoice = async (
   invoice: any
 ): Promise<DiscountInfo | null> => {
-  return await adminTransaction(async ({ transaction }) => {
+  const result = await adminTransaction(async ({ transaction }) => {
     if (!invoice.billingPeriodId) {
-      return null
+      return Result.ok(null)
     }
 
     const billingPeriodResult = await selectBillingPeriodById(
@@ -233,7 +233,7 @@ export const fetchDiscountInfoForInvoice = async (
     )
 
     if (Result.isError(billingPeriodResult)) {
-      return null
+      return Result.ok(null)
     }
     const billingPeriod = billingPeriodResult.value
 
@@ -243,17 +243,18 @@ export const fetchDiscountInfoForInvoice = async (
     )
 
     if (discountRedemptions.length === 0) {
-      return null
+      return Result.ok(null)
     }
 
     const discount = discountRedemptions[0]
-    return {
+    return Result.ok({
       discountName: discount.discountName,
       discountCode: discount.discountCode,
       discountAmount: discount.discountAmount,
       discountAmountType: discount.discountAmountType,
-    }
+    })
   })
+  return result.unwrap()
 }
 
 export interface InvoiceTotals {

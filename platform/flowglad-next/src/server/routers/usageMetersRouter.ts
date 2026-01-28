@@ -1,10 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createUsageMeterSchema,
   editUsageMeterSchema,
@@ -41,22 +38,16 @@ export const createUsageMeter = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const {
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-        } = transactionCtx
-        const { livemode, organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async (params) => {
         try {
           const { usageMeter } = await createUsageMeterTransaction(
             {
@@ -64,11 +55,9 @@ export const createUsageMeter = protectedProcedure
               price: input.price,
             },
             {
-              transaction,
-              cacheRecomputationContext,
+              ...params,
               livemode,
               organizationId,
-              invalidateCache,
             }
           )
           return Result.ok({ usageMeter })
@@ -78,38 +67,45 @@ export const createUsageMeter = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const listUsageMetersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(usageMeterPaginatedSelectSchema)
   .output(usageMeterPaginatedListSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectUsageMetersPaginated(input, transaction)
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectUsageMetersPaginated(
+          input,
+          transaction
+        )
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const updateUsageMeter = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
-        const { invalidateCache } = transactionCtx
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const { invalidateCache } = params
         try {
           const usageMeter = await updateUsageMeterDB(
             {
               ...input.usageMeter,
               id: input.id,
             },
-            transactionCtx
+            params
           )
 
           // Invalidate cache for this specific meter's content change
@@ -124,25 +120,28 @@ const updateUsageMeter = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getUsageMeter = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const usageMeter = (
           await selectUsageMeterById(input.id, transaction)
         ).unwrap()
-        return { usageMeter }
-      }
+        return Result.ok({ usageMeter })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getTableRowsProcedure = protectedProcedure
   .input(
@@ -155,17 +154,19 @@ const getTableRowsProcedure = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(usageMetersTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectUsageMetersCursorPaginated({
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectUsageMetersCursorPaginated({
           input,
           transaction,
         })
-      }
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const usageMetersRouter = router({
   get: getUsageMeter,

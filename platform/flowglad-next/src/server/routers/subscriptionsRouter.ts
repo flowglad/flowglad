@@ -2,12 +2,7 @@ import { runs } from '@trigger.dev/sdk/v3'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-  comprehensiveAuthenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { Customer } from '@/db/schema/customers'
 import { Organization } from '@/db/schema/organizations'
 import {
@@ -307,19 +302,18 @@ const adjustSubscriptionProcedure = protectedProcedure
     // This triggers the billing run but doesn't wait for it
     // Cache invalidations are handled automatically by the comprehensive transaction
     // Domain errors are automatically converted to TRPCErrors by domainErrorMiddleware
-    const adjustmentResult =
-      await comprehensiveAuthenticatedTransaction(
-        async (transactionCtx) => {
-          return adjustSubscription(
-            input,
-            ctx.organization!,
-            transactionCtx
-          )
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
+    const adjustmentResult = await authenticatedTransaction(
+      async (transactionCtx) => {
+        return adjustSubscription(
+          input,
+          ctx.organization!,
+          transactionCtx
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
 
     const {
       subscription,
@@ -327,7 +321,7 @@ const adjustSubscriptionProcedure = protectedProcedure
       resolvedTiming,
       isUpgrade,
       pendingBillingRunId,
-    } = adjustmentResult
+    } = adjustmentResult.unwrap()
 
     // Step 2: If there's a pending billing run, wait for it to complete
     // This happens outside the transaction since it can take several seconds
@@ -370,7 +364,7 @@ const adjustSubscriptionProcedure = protectedProcedure
       // Step 3: After billing run completes, fetch fresh subscription data
       // The subscription items are now updated by processOutcomeForBillingRun
       // Pass apiKey to maintain authentication context after async wait
-      const freshData = await authenticatedTransaction(
+      const freshDataResult = await authenticatedTransaction(
         async ({ transaction }) => {
           const freshSubscription = (
             await selectSubscriptionById(subscription.id, transaction)
@@ -381,10 +375,14 @@ const adjustSubscriptionProcedure = protectedProcedure
               new Date(),
               transaction
             )
-          return { freshSubscription, freshSubscriptionItems }
+          return Result.ok({
+            freshSubscription,
+            freshSubscriptionItems,
+          })
         },
         { apiKey: ctx.apiKey }
       )
+      const freshData = freshDataResult.unwrap()
 
       return {
         subscription: {
@@ -431,11 +429,19 @@ const cancelSubscriptionProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      cancelSubscriptionProcedureTransaction
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async (params) => {
+        return cancelSubscriptionProcedureTransaction({
+          input,
+          ctx,
+          transactionCtx: params,
+        })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const uncancelSubscriptionProcedure = protectedProcedure
   .meta({
@@ -455,38 +461,47 @@ const uncancelSubscriptionProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      uncancelSubscriptionProcedureTransaction
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async (params) => {
+        return uncancelSubscriptionProcedureTransaction({
+          input,
+          ctx,
+          transactionCtx: params,
+        })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const listSubscriptionsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(subscriptionsPaginatedSelectSchema)
   .output(subscriptionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        const result = await selectSubscriptionsPaginated(
+        const data = await selectSubscriptionsPaginated(
           input,
           transaction
         )
-        return {
-          ...result,
-          data: result.data.map((subscription) => ({
+        return Result.ok({
+          ...data,
+          data: data.data.map((subscription) => ({
             ...subscription,
             current: isSubscriptionCurrent(
               subscription.status,
               subscription.cancellationReason
             ),
           })),
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    return result.unwrap()
   })
 
 const getSubscriptionProcedure = protectedProcedure
@@ -494,12 +509,12 @@ const getSubscriptionProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         const subscription = (
           await selectSubscriptionById(input.id, transaction)
         ).unwrap()
-        return {
+        return Result.ok({
           subscription: {
             ...subscription,
             current: isSubscriptionCurrent(
@@ -507,12 +522,13 @@ const getSubscriptionProcedure = protectedProcedure
               subscription.cancellationReason
             ),
           },
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    return result.unwrap()
   })
 
 export const createSubscriptionInputSchema = z
@@ -636,28 +652,28 @@ const createSubscriptionProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createSubscriptionInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
+  .mutation(async ({ input, ctx }) => {
+    if (!ctx.organization) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization not found',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async (params) => {
         const {
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        } = transactionCtx
-        if (!ctx.organization) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Organization not found',
-          })
-        }
+        } = params
 
         const customer =
           await validateAndResolveCustomerForSubscription({
             customerId: input.customerId,
             customerExternalId: input.customerExternalId,
-            organizationId: ctx.organization.id,
+            organizationId: ctx.organization!.id,
             transaction,
           })
 
@@ -740,9 +756,11 @@ const createSubscriptionProcedure = protectedProcedure
           ...outputValue,
           ...finalResult,
         })
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getCountsByStatusProcedure = protectedProcedure
   .input(z.object({}))
@@ -755,14 +773,17 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectSubscriptionCountsByStatus(transaction)
+        const data =
+          await selectSubscriptionCountsByStatus(transaction)
+        return Result.ok(data)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    return result.unwrap()
   })
 
 const getTableRows = protectedProcedure
@@ -782,14 +803,19 @@ const getTableRows = protectedProcedure
       subscriptionsTableRowDataSchema
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectSubscriptionsTableRowData({ input, transaction })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectSubscriptionsTableRowData({
+          input,
+          transaction,
+        })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 // TRPC-only procedure, not exposed as REST API
 const updatePaymentMethodProcedure = protectedProcedure
@@ -799,10 +825,9 @@ const updatePaymentMethodProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const subscription = (
           await selectSubscriptionById(input.id, transaction)
         ).unwrap()
@@ -836,7 +861,7 @@ const updatePaymentMethodProcedure = protectedProcedure
           transaction
         )
 
-        return {
+        return Result.ok({
           subscription: {
             ...updatedSubscription,
             current: isSubscriptionCurrent(
@@ -844,10 +869,12 @@ const updatePaymentMethodProcedure = protectedProcedure
               updatedSubscription.cancellationReason
             ),
           },
-        }
-      }
+        })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 const retryBillingRunProcedure = protectedProcedure
   .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
@@ -925,11 +952,11 @@ const retryBillingRunProcedure = protectedProcedure
           },
           transaction
         )
-        return billingRunResult.unwrap()
+        return Result.ok(billingRunResult.unwrap())
       },
       { apiKey: ctx.apiKey }
     )
-    const billingRun = await executeBillingRun(result.id)
+    const billingRun = await executeBillingRun(result.unwrap().id)
     if (!billingRun) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -956,17 +983,19 @@ const listDistinctSubscriptionProductNamesProcedure =
     .input(z.object({}).optional())
     .output(z.array(z.string()))
     .query(async ({ ctx }) => {
-      return authenticatedTransaction(
+      const result = await authenticatedTransaction(
         async ({ transaction, organizationId }) => {
-          return selectDistinctSubscriptionProductNames(
+          const data = await selectDistinctSubscriptionProductNames(
             organizationId,
             transaction
           )
+          return Result.ok(data)
         },
         {
           apiKey: ctx.apiKey,
         }
       )
+      return result.unwrap()
     })
 
 export const subscriptionsRouter = router({

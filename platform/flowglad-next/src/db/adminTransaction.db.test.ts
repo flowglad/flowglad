@@ -2,16 +2,16 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
 import {
+  adminTransaction,
   adminTransactionUnwrap,
-  comprehensiveAdminTransaction,
 } from './adminTransaction'
 import type { Organization } from './schema/organizations'
 import { selectOrganizations } from './tableMethods/organizationMethods'
 
-describe('comprehensiveAdminTransaction', () => {
+describe('adminTransaction', () => {
   it('propagates errors from transaction callback', async () => {
     await expect(
-      comprehensiveAdminTransaction(async () => {
+      adminTransaction(async () => {
         throw new Error('Admin transaction rolled back')
       })
     ).rejects.toThrow('Admin transaction rolled back')

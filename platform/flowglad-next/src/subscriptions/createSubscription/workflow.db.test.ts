@@ -18,10 +18,7 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
@@ -93,7 +90,7 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     const stripeSetupIntentId = `setupintent_before_each_${core.nanoid()}`
-    const workflowResult = await comprehensiveAdminTransaction(
+    const workflowResult = await adminTransaction(
       async ({ transaction }) => {
         return createSubscriptionWorkflow(
           {
@@ -1519,29 +1516,27 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       purchaseId: purchase.id,
     })
 
-    const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_discount_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price: defaultPrice,
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod,
-            customer,
-            stripeSetupIntentId,
-            autoStart: true,
-            discountRedemption,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      }
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_discount_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: defaultPrice,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          discountRedemption,
+        },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
 
     const {
       subscription,
@@ -1611,29 +1606,27 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
     )
 
-    const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_multi_discount_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price: defaultPrice,
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod,
-            customer,
-            stripeSetupIntentId,
-            autoStart: true,
-            discountRedemption: discountRedemptions[0], // Currently only supports one discount
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      }
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_multi_discount_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: defaultPrice,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          discountRedemption: discountRedemptions[0], // Currently only supports one discount
+        },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
 
     const { subscription, subscriptionItems } = result
 
@@ -1687,7 +1680,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       livemode: true,
     })
     const { subscription, subscriptionItems, billingPeriod } =
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_trial_discount_${core.nanoid()}`
         const discountRedemption = await insertDiscountRedemption(
           // @ts-expect-error - FIXME: fix this

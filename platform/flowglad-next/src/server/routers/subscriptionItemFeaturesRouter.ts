@@ -3,8 +3,8 @@ import { Result } from 'better-result'
 import { kebabCase } from 'change-case'
 import { z } from 'zod'
 import {
-  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   createSubscriptionItemFeatureInputSchema,
@@ -63,25 +63,23 @@ const createSubscriptionItemFeature = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .mutation(async ({ ctx, input }) => {
+    const { organizationId, livemode, apiKey } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    const txResult = await authenticatedTransaction(
+      async ({ transaction, invalidateCache }) => {
         // FIXME: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
         const { id: subscriptionItemFeatureId, subscriptionItemId } =
           await insertSubscriptionItemFeature(
             {
               ...input.subscriptionItemFeature,
-              livemode: ctx.livemode,
+              livemode,
             },
             transaction
           )
@@ -94,18 +92,19 @@ const createSubscriptionItemFeature = protectedProcedure
           CacheDependency.subscriptionItemFeatures(subscriptionItemId)
         )
         return Result.ok({ subscriptionItemFeature })
-      }
+      },
+      { apiKey }
     )
-  )
+    return txResult.unwrap()
+  })
 
 const updateSubscriptionItemFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+  .mutation(async ({ ctx, input }) => {
+    const txResult = await authenticatedTransaction(
+      async ({ transaction, invalidateCache }) => {
         // Get existing record to obtain subscriptionItemId for cache invalidation
         const existingFeature = (
           await selectSubscriptionItemFeatureById(
@@ -134,9 +133,11 @@ const updateSubscriptionItemFeature = protectedProcedure
           )
         )
         return Result.ok({ subscriptionItemFeature })
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return txResult.unwrap()
+  })
 
 const getSubscriptionItemFeature = protectedProcedure
   .meta(openApiMetas.GET)
@@ -157,7 +158,7 @@ const getSubscriptionItemFeature = protectedProcedure
             message: `${resourceName} with id ${input.id} not found.`,
           })
         }
-        return { subscriptionItemFeature }
+        return Result.ok({ subscriptionItemFeature })
       }
     )
   )
@@ -178,7 +179,7 @@ const expireSubscriptionItemFeature = protectedProcedure
   .input(expireSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
   .mutation(
-    authenticatedProcedureComprehensiveTransaction(
+    authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction, invalidateCache } = transactionCtx
         const { id, expiredAt } = input

@@ -46,10 +46,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Feature } from '@/db/schema/features'
@@ -212,8 +209,8 @@ export const setupSubscriptionBehavior = defineBehavior({
       { livemode }
     )
 
-    // Create product - use comprehensiveAdminTransaction to get full context
-    const product = await comprehensiveAdminTransaction(
+    // Create product - use adminTransaction to get full context
+    const product = await adminTransaction(
       async (ctx) => {
         const result = await insertProduct(
           {
@@ -438,8 +435,8 @@ export const setupTargetPriceBehavior = defineBehavior({
       initialPrice.unitPrice * adjustmentTypeDep.priceMultiplier
     )
 
-    // Create target product - use comprehensiveAdminTransaction to get full context
-    const targetProduct = await comprehensiveAdminTransaction(
+    // Create target product - use adminTransaction to get full context
+    const targetProduct = await adminTransaction(
       async (ctx) => {
         const result = await insertProduct(
           {
@@ -579,10 +576,10 @@ export const adjustSubscriptionBehavior = defineBehavior({
     }
 
     // Call adjustSubscription within a transaction
-    // adjustSubscription requires TransactionEffectsContext, which comprehensiveAdminTransaction provides
+    // adjustSubscription requires TransactionEffectsContext, which adminTransaction provides
     // Note: adjustSubscription returns Result<AdjustSubscriptionResult, Error> so we return it directly
     const adjustmentResult =
-      await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
+      await adminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {

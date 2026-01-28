@@ -27,10 +27,7 @@ import {
   setupUsageLedgerScenario,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { Customer } from '@/db/schema/customers'
@@ -865,7 +862,7 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -927,7 +924,7 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -969,7 +966,7 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1009,13 +1006,13 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async (params) =>
+      const { subscription: updatedSub } = await adminTransaction(
+        async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        )
+      )
       canceledSub = updatedSub
 
       // expects:
@@ -1039,7 +1036,7 @@ describe('Ledger Interactions', () => {
 
     it('should not grant usage credits if the subscription has no credit entitlements', async () => {
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1111,13 +1108,13 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async (params) =>
+      const { subscription: updatedSub } = await adminTransaction(
+        async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        )
+      )
       pastDueSub = updatedSub
 
       // expects:
@@ -1204,7 +1201,7 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1291,7 +1288,7 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1393,7 +1390,7 @@ describe('Ledger Interactions', () => {
       })
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1464,7 +1461,7 @@ describe('Ledger Interactions', () => {
           },
         ],
       })
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1572,7 +1569,7 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1679,7 +1676,7 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1745,7 +1742,7 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1811,7 +1808,7 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -1937,7 +1934,7 @@ describe('Ledger Interactions', () => {
       })
 
       // Action
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -2061,7 +2058,7 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -2211,7 +2208,7 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async (params) =>
+      await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
@@ -2385,7 +2382,7 @@ describe('Resource claim expiration during billing period transition', async () 
     )
 
     // Transition the billing period
-    await comprehensiveAdminTransaction(async (params) =>
+    await adminTransaction(async (params) =>
       attemptToTransitionSubscriptionBillingPeriod(
         billingPeriod,
         createProcessingEffectsContext(params)

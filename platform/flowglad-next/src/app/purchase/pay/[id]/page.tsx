@@ -21,8 +21,8 @@ const PayPurchasePage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const rawContextValues = await adminTransaction(
-    async ({ transaction }) => {
+  const rawContextValues = (
+    await adminTransaction(async ({ transaction }) => {
       const result = await selectPurchaseCheckoutParametersById(
         id,
         transaction
@@ -60,7 +60,7 @@ const PayPurchasePage = async ({
             )
           ).unwrap()
         : null
-      return {
+      return Result.ok({
         purchase,
         price,
         customer: result.customer,
@@ -75,9 +75,9 @@ const PayPurchasePage = async ({
         checkoutSession,
         readonlyCustomerEmail: maybeCustomer?.email,
         discount,
-      }
-    }
-  )
+      })
+    })
+  ).unwrap()
 
   const purchase = rawContextValues.purchase
   const checkoutSession = rawContextValues.checkoutSession

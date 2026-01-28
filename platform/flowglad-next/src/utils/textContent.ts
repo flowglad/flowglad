@@ -26,13 +26,16 @@ export const saveOrganizationCodebaseMarkdown = async ({
   markdown: string
 }): Promise<void> => {
   // Fetch organization to get securitySalt
-  const organization = await adminTransaction(
+  const orgResult = await adminTransaction(
     async ({ transaction }) => {
-      return (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
+      return Result.ok(
+        (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+      )
     }
   )
+  const organization = orgResult.unwrap()
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({
@@ -58,6 +61,7 @@ export const saveOrganizationCodebaseMarkdown = async ({
       },
       transaction
     )
+    return Result.ok(undefined)
   })
 }
 
@@ -69,13 +73,16 @@ export const getOrganizationCodebaseMarkdown = async (
   organizationId: string
 ): Promise<string | null> => {
   // Fetch hash from database
-  const organization = await adminTransaction(
+  const orgResult = await adminTransaction(
     async ({ transaction }) => {
-      return (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
+      return Result.ok(
+        (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+      )
     }
   )
+  const organization = orgResult.unwrap()
 
   const contentHash = organization.codebaseMarkdownHash ?? null
   if (!contentHash) {
@@ -105,13 +112,16 @@ export const savePricingModelIntegrationMarkdown = async ({
   markdown: string
 }): Promise<void> => {
   // Fetch organization to get securitySalt
-  const organization = await adminTransaction(
+  const orgResult = await adminTransaction(
     async ({ transaction }) => {
-      return (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
+      return Result.ok(
+        (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+      )
     }
   )
+  const organization = orgResult.unwrap()
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({
@@ -150,6 +160,7 @@ export const savePricingModelIntegrationMarkdown = async ({
           enqueueLedgerCommand,
         }
       )
+      return Result.ok(undefined)
     }
   )
 }
@@ -168,13 +179,19 @@ export const getPricingModelIntegrationMarkdown = async ({
   // Fetch hash from database
   const pricingModelResult = await adminTransaction(
     async ({ transaction }) => {
-      return selectPricingModelById(pricingModelId, transaction)
+      const innerResult = await selectPricingModelById(
+        pricingModelId,
+        transaction
+      )
+      if (Result.isError(innerResult)) {
+        return Result.ok(null)
+      }
+      return Result.ok(innerResult.value)
     }
   )
+  const pricingModel = pricingModelResult.unwrap()
 
-  const contentHash = Result.isOk(pricingModelResult)
-    ? pricingModelResult.value.integrationGuideHash
-    : null
+  const contentHash = pricingModel?.integrationGuideHash ?? null
   if (!contentHash) {
     return null
   }

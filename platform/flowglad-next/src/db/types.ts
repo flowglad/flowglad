@@ -195,38 +195,26 @@ export interface TransactionEffectsContext
     >,
     TransactionCallbacks {}
 
+/**
+ * Parameters for authenticated transactions.
+ * All effect callbacks are required since they're always provided at runtime.
+ */
 export interface AuthenticatedTransactionParams
   extends BaseTransactionParams,
-    OptionalEffectsFields {
+    RequiredEffectsFields {
   userId: string
   organizationId: string
 }
 
+/**
+ * Parameters for admin transactions.
+ * All effect callbacks are required since they're always provided at runtime.
+ */
 export interface AdminTransactionParams
   extends BaseTransactionParams,
-    OptionalEffectsFields {
+    RequiredEffectsFields {
   userId: 'ADMIN'
 }
-
-/**
- * Stricter version of AuthenticatedTransactionParams used by comprehensiveAuthenticatedTransaction.
- * All callback methods are required (not optional) since they're always provided at runtime.
- */
-export type ComprehensiveAuthenticatedTransactionParams = Omit<
-  AuthenticatedTransactionParams,
-  keyof OptionalEffectsFields
-> &
-  RequiredEffectsFields
-
-/**
- * Stricter version of AdminTransactionParams used by comprehensiveAdminTransaction.
- * All callback methods are required (not optional) since they're always provided at runtime.
- */
-export type ComprehensiveAdminTransactionParams = Omit<
-  AdminTransactionParams,
-  keyof OptionalEffectsFields
-> &
-  RequiredEffectsFields
 
 /**
  * No-op transaction callbacks for use in contexts where cache invalidation,

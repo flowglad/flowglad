@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -94,7 +95,7 @@ export const updateOrganizationOnboardingStatus = async (
     stripeAccountId,
     livemode
   )
-  const organization = await adminTransaction(
+  const orgResult = await adminTransaction(
     async ({ transaction }) => {
       let [organization] = await selectOrganizations(
         {
@@ -139,8 +140,9 @@ export const updateOrganizationOnboardingStatus = async (
         )
       }
 
-      return organization
+      return Result.ok(organization)
     }
   )
+  const organization = orgResult.unwrap()
   return { onboardingStatus, organization }
 }

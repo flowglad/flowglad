@@ -15,10 +15,7 @@ import {
   setupUsageEvent,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { LedgerEntry } from '@/db/schema/ledgerEntries'
@@ -125,7 +122,7 @@ describe('usageEventHelpers', () => {
       }
 
       const { usageEvent: createdUsageEvent } =
-        await comprehensiveAdminTransaction(
+        await adminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -201,30 +198,29 @@ describe('usageEventHelpers', () => {
           transactionId,
           amount: 5,
         }
-      const { usageEvent: initialEvent } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: initialEventDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: initialEvent } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: initialEventDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
 
       let initialLedgerTransactions: LedgerTransaction.Record[] = []
       await adminTransaction(async ({ transaction }) => {
@@ -252,30 +248,29 @@ describe('usageEventHelpers', () => {
             ).length
           : 0
 
-      const { usageEvent: resultEvent } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: initialEventDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: resultEvent } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: initialEventDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
 
       expect(resultEvent.id).toBe(initialEvent.id)
 
@@ -388,30 +383,29 @@ describe('usageEventHelpers', () => {
           amount: 1,
           properties: { test: 'value' },
         }
-      const { usageEvent: resultWithProps } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: propsPresentDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: resultWithProps } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: propsPresentDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
       expect(resultWithProps.properties).toEqual({
         test: 'value',
       })
@@ -425,7 +419,7 @@ describe('usageEventHelpers', () => {
           amount: 1,
         }
       const { usageEvent: resultWithoutProps } =
-        await comprehensiveAdminTransaction(
+        await adminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -462,30 +456,29 @@ describe('usageEventHelpers', () => {
           amount: 1,
           usageDate: timestamp,
         }
-      const { usageEvent: resultWithDate } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: datePresentDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: resultWithDate } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: datePresentDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
       expect(resultWithDate.usageDate!).toBe(timestamp)
 
       const dateAbsentDetails: CreateUsageEventInput['usageEvent'] = {
@@ -496,7 +489,7 @@ describe('usageEventHelpers', () => {
         amount: 1,
       }
       const { usageEvent: resultWithoutDate } =
-        await comprehensiveAdminTransaction(
+        await adminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -530,30 +523,29 @@ describe('usageEventHelpers', () => {
         transactionId: `txn_live_${core.nanoid()}`,
         amount: 1,
       }
-      const { usageEvent: resultLiveTrue } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: liveTrueDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: resultLiveTrue } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: liveTrueDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
       expect(resultLiveTrue.livemode).toBe(true)
 
       const liveTrueTransactions: LedgerTransaction.Record[] =
@@ -601,30 +593,29 @@ describe('usageEventHelpers', () => {
         transactionId: `txn_test_${core.nanoid()}`,
         amount: 1,
       }
-      const { usageEvent: resultLiveFalse } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: liveFalseDetails },
-                livemode: false,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: resultLiveFalse } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: liveFalseDetails },
+              livemode: false,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
       expect(resultLiveFalse.livemode).toBe(false)
 
       const liveFalseTransactions: LedgerTransaction.Record[] =
@@ -714,30 +705,29 @@ describe('usageEventHelpers', () => {
       }
 
       const beforeFirstEvent = Date.now()
-      const { usageEvent: firstUsageEvent } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: firstEventDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: firstUsageEvent } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: firstEventDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
 
       // Verify first usage event was inserted with correct properties
       expect(firstUsageEvent.properties).toEqual(testProperties)
@@ -778,30 +768,29 @@ describe('usageEventHelpers', () => {
         }
 
       const beforeSecondEvent = Date.now()
-      const { usageEvent: secondUsageEvent } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: secondEventDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: secondUsageEvent } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: secondEventDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
 
       // Verify second usage event was inserted with correct properties
       expect(secondUsageEvent.properties).toEqual(testProperties)
@@ -844,30 +833,29 @@ describe('usageEventHelpers', () => {
         amount: 1,
         properties: { ...testProperties, feature: 'import' },
       }
-      const { usageEvent: thirdUsageEvent } =
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-            cacheRecomputationContext,
-          }) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: { usageEvent: thirdEventDetails },
-                livemode: true,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                emitEvent,
-                invalidateCache,
-                enqueueLedgerCommand,
-              }
-            )
-          }
-        )
+      const { usageEvent: thirdUsageEvent } = await adminTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: { usageEvent: thirdEventDetails },
+              livemode: true,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        }
+      )
       expect(thirdUsageEvent.properties).toEqual({
         ...testProperties,
         feature: 'import',
@@ -1030,7 +1018,7 @@ describe('usageEventHelpers', () => {
       }
 
       const { usageEvent: createdUsageEvent } =
-        await comprehensiveAdminTransaction(
+        await adminTransaction(
           async ({
             transaction,
             emitEvent,

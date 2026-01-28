@@ -80,31 +80,34 @@ export const runSendOrganizationSubscriptionAdjustedNotification =
       NotFoundError | ValidationError
     >
     try {
-      const data = await adminTransaction(async ({ transaction }) => {
-        const [context, usersAndMemberships, subscriptionRecord] =
-          await Promise.all([
-            buildNotificationContext(
-              {
-                organizationId,
-                customerId,
-              },
-              transaction
-            ),
-            selectMembershipsAndUsersByMembershipWhere(
-              { organizationId },
-              transaction
-            ),
-            selectSubscriptionById(subscriptionId, transaction).then(
-              (r) => r.unwrap()
-            ),
-          ])
+      const data = (
+        await adminTransaction(async ({ transaction }) => {
+          const [context, usersAndMemberships, subscriptionRecord] =
+            await Promise.all([
+              buildNotificationContext(
+                {
+                  organizationId,
+                  customerId,
+                },
+                transaction
+              ),
+              selectMembershipsAndUsersByMembershipWhere(
+                { organizationId },
+                transaction
+              ),
+              selectSubscriptionById(
+                subscriptionId,
+                transaction
+              ).then((r) => r.unwrap()),
+            ])
 
-        return {
-          ...context,
-          subscription: subscriptionRecord,
-          usersAndMemberships,
-        }
-      })
+          return Result.ok({
+            ...context,
+            subscription: subscriptionRecord,
+            usersAndMemberships,
+          })
+        })
+      ).unwrap()
       dataResult = Result.ok(data)
     } catch (error) {
       // Only convert NotFoundError to Result.err; rethrow other errors

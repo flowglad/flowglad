@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -25,14 +26,19 @@ const listPaymentMethodsProcedure = protectedProcedure
   .input(paymentMethodsPaginatedSelectSchema)
   .output(paymentMethodsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPaymentMethodsPaginated(input, transaction)
+        const data = await selectPaymentMethodsPaginated(
+          input,
+          transaction
+        )
+        return Result.ok(data)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    return txResult.unwrap()
   })
 
 const getPaymentMethodProcedure = protectedProcedure
@@ -42,17 +48,18 @@ const getPaymentMethodProcedure = protectedProcedure
     z.object({ paymentMethod: paymentMethodClientSelectSchema })
   )
   .query(async ({ ctx, input }) => {
-    const paymentMethod = await authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return (
+        const paymentMethod = (
           await selectPaymentMethodById(input.id, transaction)
         ).unwrap()
+        return Result.ok(paymentMethod)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
-    return { paymentMethod }
+    return { paymentMethod: txResult.unwrap() }
   })
 
 export const paymentMethodsRouter = router({

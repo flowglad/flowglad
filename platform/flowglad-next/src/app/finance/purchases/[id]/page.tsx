@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { Price } from '@/db/schema/prices'
@@ -13,14 +14,14 @@ const PurchasePage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const result = await authenticatedTransaction(
+  const txResult = await authenticatedTransaction(
     async ({ transaction }) => {
       const purchase = (
         await selectPurchaseById(id, transaction)
       ).unwrap()
 
       if (!purchase) {
-        return null
+        return Result.ok(null)
       }
 
       const customer = (
@@ -40,14 +41,15 @@ const PurchasePage = async ({
             ).unwrap()
           : null
 
-      return {
+      return Result.ok({
         purchase,
         customer,
         price,
         product,
-      }
+      })
     }
   )
+  const result = txResult.unwrap()
 
   if (!result || !result.purchase || !result.customer) {
     notFound()

@@ -182,7 +182,7 @@ type CheckoutInfoResult = CheckoutInfoSuccess | CheckoutInfoError
 export async function checkoutInfoForPriceWhere(
   priceWhere: Price.Where
 ): Promise<CheckoutInfoResult> {
-  const result = await adminTransaction(async ({ transaction }) => {
+  const txResult = await adminTransaction(async ({ transaction }) => {
     const [{ product, price, organization }] =
       await selectPriceProductAndOrganizationByPriceWhere(
         priceWhere,
@@ -196,12 +196,18 @@ export async function checkoutInfoForPriceWhere(
     }
     if (!product.active || !price.active) {
       // FIXME: ERROR PAGE UI
-      return {
+      return Result.ok({
         product,
         price,
         organization,
-        features: [],
-      }
+        features: [] as Feature.Record[],
+        checkoutSession: null as CheckoutSession.Record | null,
+        discount: null as Discount.Record | null,
+        feeCalculation: null as FeeCalculation.Record | null,
+        maybeCustomer: null as Customer.Record | null,
+        isEligibleForTrial: undefined as boolean | undefined,
+        error: undefined as Error | undefined,
+      })
     }
     /**
      * Attempt to get the saved purchase session (from cookies).
@@ -218,18 +224,18 @@ export async function checkoutInfoForPriceWhere(
       transaction
     )
     if (checkoutSessionResult.status === 'error') {
-      return {
+      return Result.ok({
         product,
         price,
         organization,
-        features: [],
-        checkoutSession: null,
-        discount: null,
-        feeCalculation: null,
-        maybeCustomer: null,
-        isEligibleForTrial: undefined,
+        features: [] as Feature.Record[],
+        checkoutSession: null as CheckoutSession.Record | null,
+        discount: null as Discount.Record | null,
+        feeCalculation: null as FeeCalculation.Record | null,
+        maybeCustomer: null as Customer.Record | null,
+        isEligibleForTrial: undefined as boolean | undefined,
         error: checkoutSessionResult.error,
-      }
+      })
     }
     const checkoutSession = checkoutSessionResult.value
     const discount = checkoutSession.discountId
@@ -266,18 +272,22 @@ export async function checkoutInfoForPriceWhere(
       transaction
     )
 
-    return {
+    return Result.ok({
       product,
       price,
       features: features.map((f) => f.feature),
       organization,
-      checkoutSession,
-      discount,
-      feeCalculation: feeCalculation ?? null,
-      maybeCustomer,
-      isEligibleForTrial,
-    }
+      checkoutSession:
+        checkoutSession as CheckoutSession.Record | null,
+      discount: discount as Discount.Record | null,
+      feeCalculation: (feeCalculation ??
+        null) as FeeCalculation.Record | null,
+      maybeCustomer: maybeCustomer as Customer.Record | null,
+      isEligibleForTrial: isEligibleForTrial as boolean | undefined,
+      error: undefined as Error | undefined,
+    })
   })
+  const result = txResult.unwrap()
   const { checkoutSession, organization, features, error } = result
   if (!checkoutSession || error) {
     // FIXME: ERROR PAGE UI

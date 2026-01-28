@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { apiKeyClientWhereClauseSchema } from '@/db/schema/apiKeys'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
@@ -10,16 +11,17 @@ export const getApiKeys = protectedProcedure
       throw new Error('organizationId is required')
     }
 
-    const apiKeys = await authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectApiKeys(
+        const apiKeys = await selectApiKeys(
           { organizationId: ctx.organizationId, ...input },
           transaction
         )
+        return Result.ok(apiKeys)
       }
     )
 
     return {
-      data: { apiKeys },
+      data: { apiKeys: txResult.unwrap() },
     }
   })

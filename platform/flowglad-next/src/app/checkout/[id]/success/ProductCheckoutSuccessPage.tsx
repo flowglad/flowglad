@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -16,13 +17,16 @@ const ProductCheckoutSuccessPage = async ({
   // Get customer email from customer record (same source the email system uses)
   let customerEmail: string | null = null
   if (product.customerId) {
-    const customer = await adminTransaction(
+    const txResult = await adminTransaction(
       async ({ transaction }) => {
-        return (
-          await selectCustomerById(product.customerId!, transaction)
-        ).unwrap()
+        const innerResult = await selectCustomerById(
+          product.customerId!,
+          transaction
+        )
+        return Result.ok(innerResult.unwrap())
       }
     )
+    const customer = txResult.unwrap()
     customerEmail = customer.email || null
   }
 
@@ -38,16 +42,20 @@ const ProductCheckoutSuccessPage = async ({
   }
 
   // Get the price and organization to check if it's a subscription
-  const { price, organization } = await adminTransaction(
+  const priceTxResult = await adminTransaction(
     async ({ transaction }) => {
       const [data] =
         await selectPriceProductAndOrganizationByPriceWhere(
           { id: product.priceId! },
           transaction
         )
-      return { price: data.price, organization: data.organization }
+      return Result.ok({
+        price: data.price,
+        organization: data.organization,
+      })
     }
   )
+  const { price, organization } = priceTxResult.unwrap()
 
   // If the price is a subscription or usage type, render the subscription success page
   if (

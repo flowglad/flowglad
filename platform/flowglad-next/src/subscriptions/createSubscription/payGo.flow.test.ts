@@ -8,10 +8,7 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
 import {
   updateCheckoutSessionBillingAddress,
@@ -141,36 +138,35 @@ describe('Pay as You Go Workflow E2E', () => {
         ctx
       )
     })
-    const { customer, subscription } =
-      await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const result = await createCustomerBookkeeping(
-            {
-              customer: {
-                organizationId: organization.id,
-                pricingModelId: pricingModel.id,
-                name: 'Test Customer',
-                externalId: 'test-customer' + core.nanoid(),
-                email: 'test@test.com',
-              },
-            },
-            withAdminCacheContext({
-              transaction,
+    const { customer, subscription } = await adminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const result = await createCustomerBookkeeping(
+          {
+            customer: {
               organizationId: organization.id,
-              livemode: true,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(result)
-        }
-      )
+              pricingModelId: pricingModel.id,
+              name: 'Test Customer',
+              externalId: 'test-customer' + core.nanoid(),
+              email: 'test@test.com',
+            },
+          },
+          withAdminCacheContext({
+            transaction,
+            organizationId: organization.id,
+            livemode: true,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          })
+        )
+        return Result.ok(result)
+      }
+    )
 
     if (!subscription) {
       throw new Error('No subscription')
@@ -224,7 +220,7 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 2. Create a usage event for the subscription
     const staticTransctionId = 'test-' + core.nanoid()
-    await comprehensiveAdminTransaction(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       return ingestAndProcessUsageEvent(
         {
           input: {
@@ -269,7 +265,7 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 4. Create a usage event for the subscription
-    await comprehensiveAdminTransaction(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       return ingestAndProcessUsageEvent(
         {
           input: {
@@ -321,69 +317,67 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
-    const checkoutSession = await comprehensiveAdminTransaction(
-      async (ctx) => {
-        const { transaction } = ctx
-        const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
+    const checkoutSession = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
+        {
+          type: CheckoutSessionType.Product,
+          customerExternalId: customer.externalId,
+          successUrl: 'https://test.com/success',
+          cancelUrl: 'https://test.com/cancel',
+          priceId: singlePaymentPrice.id,
+        }
+      const { checkoutSession } = (
+        await createCheckoutSessionTransaction(
           {
-            type: CheckoutSessionType.Product,
-            customerExternalId: customer.externalId,
-            successUrl: 'https://test.com/success',
-            cancelUrl: 'https://test.com/cancel',
-            priceId: singlePaymentPrice.id,
-          }
-        const { checkoutSession } = (
-          await createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: true,
-            },
-            transaction
-          )
-        ).unwrap()
-        await updateCheckoutSessionBillingAddress(
-          {
-            id: checkoutSession.id,
-            billingAddress: {
-              address: {
-                line1: '123 Main St',
-                line2: 'Apt 4B',
-                city: 'Anytown',
-                state: 'CA',
-                postal_code: '12345',
-                country: 'US',
-              },
-              name: 'John Doe',
-              firstName: 'John',
-            },
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: true,
           },
           transaction
         )
-        await updateCheckoutSessionPaymentMethodType(
-          {
-            id: checkoutSession.id,
-            paymentMethodType: PaymentMethodType.Card,
+      ).unwrap()
+      await updateCheckoutSessionBillingAddress(
+        {
+          id: checkoutSession.id,
+          billingAddress: {
+            address: {
+              line1: '123 Main St',
+              line2: 'Apt 4B',
+              city: 'Anytown',
+              state: 'CA',
+              postal_code: '12345',
+              country: 'US',
+            },
+            name: 'John Doe',
+            firstName: 'John',
           },
-          transaction
-        )
-        // 3. Call @confirmCheckoutSession.ts to finalize it
-        await confirmCheckoutSessionTransaction(
-          { id: checkoutSession.id },
-          ctx
-        )
+        },
+        transaction
+      )
+      await updateCheckoutSessionPaymentMethodType(
+        {
+          id: checkoutSession.id,
+          paymentMethodType: PaymentMethodType.Card,
+        },
+        transaction
+      )
+      // 3. Call @confirmCheckoutSession.ts to finalize it
+      await confirmCheckoutSessionTransaction(
+        { id: checkoutSession.id },
+        ctx
+      )
 
-        // expect a feeCalculation for the checkout session
-        const feeCalculations = await selectFeeCalculations(
-          { checkoutSessionId: checkoutSession.id },
-          transaction
-        )
-        expect(feeCalculations).toHaveLength(1)
-        return Result.ok(checkoutSession)
-      }
-    )
+      // expect a feeCalculation for the checkout session
+      const feeCalculations = await selectFeeCalculations(
+        { checkoutSessionId: checkoutSession.id },
+        transaction
+      )
+      expect(feeCalculations).toHaveLength(1)
+      return Result.ok(checkoutSession)
+    })
 
-    await comprehensiveAdminTransaction(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       // 4. Call @processSetupIntentSucceeded with a stubbed paymentIntent
       const paymentIntent: CoreStripePaymentIntent = {
         id: 'si_123',
@@ -402,7 +396,7 @@ describe('Pay as You Go Workflow E2E', () => {
       return Result.ok(result)
     })
 
-    await comprehensiveAdminTransaction(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       const { transaction, livemode } = ctx
       // 5. Call @customerBillingTransaction again and assert final state
       const cacheRecomputationContext: CacheRecomputationContext = {
@@ -437,7 +431,7 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 6. Create a usage event after payment
     const newTransactionId = 'test2-' + core.nanoid()
-    await comprehensiveAdminTransaction(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       return ingestAndProcessUsageEvent(
         {
           input: {
@@ -458,7 +452,7 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage
-    await comprehensiveAdminTransaction(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       const { transaction, livemode } = ctx
       const cacheRecomputationContext: CacheRecomputationContext = {
         type: 'admin',

@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -14,30 +15,31 @@ export const stripePaymentIntentProcessingTask = task({
     { ctx }
   ) => {
     logger.log('Payment intent processing', { payload, ctx })
-    /**
-     *
-     */
-    await adminTransaction(async ({ transaction }) => {
-      const [payment] = await selectPayments(
-        {
-          stripePaymentIntentId: payload.data.object.id,
-        },
-        transaction
-      )
-      if (!payment) {
-        logger.error('Payment not found', {
-          paymentIntentId: payload.data.object.id,
-        })
-        return
+    const txResult = await adminTransaction(
+      async ({ transaction }) => {
+        const [payment] = await selectPayments(
+          {
+            stripePaymentIntentId: payload.data.object.id,
+          },
+          transaction
+        )
+        if (!payment) {
+          logger.error('Payment not found', {
+            paymentIntentId: payload.data.object.id,
+          })
+          return Result.ok(null)
+        }
+        await updatePayment(
+          {
+            id: payment.id,
+            status: PaymentStatus.Processing,
+          },
+          transaction
+        )
+        return Result.ok(payment)
       }
-      await updatePayment(
-        {
-          id: payment.id,
-          status: PaymentStatus.Processing,
-        },
-        transaction
-      )
-    })
+    )
+    txResult.unwrap()
     return {
       message: 'Hello, world!',
     }

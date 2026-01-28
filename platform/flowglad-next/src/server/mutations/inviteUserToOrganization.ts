@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -37,36 +38,45 @@ export const innerInviteUserToOrganizationHandler = async (
   }
 ): Promise<{ action: InviteAction }> => {
   // Use admin transaction to find user by email
-  const [userForEmail] = await adminTransaction(
+  const txResult1 = await adminTransaction(
     async ({ transaction }) => {
-      return selectUsers({ email: input.email }, transaction)
+      const users = await selectUsers(
+        { email: input.email },
+        transaction
+      )
+      return Result.ok(users)
     }
   )
+  const [userForEmail] = txResult1.unwrap()
 
   if (!userForEmail) {
     // Create new user and membership
-    await adminTransaction(async ({ transaction }) => {
-      const databaseUser = await insertUser(
-        {
-          id: `user_${core.nanoid()}`,
-          email: input.email,
-          name: input.name ?? '',
-        },
-        transaction
-      )
-      // New memberships default to test mode (livemode: false)
-      // to ensure safe onboarding before production access
-      await insertMembership(
-        {
-          userId: databaseUser.id,
-          organizationId: focusedMembership.organization.id,
-          focused: false,
-          livemode: false,
-          role: MembershipRole.Member,
-        },
-        transaction
-      )
-    })
+    const txResult2 = await adminTransaction(
+      async ({ transaction }) => {
+        const databaseUser = await insertUser(
+          {
+            id: `user_${core.nanoid()}`,
+            email: input.email,
+            name: input.name ?? '',
+          },
+          transaction
+        )
+        // New memberships default to test mode (livemode: false)
+        // to ensure safe onboarding before production access
+        await insertMembership(
+          {
+            userId: databaseUser.id,
+            organizationId: focusedMembership.organization.id,
+            focused: false,
+            livemode: false,
+            role: MembershipRole.Member,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      }
+    )
+    txResult2.unwrap()
     await sendOrganizationInvitationEmail({
       to: [input.email],
       organizationName: focusedMembership.organization.name,
@@ -76,8 +86,8 @@ export const innerInviteUserToOrganizationHandler = async (
   }
 
   // Check for existing membership (including deactivated)
-  const action = await adminTransaction(
-    async ({ transaction }): Promise<InviteAction> => {
+  const txResult3 = await adminTransaction(
+    async ({ transaction }): Promise<Result<InviteAction, never>> => {
       const membershipForUser = await selectMemberships(
         {
           userId: userForEmail.id,
@@ -97,10 +107,10 @@ export const innerInviteUserToOrganizationHandler = async (
             },
             transaction
           )
-          return 'reactivated'
+          return Result.ok('reactivated')
         }
         // Already an active member
-        return 'already_member'
+        return Result.ok('already_member')
       }
       // Create new membership for existing user
       // New memberships default to test mode (livemode: false)
@@ -115,9 +125,10 @@ export const innerInviteUserToOrganizationHandler = async (
         },
         transaction
       )
-      return 'created'
+      return Result.ok('created')
     }
   )
+  const action = txResult3.unwrap()
 
   // Send email for all new/reactivated memberships (not if already an active member)
   if (action !== 'already_member') {
@@ -142,26 +153,26 @@ export const inviteUserToOrganization = protectedProcedure
   .input(inviteUserToOrganizationSchema)
   .mutation(async ({ input, ctx }) => {
     // Get focused membership to get organization ID
-    const { focusedMembership, user: inviterUser } =
-      await authenticatedTransaction(
-        async ({ transaction, userId }) => {
-          const focusedMembership =
-            await selectFocusedMembershipAndOrganization(
-              userId,
-              transaction
-            )
-          const user = (
-            await selectUserById(
-              focusedMembership.membership.userId,
-              transaction
-            )
-          ).unwrap()
-          return { focusedMembership, user }
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
+    const txResult = await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        const focusedMembership =
+          await selectFocusedMembershipAndOrganization(
+            userId,
+            transaction
+          )
+        const user = (
+          await selectUserById(
+            focusedMembership.membership.userId,
+            transaction
+          )
+        ).unwrap()
+        return Result.ok({ focusedMembership, user })
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+    const { focusedMembership, user: inviterUser } = txResult.unwrap()
     await innerInviteUserToOrganizationHandler(
       focusedMembership,
       input,

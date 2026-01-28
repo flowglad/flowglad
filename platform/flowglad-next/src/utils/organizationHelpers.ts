@@ -235,10 +235,8 @@ export const createOrganizationTransaction = async (
     },
     {
       transaction,
-      cacheRecomputationContext,
       livemode: false,
       userId,
-      organizationId,
     }
   )
 

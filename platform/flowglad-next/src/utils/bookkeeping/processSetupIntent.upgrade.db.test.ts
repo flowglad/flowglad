@@ -10,10 +10,7 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -193,7 +190,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({ transaction }) => {
           return await processSetupIntentSucceeded(
             setupIntent,
@@ -298,7 +295,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -390,7 +387,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -506,7 +503,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -642,7 +639,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)

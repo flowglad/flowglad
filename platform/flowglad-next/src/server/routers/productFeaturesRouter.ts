@@ -1,10 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createProductFeatureInputSchema,
   productFeatureClientSelectSchema,
@@ -45,9 +42,9 @@ export const createOrRestoreProductFeature = protectedProcedure
   .output(
     z.object({ productFeature: productFeatureClientSelectSchema })
   )
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async (transactionCtx) => {
         const { transaction } = transactionCtx
         // Determine livemode from the associated product
         // The RLS on productFeatures ensures user has access to the product
@@ -103,25 +100,32 @@ export const createOrRestoreProductFeature = protectedProcedure
             },
             transactionCtx
           )
-        return { productFeature }
-      }
+        return Result.ok({ productFeature })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const listProductFeatures = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(productFeaturesPaginatedSelectSchema) // Input schema from productFeatures.ts
   .output(productFeaturesPaginatedListSchema) // Output schema from productFeatures.ts
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         // selectProductFeaturesPaginated expects { cursor?, limit? } and transaction
         // The input (productFeaturesPaginatedSelectSchema) should match this structure.
-        return selectProductFeaturesPaginated(input, transaction)
-      }
+        const data = await selectProductFeaturesPaginated(
+          input,
+          transaction
+        )
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getProductFeature = protectedProcedure
   .meta(openApiMetas.GET)
@@ -129,17 +133,18 @@ export const getProductFeature = protectedProcedure
   .output(
     z.object({ productFeature: productFeatureClientSelectSchema })
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         const productFeature = (
           await selectProductFeatureById(input.id, transaction)
         ).unwrap()
-        return { productFeature }
-      }
+        return Result.ok({ productFeature })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const expireProductFeature = protectedProcedure
   .meta(
@@ -156,17 +161,19 @@ export const expireProductFeature = protectedProcedure
   )
   .input(idInputSchema) // Input is the ID of the ProductFeature record
   .output(z.object({ success: z.boolean() })) // Indicate success
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async (transactionCtx) => {
         await expireProductFeaturesByFeatureId(
           [input.id],
           transactionCtx
         )
         return Result.ok({ success: true })
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const productFeaturesRouter = router({
   create: createOrRestoreProductFeature,

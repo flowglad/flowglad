@@ -2,6 +2,7 @@
 export const runtime = 'nodejs' // Force Node.js runtime
 
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerAndOrganizationByCustomerWhere } from '@/db/tableMethods/customerMethods'
@@ -191,18 +192,21 @@ const isCustomerAuthed = t.middleware(
 
     const customerId = parsed.data.customerId
 
-    const [customerAndOrganization] = await adminTransaction(
+    const customersTxResult = await adminTransaction(
       async ({ transaction }) => {
-        return selectCustomerAndOrganizationByCustomerWhere(
-          {
-            userId: user.id,
-            organizationId,
-            id: customerId,
-          },
-          transaction
+        return Result.ok(
+          await selectCustomerAndOrganizationByCustomerWhere(
+            {
+              userId: user.id,
+              organizationId,
+              id: customerId,
+            },
+            transaction
+          )
         )
       }
     )
+    const [customerAndOrganization] = customersTxResult.unwrap()
 
     if (!customerAndOrganization) {
       throw new TRPCError({ code: 'UNAUTHORIZED' })

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -22,23 +23,29 @@ export const refundPayment = protectedProcedure
   .input(refundPaymentInputSchema)
   .output(z.object({ payment: paymentsClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    const payment = await authenticatedTransaction(
-      async ({ transaction, livemode }) => {
-        return selectPaymentById(input.id, transaction)
+    const paymentResult = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const innerResult = await selectPaymentById(
+          input.id,
+          transaction
+        )
+        return Result.ok(innerResult.unwrap())
       }
     )
+    const payment = paymentResult.unwrap()
     if (!payment) {
       throw new Error('Payment not found')
     }
     const updatedPaymentResult = await adminTransaction(
       async ({ transaction }) => {
-        return await refundPaymentTransaction(
+        const innerResult = await refundPaymentTransaction(
           {
             id: input.id,
             partialAmount: input.partialAmount ?? null,
           },
           transaction
         )
+        return Result.ok(innerResult.unwrap())
       }
     )
     return { payment: updatedPaymentResult.unwrap() }

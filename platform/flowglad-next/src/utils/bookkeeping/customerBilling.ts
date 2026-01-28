@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -221,17 +222,19 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     if (checkoutSessionInput.priceId) {
       resolvedPriceId = checkoutSessionInput.priceId
     } else if (checkoutSessionInput.priceSlug) {
-      const priceFromSlug = await authenticatedTransaction(
+      const priceSlugResult = await authenticatedTransaction(
         async ({ transaction }) => {
-          return await selectPriceBySlugAndCustomerId(
+          const priceFromSlug = await selectPriceBySlugAndCustomerId(
             {
               slug: checkoutSessionInput.priceSlug!,
               customerId: customer.id,
             },
             transaction
           )
+          return Result.ok(priceFromSlug)
         }
       )
+      const priceFromSlug = priceSlugResult.unwrap()
       if (!priceFromSlug) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -246,13 +249,15 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       })
     }
 
-    const price = await authenticatedTransaction(
+    const priceResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return (
+        const price = (
           await selectPriceById(resolvedPriceId, transaction)
         ).unwrap()
+        return Result.ok(price)
       }
     )
+    const price = priceResult.unwrap()
     if (!price) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -269,7 +274,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     customerId: customer.id,
   })
 
-  return await adminTransaction(async ({ transaction }) => {
+  const txResult = await adminTransaction(async ({ transaction }) => {
     const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
@@ -285,8 +290,9 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     if (result.status === 'error') {
       throw result.error
     }
-    return result.value
+    return Result.ok(result.value)
   })
+  return txResult.unwrap()
 }
 
 export const customerBillingCreateAddPaymentMethodSession = async (
@@ -313,7 +319,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
     customerId: customer.id,
   })
 
-  return await adminTransaction(async ({ transaction }) => {
+  const txResult = await adminTransaction(async ({ transaction }) => {
     const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
@@ -330,6 +336,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
     if (result.status === 'error') {
       throw result.error
     }
-    return result.value
+    return Result.ok(result.value)
   })
+  return txResult.unwrap()
 }

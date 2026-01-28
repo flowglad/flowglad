@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
@@ -17,7 +18,7 @@ const CustomerPage = async ({
   params: Promise<CustomerPageParams>
 }) => {
   const { id } = await params
-  const result = await authenticatedTransaction(
+  const txResult = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       await selectMembershipAndOrganizations(
         {
@@ -31,7 +32,7 @@ const CustomerPage = async ({
       const [customerResult] =
         await selectCustomerAndCustomerTableRows({ id }, transaction)
       if (!customerResult) {
-        return null
+        return Result.ok(null)
       }
       const paymentsForCustomer = await selectPayments(
         {
@@ -50,14 +51,15 @@ const CustomerPage = async ({
         },
         transaction
       )
-      return {
+      return Result.ok({
         customer: customerResult.customer,
         prices,
         paymentsForCustomer,
         usageEvents,
-      }
+      })
     }
   )
+  const result = txResult.unwrap()
 
   if (!result) {
     notFound()

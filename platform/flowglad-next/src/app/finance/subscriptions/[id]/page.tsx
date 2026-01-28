@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { Price } from '@/db/schema/prices'
@@ -19,7 +20,7 @@ const SubscriptionPage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const result = await authenticatedTransaction(
+  const txResult = await authenticatedTransaction(
     async ({ transaction, cacheRecomputationContext }) => {
       const [subscription] =
         await selectRichSubscriptionsAndActiveItems(
@@ -29,7 +30,7 @@ const SubscriptionPage = async ({
         )
 
       if (!subscription) {
-        return null
+        return Result.ok(null)
       }
 
       const defaultPaymentMethod = subscription.defaultPaymentMethodId
@@ -100,16 +101,17 @@ const SubscriptionPage = async ({
         products.map((p) => [p.id, p.name])
       )
 
-      return {
+      return Result.ok({
         subscription,
         defaultPaymentMethod,
         customer,
         product,
         pricingModel,
         productNames,
-      }
+      })
     }
   )
+  const result = txResult.unwrap()
 
   if (!result) {
     notFound()

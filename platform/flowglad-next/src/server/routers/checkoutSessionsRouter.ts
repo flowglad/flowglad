@@ -1,10 +1,8 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   type CheckoutSession,
   checkoutSessionsPaginatedListSchema,
@@ -56,26 +54,23 @@ export const createCheckoutSession = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { checkoutSession: checkoutSessionInput } = input
-        const checkoutSessionType = checkoutSessionInput.type
-        if (
-          checkoutSessionType !== CheckoutSessionType.Product &&
-          checkoutSessionType !==
-            CheckoutSessionType.AddPaymentMethod &&
-          checkoutSessionType !==
-            CheckoutSessionType.ActivateSubscription
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Invalid checkout session type: ${checkoutSessionType}. Currently only ${CheckoutSessionType.Product}, ${CheckoutSessionType.AddPaymentMethod}, and ${CheckoutSessionType.ActivateSubscription} are supported.`,
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { checkoutSession: checkoutSessionInput } = input
+    const checkoutSessionType = checkoutSessionInput.type
+    if (
+      checkoutSessionType !== CheckoutSessionType.Product &&
+      checkoutSessionType !== CheckoutSessionType.AddPaymentMethod &&
+      checkoutSessionType !== CheckoutSessionType.ActivateSubscription
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Invalid checkout session type: ${checkoutSessionType}. Currently only ${CheckoutSessionType.Product}, ${CheckoutSessionType.AddPaymentMethod}, and ${CheckoutSessionType.ActivateSubscription} are supported.`,
+      })
+    }
 
-        const result = await createCheckoutSessionTransaction(
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const txResult = await createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: ctx.organizationId!,
@@ -83,17 +78,21 @@ export const createCheckoutSession = protectedProcedure
           },
           transaction
         )
-        return result
-      }
+        // createCheckoutSessionTransaction returns Result<{checkoutSession, url}, ValidationError>
+        // Unwrap it to get the value or throw on error
+        return Result.ok(txResult.unwrap())
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const updateCheckoutSession = protectedProcedure
   //   .meta(openApiMetas.PUT)
   .input(editCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         const organizationId = ctx.organizationId
         if (!organizationId) {
@@ -132,13 +131,14 @@ export const updateCheckoutSession = protectedProcedure
             message: `Failed to update purchase session for id: ${input.checkoutSession.id}`,
           })
         }
-        return {
+        return Result.ok({
           checkoutSession: updatedCheckoutSession,
           url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
-        }
+        })
       },
       { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 const getCheckoutSessionProcedure = protectedProcedure
@@ -146,20 +146,21 @@ const getCheckoutSessionProcedure = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(singleCheckoutSessionOutputSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         const checkoutSession = (
           await selectCheckoutSessionById(input.id, transaction)
         ).unwrap()
-        return {
+        return Result.ok({
           checkoutSession,
           url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    return result.unwrap()
   })
 
 const listCheckoutSessionsProcedure = protectedProcedure
@@ -167,14 +168,19 @@ const listCheckoutSessionsProcedure = protectedProcedure
   .input(checkoutSessionsPaginatedSelectSchema)
   .output(checkoutSessionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCheckoutSessionsPaginated(input, transaction)
+        const data = await selectCheckoutSessionsPaginated(
+          input,
+          transaction
+        )
+        return Result.ok(data)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    return result.unwrap()
   })
 
 /***
@@ -188,8 +194,8 @@ export const setPaymentMethodTypeProcedure = publicProcedure
       paymentMethodType: z.enum(PaymentMethodType),
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    return adminTransaction(async ({ transaction }) => {
+  .mutation(async ({ input }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
       const checkoutSession =
         await updateCheckoutSessionPaymentMethodType(
           {
@@ -198,24 +204,26 @@ export const setPaymentMethodTypeProcedure = publicProcedure
           },
           transaction
         )
-      return {
+      return Result.ok({
         checkoutSession,
-      }
+      })
     })
+    return result.unwrap()
   })
 
 export const setCustomerEmailProcedure = publicProcedure
   .input(z.object({ id: z.string(), customerEmail: z.string() }))
-  .mutation(async ({ input, ctx }) => {
-    return adminTransaction(async ({ transaction }) => {
-      const result = await updateCheckoutSessionCustomerEmail(
+  .mutation(async ({ input }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const updateResult = await updateCheckoutSessionCustomerEmail(
         input,
         transaction
       )
-      return {
-        checkoutSession: result.unwrap(),
-      }
+      return Result.ok({
+        checkoutSession: updateResult.unwrap(),
+      })
     })
+    return result.unwrap()
   })
 
 export const setBillingAddressProcedure = publicProcedure
@@ -230,19 +238,20 @@ export const setBillingAddressProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    return adminTransaction(async ({ transaction }) => {
-      const result = await editCheckoutSessionBillingAddress(
+    const result = await adminTransaction(async ({ transaction }) => {
+      const addressResult = await editCheckoutSessionBillingAddress(
         {
           checkoutSessionId: input.id,
           billingAddress: input.billingAddress,
         },
         transaction
       )
-      return {
-        checkoutSession: result.checkoutSession,
-        feeCalculation: result.feeCalculation,
-      }
+      return Result.ok({
+        checkoutSession: addressResult.checkoutSession,
+        feeCalculation: addressResult.feeCalculation,
+      })
     })
+    return result.unwrap()
   })
 
 export const setAutomaticallyUpdateSubscriptionsProcedure =
@@ -253,15 +262,18 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
         automaticallyUpdateSubscriptions: z.boolean(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      return adminTransaction(async ({ transaction }) => {
-        const result =
-          await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
-            input,
-            transaction
-          )
-        return { checkoutSession: result.unwrap() }
-      })
+    .mutation(async ({ input }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const updateResult =
+            await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
+              input,
+              transaction
+            )
+          return Result.ok({ checkoutSession: updateResult.unwrap() })
+        }
+      )
+      return result.unwrap()
     })
 
 export const checkoutSessionsRouter = router({

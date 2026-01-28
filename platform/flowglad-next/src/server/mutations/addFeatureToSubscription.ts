@@ -1,5 +1,5 @@
 import { Result } from 'better-result'
-import { authenticatedProcedureComprehensiveTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { addFeatureToSubscriptionInputSchema } from '@/db/schema/subscriptionItemFeatures'
 import { selectClientSubscriptionItemFeatureAndFeatureById } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { protectedProcedure } from '@/server/trpc'
@@ -8,7 +8,7 @@ import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFe
 export const addFeatureToSubscription = protectedProcedure
   .input(addFeatureToSubscriptionInputSchema)
   .mutation(
-    authenticatedProcedureComprehensiveTransaction(
+    authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { subscriptionItemFeature } = (
           await addFeatureToSubscriptionItem(input, transactionCtx)

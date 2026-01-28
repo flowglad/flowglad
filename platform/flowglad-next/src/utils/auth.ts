@@ -6,6 +6,7 @@ import {
   emailOTP,
   magicLink,
 } from 'better-auth/plugins'
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { db } from '@/db/client'
@@ -33,22 +34,21 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
 }) => {
   const { email, url, token, organizationId } = params
   // Get organization and customer info for the email
-  const { organization, customer } = await adminTransaction(
-    async ({ transaction }) => {
-      const org = (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
-      // Only look for live mode customers - billing portals are not supported for test mode customers
-      const customers = await selectCustomers(
-        { email, organizationId, livemode: true },
-        transaction
-      )
-      return {
-        organization: org,
-        customer: customers[0] || null,
-      }
-    }
-  )
+  const txResult = await adminTransaction(async ({ transaction }) => {
+    const org = (
+      await selectOrganizationById(organizationId, transaction)
+    ).unwrap()
+    // Only look for live mode customers - billing portals are not supported for test mode customers
+    const customers = await selectCustomers(
+      { email, organizationId, livemode: true },
+      transaction
+    )
+    return Result.ok({
+      organization: org,
+      customer: customers[0] || null,
+    })
+  })
+  const { organization, customer } = txResult.unwrap()
 
   // Build the magic link URL with OTP
   // Send the magic link email
@@ -77,22 +77,21 @@ const handleSendVerificationOTP = async (params: {
   const { email, otp, organizationId } = params
 
   // Get organization and customer info for the email
-  const { organization, customer } = await adminTransaction(
-    async ({ transaction }) => {
-      const org = (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
-      // Only look for live mode customers - billing portals are not supported for test mode customers
-      const customers = await selectCustomers(
-        { email, organizationId, livemode: true },
-        transaction
-      )
-      return {
-        organization: org,
-        customer: customers[0] || null,
-      }
-    }
-  )
+  const txResult = await adminTransaction(async ({ transaction }) => {
+    const org = (
+      await selectOrganizationById(organizationId, transaction)
+    ).unwrap()
+    // Only look for live mode customers - billing portals are not supported for test mode customers
+    const customers = await selectCustomers(
+      { email, organizationId, livemode: true },
+      transaction
+    )
+    return Result.ok({
+      organization: org,
+      customer: customers[0] || null,
+    })
+  })
+  const { organization, customer } = txResult.unwrap()
 
   // Send OTP email using the proper email template
 

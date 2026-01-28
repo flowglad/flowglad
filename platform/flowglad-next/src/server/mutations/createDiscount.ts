@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { createDiscountInputSchema } from '@/db/schema/discounts'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
@@ -8,7 +9,7 @@ import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 export const createDiscount = protectedProcedure
   .input(createDiscountInputSchema)
   .mutation(async ({ input, ctx }) => {
-    const discount = await authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
         const [{ organization }] =
           await selectMembershipAndOrganizations(
@@ -29,7 +30,7 @@ export const createDiscount = protectedProcedure
           }
         )
 
-        return insertDiscount(
+        const discount = await insertDiscount(
           {
             ...input.discount,
             pricingModelId,
@@ -38,7 +39,8 @@ export const createDiscount = protectedProcedure
           },
           transaction
         )
+        return Result.ok(discount)
       }
     )
-    return { data: { discount } }
+    return { data: { discount: txResult.unwrap() } }
   })

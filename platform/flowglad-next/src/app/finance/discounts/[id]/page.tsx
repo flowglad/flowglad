@@ -15,11 +15,11 @@ interface PageProps {
 const DiscountPage = async ({ params }: PageProps) => {
   const { id } = await params
 
-  const result = await authenticatedTransaction(
+  const txResult = await authenticatedTransaction(
     async ({ transaction }) => {
       const discountResult = await selectDiscountById(id, transaction)
       if (Result.isError(discountResult)) {
-        return null
+        return Result.ok(null)
       }
       const discount = discountResult.unwrap()
 
@@ -31,12 +31,13 @@ const DiscountPage = async ({ params }: PageProps) => {
         .from(discountRedemptions)
         .where(eq(discountRedemptions.discountId, id))
 
-      return {
+      return Result.ok({
         discount,
         redemptionCount: redemptionResult?.count ?? 0,
-      }
+      })
     }
   )
+  const result = txResult.unwrap()
 
   if (!result) {
     notFound()

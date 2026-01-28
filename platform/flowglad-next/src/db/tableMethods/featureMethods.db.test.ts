@@ -12,10 +12,7 @@ import {
   setupSubscriptionItem,
   setupToggleFeature,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Feature } from '@/db/schema/features'
 import {
   resourceFeatureInsertSchema,
@@ -293,7 +290,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
   describe('when feature is deactivated (active: true → false)', () => {
     it('should expire all associated productFeatures', async () => {
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Deactivate the feature
           await updateFeatureTransaction(
@@ -323,7 +320,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should detach existing subscriptionItemFeatures but preserve them', async () => {
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // First create a subscriptionItemFeature
           const subscriptionItemFeatureInsert =
@@ -377,7 +374,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should prevent new subscriptions from getting the feature', async () => {
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Deactivate the feature
           await updateFeatureTransaction(
@@ -418,7 +415,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
   describe('when feature is reactivated (active: false → true)', () => {
     beforeEach(async () => {
       // First deactivate the feature
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           await updateFeatureTransaction(
             {
@@ -434,7 +431,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should unexpire all associated productFeatures', async () => {
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Verify it's expired first
           const expiredFeatures = await selectProductFeatures(
@@ -469,7 +466,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should allow new subscriptions to get the feature again', async () => {
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Reactivate the feature
           await updateFeatureTransaction(
@@ -508,7 +505,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should NOT automatically grant feature to subscriptions created while inactive', async () => {
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Create a subscription item while feature is inactive
           const itemWhileInactive = await setupSubscriptionItem({
@@ -558,7 +555,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
   describe('when active field is not changed', () => {
     it('should not trigger productFeature sync when updating other fields', async () => {
-      await comprehensiveAdminTransaction(
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Get initial state
           const initialProductFeatures = await selectProductFeatures(

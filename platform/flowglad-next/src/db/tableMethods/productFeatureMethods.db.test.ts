@@ -10,10 +10,7 @@ import {
   setupSubscriptionItem,
   setupToggleFeature,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Feature } from '@/db/schema/features'
 import type { Organization } from '@/db/schema/organizations'
 import type { Product } from '@/db/schema/products'
@@ -299,7 +296,7 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Batch unexpire all three
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const unexpireResult = await batchUnexpireProductFeatures(
           [pf1.id, pf2.id, pf3.id],
@@ -327,7 +324,7 @@ describe('batchUnexpireProductFeatures', () => {
   })
 
   it('returns empty array when given empty productFeatureIds list', async () => {
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const unexpireResult = await batchUnexpireProductFeatures(
           [],
@@ -356,7 +353,7 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Try to unexpire both
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const unexpireResult = await batchUnexpireProductFeatures(
           [expiredPf.id, activePf.id],
@@ -388,7 +385,7 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Try to unexpire active features
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const unexpireResult = await batchUnexpireProductFeatures(
           [pf1.id, pf2.id],
@@ -414,7 +411,7 @@ describe('batchUnexpireProductFeatures', () => {
     // Include a non-existent ID
     const fakeId = `product_feature_${core.nanoid()}`
 
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const unexpireResult = await batchUnexpireProductFeatures(
           [realPf.id, fakeId],
@@ -452,7 +449,7 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Unexpire all three
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const unexpireResult = await batchUnexpireProductFeatures(
           [expired1.id, active1.id, expired2.id],
@@ -697,7 +694,7 @@ describe('syncProductFeatures', () => {
     const desiredFeatureIds = [featureA.id, featureB.id]
 
     // - Call `syncProductFeatures` with the product details and the list of desired feature IDs.
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
@@ -750,7 +747,7 @@ describe('syncProductFeatures', () => {
       organizationId: organization.id,
     })
     // - Call `syncProductFeatures` with an empty `desiredFeatureIds` array.
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
@@ -790,7 +787,7 @@ describe('syncProductFeatures', () => {
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` matching the two expired features.
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
@@ -839,7 +836,7 @@ describe('syncProductFeatures', () => {
     // - Feature D is a new feature that doesn't have a product feature record yet.
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` for Feature A, Feature C, and Feature D.
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {
@@ -898,7 +895,7 @@ describe('syncProductFeatures', () => {
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` = `['feature_A_id']`.
-    const result = await comprehensiveAdminTransaction(
+    const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
         const syncResult = await syncProductFeatures(
           {

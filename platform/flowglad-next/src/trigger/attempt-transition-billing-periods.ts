@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingPeriodsDueForTransition } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptBillingPeriodTransitionTask } from './attempt-billing-period-transition'
@@ -17,16 +18,17 @@ export const attemptTransitionBillingPeriodsTask = task({
       ctx,
     })
 
-    const billingPeriodsToTransition = await adminTransaction(
-      ({ transaction }) =>
+    const billingPeriodsToTransition = (
+      await adminTransaction(({ transaction }) =>
         selectBillingPeriodsDueForTransition(
           {
             rangeStart: payload.lastTimestamp,
             rangeEnd: payload.currentTimestamp,
           },
           transaction
-        )
-    )
+        ).then((result) => Result.ok(result))
+      )
+    ).unwrap()
 
     if (billingPeriodsToTransition.length > 0) {
       await attemptBillingPeriodTransitionTask.batchTrigger(

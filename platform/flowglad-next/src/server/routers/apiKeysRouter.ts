@@ -1,15 +1,12 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   apiKeysClientSelectSchema,
   createApiKeyInputSchema,
 } from '@/db/schema/apiKeys'
 import {
   selectApiKeyById,
-  selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
 import {
@@ -22,7 +19,7 @@ import {
   createSecretApiKeyTransaction,
   deleteSecretApiKeyTransaction,
 } from '@/utils/apiKeyHelpers'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
 import { protectedProcedure, router } from '../trpc'
 
@@ -38,19 +35,16 @@ const getApiKeyProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ apiKey: apiKeysClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         const apiKey = (
           await selectApiKeyById(input.id, transaction)
         ).unwrap()
-        return {
-          apiKey,
-        }
+        return Result.ok({ apiKey })
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -72,66 +66,51 @@ const getTableRowsProcedure = protectedProcedure
       })
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectApiKeysTableRowData({ input, transaction })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectApiKeysTableRowData({
+          input,
+          transaction,
+        })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const createApiKey = protectedProcedure
   .input(createApiKeyInputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
-      async ({
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-        cacheRecomputationContext,
-      }) => {
-        return createSecretApiKeyTransaction(input, {
-          transaction,
-          userId,
-          livemode,
-          organizationId,
-          cacheRecomputationContext,
-        })
-      }
+      async (params) => {
+        const data = await createSecretApiKeyTransaction(
+          input,
+          params
+        )
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-
-    return {
-      apiKey: result.apiKey,
-      shownOnlyOnceKey: result.shownOnlyOnceKey,
-    }
+    const { apiKey, shownOnlyOnceKey } = result.unwrap()
+    return { apiKey, shownOnlyOnceKey }
   })
 
 export const deleteApiKey = protectedProcedure
   .input(idInputSchema)
   .mutation(async ({ input, ctx }) => {
-    await authenticatedTransaction(
-      ({
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-        cacheRecomputationContext,
-      }) =>
-        deleteSecretApiKeyTransaction(input, {
-          transaction,
-          userId,
-          livemode,
-          organizationId,
-          cacheRecomputationContext,
-        })
+    const result = await authenticatedTransaction(
+      async (params) => {
+        await deleteSecretApiKeyTransaction(input, params)
+        return Result.ok({ success: true })
+      },
+      { apiKey: ctx.apiKey }
     )
-    return { success: true }
+    return result.unwrap()
   })
 
 export const apiKeysRouter = router({
-  // list: listApiKeysProcedure,
   get: getApiKeyProcedure,
   getTableRows: getTableRowsProcedure,
   rotate: rotateApiKeyProcedure,

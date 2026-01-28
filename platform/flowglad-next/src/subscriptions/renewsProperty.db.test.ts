@@ -12,10 +12,7 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -81,29 +78,27 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
     describe('Renewing Subscriptions', () => {
       it('should create a subscription with renews: true for standard subscriptions', async () => {
         // Use default price (subscription type)
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            const stripeSetupIntentId = `si_standard_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price, // Default price is subscription type
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                defaultPaymentMethod: paymentMethod,
-                customer,
-                stripeSetupIntentId,
-                autoStart: true,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          }
-        )
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const stripeSetupIntentId = `si_standard_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price, // Default price is subscription type
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
 
         // Verify renewing subscription properties
         expect(result.subscription.renews).toBe(true)
@@ -124,29 +119,27 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should create billing period for renewing subscriptions', async () => {
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            const stripeSetupIntentId = `si_bp_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                defaultPaymentMethod: paymentMethod,
-                customer,
-                stripeSetupIntentId,
-                autoStart: true,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          }
-        )
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const stripeSetupIntentId = `si_bp_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
 
         // Verify billing period was created
         expect(result.billingPeriod).toMatchObject({})
@@ -162,29 +155,27 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should create billing run for renewing subscriptions with payment method', async () => {
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            const stripeSetupIntentId = `si_br_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                defaultPaymentMethod: paymentMethod,
-                customer,
-                stripeSetupIntentId,
-                autoStart: true,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          }
-        )
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const stripeSetupIntentId = `si_br_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
 
         // Verify billing run was created
         expect(typeof result.billingRun).toBe('object')
@@ -199,30 +190,28 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           Date.now() + 7 * 24 * 60 * 60 * 1000
         )
 
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            const stripeSetupIntentId = `si_trial_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                defaultPaymentMethod: paymentMethod,
-                customer,
-                stripeSetupIntentId,
-                trialEnd,
-                autoStart: true,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          }
-        )
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const stripeSetupIntentId = `si_trial_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId,
+              trialEnd,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
 
         // Verify trial subscription properties
         expect(result.subscription.renews).toBe(true)
@@ -390,7 +379,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Transition billing period
-        const result = await comprehensiveAdminTransaction(
+        const result = await adminTransaction(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -474,7 +463,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        const result = await comprehensiveAdminTransaction(
+        const result = await adminTransaction(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -539,7 +528,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        const result = await comprehensiveAdminTransaction(
+        const result = await adminTransaction(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -611,7 +600,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        const result = await comprehensiveAdminTransaction(
+        const result = await adminTransaction(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -707,7 +696,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Attempting to transition should throw error for non-renewing subscription
         await expect(
-          comprehensiveAdminTransaction(
+          adminTransaction(
             async ({
               transaction,
               cacheRecomputationContext,
@@ -784,26 +773,24 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Create subscription with credit trial
-        const result = await comprehensiveAdminTransaction(
-          async (params) => {
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price: creditTrialPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                customer,
-                stripeSetupIntentId: `si_credits_${core.nanoid()}`,
-                autoStart: true,
-              },
-              createProcessingEffectsContext(params)
-            )
-          }
-        )
+        const result = await adminTransaction(async (params) => {
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: creditTrialPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              customer,
+              stripeSetupIntentId: `si_credits_${core.nanoid()}`,
+              autoStart: true,
+            },
+            createProcessingEffectsContext(params)
+          )
+        })
 
         // Verify subscription state
         expect(result.subscription.status).toBe(
@@ -1020,28 +1007,26 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Create credit trial subscription WITH payment method
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price: creditTrialPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                defaultPaymentMethod: paymentMethod, // Has payment method
-                customer,
-                stripeSetupIntentId: `si_no_runs_${core.nanoid()}`,
-                autoStart: true,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          }
-        )
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: creditTrialPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod, // Has payment method
+              customer,
+              stripeSetupIntentId: `si_no_runs_${core.nanoid()}`,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
 
         // Verify no billing run was created
         expect(result.billingRun).toBeNull()
@@ -1079,28 +1064,26 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
 
         // Create renewing subscription
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price: subscriptionPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                defaultPaymentMethod: paymentMethod,
-                customer,
-                stripeSetupIntentId: `si_period_start_${core.nanoid()}`,
-                autoStart: true,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          }
-        )
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: subscriptionPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId: `si_period_start_${core.nanoid()}`,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
 
         // Verify subscription is renewing
         expect(result.subscription.renews).toBe(true)

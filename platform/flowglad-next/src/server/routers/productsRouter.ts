@@ -2,12 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-  comprehensiveAuthenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createProductSchema,
   editProductSchema,
@@ -59,17 +54,16 @@ export const createProduct = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { livemode, organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async (params) => {
         try {
           // Validate that default products cannot be created manually
           const validationResult = validateProductCreation(
@@ -94,7 +88,7 @@ export const createProduct = protectedProcedure
               ],
               featureIds,
             },
-            { ...transactionCtx, livemode, organizationId }
+            { ...params, livemode, organizationId }
           )
           return Result.ok({
             product: txResult.product,
@@ -110,25 +104,26 @@ export const createProduct = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const updateProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { livemode, organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async (params) => {
         try {
           const updatedProduct = await editProductPricingModel(
             {
@@ -136,7 +131,7 @@ export const updateProduct = protectedProcedure
               featureIds: input.featureIds,
               price: input.price,
             },
-            { ...transactionCtx, livemode, organizationId }
+            { ...params, livemode, organizationId }
           )
 
           return Result.ok({
@@ -155,23 +150,25 @@ export const updateProduct = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const listProducts = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(productsPaginatedSelectSchema)
   .output(productsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectProductsPaginated(input, transaction)
+        const data = await selectProductsPaginated(input, transaction)
+        return Result.ok(data)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 export const getProduct = protectedProcedure
@@ -180,22 +177,22 @@ export const getProduct = protectedProcedure
   .output(productWithPricesSchema)
   .query(async ({ input, ctx }) => {
     try {
-      return await authenticatedTransaction(
+      const result = await authenticatedTransaction(
         async ({ transaction }) => {
-          const result =
+          const productResult =
             await selectProductPriceAndFeaturesByProductId(
               input.id,
               transaction
             )
 
-          if (!result) {
+          if (!productResult) {
             throw new TRPCError({
               code: 'NOT_FOUND',
               message: `Product not found with id ${input.id}`,
             })
           }
 
-          const { product, prices, features } = result
+          const { product, prices, features } = productResult
 
           if (!prices || prices.length === 0) {
             throw new TRPCError({
@@ -204,18 +201,17 @@ export const getProduct = protectedProcedure
             })
           }
 
-          return {
+          return Result.ok({
             ...product,
             prices,
             features,
             defaultPrice:
               prices.find((price) => price.isDefault) ?? prices[0],
-          }
+          })
         },
-        {
-          apiKey: ctx.apiKey,
-        }
+        { apiKey: ctx.apiKey }
       )
+      return result.unwrap()
     } catch (error) {
       errorHandlers.product.handle(error, {
         operation: 'get',
@@ -238,14 +234,19 @@ export const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(productsTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectProductsCursorPaginated({ input, transaction })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectProductsCursorPaginated({
+          input,
+          transaction,
+        })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getCountsByStatusSchema = z.object({})
 
@@ -260,7 +261,7 @@ export const getCountsByStatus = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction, userId }) => {
         // Get the user's organization
         const [membership] = await selectMembershipAndOrganizations(
@@ -293,15 +294,14 @@ export const getCountsByStatus = protectedProcedure
           (p) => !p.active
         ).length
 
-        return [
+        return Result.ok([
           { status: 'active', count: activeCount },
           { status: 'inactive', count: inactiveCount },
-        ]
+        ])
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 export const productsRouter = router({

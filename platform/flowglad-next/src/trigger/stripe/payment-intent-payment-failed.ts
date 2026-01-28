@@ -1,6 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { TransactionEffectsContext } from '@/db/types'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { tracedTaskRun } from '@/utils/triggerTracing'
@@ -16,7 +17,7 @@ export const stripePaymentIntentPaymentFailedTask = task({
       async () => {
         const metadata = payload.data.object.metadata
         if ('billingRunId' in metadata) {
-          return comprehensiveAdminTransaction(async (params) => {
+          const txResult = await adminTransaction(async (params) => {
             const effectsCtx: TransactionEffectsContext = {
               transaction: params.transaction,
               cacheRecomputationContext:
@@ -25,11 +26,13 @@ export const stripePaymentIntentPaymentFailedTask = task({
               emitEvent: params.emitEvent,
               enqueueLedgerCommand: params.enqueueLedgerCommand,
             }
-            return await processOutcomeForBillingRun(
+            const innerResult = await processOutcomeForBillingRun(
               { input: payload },
               effectsCtx
             )
+            return Result.ok(innerResult.unwrap())
           })
+          return txResult.unwrap()
         } else {
           logger.log(
             'Payment intent payment failed, no action taken (not a billing run)',

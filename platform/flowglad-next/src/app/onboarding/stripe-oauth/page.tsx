@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
@@ -8,24 +9,26 @@ import {
 } from '@/utils/stripeOAuthState'
 
 export default async function StripeOAuthPage() {
-  const result = await authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      const focusedMembership =
-        await selectFocusedMembershipAndOrganization(
+  const result = (
+    await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        const focusedMembership =
+          await selectFocusedMembershipAndOrganization(
+            userId,
+            transaction
+          )
+
+        if (!focusedMembership) {
+          return Result.ok(null)
+        }
+
+        return Result.ok({
           userId,
-          transaction
-        )
-
-      if (!focusedMembership) {
-        return null
+          organizationId: focusedMembership.membership.organizationId,
+        })
       }
-
-      return {
-        userId,
-        organizationId: focusedMembership.membership.organizationId,
-      }
-    }
-  )
+    )
+  ).unwrap()
 
   if (!result) {
     redirect('/dashboard')

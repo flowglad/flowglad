@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { notFound, redirect } from 'next/navigation'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
@@ -19,6 +20,13 @@ const CheckoutSessionPage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
+  const txResult = await adminTransaction(async ({ transaction }) => {
+    const result = await checkoutInfoForCheckoutSession(
+      id,
+      transaction
+    )
+    return Result.ok(result)
+  })
   const {
     checkoutSession,
     product,
@@ -29,9 +37,7 @@ const CheckoutSessionPage = async ({
     maybeCurrentSubscriptions,
     discount,
     isEligibleForTrial,
-  } = await adminTransaction(async ({ transaction }) => {
-    return checkoutInfoForCheckoutSession(id, transaction)
-  })
+  } = txResult.unwrap()
 
   if (!checkoutSession) {
     notFound()

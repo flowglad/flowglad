@@ -2,14 +2,8 @@ import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { z } from 'zod'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
-import {
-  authenticatedTransaction,
-  comprehensiveAuthenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   checkoutSessionClientSelectSchema,
   customerBillingCreatePricedCheckoutSessionInputSchema,
@@ -128,6 +122,23 @@ const getBillingProcedure = customerProtectedProcedure
       })
     }
 
+    const billingResult = await authenticatedTransaction(
+      async ({ transaction, cacheRecomputationContext }) => {
+        const data = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        return Result.ok(data)
+      },
+      {
+        apiKey: ctx.apiKey,
+        customerId: customer.id,
+      }
+    )
     const {
       pricingModel,
       invoices,
@@ -136,22 +147,7 @@ const getBillingProcedure = customerProtectedProcedure
       currentSubscription,
       purchases,
       subscriptions,
-    } = await authenticatedTransaction(
-      async ({ transaction, cacheRecomputationContext }) => {
-        return customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-        customerId: customer.id,
-      }
-    )
+    } = billingResult.unwrap()
 
     // Apply pagination to invoices if requested
     let paginatedInvoices = invoices
@@ -219,7 +215,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     const { customer, livemode } = ctx
 
     // First transaction: Validate cancellation is allowed (customer-scoped RLS)
-    await authenticatedTransaction(
+    const validationResult = await authenticatedTransaction(
       async ({ transaction }) => {
         // Verify the subscription belongs to the customer
         const subscription = (
@@ -270,16 +266,18 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
               'Immediate cancellation is not available through the customer billing portal',
           })
         }
+        return Result.ok({ validated: true })
       },
       {
         apiKey: ctx.apiKey,
         customerId: customer.id,
       }
     )
+    validationResult.unwrap()
 
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
-    return await comprehensiveAdminTransaction(
+    const cancelResult = await adminTransaction(
       async ({
         transaction,
         cacheRecomputationContext,
@@ -311,6 +309,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
         livemode,
       }
     )
+    return cancelResult.unwrap()
   })
 
 // uncancelSubscription procedure
@@ -330,7 +329,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     const { customer, livemode } = ctx
 
     // First transaction: Validate uncancel is allowed (customer-scoped RLS)
-    await authenticatedTransaction(
+    const uncancelValidationResult = await authenticatedTransaction(
       async ({ transaction }) => {
         // Verify the subscription belongs to the customer
         const subscription = (
@@ -362,15 +361,17 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
               'No cancellation scheduled for this subscription',
           })
         }
+        return Result.ok({ validated: true })
       },
       {
         apiKey: ctx.apiKey,
         customerId: customer.id,
       }
     )
+    uncancelValidationResult.unwrap()
 
     // Second transaction: Actually perform the uncancel (admin-scoped, bypasses RLS)
-    return await comprehensiveAdminTransaction(
+    const uncancelResult = await adminTransaction(
       async ({
         transaction,
         cacheRecomputationContext,
@@ -388,11 +389,11 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
         const subscription = (
           await selectSubscriptionById(input.id, transaction)
         ).unwrap()
-        const uncancelResult = await uncancelSubscription(
+        const uncancelSubResult = await uncancelSubscription(
           subscription,
           ctx
         )
-        const updatedSubscription = uncancelResult.unwrap()
+        const updatedSubscription = uncancelSubResult.unwrap()
         return Result.ok({
           subscription: {
             ...updatedSubscription,
@@ -407,6 +408,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
         livemode,
       }
     )
+    return uncancelResult.unwrap()
   })
 
 // requestMagicLink procedure
@@ -427,86 +429,93 @@ const requestMagicLinkProcedure = publicProcedure
 
     try {
       // Verify organization exists
-      const organizationResult = await adminTransaction(
+      const orgResult = await adminTransaction(
         async ({ transaction }) => {
-          return selectOrganizationById(organizationId, transaction)
+          const org = await selectOrganizationById(
+            organizationId,
+            transaction
+          )
+          return Result.ok(org)
         }
       )
+      const organization = orgResult.unwrap()
 
-      if (Result.isError(organizationResult)) {
+      if (!organization) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Organization not found',
         })
       }
-      const organization = organizationResult.unwrap()
 
       // Set the organization ID for the billing portal session
       await setCustomerBillingPortalOrganizationId(organizationId)
 
       // Check if customers exist and handle user creation/linking in single transaction
-      await adminTransaction(async ({ transaction }) => {
-        // Find livemode customers by email and organizationId
-        // Note: Intentionally includes archived customers - they should still be able
-        // to access the billing portal to view historical invoices and billing data
-        const customers = await selectCustomers(
-          {
-            email,
-            organizationId,
-            livemode: true,
-          },
-          transaction
-        )
+      const linkResult = await adminTransaction(
+        async ({ transaction }) => {
+          // Find livemode customers by email and organizationId
+          // Note: Intentionally includes archived customers - they should still be able
+          // to access the billing portal to view historical invoices and billing data
+          const customers = await selectCustomers(
+            {
+              email,
+              organizationId,
+              livemode: true,
+            },
+            transaction
+          )
 
-        if (customers.length > 0) {
-          // Customer found - proceed with user account handling
-          const [user] = await selectUsers({ email }, transaction)
+          if (customers.length > 0) {
+            // Customer found - proceed with user account handling
+            const [user] = await selectUsers({ email }, transaction)
 
-          let userId: string
+            let userId: string
 
-          if (!user || !user.betterAuthId) {
-            // Create new user account for the customer
-            const result = await auth.api.createUser({
-              body: {
-                email,
-                password: core.nanoid(),
-                name: customers
-                  .map((customer) => customer.name)
-                  .join(' '),
-              },
-            })
-            const safelyCreatedUser =
-              await betterAuthUserToApplicationUser(result.user)
-            userId = safelyCreatedUser.id
+            if (!user || !user.betterAuthId) {
+              // Create new user account for the customer
+              const result = await auth.api.createUser({
+                body: {
+                  email,
+                  password: core.nanoid(),
+                  name: customers
+                    .map((customer) => customer.name)
+                    .join(' '),
+                },
+              })
+              const safelyCreatedUser =
+                await betterAuthUserToApplicationUser(result.user)
+              userId = safelyCreatedUser.id
 
-            // Link customers to the new user
-            await setUserIdForCustomerRecords(
-              { customerEmail: email, userId },
-              transaction
-            )
-          } else {
-            userId = user.id
-
-            // If some customers have no user id, set the user id for the customers
-            if (
-              customers.some((customer) => customer.userId === null)
-            ) {
+              // Link customers to the new user
               await setUserIdForCustomerRecords(
                 { customerEmail: email, userId },
                 transaction
               )
-            }
-          }
+            } else {
+              userId = user.id
 
-          // Get better auth user for email verification status
-          await selectBetterAuthUserById(
-            user.betterAuthId!,
-            transaction
-          )
+              // If some customers have no user id, set the user id for the customers
+              if (
+                customers.some((customer) => customer.userId === null)
+              ) {
+                await setUserIdForCustomerRecords(
+                  { customerEmail: email, userId },
+                  transaction
+                )
+              }
+            }
+
+            // Get better auth user for email verification status
+            await selectBetterAuthUserById(
+              user.betterAuthId!,
+              transaction
+            )
+          }
+          // Always return success (even if no customer found) for security
+          return Result.ok({ success: true })
         }
-        // Always return success (even if no customer found) for security
-        return { success: true }
-      })
+      )
+      linkResult.unwrap()
 
       await auth.api.signInMagicLink({
         body: {
@@ -588,7 +597,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { customer } = ctx
     const { paymentMethodId } = input
 
-    return comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({
         transaction,
         cacheRecomputationContext,
@@ -633,6 +642,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
         customerId: customer.id,
       }
     )
+    return result.unwrap()
   })
 
 // Get all customers for an email at an organization
@@ -665,9 +675,9 @@ const getCustomersForUserAndOrganizationProcedure = protectedProcedure
 
     // Note: Intentionally includes archived customers - they should still be able
     // to access the billing portal to view historical invoices and billing data
-    const customers = await authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCustomers(
+        const customers = await selectCustomers(
           {
             userId,
             organizationId,
@@ -675,9 +685,10 @@ const getCustomersForUserAndOrganizationProcedure = protectedProcedure
           },
           transaction
         )
+        return Result.ok({ customers })
       }
     )
-    return { customers }
+    return result.unwrap()
   })
 
 const createCheckoutSessionWithPriceProcedure =
@@ -754,7 +765,7 @@ const sendOTPToCustomerProcedure = publicProcedure
 
     try {
       // 1. Fetch customer and organization, verify they match in a single transaction
-      const { customer, organization } = await adminTransaction(
+      const customerOrgResult = await adminTransaction(
         async ({ transaction }) => {
           const customerResult = await selectCustomerById(
             customerId,
@@ -797,83 +808,87 @@ const sendOTPToCustomerProcedure = publicProcedure
             })
           }
 
-          return {
+          return Result.ok({
             customer,
             organization: organizationResult.unwrap(),
-          }
+          })
         }
       )
+      const { customer, organization } = customerOrgResult.unwrap()
 
       // 2. Set organization ID for billing portal session
       await setCustomerBillingPortalOrganizationId(organizationId)
 
       // 3. Create/link user account if needed
-      await adminTransaction(async ({ transaction }) => {
-        const email = customer.email!
+      const linkUserResult = await adminTransaction(
+        async ({ transaction }) => {
+          const email = customer.email!
 
-        // Find livemode customers by email and organizationId
-        // Note: Intentionally includes archived customers - they should still be able
-        // to access the billing portal to view historical invoices and billing data
-        const customers = await selectCustomers(
-          {
-            email,
-            organizationId,
-            livemode: true,
-          },
-          transaction
-        )
+          // Find livemode customers by email and organizationId
+          // Note: Intentionally includes archived customers - they should still be able
+          // to access the billing portal to view historical invoices and billing data
+          const customers = await selectCustomers(
+            {
+              email,
+              organizationId,
+              livemode: true,
+            },
+            transaction
+          )
 
-        if (customers.length > 0) {
-          // Customer found - proceed with user account handling
-          const [user] = await selectUsers({ email }, transaction)
+          if (customers.length > 0) {
+            // Customer found - proceed with user account handling
+            const [user] = await selectUsers({ email }, transaction)
 
-          let userId: string
+            let userId: string
 
-          if (!user || !user.betterAuthId) {
-            // Create new user account for the customer
-            const result = await auth.api.createUser({
-              body: {
-                email,
-                password: core.nanoid(),
-                name: customers
-                  .map((customer) => customer.name)
-                  .join(' '),
-              },
-            })
-            const safelyCreatedUser =
-              await betterAuthUserToApplicationUser(result.user)
-            userId = safelyCreatedUser.id
+            if (!user || !user.betterAuthId) {
+              // Create new user account for the customer
+              const result = await auth.api.createUser({
+                body: {
+                  email,
+                  password: core.nanoid(),
+                  name: customers
+                    .map((customer) => customer.name)
+                    .join(' '),
+                },
+              })
+              const safelyCreatedUser =
+                await betterAuthUserToApplicationUser(result.user)
+              userId = safelyCreatedUser.id
 
-            // Link customers to the new user
-            await setUserIdForCustomerRecords(
-              { customerEmail: email, userId },
-              transaction
-            )
-          } else {
-            userId = user.id
-
-            // If some customers have no user id, set the user id for the customers
-            if (
-              customers.some((customer) => customer.userId === null)
-            ) {
+              // Link customers to the new user
               await setUserIdForCustomerRecords(
                 { customerEmail: email, userId },
                 transaction
               )
+            } else {
+              userId = user.id
+
+              // If some customers have no user id, set the user id for the customers
+              if (
+                customers.some((customer) => customer.userId === null)
+              ) {
+                await setUserIdForCustomerRecords(
+                  { customerEmail: email, userId },
+                  transaction
+                )
+              }
+            }
+
+            // Get better auth user for email verification status
+            if (user?.betterAuthId) {
+              await selectBetterAuthUserById(
+                user.betterAuthId,
+                transaction
+              )
             }
           }
-
-          // Get better auth user for email verification status
-          if (user?.betterAuthId) {
-            await selectBetterAuthUserById(
-              user.betterAuthId,
-              transaction
-            )
-          }
+          // Always return success (even if no customer found) for security
+          return Result.ok({ success: true })
         }
-        // Always return success (even if no customer found) for security
-        return { success: true }
-      })
+      )
+      linkUserResult.unwrap()
 
       // 4. Store email in secure cookie for server-side OTP verification
       // This prevents exposing actual email to client

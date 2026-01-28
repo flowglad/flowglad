@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs'
 import type * as trpcNext from '@trpc/server/adapters/next'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import type { User } from '@/db/schema/users'
@@ -23,14 +24,17 @@ export const createContext = async (
   let user: User.Record | undefined
 
   if (betterAuthUserId) {
-    const memberships = await adminTransaction(
+    const membershipsResult = await adminTransaction(
       async ({ transaction }) => {
-        return selectMembershipAndOrganizationsByBetterAuthUserId(
-          betterAuthUserId,
-          transaction
+        return Result.ok(
+          await selectMembershipAndOrganizationsByBetterAuthUserId(
+            betterAuthUserId,
+            transaction
+          )
         )
       }
     )
+    const memberships = membershipsResult.unwrap()
     const maybeMembership = memberships.find(
       (membership) => membership.membership.focused
     )
@@ -41,14 +45,17 @@ export const createContext = async (
       organizationId = organization.id
       user = maybeMembership.user
     } else {
-      const [maybeUser] = await adminTransaction(
+      const usersResult = await adminTransaction(
         async ({ transaction }) => {
-          return selectUsers(
-            { betterAuthId: betterAuthUserId },
-            transaction
+          return Result.ok(
+            await selectUsers(
+              { betterAuthId: betterAuthUserId },
+              transaction
+            )
           )
         }
       )
+      const [maybeUser] = usersResult.unwrap()
       if (maybeUser) {
         user = maybeUser
       }
@@ -91,11 +98,16 @@ export const createApiContext = ({
       // @ts-expect-error - headers get
       .get('Authorization')
       ?.replace(/^Bearer\s/, '')
-    const organization = await adminTransaction(
+    const orgTxResult = await adminTransaction(
       async ({ transaction }) => {
-        return selectOrganizationById(organizationId, transaction)
+        const orgResult = await selectOrganizationById(
+          organizationId,
+          transaction
+        )
+        return Result.ok(orgResult.unwrap())
       }
     )
+    const organization = orgTxResult.unwrap()
     return {
       apiKey,
       isApi: true,

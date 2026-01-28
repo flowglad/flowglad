@@ -2,11 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   customerClientSelectSchema,
   customersPaginatedListSchema,
@@ -123,23 +119,18 @@ const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({
-        input,
-        ctx,
-        transactionCtx,
-      }): Promise<Result<CreateCustomerOutputSchema, Error>> => {
-        const { transaction } = transactionCtx
-        const { livemode, organizationId } = ctx
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const { transaction } = params
         try {
-          if (!organizationId) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'organizationId is required',
-            })
-          }
-
           const { customer } = input
           /**
            * We have to parse the customer record here because of the billingAddress json
@@ -155,13 +146,12 @@ const createCustomerProcedure = protectedProcedure
               {
                 transaction,
                 cacheRecomputationContext:
-                  transactionCtx.cacheRecomputationContext,
+                  params.cacheRecomputationContext,
                 livemode,
                 organizationId,
-                invalidateCache: transactionCtx.invalidateCache,
-                emitEvent: transactionCtx.emitEvent,
-                enqueueLedgerCommand:
-                  transactionCtx.enqueueLedgerCommand,
+                invalidateCache: params.invalidateCache,
+                emitEvent: params.emitEvent,
+                enqueueLedgerCommand: params.enqueueLedgerCommand,
               }
             )
 
@@ -190,25 +180,26 @@ const createCustomerProcedure = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const updateCustomer = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editCustomerInputSchema)
   .output(editCustomerOutputSchema)
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'organizationId is required',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { organizationId } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         try {
           const { customer } = input
           const customerRecord =
@@ -233,9 +224,9 @@ export const updateCustomer = protectedProcedure
             },
             transaction
           )
-          return {
+          return Result.ok({
             customer: updatedCustomer,
-          }
+          })
         } catch (error) {
           errorHandlers.customer.handle(error, {
             operation: 'update',
@@ -248,22 +239,23 @@ export const updateCustomer = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getCustomerById = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(z.object({ customer: customerClientSelectSchema }))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         try {
           const customer = (
             await selectCustomerById(input.id, transaction)
           ).unwrap()
-          return { customer }
+          return Result.ok({ customer })
         } catch (error) {
           errorHandlers.customer.handle(error, {
             operation: 'get',
@@ -271,9 +263,11 @@ export const getCustomerById = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getPricingModelForCustomer = protectedProcedure
   .input(z.object({ customerId: z.string() }))
@@ -282,10 +276,9 @@ export const getPricingModelForCustomer = protectedProcedure
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         try {
           const customer = (
             await selectCustomerById(input.customerId, transaction)
@@ -294,7 +287,7 @@ export const getPricingModelForCustomer = protectedProcedure
             customer,
             transaction
           )
-          return { pricingModel }
+          return Result.ok({ pricingModel })
         } catch (error) {
           errorHandlers.customer.handle(error, {
             operation: 'getPricingModel',
@@ -302,9 +295,11 @@ export const getPricingModelForCustomer = protectedProcedure
           })
           throw error
         }
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const getCustomer = protectedProcedure
   .meta(openApiMetas.GET)
@@ -327,26 +322,26 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customer = await authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCustomerByExternalIdAndOrganizationId(
-          { externalId: input.externalId, organizationId },
-          transaction
-        )
+        const customer =
+          await selectCustomerByExternalIdAndOrganizationId(
+            { externalId: input.externalId, organizationId },
+            transaction
+          )
+        if (!customer) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Customer with externalId ${input.externalId} not found`,
+          })
+        }
+        return Result.ok({ customer })
       },
       {
         apiKey: ctx.apiKey,
       }
     )
-
-    if (!customer) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Customer with externalId ${input.externalId} not found`,
-      })
-    }
-
-    return { customer }
+    return result.unwrap()
   })
 
 export const getCustomerBilling = protectedProcedure
@@ -390,6 +385,22 @@ export const getCustomerBilling = protectedProcedure
     if (!organizationId) {
       throw new Error('organizationId is required')
     }
+    const result = await authenticatedTransaction(
+      async ({ transaction, cacheRecomputationContext }) => {
+        const billingData = await customerBillingTransaction(
+          {
+            externalId: input.externalId,
+            organizationId,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        return Result.ok(billingData)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
     const {
       customer,
       pricingModel,
@@ -399,21 +410,7 @@ export const getCustomerBilling = protectedProcedure
       currentSubscription,
       purchases,
       subscriptions,
-    } = await authenticatedTransaction(
-      async ({ transaction, cacheRecomputationContext }) => {
-        return customerBillingTransaction(
-          {
-            externalId: input.externalId,
-            organizationId,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    } = result.unwrap()
     return {
       customer,
       invoices,
@@ -477,7 +474,7 @@ export const getCustomerUsageBalances = protectedProcedure
       })
     }
 
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         // Resolve customer by externalId and organizationId
         const customer =
@@ -529,7 +526,7 @@ export const getCustomerUsageBalances = protectedProcedure
         }
 
         if (subscriptionIds.length === 0) {
-          return { usageMeterBalances: [] }
+          return Result.ok({ usageMeterBalances: [] })
         }
 
         // Fetch usage meter balances for the subscriptions
@@ -539,45 +536,54 @@ export const getCustomerUsageBalances = protectedProcedure
             transaction
           )
 
-        return {
+        return Result.ok({
           usageMeterBalances: balances.map(
             (b) => b.usageMeterBalance
           ),
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    return result.unwrap()
   })
 
 const listCustomersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(customersPaginatedSelectSchema)
   .output(customersPaginatedListSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectCustomersPaginated(input, transaction)
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectCustomersPaginated(
+          input,
+          transaction
+        )
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const getTableRowsProcedure = protectedProcedure
   .input(customersPaginatedTableRowInputSchema)
   .output(customersPaginatedTableRowOutputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectCustomersCursorPaginatedWithTableRowData({
-          input,
-          transaction,
-        })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input,
+            transaction,
+          })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const exportCsvProcedure = protectedProcedure
   .input(
@@ -599,30 +605,29 @@ const exportCsvProcedure = protectedProcedure
       asyncExportStarted: z.boolean().optional(),
     })
   )
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
-        const { filters, searchQuery } = input
-        // Maximum number of customers that can be exported via CSV without async export
-        const CUSTOMER_LIMIT = 1000
-        const PAGE_SIZE = 100
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    const userId = ctx.user?.id
+    const { filters, searchQuery } = input
+    // Maximum number of customers that can be exported via CSV without async export
+    const CUSTOMER_LIMIT = 1000
+    const PAGE_SIZE = 100
+    if (!userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User ID is required',
+      })
+    }
 
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Organization ID is required',
-          })
-        }
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required',
+      })
+    }
 
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
         // Get first page to check total count with minimal data transfer
         const countCheckResponse =
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -662,10 +667,10 @@ const exportCsvProcedure = protectedProcedure
             }
           )
 
-          return {
+          return Result.ok({
             totalCustomers,
             asyncExportStarted: true,
-          }
+          })
         }
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
@@ -712,15 +717,17 @@ const exportCsvProcedure = protectedProcedure
           focusedMembership.organization.defaultCurrency
         )
 
-        return {
+        return Result.ok({
           csv,
           filename,
           totalCustomers,
           asyncExportStarted: false,
-        }
-      }
+        })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const migrateCustomerPricingModelProcedure = protectedProcedure
   .input(
@@ -736,11 +743,19 @@ const migrateCustomerPricingModelProcedure = protectedProcedure
       newSubscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      migrateCustomerPricingModelProcedureTransaction
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async (params) => {
+        return migrateCustomerPricingModelProcedureTransaction({
+          input,
+          ctx,
+          transactionCtx: params,
+        })
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 const archiveCustomerInputSchema = z.object({
   externalId: z
@@ -785,24 +800,25 @@ const archiveCustomerProcedure = protectedProcedure
   )
   .input(archiveCustomerInputSchema)
   .output(archiveCustomerOutputSchema)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
+  .mutation(async ({ input, ctx }) => {
+    const { organizationId } = ctx
+
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+
+    const result = await authenticatedTransaction(
+      async (params) => {
         const {
           transaction,
           invalidateCache,
           emitEvent,
           cacheRecomputationContext,
           enqueueLedgerCommand,
-        } = transactionCtx
-        const { organizationId } = ctx
-
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'organizationId is required',
-          })
-        }
+        } = params
 
         // 1. Fetch customer (include archived for idempotency)
         const customer =
@@ -876,9 +892,11 @@ const archiveCustomerProcedure = protectedProcedure
         )
 
         return Result.ok({ customer: archivedCustomer })
-      }
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const customersRouter = router({
   create: createCustomerProcedure,

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -23,37 +24,35 @@ const CheckoutSessionPage = async ({
   params: Promise<{ checkoutSessionId: string }>
 }) => {
   const { checkoutSessionId } = await params
-  const { checkoutSession, sellerOrganization, customer } =
-    await adminTransaction(async ({ transaction }) => {
-      const checkoutSession = (
-        await selectCheckoutSessionById(
-          checkoutSessionId,
-          transaction
-        )
-      ).unwrap()
-      if (
-        checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
-      ) {
-        notFound()
-      }
-      const customer = (
-        await selectCustomerById(
-          checkoutSession.customerId,
-          transaction
-        )
-      ).unwrap()
-      const organization = (
-        await selectOrganizationById(
-          checkoutSession.organizationId,
-          transaction
-        )
-      ).unwrap()
-      return {
-        checkoutSession,
-        sellerOrganization: organization,
-        customer,
-      }
+  const txResult = await adminTransaction(async ({ transaction }) => {
+    const checkoutSession = (
+      await selectCheckoutSessionById(checkoutSessionId, transaction)
+    ).unwrap()
+    if (
+      checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
+    ) {
+      notFound()
+    }
+    const customer = (
+      await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    ).unwrap()
+    const organization = (
+      await selectOrganizationById(
+        checkoutSession.organizationId,
+        transaction
+      )
+    ).unwrap()
+    return Result.ok({
+      checkoutSession,
+      sellerOrganization: organization,
+      customer,
     })
+  })
+  const { checkoutSession, sellerOrganization, customer } =
+    txResult.unwrap()
 
   if (!checkoutSession) {
     notFound()

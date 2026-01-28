@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -25,9 +26,11 @@ export default async function StripeOAuthCallbackPage({
     const csrfToken = decodeStripeOAuthState(state)
 
     // Step 2: Get the current authenticated user
-    const userId = await authenticatedTransaction(
-      async ({ userId }) => userId
-    )
+    const userId = (
+      await authenticatedTransaction(async ({ userId }) =>
+        Result.ok(userId)
+      )
+    ).unwrap()
 
     // Step 3: Validate and consume the CSRF token (single-use)
     const validation = await validateAndConsumeStripeOAuthCsrfToken({
@@ -45,17 +48,19 @@ export default async function StripeOAuthCallbackPage({
     if (!stripeResponse.stripe_user_id) {
       throw new Error('Stripe OAuth response missing stripe_user_id')
     }
-
     // Step 5: Update the organization with the Stripe account ID
-    await adminTransaction(async ({ transaction }) => {
-      await updateOrganization(
-        {
-          id: validation.organizationId,
-          stripeAccountId: stripeResponse.stripe_user_id,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: validation.organizationId,
+            stripeAccountId: stripeResponse.stripe_user_id,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Redirect to onboarding after successful connection
     redirect('/onboarding')

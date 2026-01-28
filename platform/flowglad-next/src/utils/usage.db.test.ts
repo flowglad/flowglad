@@ -7,10 +7,7 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
@@ -42,7 +39,7 @@ describe('createUsageMeterTransaction', () => {
 
   describe('Successful creation', () => {
     it('creates usage meter and no_charge price when no custom price values provided', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -95,7 +92,7 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates usage meter with aggregationType', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -146,7 +143,7 @@ describe('createUsageMeterTransaction', () => {
 
       // Attempt to create usage meter with the same slug
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async ({
             transaction,
             invalidateCache,
@@ -216,7 +213,7 @@ describe('createUsageMeterTransaction', () => {
 
       // Create usage meter with the same slug - should succeed since
       // usage meter prices and product prices are in separate namespaces
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -288,7 +285,7 @@ describe('createUsageMeterTransaction', () => {
       })
 
       // Should succeed because the slug is unique
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -355,7 +352,7 @@ describe('createUsageMeterTransaction', () => {
 
       // Attempt to create usage meter (should fail due to slug collision)
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async ({
             transaction,
             invalidateCache,
@@ -409,7 +406,7 @@ describe('createUsageMeterTransaction', () => {
 
   describe('Custom price fields', () => {
     it('creates both custom price and no_charge price when custom values provided', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -458,7 +455,7 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates only no_charge price when no custom values provided', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -500,7 +497,7 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates custom price when only unitPrice is provided', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -545,7 +542,7 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates custom price when only usageEventsPerUnit is provided', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -591,7 +588,7 @@ describe('createUsageMeterTransaction', () => {
 
   describe('No charge price auto-creation', () => {
     it('creates no_charge price with correct name derived from usage meter name', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -621,7 +618,7 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates no_charge price with correct pricingModelId and usageMeterId', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -656,7 +653,7 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates no_charge price with organization defaultCurrency', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,
@@ -688,7 +685,7 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates no_charge price as active by default', async () => {
-      const result = await comprehensiveAdminTransaction(
+      const result = await adminTransaction(
         async ({
           transaction,
           invalidateCache,

@@ -126,7 +126,7 @@ export const removeMemberFromOrganization = protectedProcedure
   .input(removeMemberFromOrganizationSchema)
   .mutation(async ({ input, ctx }) => {
     // Get the requester's membership in the focused organization
-    const { requesterMembership } = await authenticatedTransaction(
+    const txResult1 = await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
@@ -138,29 +138,32 @@ export const removeMemberFromOrganization = protectedProcedure
           throw new Error('No focused membership found')
         }
 
-        return { requesterMembership: focusedMembership.membership }
+        return Result.ok({
+          requesterMembership: focusedMembership.membership,
+        })
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    const { requesterMembership } = txResult1.unwrap()
 
     // Perform the removal in an admin transaction
     // (we need admin because the target membership may not be the requester's)
-    const result = await adminTransaction(async ({ transaction }) => {
-      return innerRemoveMemberFromOrganization(
-        input,
-        requesterMembership,
-        transaction
-      )
-    })
-
-    if (Result.isError(result)) {
-      throw result.error
-    }
+    const txResult2 = await adminTransaction(
+      async ({ transaction }) => {
+        const result = await innerRemoveMemberFromOrganization(
+          input,
+          requesterMembership,
+          transaction
+        )
+        return result
+      }
+    )
+    const membership = txResult2.unwrap()
 
     return {
       success: true,
-      membership: result.value,
+      membership,
     }
   })

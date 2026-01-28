@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -13,7 +14,7 @@ import { sendCustomerPaymentFailedNotificationIdempotently } from '../notificati
 export const stripeChargeFailedTask = task({
   id: 'stripe-charge-failed',
   run: async (payload: Stripe.ChargeFailedEvent, { ctx }) => {
-    const paymentRecord = await adminTransaction(
+    const paymentRecordResult = await adminTransaction(
       async ({ transaction }) => {
         const stripeCharge = await getStripeCharge(
           payload.data.object.id
@@ -23,7 +24,7 @@ export const stripeChargeFailedTask = task({
           transaction
         )
         if (!paymentRecord) {
-          return null
+          return Result.ok(null)
         }
         await safelyUpdatePaymentStatus(
           paymentRecord,
@@ -38,9 +39,10 @@ export const stripeChargeFailedTask = task({
           },
           transaction
         )
-        return updatedPaymentRecord
+        return Result.ok(updatedPaymentRecord)
       }
     )
+    const paymentRecord = paymentRecordResult.unwrap()
     if (paymentRecord) {
       await sendCustomerPaymentFailedNotificationIdempotently(
         paymentRecord

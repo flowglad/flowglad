@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { Invoice } from '@/db/schema/invoices'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
@@ -39,8 +39,8 @@ export const invoiceUpdatedTask = task({
         customer,
         organization,
         paymentForInvoice,
-      } = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
+      } = (
+        await adminTransaction(async ({ transaction }) => {
           const invoiceLineItems = await selectInvoiceLineItems(
             { invoiceId: newRecord.id },
             transaction
@@ -89,8 +89,8 @@ export const invoiceUpdatedTask = task({
             organization,
             paymentForInvoice,
           })
-        }
-      )
+        })
+      ).unwrap()
       if (paymentForInvoice) {
         await generatePaymentReceiptPdfTask.triggerAndWait({
           paymentId: paymentForInvoice.id,

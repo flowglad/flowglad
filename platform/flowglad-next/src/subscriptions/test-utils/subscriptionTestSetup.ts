@@ -58,26 +58,30 @@ export const setupSubscriptionTestData = async (
   } = options
 
   // Setup organization and pricing
-  const orgData = await setupOrg()
+  const orgData = (await setupOrg()).unwrap()
   const organization = orgData.organization
   const pricingModel = orgData.pricingModel
   const product = orgData.product
   const price = orgData.price
 
   // Setup user and customer
-  const userData = await setupUserAndCustomer({
-    organizationId: organization.id,
-    livemode,
-  })
+  const userData = (
+    await setupUserAndCustomer({
+      organizationId: organization.id,
+      livemode,
+    })
+  ).unwrap()
   const user = userData.user
   const customer = userData.customer
 
   // Setup payment method
-  const paymentMethod = await setupPaymentMethod({
-    organizationId: organization.id,
-    customerId: customer.id,
-    livemode,
-  })
+  const paymentMethod = (
+    await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode,
+    })
+  ).unwrap()
 
   // Setup subscription with billing period
   const now = new Date()
@@ -101,25 +105,29 @@ export const setupSubscriptionTestData = async (
   })
 
   // Setup billing period
-  const billingPeriod = await setupBillingPeriod({
-    subscriptionId: subscription.id,
-    startDate: billingPeriodStart,
-    endDate: billingPeriodEnd,
-    status: BillingPeriodStatus.Active,
-    livemode,
-  })
+  const billingPeriod = (
+    await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: billingPeriodStart,
+      endDate: billingPeriodEnd,
+      status: BillingPeriodStatus.Active,
+      livemode,
+    })
+  ).unwrap()
 
   // Setup invoice if requested
   let invoice: Invoice.Record
   if (includeInvoice) {
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      billingPeriodId: billingPeriod.id,
-      priceId: price.id,
-      livemode,
-      status: InvoiceStatus.Paid,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        billingPeriodId: billingPeriod.id,
+        priceId: price.id,
+        livemode,
+        status: InvoiceStatus.Paid,
+      })
+    ).unwrap()
   } else {
     // Create a minimal invoice record for type compatibility
     invoice = {} as Invoice.Record
@@ -128,10 +136,12 @@ export const setupSubscriptionTestData = async (
   // Setup API key if requested
   let apiKeyToken: string | undefined
   if (includeApiKey) {
-    const apiKeyData = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode,
-    })
+    const apiKeyData = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode,
+      })
+    ).unwrap()
     apiKeyToken = apiKeyData.apiKey.token!
   }
 

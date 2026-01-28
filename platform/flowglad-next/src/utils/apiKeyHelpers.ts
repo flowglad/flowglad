@@ -22,7 +22,14 @@ import { deleteApiKeyVerificationResult } from './redis'
 
 export const createSecretApiKeyTransaction = async (
   input: CreateApiKeyInput,
-  { transaction, userId, livemode }: AuthenticatedTransactionParams
+  {
+    transaction,
+    userId,
+    livemode,
+  }: Pick<
+    AuthenticatedTransactionParams,
+    'transaction' | 'userId' | 'livemode'
+  >
 ) => {
   if (input.apiKey.type !== FlowgladApiKeyType.Secret) {
     throw new Error(
@@ -120,7 +127,10 @@ export const rotateSecretApiKeyTransaction = async (
 
 export const deleteSecretApiKeyTransaction = async (
   input: { id: string },
-  { transaction, userId }: AuthenticatedTransactionParams
+  {
+    transaction,
+    userId,
+  }: Pick<AuthenticatedTransactionParams, 'transaction' | 'userId'>
 ): Promise<void> => {
   // Fetch the API key by ID to verify it exists and user has access
   const apiKey = (

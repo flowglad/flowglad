@@ -1,10 +1,7 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
-import {
-  createInvoiceSchema,
   editInvoiceSchema,
   invoiceLineItemsClientSelectSchema,
   invoicesPaginatedTableRowDataSchema,
@@ -15,36 +12,21 @@ import {
   invoicesPaginatedListSchema,
   invoicesPaginatedSelectSchema,
 } from '@/db/schema/invoices'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
-  insertInvoiceLineItems,
-  selectInvoiceLineItems,
-  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
-} from '@/db/tableMethods/invoiceLineItemMethods'
-import {
-  insertInvoice,
-  selectInvoiceById,
   selectInvoiceCountsByStatus,
   selectInvoicesPaginated,
   selectInvoicesTableRowData,
 } from '@/db/tableMethods/invoiceMethods'
-import {
-  selectOrganizationAndFirstMemberByOrganizationId,
-  selectOrganizationById,
-} from '@/db/tableMethods/organizationMethods'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { InvoiceStatus, SubscriptionItemType } from '@/types'
-import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
+import { InvoiceStatus } from '@/types'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
-import {
-  createPostOpenApiMeta,
-  generateOpenApiMetas,
-} from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',
@@ -58,14 +40,14 @@ const listInvoicesProcedure = protectedProcedure
   .input(invoicesPaginatedSelectSchema)
   .output(invoicesPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectInvoicesPaginated(input, transaction)
+        const data = await selectInvoicesPaginated(input, transaction)
+        return Result.ok(data)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 const getInvoiceProcedure = protectedProcedure
@@ -73,19 +55,18 @@ const getInvoiceProcedure = protectedProcedure
   .input(idInputSchema)
   .output(invoiceWithLineItemsClientSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         const [invoiceAndLineItems] =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
             { id: input.id },
             transaction
           )
-        return invoiceAndLineItems
+        return Result.ok(invoiceAndLineItems)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 const updateInvoiceProcedure = protectedProcedure
@@ -97,20 +78,18 @@ const updateInvoiceProcedure = protectedProcedure
     })
   )
   .mutation(async ({ ctx, input }) => {
-    const { invoice, invoiceLineItems } =
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateInvoiceTransaction(
-            input,
-            ctx.livemode,
-            transaction
-          )
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
-    return { invoice, invoiceLineItems }
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await updateInvoiceTransaction(
+          input,
+          ctx.livemode,
+          transaction
+        )
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
+    )
+    return result.unwrap()
   })
 
 const getCountsByStatusProcedure = protectedProcedure
@@ -124,14 +103,14 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectInvoiceCountsByStatus(transaction)
+        const data = await selectInvoiceCountsByStatus(transaction)
+        return Result.ok(data)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
+    return result.unwrap()
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -150,18 +129,24 @@ const getTableRowsProcedure = protectedProcedure
       invoicesPaginatedTableRowDataSchema
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectInvoicesTableRowData({ input, transaction })
-      }
+  .query(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const data = await selectInvoicesTableRowData({
+          input,
+          transaction,
+        })
+        return Result.ok(data)
+      },
+      { apiKey: ctx.apiKey }
     )
-  )
+    return result.unwrap()
+  })
 
 export const invoicesRouter = router({
   list: listInvoicesProcedure,
   get: getInvoiceProcedure,
+  update: updateInvoiceProcedure,
   getCountsByStatus: getCountsByStatusProcedure,
   getTableRows: getTableRowsProcedure,
 })

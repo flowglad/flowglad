@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { format } from 'date-fns'
 import { adminTransaction } from '@/db/adminTransaction'
 import type {
@@ -53,61 +54,17 @@ export const generateCsvExportTask = task({
         organizationCurrency,
         organizationName,
         userEmail,
-      } = await adminTransaction(async ({ transaction }) => {
-        const normalizedFilters: CustomerTableFilters = {
-          ...(filters ?? {}),
-          organizationId,
-          livemode,
-        }
-
-        const initialResponse =
-          await selectCustomersCursorPaginatedWithTableRowData({
-            input: {
-              pageSize: PAGE_SIZE,
-              filters: normalizedFilters,
-              searchQuery,
-            },
-            transaction,
-          })
-
-        const organization = (
-          await selectOrganizationById(organizationId, transaction)
-        ).unwrap()
-        const user = (
-          await selectUserById(userId, transaction)
-        ).unwrap()
-
-        // Verify membership exists for userId + organizationId
-        const memberships = await selectMemberships(
-          {
-            userId,
+      } = (
+        await adminTransaction(async ({ transaction }) => {
+          const normalizedFilters: CustomerTableFilters = {
+            ...(filters ?? {}),
             organizationId,
-          },
-          transaction
-        )
-        if (memberships.length === 0) {
-          throw new Error(
-            `User ${userId} is not a member of organization ${organizationId}`
-          )
-        }
+            livemode,
+          }
 
-        const rows: CustomerTableRowData[] = [
-          ...initialResponse.items,
-        ]
-
-        let hasNextPage = initialResponse.hasNextPage
-        let pageAfter = initialResponse.endCursor
-
-        // Intentionally foregoing test coverage for this pagination loop.
-        // This is a straightforward extension of existing pagination logic:
-        // - The underlying selectCustomersCursorPaginatedWithTableRowData function is already tested
-        // - This loop simply calls it repeatedly until all pages are fetched
-        // - The logic is straightforward and low-stakes (CSV export)
-        while (hasNextPage && pageAfter) {
-          const response =
+          const initialResponse =
             await selectCustomersCursorPaginatedWithTableRowData({
               input: {
-                pageAfter,
                 pageSize: PAGE_SIZE,
                 filters: normalizedFilters,
                 searchQuery,
@@ -115,19 +72,65 @@ export const generateCsvExportTask = task({
               transaction,
             })
 
-          rows.push(...response.items)
-          hasNextPage = response.hasNextPage
-          pageAfter = response.endCursor
-        }
+          const organization = (
+            await selectOrganizationById(organizationId, transaction)
+          ).unwrap()
+          const user = (
+            await selectUserById(userId, transaction)
+          ).unwrap()
 
-        return {
-          rows,
-          totalCustomers: rows.length,
-          organizationCurrency: organization.defaultCurrency,
-          organizationName: organization.name,
-          userEmail: user.email,
-        }
-      })
+          // Verify membership exists for userId + organizationId
+          const memberships = await selectMemberships(
+            {
+              userId,
+              organizationId,
+            },
+            transaction
+          )
+          if (memberships.length === 0) {
+            throw new Error(
+              `User ${userId} is not a member of organization ${organizationId}`
+            )
+          }
+
+          const rows: CustomerTableRowData[] = [
+            ...initialResponse.items,
+          ]
+
+          let hasNextPage = initialResponse.hasNextPage
+          let pageAfter = initialResponse.endCursor
+
+          // Intentionally foregoing test coverage for this pagination loop.
+          // This is a straightforward extension of existing pagination logic:
+          // - The underlying selectCustomersCursorPaginatedWithTableRowData function is already tested
+          // - This loop simply calls it repeatedly until all pages are fetched
+          // - The logic is straightforward and low-stakes (CSV export)
+          while (hasNextPage && pageAfter) {
+            const response =
+              await selectCustomersCursorPaginatedWithTableRowData({
+                input: {
+                  pageAfter,
+                  pageSize: PAGE_SIZE,
+                  filters: normalizedFilters,
+                  searchQuery,
+                },
+                transaction,
+              })
+
+            rows.push(...response.items)
+            hasNextPage = response.hasNextPage
+            pageAfter = response.endCursor
+          }
+
+          return Result.ok({
+            rows,
+            totalCustomers: rows.length,
+            organizationCurrency: organization.defaultCurrency,
+            organizationName: organization.name,
+            userEmail: user.email,
+          })
+        })
+      ).unwrap()
 
       if (!userEmail || !organizationName) {
         logger.error(

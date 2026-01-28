@@ -1,7 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -34,86 +34,86 @@ export const stripePaymentIntentSucceededTask = task({
          * process it on own track, and then terminate
          */
         if ('billingRunId' in metadata) {
-          const result = await comprehensiveAdminTransaction(
-            async (params) => {
-              const effectsCtx: TransactionEffectsContext = {
-                transaction: params.transaction,
-                cacheRecomputationContext:
-                  params.cacheRecomputationContext,
-                invalidateCache: params.invalidateCache,
-                emitEvent: params.emitEvent,
-                enqueueLedgerCommand: params.enqueueLedgerCommand,
-              }
-              return await processOutcomeForBillingRun(
-                { input: payload },
-                effectsCtx
-              )
+          const txResult = await adminTransaction(async (params) => {
+            const effectsCtx: TransactionEffectsContext = {
+              transaction: params.transaction,
+              cacheRecomputationContext:
+                params.cacheRecomputationContext,
+              invalidateCache: params.invalidateCache,
+              emitEvent: params.emitEvent,
+              enqueueLedgerCommand: params.enqueueLedgerCommand,
             }
-          )
-          return result
+            const innerResult = await processOutcomeForBillingRun(
+              { input: payload },
+              effectsCtx
+            )
+            return Result.ok(innerResult.unwrap())
+          })
+          return txResult.unwrap()
         }
 
+        const mainTxResult = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const paymentResult =
+            await processPaymentIntentStatusUpdated(
+              payload.data.object,
+              ctx
+            )
+          if (paymentResult.status === 'error') {
+            return Result.err(paymentResult.error)
+          }
+          const { payment } = paymentResult.value
+
+          // Only fetch purchase if purchaseId exists
+          const purchase = payment.purchaseId
+            ? (
+                await selectPurchaseById(
+                  payment.purchaseId,
+                  transaction
+                )
+              ).unwrap()
+            : null
+
+          const [invoice] =
+            await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+              { id: payment.invoiceId },
+              transaction
+            )
+
+          // Use purchase IDs if available, otherwise fall back to payment IDs
+          const [customer] = await selectCustomers(
+            {
+              id: purchase?.customerId ?? payment.customerId,
+            },
+            transaction
+          )
+
+          const organization = (
+            await selectOrganizationById(
+              purchase?.organizationId ?? payment.organizationId,
+              transaction
+            )
+          ).unwrap()
+
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            payment,
+            transaction
+          )
+          const result = {
+            invoice: invoice.invoice,
+            invoiceLineItems: invoice.invoiceLineItems,
+            purchase,
+            organization,
+            customer,
+            payment,
+          }
+
+          return Result.ok(result)
+        }, {})
         const { invoice, organization, customer, payment, purchase } =
-          await comprehensiveAdminTransaction(async (ctx) => {
-            const { transaction } = ctx
-            const paymentResult =
-              await processPaymentIntentStatusUpdated(
-                payload.data.object,
-                ctx
-              )
-            if (paymentResult.status === 'error') {
-              return Result.err(paymentResult.error)
-            }
-            const { payment } = paymentResult.value
+          mainTxResult.unwrap()
 
-            // Only fetch purchase if purchaseId exists
-            const purchase = payment.purchaseId
-              ? (
-                  await selectPurchaseById(
-                    payment.purchaseId,
-                    transaction
-                  )
-                ).unwrap()
-              : null
-
-            const [invoice] =
-              await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-                { id: payment.invoiceId },
-                transaction
-              )
-
-            // Use purchase IDs if available, otherwise fall back to payment IDs
-            const [customer] = await selectCustomers(
-              {
-                id: purchase?.customerId ?? payment.customerId,
-              },
-              transaction
-            )
-
-            const organization = (
-              await selectOrganizationById(
-                purchase?.organizationId ?? payment.organizationId,
-                transaction
-              )
-            ).unwrap()
-
-            await safelyIncrementDiscountRedemptionSubscriptionPayment(
-              payment,
-              transaction
-            )
-            const result = {
-              invoice: invoice.invoice,
-              invoiceLineItems: invoice.invoiceLineItems,
-              purchase,
-              organization,
-              customer,
-              payment,
-            }
-
-            return Result.ok(result)
-          }, {})
-
-        await comprehensiveAdminTransaction(
+        const taxTxResult = await adminTransaction(
           async ({ transaction }) => {
             await createStripeTaxTransactionIfNeededForPayment(
               { organization, payment, invoice },
@@ -122,6 +122,7 @@ export const stripePaymentIntentSucceededTask = task({
             return Result.ok(null)
           }
         )
+        taxTxResult.unwrap()
 
         /**
          * Generate the invoice PDF, which should be finalized now

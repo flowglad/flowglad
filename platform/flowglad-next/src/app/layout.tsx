@@ -3,6 +3,7 @@ import { Toaster } from 'sonner'
 import './globals.css'
 
 import * as Sentry from '@sentry/nextjs'
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -56,20 +57,23 @@ export default async function RootLayout({
   let user: User.Record | undefined
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
-    const [membershipData] = await adminTransaction(
+    const txResult = await adminTransaction(
       async ({ transaction }) => {
         if (!user) {
           throw new Error('User not found')
         }
-        return await selectMembershipAndOrganizations(
-          {
-            userId: user.id,
-            focused: true,
-          },
-          transaction
+        return Result.ok(
+          await selectMembershipAndOrganizations(
+            {
+              userId: user.id,
+              focused: true,
+            },
+            transaction
+          )
         )
       }
     )
+    const [membershipData] = txResult.unwrap()
 
     livemode = membershipData?.membership.livemode
     if (membershipData?.organization && membershipData.membership) {

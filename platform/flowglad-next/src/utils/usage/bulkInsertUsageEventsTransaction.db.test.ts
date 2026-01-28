@@ -10,10 +10,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
@@ -206,7 +203,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when priceSlug not found', async () => {
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -231,7 +228,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when usageMeterSlug not found', async () => {
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -531,7 +528,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -568,7 +565,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -614,7 +611,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Try to create a usage event using just usageMeterId (no explicit priceId)
       // This should fail because there's no default price to resolve to
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -661,7 +658,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Try to create a usage event using just usageMeterSlug (no explicit priceId)
       // This should fail because there's no default price to resolve to
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -714,7 +711,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Try to create a usage event for our customer's subscription using a priceId
       // from a different pricing model - this should throw an error
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -793,7 +790,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -885,7 +882,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Test with undefined properties
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -908,7 +905,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Test with empty object properties
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {
@@ -2153,7 +2150,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Execute: Try to resolve subscription price slug - should fail (only usage prices are considered)
       const timestamp = Date.now()
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           bulkInsertUsageEventsTransaction(
             {
               input: {

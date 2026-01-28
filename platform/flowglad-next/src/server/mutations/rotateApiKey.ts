@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { rotateApiKeySchema } from '@/db/schema/apiKeys'
 import { protectedProcedure } from '@/server/trpc'
@@ -8,17 +9,19 @@ import { deleteApiKey } from '@/utils/unkey'
 export const rotateApiKeyProcedure = protectedProcedure
   .input(rotateApiKeySchema)
   .mutation(async ({ input, ctx }) => {
-    const result = await authenticatedTransaction(
+    const txResult = await authenticatedTransaction(
       async ({ transaction, userId }) => {
-        return rotateSecretApiKeyTransaction(input, {
+        const result = await rotateSecretApiKeyTransaction(input, {
           transaction,
           userId,
         })
+        return Result.ok(result)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    const result = txResult.unwrap()
     /**
      * Invalidate the old key in Unkey,
      * but only after the transaction has been committed.
