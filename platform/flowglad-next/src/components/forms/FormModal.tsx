@@ -23,7 +23,13 @@ export interface ModalInterfaceProps {
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react'
 import type { z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
@@ -143,7 +149,9 @@ export const NestedFormModal = <T extends FieldValues>({
   // This prevents expensive computations (like schema.parse()) from running
   // on every render when the modal is closed
   const lastIsOpenRef = useRef(false)
-  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(undefined)
+  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(
+    undefined
+  )
 
   if (isOpen && !lastIsOpenRef.current) {
     // Modal is transitioning from closed to open - compute fresh default values
@@ -281,7 +289,9 @@ const FormModal = <T extends FieldValues>({
   // This prevents expensive computations (like schema.parse()) from running
   // on every render when the modal is closed
   const lastIsOpenRef = useRef(false)
-  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(undefined)
+  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(
+    undefined
+  )
 
   if (isOpen && !lastIsOpenRef.current) {
     // Modal is transitioning from closed to open - compute fresh default values
