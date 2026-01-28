@@ -772,6 +772,16 @@ describe('confirmCheckoutSessionTransaction', () => {
   })
 
   describe('Setup Intent Handling', () => {
+    beforeEach(() => {
+      // Mock updateSetupIntent to succeed
+      mockUpdateSetupIntent.mockResolvedValue({
+        id: 'seti_mock',
+        object: 'setup_intent',
+        customer: null,
+        status: 'requires_payment_method',
+      } as unknown as import('stripe').default.SetupIntent)
+    })
+
     it('should update setup intent when stripeSetupIntentId is set and fetched setup intent has no customer', async () => {
       // Update checkout session to have stripeSetupIntentId
       const updatedCheckoutSession =
