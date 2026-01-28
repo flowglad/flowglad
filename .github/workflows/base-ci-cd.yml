@@ -101,18 +101,11 @@ jobs:
         if: always()
         run: bun run test:teardown
 
-  # Behavior tests are sharded across multiple jobs for parallel execution
-  # Each shard runs a subset of behavior test files
   flowglad-next-behavior-tests:
-    name: "flowglad-next: Behavior Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})"
+    name: "flowglad-next: Behavior Tests"
     # Only run in the merge queue as a final pre-merge check
     if: github.event_name == 'merge_group'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        shardIndex: [1, 2, 3]
-        shardTotal: [3]
-      fail-fast: false
     defaults:
       run:
         working-directory: platform/flowglad-next
@@ -141,13 +134,13 @@ jobs:
           docker-compose -f docker-compose.test.yml ps
       - name: Run test setup
         run: bun run test:setup
-      - name: Run sharded behavior tests
+      - name: Run behavior tests
         env:
           STRIPE_TEST_MODE_SECRET_KEY: ${{ secrets.STRIPE_TEST_MODE_SECRET_KEY }}
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           CLAUDECODE: 1
-        run: bun run test:behavior --shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: bun run test:behavior
       - name: Run test teardown
         if: always()
         run: bun run test:teardown
