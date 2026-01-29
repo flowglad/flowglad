@@ -63,7 +63,6 @@ export const createContext = async (
   } else {
     Sentry.setUser(null)
   }
-
   return {
     user,
     path: opts.req.url,
@@ -97,7 +96,6 @@ export const createApiContext = ({
         return selectOrganizationById(organizationId, transaction)
       }
     )
-
     return {
       apiKey,
       isApi: true,
