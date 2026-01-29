@@ -569,14 +569,13 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       )
 
       // Get the first paid subscription ID
-      const firstPaidSubscriptionId = await adminTransaction(
-        async ({ transaction }) => {
-          return await getNewPaidSubscriptionId(
-            customer.id,
-            transaction
+      const firstPaidSubscriptionId = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await getNewPaidSubscriptionId(customer.id, transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(typeof firstPaidSubscriptionId).toBe('string')
 
       // Create a new checkout session for another paid product
@@ -642,6 +641,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(activePaidSubscriptions[0].id).toBe(
           firstPaidSubscriptionId!
         )
+        return Result.ok(undefined)
       })
     })
   })
@@ -656,6 +656,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Create an active paid subscription alongside the free subscription
@@ -689,14 +690,13 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       )
 
       // Get the new subscription ID
-      const newSubscriptionId = await adminTransaction(
-        async ({ transaction }) => {
-          return await getNewPaidSubscriptionId(
-            customer.id,
-            transaction
+      const newSubscriptionId = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await getNewPaidSubscriptionId(customer.id, transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         // Free subscription should be canceled
@@ -740,6 +740,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           SubscriptionStatus.Active
         )
         expect(newPaidSubscription.isFreePlan).toBe(false)
+        return Result.ok(undefined)
       })
     })
 
@@ -774,6 +775,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             'already has an active free subscription. Only one free subscription is allowed per customer.'
           )
         }
+        return Result.ok(undefined)
       })
 
       await adminTransaction(async ({ transaction }) => {
@@ -804,6 +806,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(freeSubscriptions.length).toBe(1)
         expect(freeSubscriptions[0].id).toBe(freeSubscription.id)
+        return Result.ok(undefined)
       })
     })
   })

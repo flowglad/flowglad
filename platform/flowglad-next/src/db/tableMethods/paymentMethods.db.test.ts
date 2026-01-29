@@ -104,6 +104,7 @@ describe('paymentMethods.ts', () => {
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(payment.amount)
         expect(typeof updatedPayment.refundedAt).toBe('number')
+        return Result.ok(undefined)
       })
     })
     it('fails if refund status is not explicitly set', async () => {
@@ -119,6 +120,7 @@ describe('paymentMethods.ts', () => {
             `Failed to update payment ${payment.id}: Only refund or succeeded status is supported`
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -142,6 +144,7 @@ describe('paymentMethods.ts', () => {
             `Failed to update payment ${payment.id}: Refunded amount cannot exceed the original payment amount`
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -174,6 +177,7 @@ describe('paymentMethods.ts', () => {
         expect(updatedPayment.refundedAt).toBeLessThanOrEqual(
           Date.now()
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -198,6 +202,7 @@ describe('paymentMethods.ts', () => {
             )
           }
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -221,6 +226,7 @@ describe('paymentMethods.ts', () => {
             `Payment not found: ${nonExistentPaymentId}`
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -254,6 +260,7 @@ describe('paymentMethods.ts', () => {
             `Payment ${nonRefundablePayment.id} is not in a state to be updated. Its status: ${nonRefundablePayment.status})`
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -288,6 +295,7 @@ describe('paymentMethods.ts', () => {
 
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(1000)
+        return Result.ok(undefined)
       })
     })
   })
@@ -319,6 +327,7 @@ describe('paymentMethods.ts', () => {
           await selectPaymentById(processingPayment.id, transaction)
         ).unwrap()
         expect(fetchedPayment.status).toBe(PaymentStatus.Succeeded)
+        return Result.ok(undefined)
       })
     })
 
@@ -345,6 +354,7 @@ describe('paymentMethods.ts', () => {
 
         expect(result.id).toBe(terminalPayment.id)
         expect(result.status).toBe(PaymentStatus.Failed)
+        return Result.ok(undefined)
       })
     })
 
@@ -374,6 +384,7 @@ describe('paymentMethods.ts', () => {
             `Payment ${terminalPayment.id} is in terminal state: ${terminalPayment.status}`
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -399,6 +410,7 @@ describe('paymentMethods.ts', () => {
         const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.status).toBe(PaymentStatus.Processing)
+        return Result.ok(undefined)
       })
     })
 
@@ -424,6 +436,7 @@ describe('paymentMethods.ts', () => {
         const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
+        return Result.ok(undefined)
       })
     })
   })
@@ -594,6 +607,7 @@ describe('selectRevenueDataForOrganization', () => {
 
       // Ensure chronological order if necessary, though find() doesn't rely on it.
       // If order matters for other assertions: expect(janRevenueItem.date.getTime()).toBeLessThan(febRevenueItem.date.getTime());
+      return Result.ok(undefined)
     })
   })
 
@@ -805,6 +819,7 @@ describe('selectRevenueDataForOrganization', () => {
 
       const expectedRevenue = 10000 - 0 + (5000 - 1000)
       expect(revenueData[0].revenue).toBe(expectedRevenue)
+      return Result.ok(undefined)
     })
   })
 
@@ -926,6 +941,7 @@ describe('selectRevenueDataForOrganization', () => {
       ).toBe(true)
 
       expect(revenueData[0].revenue).toBe(0) // Expect 0 revenue for Product A
+      return Result.ok(undefined)
     })
   })
 
@@ -985,6 +1001,7 @@ describe('selectRevenueDataForOrganization', () => {
       )
 
       expect(revenueData[0].revenue).toBe(0) // Expect 0 revenue as the payment is outside the range
+      return Result.ok(undefined)
     })
   })
 
@@ -1076,6 +1093,7 @@ describe('selectRevenueDataForOrganization', () => {
           expect(item.date.getUTCSeconds()).toBe(0)
           expect(item.date.getUTCMilliseconds()).toBe(0)
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -1174,6 +1192,7 @@ describe('selectRevenueDataForOrganization', () => {
           // This might be too strict if the definition of week start varies or for edge cases.
           // For simplicity, we trust date_trunc('week',...) to define the week start consistently.
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -1264,6 +1283,7 @@ describe('selectRevenueDataForOrganization', () => {
           expect(item.date.getUTCMilliseconds()).toBe(0)
           expect(item.date.getUTCDate()).toBe(1) // Should be start of the month
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -1353,6 +1373,7 @@ describe('selectRevenueDataForOrganization', () => {
           expect(item.date.getUTCDate()).toBe(1)
           expect(item.date.getUTCMonth()).toBe(0) // January
         })
+        return Result.ok(undefined)
       })
     })
   })
@@ -1417,6 +1438,7 @@ describe('selectRevenueDataForOrganization', () => {
         ).toBe(true)
         expect(resultItem.date.getUTCHours()).toBe(0) // Start of the day
         expect(resultItem.revenue).toBe(2500) // 1000 + 1500
+        return Result.ok(undefined)
       })
     })
 
@@ -1493,6 +1515,7 @@ describe('selectRevenueDataForOrganization', () => {
           resultItem.date.toISOString().startsWith('2023-07-01T')
         ).toBe(true)
         expect(resultItem.revenue).toBe(3000) // 1000 + 2000
+        return Result.ok(undefined)
       })
     })
 
@@ -1555,6 +1578,7 @@ describe('selectRevenueDataForOrganization', () => {
         ).toBe(true)
         // Only payment1 (1000) should be included as payment2 is after toDate.
         expect(resultItem.revenue).toBe(1000)
+        return Result.ok(undefined)
       })
     })
   })
@@ -1653,6 +1677,7 @@ describe('selectRevenueDataForOrganization', () => {
       // Expected: (10000 - 0) + (15000 - 15000) + (20000 - 7000) + (5000 - 0)
       //           = 10000 + 0 + 13000 + 5000 = 28000
       expect(resultItem.revenue).toBe(28000)
+      return Result.ok(undefined)
     })
   })
 
@@ -1675,6 +1700,7 @@ describe('selectRevenueDataForOrganization', () => {
 
       expect(revenueData).toBeInstanceOf(Array)
       expect(revenueData.length).toBe(0) // Expect an empty array
+      return Result.ok(undefined)
     })
   })
 
@@ -1781,6 +1807,7 @@ describe('selectRevenueDataForOrganization', () => {
         // Expected: Only Succeeded ($100) + Refunded ($50 - $50 = $0) = $100
         // Failed ($200), Processing ($150), Canceled ($80) should all be excluded
         expect(resultItem.revenue).toBe(10000) // 10000 cents = $100
+        return Result.ok(undefined)
       })
     })
 
@@ -1840,6 +1867,7 @@ describe('selectRevenueDataForOrganization', () => {
         expect(revenueData.length).toBe(1)
         // Expected: $100 - $30 = $70 net (Failed payment excluded)
         expect(revenueData[0].revenue).toBe(7000) // 7000 cents = $70
+        return Result.ok(undefined)
       })
     })
   })
@@ -2043,6 +2071,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
           })
         expect(resultTrimmed.items.length).toBe(1)
         expect(resultTrimmed.items[0].payment.id).toBe(payment1.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -2085,6 +2114,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
         expect(resultWhitespace.total).toBe(3)
         expect(resultUndefined.items.length).toBe(3)
         expect(resultUndefined.total).toBe(3)
+        return Result.ok(undefined)
       })
     })
 
@@ -2107,6 +2137,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
           organization.id
         )
         expect(result.total).toBe(1)
+        return Result.ok(undefined)
       })
     })
 
@@ -2149,6 +2180,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
         expect(resultNoMatch.items.length).toBe(0)
         expect(resultNoMatch.total).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -2189,6 +2221,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
         expect(resultNoMatch.items.length).toBe(0)
         expect(resultNoMatch.total).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -2206,6 +2239,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
         expect(result.items.length).toBe(0)
         expect(result.total).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -2224,6 +2258,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
         expect(result.items.length).toBe(0)
         expect(result.total).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -2256,6 +2291,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
         const paymentIds = result.items.map((item) => item.payment.id)
         expect(paymentIds).toContain(payment1.id)
         expect(paymentIds).toContain(payment1b.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -2285,6 +2321,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
         expect(result.items.length).toBe(2)
         expect(result.total).toBe(2)
+        return Result.ok(undefined)
       })
     })
 
@@ -2320,6 +2357,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
         expect(result.items.length).toBe(3)
         expect(result.total).toBeGreaterThanOrEqual(3)
         expect(typeof result.endCursor).toBe('string')
+        return Result.ok(undefined)
       })
     })
 
@@ -2339,6 +2377,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
         expect(result.items[0].payment.id).toBe(payment1.id)
         expect(result.items[0].customer.id).toBe(customer1.id)
         expect(result.items[0].customer.name).toBe('Alice Smith')
+        return Result.ok(undefined)
       })
     })
 
@@ -2387,6 +2426,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
         expect(result.items.length).toBe(1)
         expect(result.items[0].payment.id).toBe(specialPayment.id)
         expect(result.items[0].customer.name).toBe("O'Brien & Co.")
+        return Result.ok(undefined)
       })
     })
   })
@@ -2473,6 +2513,7 @@ describe('pricingModelId derivation', () => {
           subscription.pricingModelId
         )
         expect(payment.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -2499,6 +2540,7 @@ describe('pricingModelId derivation', () => {
 
         expect(payment.pricingModelId).toBe(purchase.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -2524,6 +2566,7 @@ describe('pricingModelId derivation', () => {
 
         expect(payment.pricingModelId).toBe(invoice.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -2549,6 +2592,7 @@ describe('pricingModelId derivation', () => {
         ).unwrap()
 
         expect(payment.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
       })
     })
   })
@@ -2577,6 +2621,7 @@ describe('pricingModelId derivation', () => {
 
         expect(payment.pricingModelId).toBe(invoice.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
       })
     })
   })

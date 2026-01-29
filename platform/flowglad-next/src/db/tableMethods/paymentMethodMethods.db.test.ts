@@ -68,6 +68,7 @@ describe('selectPaymentMethodsByCustomerId', () => {
         type: PaymentMethodType.Card,
         pricingModelId: pricingModel.id,
       })
+      return Result.ok(undefined)
     })
   })
 
@@ -88,6 +89,7 @@ describe('selectPaymentMethodsByCustomerId', () => {
       )
 
       expect(paymentMethods).toEqual([])
+      return Result.ok(undefined)
     })
   })
 
@@ -119,6 +121,7 @@ describe('selectPaymentMethodsByCustomerId', () => {
       const paymentMethodIds = paymentMethods.map((pm) => pm.id)
       expect(paymentMethodIds).toContain(paymentMethod.id)
       expect(paymentMethodIds).not.toContain(otherPaymentMethod.id)
+      return Result.ok(undefined)
     })
   })
 })
@@ -228,6 +231,7 @@ describe('safelyUpdatePaymentMethod', () => {
       expect(effects.cacheInvalidations).toContain(
         CacheDependency.paymentMethod(paymentMethodB.id)
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -267,6 +271,7 @@ describe('safelyUpdatePaymentMethod', () => {
       expect(effects.cacheInvalidations).toContain(
         CacheDependency.paymentMethod(paymentMethodA.id)
       )
+      return Result.ok(undefined)
     })
   })
 })

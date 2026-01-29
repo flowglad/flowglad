@@ -113,6 +113,7 @@ describe('ledgerEntryMethods', () => {
         )
         const result = resultWrapper.unwrap()
         expect(result).toEqual([])
+        return Result.ok(undefined)
       })
     })
     it('should successfully insert a single valid ledger entry and return it', async () => {
@@ -162,6 +163,7 @@ describe('ledgerEntryMethods', () => {
         const result = resultWrapper.unwrap()
         expect(result).toHaveLength(1)
         expect(result[0]).toMatchObject(entryData)
+        return Result.ok(undefined)
       })
     })
     it('should successfully insert multiple valid ledger entries and return them', async () => {
@@ -234,6 +236,7 @@ describe('ledgerEntryMethods', () => {
         expect(result).toHaveLength(2)
         expect(result[0]).toMatchObject(entryData1)
         expect(result[1]).toMatchObject(entryData2)
+        return Result.ok(undefined)
       })
     })
     it('should ensure all inserted entries have the correct common properties (e.g., organizationId, livemode if applicable)', async () => {
@@ -307,6 +310,7 @@ describe('ledgerEntryMethods', () => {
         expect(result[0].livemode).toBe(true)
         expect(result[1].organizationId).toBe(organization.id)
         expect(result[1].livemode).toBe(false)
+        return Result.ok(undefined)
       })
     })
     it('should call the transaction insert method with the provided data', async () => {
@@ -350,6 +354,7 @@ describe('ledgerEntryMethods', () => {
         const result = resultWrapper.unwrap()
         expect(result).toHaveLength(1)
         expect(typeof result[0].id).toBe('string')
+        return Result.ok(undefined)
       })
     })
   })
@@ -439,6 +444,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(0)
+          return Result.ok(undefined)
         })
       })
       it('should correctly sum amounts for multiple posted credit entries', async () => {
@@ -472,6 +478,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1500)
+          return Result.ok(undefined)
         })
       })
       it('should correctly sum amounts for multiple posted debit entries (resulting in a negative balance)', async () => {
@@ -506,6 +513,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(-1000)
+          return Result.ok(undefined)
         })
       })
       it('should correctly calculate the balance with a mix of posted credit and debit entries', async () => {
@@ -550,6 +558,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1200 - 400 + 100 - 50) // 850
+          return Result.ok(undefined)
         })
       })
       it('should ignore pending entries (both credit and debit)', async () => {
@@ -595,6 +604,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1000 - 200) // 800
+          return Result.ok(undefined)
         })
       })
       it('should ignore discarded entries (both posted and pending with discardedAt set in the past)', async () => {
@@ -641,15 +651,17 @@ describe('ledgerEntryMethods', () => {
             },
           ],
         })
-        const balance = await adminTransaction(
-          async ({ transaction }) => {
-            return await aggregateBalanceForLedgerAccountFromEntries(
-              { ledgerAccountId: ledgerAccount.id },
-              'posted',
-              transaction
-            )
-          }
-        )
+        const balance = (
+          await adminTransaction(async ({ transaction }) => {
+            const bal =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            return Result.ok(bal)
+          })
+        ).unwrap()
         expect(balance).toBe(1000)
       })
       it('should include posted entries with future discardedAt dates', async () => {
@@ -667,15 +679,17 @@ describe('ledgerEntryMethods', () => {
           usageMeterId: ledgerAccount.usageMeterId!,
           sourceUsageCreditId: usageCreditId,
         })
-        const balance = await adminTransaction(
-          async ({ transaction }) => {
-            return await aggregateBalanceForLedgerAccountFromEntries(
-              { ledgerAccountId: ledgerAccount.id },
-              'posted',
-              transaction
-            )
-          }
-        )
+        const balance = (
+          await adminTransaction(async ({ transaction }) => {
+            const bal =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            return Result.ok(bal)
+          })
+        ).unwrap()
         expect(balance).toBe(750)
       })
       it('should only consider entries for the specified ledgerAccountId', async () => {
@@ -743,6 +757,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(300 - 100) // 200
+          return Result.ok(undefined)
         })
       })
     })
@@ -770,6 +785,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(0)
+          return Result.ok(undefined)
         })
       })
       it('should correctly sum amounts for posted credits and (non-discarded) pending credits', async () => {
@@ -803,6 +819,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1500)
+          return Result.ok(undefined)
         })
       })
       it('should correctly sum amounts for posted debits and (non-discarded) pending debits', async () => {
@@ -836,6 +853,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(-1000)
+          return Result.ok(undefined)
         })
       })
       it('should correctly calculate the balance with a mix of posted and (non-discarded) pending entries (credits and debits)', async () => {
@@ -880,6 +898,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1200 - 400 + 100 - 50) // 850
+          return Result.ok(undefined)
         })
       })
       it('should ignore discarded pending entries', async () => {
@@ -929,6 +948,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1000 + 300) // 1300
+          return Result.ok(undefined)
         })
       })
       it('should only consider entries for the specified ledgerAccountId', async () => {
@@ -1007,6 +1027,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(300 - 100) // 200 (Posted credit - Pending debit for this account)
+          return Result.ok(undefined)
         })
       })
     })
@@ -1052,6 +1073,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(0)
+          return Result.ok(undefined)
         })
       })
 
@@ -1098,6 +1120,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1000 - 200 - 300) // 500
+          return Result.ok(undefined)
         })
       })
 
@@ -1151,6 +1174,7 @@ describe('ledgerEntryMethods', () => {
             )
           expect(availableBalance).toBe(postedBalance)
           expect(availableBalance).toBe(500 - 100) // 400
+          return Result.ok(undefined)
         })
       })
 
@@ -1175,6 +1199,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(300)
+          return Result.ok(undefined)
         })
       })
 
@@ -1198,6 +1223,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(-150)
+          return Result.ok(undefined)
         })
       })
 
@@ -1221,6 +1247,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(-250)
+          return Result.ok(undefined)
         })
       })
 
@@ -1258,6 +1285,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(100)
+          return Result.ok(undefined)
         })
       })
 
@@ -1296,6 +1324,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(200)
+          return Result.ok(undefined)
         })
       })
 
@@ -1333,6 +1362,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(300)
+          return Result.ok(undefined)
         })
       })
 
@@ -1370,6 +1400,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(500 - 150) // 350
+          return Result.ok(undefined)
         })
       })
 
@@ -1406,6 +1437,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(-200 - 100) // -300
+          return Result.ok(undefined)
         })
       })
 
@@ -1452,6 +1484,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(1000 - 200 - 300) // 500
+          return Result.ok(undefined)
         })
       })
 
@@ -1485,6 +1518,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(100 - 250) // -150
+          return Result.ok(undefined)
         })
       })
 
@@ -1565,6 +1599,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(100 - 50) // 50
+          return Result.ok(undefined)
         })
       })
       it('should include entries with future discardedAt dates', async () => {
@@ -1609,6 +1644,7 @@ describe('ledgerEntryMethods', () => {
               transaction
             )
           expect(balance).toBe(100 - 50) // 50
+          return Result.ok(undefined)
         })
       })
     })
@@ -1673,6 +1709,7 @@ describe('ledgerEntryMethods', () => {
               )
             expect(balance).toBe(mainAccountEntryAmount) // Only the main account's entry should count
           }
+          return Result.ok(undefined)
         })
       })
 
@@ -1749,6 +1786,7 @@ describe('ledgerEntryMethods', () => {
             // Only the non-discarded posted credit should count for all types in this scenario
             expect(balance).toBe(includedAmount)
           }
+          return Result.ok(undefined)
         })
       })
 
@@ -1814,6 +1852,7 @@ describe('ledgerEntryMethods', () => {
               ) // 100 - 50 = 50 (pending credit ignored)
             }
           }
+          return Result.ok(undefined)
         })
       })
 
@@ -1881,6 +1920,7 @@ describe('ledgerEntryMethods', () => {
               ) // 200 - 75 = 125 (pending credit ignored)
             }
           }
+          return Result.ok(undefined)
         })
       })
 
@@ -1895,6 +1935,7 @@ describe('ledgerEntryMethods', () => {
               )
             expect(balance).toBe(0)
           }
+          return Result.ok(undefined)
         })
       })
 
@@ -1970,6 +2011,7 @@ describe('ledgerEntryMethods', () => {
             // For 'pending' and 'available', the pending 0-amount entries also don't change the logic for what *types* of entries are included.
             expect(balance).toBe(initialCreditAmount)
           }
+          return Result.ok(undefined)
         })
       })
     })
@@ -2007,8 +2049,8 @@ describe('ledgerEntryMethods', () => {
       const entryAmount2 = 500
       const totalExpectedBalance =
         entryAmount1 + entryAmount2 - entryAmount2
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           await setupLedgerEntries({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -2037,15 +2079,16 @@ describe('ledgerEntryMethods', () => {
             ],
           })
 
-          return aggregateAvailableBalanceForUsageCredit(
+          const res = await aggregateAvailableBalanceForUsageCredit(
             {
               ledgerAccountId: ledgerAccount.id,
               sourceUsageCreditId: usageCreditId1,
             },
             transaction
           )
-        }
-      )
+          return Result.ok(res)
+        })
+      ).unwrap()
       expect(result).toHaveLength(1)
       expect(result[0]).toEqual({
         usageCreditId: usageCreditId1,
@@ -2095,6 +2138,7 @@ describe('ledgerEntryMethods', () => {
           expiresAt: null,
           ledgerAccountId: ledgerAccount.id,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -2232,6 +2276,7 @@ describe('ledgerEntryMethods', () => {
 
         expect(sortedResult).toHaveLength(3)
         expect(sortedResult).toEqual(expectedBalances)
+        return Result.ok(undefined)
       })
     })
 
@@ -2285,6 +2330,7 @@ describe('ledgerEntryMethods', () => {
           expiresAt: null,
           ledgerAccountId: ledgerAccount.id,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -2335,6 +2381,7 @@ describe('ledgerEntryMethods', () => {
           expiresAt: null,
           ledgerAccountId: ledgerAccount.id,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -2405,6 +2452,7 @@ describe('ledgerEntryMethods', () => {
           expiresAt: null,
           ledgerAccountId: ledgerAccount.id,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -2490,6 +2538,7 @@ describe('ledgerEntryMethods', () => {
         expect(result).toHaveLength(1)
         expect(result[0].balance).toBe(remainingAmount)
         expect(result[0].usageCreditId).toBe(usageCredit.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -2507,6 +2556,7 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
         expect(result).toEqual([])
+        return Result.ok(undefined)
       })
     })
 
@@ -2548,6 +2598,7 @@ describe('ledgerEntryMethods', () => {
           transaction
         )
         expect(result).toEqual([])
+        return Result.ok(undefined)
       })
     })
 
@@ -2637,6 +2688,7 @@ describe('ledgerEntryMethods', () => {
         )
 
         expect(result).toEqual([])
+        return Result.ok(undefined)
       })
     })
 
@@ -2750,6 +2802,7 @@ describe('ledgerEntryMethods', () => {
           expiresAt: null,
           ledgerAccountId: ledgerAccount.id,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -2808,6 +2861,7 @@ describe('ledgerEntryMethods', () => {
           expiresAt: null,
           ledgerAccountId: ledgerAccount.id,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -2973,6 +3027,7 @@ describe('ledgerEntryMethods', () => {
             (item) => item.usageCreditId === usageCreditB.id
           )
         ).toBeUndefined()
+        return Result.ok(undefined)
       })
     })
 
@@ -3005,17 +3060,18 @@ describe('ledgerEntryMethods', () => {
         })
 
         // execution:
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return aggregateAvailableBalanceForUsageCredit(
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            const res = await aggregateAvailableBalanceForUsageCredit(
               {
                 ledgerAccountId: ledgerAccount.id,
                 sourceUsageCreditId: usageCreditWithExpiry.id,
               },
               transaction
             )
-          }
-        )
+            return Result.ok(res)
+          })
+        ).unwrap()
 
         // expects:
         expect(result).toHaveLength(1)
@@ -3057,17 +3113,18 @@ describe('ledgerEntryMethods', () => {
         })
 
         // execution:
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return aggregateAvailableBalanceForUsageCredit(
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            const res = await aggregateAvailableBalanceForUsageCredit(
               {
                 ledgerAccountId: ledgerAccount.id,
                 sourceUsageCreditId: usageCreditNullExpiry.id,
               },
               transaction
             )
-          }
-        )
+            return Result.ok(res)
+          })
+        ).unwrap()
 
         // expects:
         expect(result).toHaveLength(1)
@@ -3151,16 +3208,17 @@ describe('ledgerEntryMethods', () => {
         })
 
         // execution:
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return aggregateAvailableBalanceForUsageCredit(
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            const res = await aggregateAvailableBalanceForUsageCredit(
               {
                 ledgerAccountId: ledgerAccount.id, // Query for all in the account
               },
               transaction
             )
-          }
-        )
+            return Result.ok(res)
+          })
+        ).unwrap()
 
         // expects:
         expect(result).toHaveLength(3)
@@ -3228,17 +3286,18 @@ describe('ledgerEntryMethods', () => {
         })
 
         // execution:
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return aggregateAvailableBalanceForUsageCredit(
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            const res = await aggregateAvailableBalanceForUsageCredit(
               {
                 ledgerAccountId: ledgerAccount.id,
                 sourceUsageCreditId: usageCreditPastExpiry.id,
               },
               transaction
             )
-          }
-        )
+            return Result.ok(res)
+          })
+        ).unwrap()
 
         // expects:
         expect(result).toHaveLength(1)
@@ -3327,6 +3386,7 @@ describe('ledgerEntryMethods', () => {
           livemode: true,
           description: `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEvent.id}`,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -3400,6 +3460,7 @@ describe('ledgerEntryMethods', () => {
           livemode: true,
           description: `priceId: ${usageBasedPrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 10, usageEventIds: ${usageEvent.id}`,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -3537,6 +3598,7 @@ describe('ledgerEntryMethods', () => {
           livemode: true,
           description: `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEventWithNoChargePrice.id}`,
         })
+        return Result.ok(undefined)
       })
     })
 
@@ -3643,6 +3705,7 @@ describe('ledgerEntryMethods', () => {
         })
         expect(billingInfo.description).toContain(usageEvent1.id)
         expect(billingInfo.description).toContain(usageEvent2.id)
+        return Result.ok(undefined)
       })
     })
   })
@@ -3681,6 +3744,7 @@ describe('ledgerEntryMethods', () => {
 
           expect(pricingModelId).toBe(subscription.pricingModelId)
           expect(pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
         })
       })
 
@@ -3696,6 +3760,7 @@ describe('ledgerEntryMethods', () => {
 
           expect(pricingModelId).toBe(usageMeter.pricingModelId)
           expect(pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
         })
       })
 
@@ -3712,6 +3777,7 @@ describe('ledgerEntryMethods', () => {
 
           // Should use subscription's pricingModelId, not usage meter's
           expect(pricingModelId).toBe(subscription.pricingModelId)
+          return Result.ok(undefined)
         })
       })
 
@@ -3726,6 +3792,7 @@ describe('ledgerEntryMethods', () => {
             transaction
           )
           expect(Result.isError(result)).toBe(true)
+          return Result.ok(undefined)
         })
       })
 
@@ -3736,6 +3803,7 @@ describe('ledgerEntryMethods', () => {
             transaction
           )
           expect(Result.isError(result)).toBe(true)
+          return Result.ok(undefined)
         })
       })
     })
@@ -3770,6 +3838,7 @@ describe('ledgerEntryMethods', () => {
             subscription.pricingModelId
           )
           expect(entry.pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
         })
       })
 
@@ -3811,6 +3880,7 @@ describe('ledgerEntryMethods', () => {
 
           expect(entry.pricingModelId).toBe(usageMeter.pricingModelId)
           expect(entry.pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
         })
       })
 
@@ -3843,6 +3913,7 @@ describe('ledgerEntryMethods', () => {
           expect(entry.pricingModelId).toBe(
             subscription.pricingModelId
           )
+          return Result.ok(undefined)
         })
       })
 
@@ -3873,6 +3944,7 @@ describe('ledgerEntryMethods', () => {
           const entry = entryResult.unwrap()
 
           expect(entry.pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
         })
       })
     })
@@ -3941,6 +4013,7 @@ describe('ledgerEntryMethods', () => {
           expect(entries[1].pricingModelId).toBe(
             usageMeter.pricingModelId
           )
+          return Result.ok(undefined)
         })
       })
 
@@ -4028,6 +4101,7 @@ describe('ledgerEntryMethods', () => {
           expect(entries[2].pricingModelId).toBe(
             usageMeter.pricingModelId
           )
+          return Result.ok(undefined)
         })
       })
 
@@ -4039,6 +4113,7 @@ describe('ledgerEntryMethods', () => {
           )
           const entries = entriesResult.unwrap()
           expect(entries).toEqual([])
+          return Result.ok(undefined)
         })
       })
     })
