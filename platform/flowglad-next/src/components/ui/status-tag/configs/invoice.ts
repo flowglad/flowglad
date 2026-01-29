@@ -1,3 +1,4 @@
+import { InvoiceStatus } from '@db-core/enums'
 import {
   Check,
   Clock,
@@ -8,7 +9,6 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-react'
-import { InvoiceStatus } from '@/types'
 import type { StatusConfigItem } from '../types'
 
 export const invoiceStatusConfig = {

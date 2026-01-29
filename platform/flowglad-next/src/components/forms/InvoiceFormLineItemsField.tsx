@@ -1,4 +1,8 @@
 import { SubscriptionItemType } from '@db-core/enums'
+import type {
+  CreateInvoiceInput,
+  InvoiceLineItem,
+} from '@db-core/schema/invoiceLineItems'
 import {
   closestCenter,
   DndContext,
@@ -20,10 +24,6 @@ import { useFieldArray, useFormContext } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useAuthContext } from '@/contexts/authContext'
-import type {
-  CreateInvoiceInput,
-  InvoiceLineItem,
-} from '@/db/schema/invoiceLineItems'
 import InvoiceFormLineItem from './InvoiceFormLineItem'
 
 export const newInvoiceLineItem: CreateInvoiceInput['invoiceLineItems'][0] =

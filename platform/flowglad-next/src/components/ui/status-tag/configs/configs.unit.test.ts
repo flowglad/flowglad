@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  InvoiceStatus,
+  PaymentStatus,
   PriceType,
   PurchaseStatus,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { Purchase } from '@db-core/schema/purchases'
 import {
   AlertCircle,
   AlertTriangle,
@@ -20,8 +23,6 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import type { Purchase } from '@/db/schema/purchases'
-import { InvoiceStatus, PaymentStatus } from '@/types'
 import { type ActiveStatus, activeStatusConfig } from './active'
 import { invoiceStatusConfig } from './invoice'
 import { paymentStatusConfig } from './payment'

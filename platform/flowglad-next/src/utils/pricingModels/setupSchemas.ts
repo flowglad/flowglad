@@ -1,24 +1,24 @@
 import { currencyCodeSchema } from '@db-core/commonZodSchema'
 import { FeatureType } from '@db-core/enums'
-import { Result } from 'better-result'
-import * as R from 'ramda'
-import { z } from 'zod'
 import {
   resourceFeatureClientInsertSchema,
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
-} from '@/db/schema/features'
+} from '@db-core/schema/features'
 import {
   isReservedPriceSlug,
   RESERVED_USAGE_PRICE_SLUG_SUFFIX,
   singlePaymentPriceClientInsertSchema,
   subscriptionPriceClientInsertSchema,
   usagePriceClientInsertSchema,
-} from '@/db/schema/prices'
-import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
-import { productsClientInsertSchema } from '@/db/schema/products'
-import { resourcesClientInsertSchema } from '@/db/schema/resources'
-import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
+} from '@db-core/schema/prices'
+import { pricingModelsClientInsertSchema } from '@db-core/schema/pricingModels'
+import { productsClientInsertSchema } from '@db-core/schema/products'
+import { resourcesClientInsertSchema } from '@db-core/schema/resources'
+import { usageMetersClientInsertSchema } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
+import * as R from 'ramda'
+import { z } from 'zod'
 import { NotFoundError, ValidationError } from '@/errors'
 import core, { safeZodSanitizedString } from '../core'
 

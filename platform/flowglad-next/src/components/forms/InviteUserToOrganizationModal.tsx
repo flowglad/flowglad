@@ -1,8 +1,8 @@
+import { inviteUserToOrganizationSchema } from '@db-core/schema/memberships'
 import type React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import InviteUserToOrganizationFormFields from '@/components/forms/InviteUserToOrganizationFormFields'
-import { inviteUserToOrganizationSchema } from '@/db/schema/memberships'
 
 interface InviteUserToOrganizationModalProps {
   isOpen: boolean

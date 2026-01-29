@@ -1,8 +1,11 @@
+import {
+  type Event,
+  eventsSelectSchema,
+} from '@db-core/schema/events'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
-import { type Event, eventsSelectSchema } from '@/db/schema/events'
 import { supabaseInsertPayloadSchema } from '@/db/supabase'
 import {
   selectEventById,

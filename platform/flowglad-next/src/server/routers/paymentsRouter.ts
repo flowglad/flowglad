@@ -1,3 +1,11 @@
+import { PaymentStatus } from '@db-core/enums'
+import {
+  paymentsClientSelectSchema,
+  paymentsPaginatedListSchema,
+  paymentsPaginatedSelectSchema,
+  paymentsPaginatedTableRowDataSchema,
+  paymentsTableRowDataSchema,
+} from '@db-core/schema/payments'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -9,13 +17,6 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  paymentsClientSelectSchema,
-  paymentsPaginatedListSchema,
-  paymentsPaginatedSelectSchema,
-  paymentsPaginatedTableRowDataSchema,
-  paymentsTableRowDataSchema,
-} from '@/db/schema/payments'
-import {
   selectPaymentById,
   selectPaymentCountsByStatus,
   selectPaymentsCursorPaginatedWithTableRowData,
@@ -23,7 +24,6 @@ import {
 } from '@/db/tableMethods/paymentMethods'
 import { refundPayment } from '@/server/mutations/refundPayment'
 import { protectedProcedure, router } from '@/server/trpc'
-import { PaymentStatus } from '@/types'
 import {
   generateOpenApiMetas,
   type RouteConfig,

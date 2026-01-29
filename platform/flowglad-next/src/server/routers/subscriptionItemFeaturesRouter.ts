@@ -1,3 +1,10 @@
+import {
+  createSubscriptionItemFeatureInputSchema,
+  editSubscriptionItemFeatureInputSchema,
+  expireSubscriptionItemFeatureInputSchema,
+  type SubscriptionItemFeature,
+  subscriptionItemFeaturesClientSelectSchema,
+} from '@db-core/schema/subscriptionItemFeatures'
 import { idInputSchema } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
@@ -7,13 +14,6 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createSubscriptionItemFeatureInputSchema,
-  editSubscriptionItemFeatureInputSchema,
-  expireSubscriptionItemFeatureInputSchema,
-  type SubscriptionItemFeature,
-  subscriptionItemFeaturesClientSelectSchema,
-} from '@/db/schema/subscriptionItemFeatures'
 import {
   expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
   insertSubscriptionItemFeature,

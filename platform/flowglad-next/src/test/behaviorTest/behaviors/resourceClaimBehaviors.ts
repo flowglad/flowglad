@@ -18,14 +18,14 @@
  */
 
 import { FeatureType } from '@db-core/enums'
+import type { ResourceClaim } from '@db-core/schema/resourceClaims'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import { setupResourceClaim } from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { ResourceClaim } from '@/db/schema/resourceClaims'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   countActiveResourceClaims,
   selectActiveResourceClaims,

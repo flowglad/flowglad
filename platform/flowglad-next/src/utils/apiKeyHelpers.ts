@@ -2,7 +2,7 @@ import { FlowgladApiKeyType } from '@db-core/enums'
 import type {
   CreateApiKeyInput,
   RotateApiKeyInput,
-} from '@/db/schema/apiKeys'
+} from '@db-core/schema/apiKeys'
 import {
   deleteApiKey as deleteApiKeyMethod,
   insertApiKey,

@@ -1,5 +1,5 @@
-import type { Organization } from '@/db/schema/organizations'
-import type { Webhook } from '@/db/schema/webhooks'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Webhook } from '@db-core/schema/webhooks'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { insertWebhook } from '@/db/tableMethods/webhookMethods'
 import type { DbTransaction } from '@/db/types'

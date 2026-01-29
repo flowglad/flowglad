@@ -1,4 +1,5 @@
 import { PurchaseStatus } from '@db-core/enums'
+import type { Purchase } from '@db-core/schema/purchases'
 import {
   CalendarCheck,
   Check,
@@ -9,7 +10,6 @@ import {
   ShieldAlert,
   XCircle,
 } from 'lucide-react'
-import type { Purchase } from '@/db/schema/purchases'
 import type { StatusConfigItem } from '../types'
 
 export const purchaseStatusConfig = {

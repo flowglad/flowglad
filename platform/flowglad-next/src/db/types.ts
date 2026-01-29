@@ -2,6 +2,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 export type { PgTable, PgTransaction } from 'drizzle-orm/pg-core'
 
+import type { Event } from '@db-core/schema/events'
 import type { ColumnBaseConfig, SQLWrapper } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import type {
@@ -9,7 +10,6 @@ import type {
   CacheRecomputationContext,
 } from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
-import type { Event } from './schema/events'
 
 export type { SQLWrapper } from 'drizzle-orm'
 

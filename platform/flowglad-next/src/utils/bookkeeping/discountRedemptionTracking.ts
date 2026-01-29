@@ -1,13 +1,12 @@
-import { DiscountDuration } from '@db-core/enums'
-import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import type { Payment } from '@/db/schema/payments'
+import { DiscountDuration, PaymentStatus } from '@db-core/enums'
+import type { DiscountRedemption } from '@db-core/schema/discountRedemptions'
+import type { Payment } from '@db-core/schema/payments'
 import {
   selectDiscountRedemptions,
   updateDiscountRedemption,
 } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
-import { PaymentStatus } from '@/types'
 
 export const incrementNumberOfPaymentsForDiscountRedemption = async (
   discountRedemption: DiscountRedemption.Record,

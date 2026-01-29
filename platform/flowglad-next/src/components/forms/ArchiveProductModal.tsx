@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  type EditProductInput,
+  editProductSchema,
+} from '@db-core/schema/prices'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
@@ -12,10 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  type EditProductInput,
-  editProductSchema,
-} from '@/db/schema/prices'
 
 interface ArchiveProductModalProps {
   trigger?: React.ReactNode

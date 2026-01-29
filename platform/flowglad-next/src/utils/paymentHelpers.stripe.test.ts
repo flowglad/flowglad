@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   PaymentMethodType,
+  PaymentStatus,
   StripeConnectContractType,
 } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Payment } from '@db-core/schema/payments'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -20,13 +25,8 @@ import {
   setupPayment,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
-import type { Payment } from '@/db/schema/payments'
 import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import { NotFoundError, ValidationError } from '@/errors'
-import { PaymentStatus } from '@/types'
 import { nanoid } from '@/utils/core'
 import {
   refundPaymentTransaction,

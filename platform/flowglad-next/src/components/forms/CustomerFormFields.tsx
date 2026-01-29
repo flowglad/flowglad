@@ -1,3 +1,4 @@
+import type { Customer } from '@db-core/schema/customers'
 import { useFormContext } from 'react-hook-form'
 import {
   FormControl,
@@ -8,7 +9,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import type { Customer } from '@/db/schema/customers'
 
 interface CustomerFormFieldsProps {
   showExternalId?: boolean

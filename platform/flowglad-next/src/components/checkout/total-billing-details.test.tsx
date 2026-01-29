@@ -5,29 +5,27 @@ import {
   CurrencyCode,
   DiscountAmountType,
   DiscountDuration,
+  FeeCalculationType,
   IntervalUnit,
+  InvoiceStatus,
   PaymentMethodType,
   PriceType,
 } from '@db-core/enums'
+import type { Discount } from '@db-core/schema/discounts'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Price } from '@db-core/schema/prices'
 import { render } from '@testing-library/react'
 // Import types and non-mocked exports from the original module
 import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
 import { subscriptionDetailsFromCheckoutInfoCore } from '@/contexts/checkoutPageContext'
-import type { Discount } from '@/db/schema/discounts'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Price } from '@/db/schema/prices'
 import { stubbedCheckoutSession } from '@/stubs/checkoutContextStubs'
 import { dummyOrganization } from '@/stubs/organizationStubs'
 import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import { dummyProduct } from '@/stubs/productStubs'
 import { subscriptionWithTrialDummyPurchase } from '@/stubs/purchaseStubs'
-import {
-  CheckoutFlowType,
-  FeeCalculationType,
-  InvoiceStatus,
-} from '@/types'
+import { CheckoutFlowType } from '@/types'
 import core from '@/utils/core'
 import {
   calculateTotalBillingDetails,

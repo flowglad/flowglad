@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+  PriceType,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -12,11 +22,6 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Purchase } from '@/db/schema/purchases'
-import type { Subscription } from '@/db/schema/subscriptions'
-import { InvoiceStatus, InvoiceType } from '@/types'
 import { core } from '@/utils/core'
 import {
   derivePricingModelIdForInvoice,

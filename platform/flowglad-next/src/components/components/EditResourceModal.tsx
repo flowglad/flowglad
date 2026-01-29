@@ -1,13 +1,13 @@
 'use client'
 
+import {
+  editResourceSchema,
+  type Resource,
+} from '@db-core/schema/resources'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import ResourceFormFields from '@/components/forms/ResourceFormFields'
-import {
-  editResourceSchema,
-  type Resource,
-} from '@/db/schema/resources'
 
 interface EditResourceModalProps {
   isOpen: boolean

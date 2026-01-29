@@ -1,5 +1,31 @@
 import { PriceType } from '@db-core/enums'
 import {
+  features,
+  featuresClientSelectSchema,
+} from '@db-core/schema/features'
+import {
+  type Price,
+  type PricingModelWithProductsAndUsageMeters,
+  type ProductWithPrices,
+  prices,
+  pricesClientSelectSchema,
+  usagePriceClientSelectSchema,
+} from '@db-core/schema/prices'
+import {
+  type PricingModel,
+  pricingModels,
+  pricingModelsClientSelectSchema,
+  pricingModelsInsertSchema,
+  pricingModelsSelectSchema,
+  pricingModelsUpdateSchema,
+} from '@db-core/schema/pricingModels'
+import { productFeatures } from '@db-core/schema/productFeatures'
+import {
+  products,
+  productsClientSelectSchema,
+} from '@db-core/schema/products'
+import { usageMeters } from '@db-core/schema/usageMeters'
+import {
   createCursorPaginatedSelectFunction,
   createDateNotPassedFilter,
   createInsertFunction,
@@ -21,18 +47,6 @@ import {
   sql,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import {
-  features,
-  featuresClientSelectSchema,
-} from '@/db/schema/features'
-import {
-  type PricingModel,
-  pricingModels,
-  pricingModelsClientSelectSchema,
-  pricingModelsInsertSchema,
-  pricingModelsSelectSchema,
-  pricingModelsUpdateSchema,
-} from '@/db/schema/pricingModels'
 import type { CustomerPricingInfo } from '@/db/tableMethods/customerMethods'
 import type {
   DbTransaction,
@@ -41,20 +55,6 @@ import type {
 import { ConflictError } from '@/errors'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import {
-  type Price,
-  type PricingModelWithProductsAndUsageMeters,
-  type ProductWithPrices,
-  prices,
-  pricesClientSelectSchema,
-  usagePriceClientSelectSchema,
-} from '../schema/prices'
-import { productFeatures } from '../schema/productFeatures'
-import {
-  products,
-  productsClientSelectSchema,
-} from '../schema/products'
-import { usageMeters } from '../schema/usageMeters'
 import { selectFeaturesByPricingModelId } from './featureMethods'
 import { selectPricesByPricingModelId } from './priceMethods'
 import { selectProductFeaturesByPricingModelId } from './productFeatureMethods'

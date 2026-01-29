@@ -1,9 +1,9 @@
 import { EventNoun, FlowgladEventType } from '@db-core/enums'
-import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
-import type { Payment } from '@/db/schema/payments'
-import type { Purchase } from '@/db/schema/purchases'
-import type { Subscription } from '@/db/schema/subscriptions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Event } from '@db-core/schema/events'
+import type { Payment } from '@db-core/schema/payments'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   derivePricingModelIdFromEventPayload,

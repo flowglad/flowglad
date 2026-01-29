@@ -2,7 +2,9 @@ import { describe, expect, it } from 'bun:test'
 import {
   CountryCode,
   CurrencyCode,
+  FeeCalculationType,
   PaymentMethodType,
+  PaymentStatus,
   StripeConnectContractType,
 } from '@db-core/enums'
 import {
@@ -18,7 +20,6 @@ import {
   selectFeeCalculationById,
 } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
-import { FeeCalculationType, PaymentStatus } from '@/types'
 import { nanoid } from '@/utils/core'
 import { createStripeTaxTransactionFromCalculation } from '@/utils/stripe'
 import { createStripeTaxTransactionIfNeededForPayment } from './stripeTaxTransactions'

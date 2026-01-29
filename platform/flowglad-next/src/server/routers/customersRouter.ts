@@ -1,3 +1,22 @@
+import {
+  customerClientSelectSchema,
+  customersPaginatedListSchema,
+  customersPaginatedSelectSchema,
+  customersPaginatedTableRowInputSchema,
+  customersPaginatedTableRowOutputSchema,
+  editCustomerInputSchema,
+  editCustomerOutputSchema,
+} from '@db-core/schema/customers'
+import { invoiceWithLineItemsClientSchema } from '@db-core/schema/invoiceLineItems'
+import { paymentMethodClientSelectSchema } from '@db-core/schema/paymentMethods'
+import { pricingModelWithProductsAndUsageMetersSchema } from '@db-core/schema/prices'
+import {
+  type CreateCustomerOutputSchema,
+  createCustomerOutputSchema,
+  purchaseClientSelectSchema,
+} from '@db-core/schema/purchases'
+import { subscriptionClientSelectSchema } from '@db-core/schema/subscriptions'
+import { usageMeterBalanceClientSelectSchema } from '@db-core/schema/usageMeters'
 import { externalIdInputSchema } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
@@ -8,25 +27,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  customerClientSelectSchema,
-  customersPaginatedListSchema,
-  customersPaginatedSelectSchema,
-  customersPaginatedTableRowInputSchema,
-  customersPaginatedTableRowOutputSchema,
-  editCustomerInputSchema,
-  editCustomerOutputSchema,
-} from '@/db/schema/customers'
-import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
-import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
-import {
-  type CreateCustomerOutputSchema,
-  createCustomerOutputSchema,
-  purchaseClientSelectSchema,
-} from '@/db/schema/purchases'
-import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
-import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,

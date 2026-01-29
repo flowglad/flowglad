@@ -1,4 +1,5 @@
 'use client'
+import type { CreateInvoiceInput } from '@db-core/schema/invoiceLineItems'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, X } from 'lucide-react'
@@ -13,7 +14,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import type { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { cn } from '@/lib/utils'
 import {
   currencyCharacter,

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { FeatureUsageGrantFrequency, PriceType } from '@db-core/enums'
+import type { Feature } from '@db-core/schema/features'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
 import {
   setupOrg,
   setupPrice,
@@ -9,10 +13,6 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import type { Feature } from '@/db/schema/features'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 import { productFeaturesRouter } from '@/server/routers/productFeaturesRouter'
 import { core } from '@/utils/core'
 

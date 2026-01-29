@@ -1,5 +1,7 @@
 'use client'
 
+// Other imports
+import type { Webhook } from '@db-core/schema/webhooks'
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Eye, Pencil } from 'lucide-react'
@@ -16,8 +18,6 @@ import {
   ActiveStatusTag,
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
-// Other imports
-import type { Webhook } from '@/db/schema/webhooks'
 import WebhookSecretModal from './WebhookSecretModal'
 
 export type WebhookTableRowData = {

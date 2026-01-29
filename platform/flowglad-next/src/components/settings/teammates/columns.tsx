@@ -1,6 +1,9 @@
 'use client'
 
 import { MembershipRole } from '@db-core/enums'
+import type { Membership } from '@db-core/schema/memberships'
+// Other imports
+import type { User } from '@db-core/schema/users'
 import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
 import * as React from 'react'
@@ -8,9 +11,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 // UI components
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
-import type { Membership } from '@/db/schema/memberships'
-// Other imports
-import type { User } from '@/db/schema/users'
 
 export type OrganizationMemberTableRowData = {
   user: User.Record

@@ -1,5 +1,7 @@
 'use client'
 
+import type { PaymentStatus } from '@db-core/enums'
+import type { Payment } from '@db-core/schema/payments'
 import {
   type ColumnSizingState,
   flexRender,
@@ -21,8 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Payment } from '@/db/schema/payments'
-import type { PaymentStatus } from '@/types'
 import { columns } from './columns'
 
 export interface PaymentsTableFilters {

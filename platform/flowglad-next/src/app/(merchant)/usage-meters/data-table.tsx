@@ -1,5 +1,6 @@
 'use client'
 
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import {
   type ColumnFiltersState,
   type ColumnSizingState,
@@ -26,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 import { columns } from './columns'
 
 export interface UsageMetersTableFilters {

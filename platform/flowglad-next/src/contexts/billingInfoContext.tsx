@@ -1,11 +1,11 @@
 'use client'
 import { PriceType } from '@db-core/enums'
-import { createContext, useContext } from 'react'
 import type {
   BillingAddress,
   Organization,
-} from '@/db/schema/organizations'
-import type { Product } from '@/db/schema/products'
+} from '@db-core/schema/organizations'
+import type { Product } from '@db-core/schema/products'
+import { createContext, useContext } from 'react'
 import {
   type CheckoutInfoCore,
   checkoutInfoSchema,

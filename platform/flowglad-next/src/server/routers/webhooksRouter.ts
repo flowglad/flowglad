@@ -1,16 +1,16 @@
 import {
+  createWebhookInputSchema,
+  editWebhookInputSchema,
+  webhookClientSelectSchema,
+  webhooksTableRowDataSchema,
+} from '@db-core/schema/webhooks'
+import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@db-core/tableUtils'
 import { z } from 'zod'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
-import {
-  createWebhookInputSchema,
-  editWebhookInputSchema,
-  webhookClientSelectSchema,
-  webhooksTableRowDataSchema,
-} from '@/db/schema/webhooks'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   selectWebhookAndOrganizationByWebhookId,

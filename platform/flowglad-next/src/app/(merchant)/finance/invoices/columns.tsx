@@ -1,5 +1,9 @@
 'use client'
 
+import { InvoiceStatus } from '@db-core/enums'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+// Other imports
+import type { Invoice } from '@db-core/schema/invoices'
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Link } from 'lucide-react'
@@ -13,10 +17,6 @@ import {
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import { InvoiceStatusTag } from '@/components/ui/status-tag'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-// Other imports
-import type { Invoice } from '@/db/schema/invoices'
-import { InvoiceStatus } from '@/types'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 

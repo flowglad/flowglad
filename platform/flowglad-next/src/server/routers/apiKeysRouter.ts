@@ -1,5 +1,9 @@
 import { FlowgladApiKeyType } from '@db-core/enums'
 import {
+  apiKeysClientSelectSchema,
+  createApiKeyInputSchema,
+} from '@db-core/schema/apiKeys'
+import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
@@ -9,10 +13,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  apiKeysClientSelectSchema,
-  createApiKeyInputSchema,
-} from '@/db/schema/apiKeys'
 import {
   selectApiKeyById,
   selectApiKeys,

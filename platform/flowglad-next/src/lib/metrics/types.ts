@@ -1,5 +1,7 @@
-import type { CurrencyCode } from '@db-core/enums'
-import type { RevenueChartIntervalUnit } from '@/types'
+import type {
+  CurrencyCode,
+  RevenueChartIntervalUnit,
+} from '@db-core/enums'
 
 /**
  * Static metric types (built-in dashboard metrics).

@@ -3,7 +3,7 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@db-core/enums'
-import type { Organization } from '@/db/schema/organizations'
+import type { Organization } from '@db-core/schema/organizations'
 
 export const dummyOrganization: Organization.Record = {
   id: '1',

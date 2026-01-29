@@ -3,7 +3,7 @@ import {
   type EditInvoiceInput,
   type InvoiceLineItem,
   invoiceLineItemsUpdateSchema,
-} from '@/db/schema/invoiceLineItems'
+} from '@db-core/schema/invoiceLineItems'
 import { deleteIncompleteCheckoutSessionsForInvoice } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   deleteInvoiceLineItems,

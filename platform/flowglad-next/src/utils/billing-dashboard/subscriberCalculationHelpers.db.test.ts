@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   IntervalUnit,
   PriceType,
+  RevenueChartIntervalUnit,
   SubscriptionStatus,
 } from '@db-core/enums'
 import {
@@ -20,7 +21,6 @@ import {
   setupSubscriptionItem,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { RevenueChartIntervalUnit } from '@/types'
 import {
   calculateActiveSubscribersByMonth,
   calculateSubscriberBreakdown,

@@ -12,10 +12,10 @@
  */
 
 import { CountryCode } from '@db-core/enums'
+import { countries } from '@db-core/schema/countries'
 import { loadEnvConfig } from '@next/env'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import { countries } from '@/db/schema/countries'
 import core from '@/utils/core'
 import { countryNameByCountryCode } from '@/utils/countries'
 import { logger } from '@/utils/logger'

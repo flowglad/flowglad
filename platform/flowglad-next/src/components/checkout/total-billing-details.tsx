@@ -5,19 +5,19 @@ import {
   PriceType,
   StripeConnectContractType,
 } from '@db-core/enums'
-import * as React from 'react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import type { Discount } from '@/db/schema/discounts'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { Discount } from '@db-core/schema/discounts'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
 import {
   ClientInvoiceWithLineItems,
   type InvoiceLineItem,
   InvoiceWithLineItems,
-} from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Price } from '@/db/schema/prices'
-import type { Purchase } from '@/db/schema/purchases'
+} from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Price } from '@db-core/schema/prices'
+import type { Purchase } from '@db-core/schema/purchases'
+import * as React from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import { cn } from '@/lib/utils'
 import { CheckoutFlowType, type Nullish } from '@/types'
 import {

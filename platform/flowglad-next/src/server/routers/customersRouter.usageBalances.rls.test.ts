@@ -1,10 +1,18 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   IntervalUnit,
+  LedgerEntryType,
   LedgerTransactionType,
   PriceType,
   SubscriptionStatus,
+  UsageCreditType,
 } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { LedgerAccount } from '@db-core/schema/ledgerAccounts'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { TRPCError } from '@trpc/server'
 import {
   setupBillingPeriod,
@@ -20,14 +28,7 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import type { Customer } from '@/db/schema/customers'
-import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Subscription } from '@/db/schema/subscriptions'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import { LedgerEntryType, UsageCreditType } from '@/types'
 import { customersRouter } from './customersRouter'
 
 const createCaller = (

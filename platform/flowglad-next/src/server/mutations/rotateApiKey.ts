@@ -1,5 +1,5 @@
+import { rotateApiKeySchema } from '@db-core/schema/apiKeys'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { rotateApiKeySchema } from '@/db/schema/apiKeys'
 import { protectedProcedure } from '@/server/trpc'
 import { rotateSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { logger } from '@/utils/logger'

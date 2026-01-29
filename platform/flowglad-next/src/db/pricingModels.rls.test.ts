@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import {
   setupOrg,
   setupPricingModel,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import type { PricingModel } from '@/db/schema/pricingModels'
 import {
   insertPricingModel,
   selectPricingModelById,

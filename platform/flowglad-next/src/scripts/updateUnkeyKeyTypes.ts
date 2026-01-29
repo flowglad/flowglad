@@ -4,9 +4,9 @@ NODE_ENV=production bunx tsx src/scripts/updateUnkeyKeyTypes.ts
 */
 
 import { FlowgladApiKeyType } from '@db-core/enums'
+import { secretApiKeyMetadataSchema } from '@db-core/schema/apiKeys'
 import { Unkey } from '@unkey/api'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { secretApiKeyMetadataSchema } from '@/db/schema/apiKeys'
 import { core } from '@/utils/core'
 import runScript from './scriptRunner'
 

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import type { Organization } from '@db-core/schema/organizations'
 import {
   setupOrg,
   setupUserAndApiKey,
   teardownOrg,
 } from '@/../seedDatabase'
-import type { Organization } from '@/db/schema/organizations'
 import { setReferralSelection as setReferralSelectionInRedis } from '@/utils/redis'
 import { REFERRAL_OPTIONS } from '@/utils/referrals'
 import { innerSetReferralSelectionHandler } from './setReferralSelection'

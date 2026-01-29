@@ -2,25 +2,28 @@ import {
   FeatureType,
   LedgerTransactionType,
   SubscriptionItemType,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+  UsageCreditType,
 } from '@db-core/enums'
-import { Result } from 'better-result'
-import { and, eq, isNull } from 'drizzle-orm'
-import * as R from 'ramda'
-import { Customer } from '@/db/schema/customers'
-import type { Feature } from '@/db/schema/features'
-import { Price } from '@/db/schema/prices'
-import type { ProductFeature } from '@/db/schema/productFeatures'
+import { Customer } from '@db-core/schema/customers'
+import type { Feature } from '@db-core/schema/features'
+import { Price } from '@db-core/schema/prices'
+import type { ProductFeature } from '@db-core/schema/productFeatures'
 import type {
   AddFeatureToSubscriptionInput,
   SubscriptionItemFeature,
-} from '@/db/schema/subscriptionItemFeatures'
-import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
+} from '@db-core/schema/subscriptionItemFeatures'
+import { subscriptionItemFeatures } from '@db-core/schema/subscriptionItemFeatures'
 import {
   type SubscriptionItem,
   subscriptionItems,
-} from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
-import { usageCredits } from '@/db/schema/usageCredits'
+} from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import { usageCredits } from '@db-core/schema/usageCredits'
+import { Result } from 'better-result'
+import { and, eq, isNull } from 'drizzle-orm'
+import * as R from 'ramda'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
@@ -48,11 +51,6 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import { NotFoundError } from '@/errors'
-import {
-  UsageCreditSourceReferenceType,
-  UsageCreditStatus,
-  UsageCreditType,
-} from '@/types'
 import { CacheDependency } from '@/utils/cache'
 
 /**

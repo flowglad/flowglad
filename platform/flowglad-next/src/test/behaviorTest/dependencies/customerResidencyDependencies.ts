@@ -29,7 +29,7 @@
  */
 
 import { CountryCode } from '@db-core/enums'
-import type { BillingAddress } from '@/db/schema/organizations'
+import type { BillingAddress } from '@db-core/schema/organizations'
 import { Dependency } from '../index'
 
 /**

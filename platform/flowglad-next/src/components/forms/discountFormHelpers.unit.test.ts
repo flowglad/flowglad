@@ -9,7 +9,7 @@ import {
   createDiscountInputSchema,
   type EditDiscountFormSchema,
   editDiscountInputSchema,
-} from '@/db/schema/discounts'
+} from '@db-core/schema/discounts'
 import {
   normalizeDiscountAmount,
   toCreateDiscountInput,

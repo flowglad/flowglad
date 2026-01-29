@@ -3,7 +3,7 @@ import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import {
   createDiscountFormSchema,
   editDiscountFormSchema,
-} from './discounts'
+} from '@db-core/schema/discounts'
 
 describe('Discount Form Validation', () => {
   describe('Create Discount Form Schema', () => {

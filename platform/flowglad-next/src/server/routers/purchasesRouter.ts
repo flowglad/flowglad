@@ -1,5 +1,9 @@
 import { PurchaseStatus } from '@db-core/enums'
 import {
+  purchaseClientSelectSchema,
+  purchasesTableRowDataSchema,
+} from '@db-core/schema/purchases'
+import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
@@ -9,10 +13,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  purchaseClientSelectSchema,
-  purchasesTableRowDataSchema,
-} from '@/db/schema/purchases'
 import {
   selectPurchaseById,
   selectPurchasesTableRowData,

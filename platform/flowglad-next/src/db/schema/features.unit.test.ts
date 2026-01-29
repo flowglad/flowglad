@@ -12,7 +12,7 @@ import {
   usageCreditGrantFeatureClientInsertSchema,
   usageCreditGrantFeatureClientUpdateSchema,
   usageCreditGrantFeatureInsertSchema,
-} from './features'
+} from '@db-core/schema/features'
 
 describe('Features Schema Validation', () => {
   describe('Toggle Feature - Client Insert Schema', () => {

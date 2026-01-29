@@ -2,6 +2,7 @@
 
 import {
   CurrencyCode,
+  RevenueChartIntervalUnit,
   UsageMeterAggregationType,
 } from '@db-core/enums'
 import { ChevronDown } from 'lucide-react'
@@ -41,7 +42,6 @@ import {
   type StaticMetricType,
 } from '@/lib/metrics'
 import { cn } from '@/lib/utils'
-import { RevenueChartIntervalUnit } from '@/types'
 
 /**
  * Information about a selected usage meter.

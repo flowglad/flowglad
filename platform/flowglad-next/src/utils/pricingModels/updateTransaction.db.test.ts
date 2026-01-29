@@ -5,13 +5,13 @@ import {
   IntervalUnit,
   PriceType,
 } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'

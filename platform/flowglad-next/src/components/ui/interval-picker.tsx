@@ -1,5 +1,6 @@
 'use client'
 
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { Check } from 'lucide-react'
 import * as React from 'react'
 import { ChevronDown } from '@/components/icons/navigation'
@@ -10,7 +11,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { RevenueChartIntervalUnit } from '@/types'
 import {
   getIntervalConfig,
   intervalLabels,

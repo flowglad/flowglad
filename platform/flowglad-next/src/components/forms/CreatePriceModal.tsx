@@ -1,10 +1,10 @@
 'use client'
 
 import { PriceType } from '@db-core/enums'
+import { createPriceFormSchema, Price } from '@db-core/schema/prices'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { createPriceFormSchema, Price } from '@/db/schema/prices'
 import {
   countableCurrencyAmountToRawStringAmount,
   rawStringAmountToCountableCurrencyAmount,

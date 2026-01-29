@@ -1,6 +1,9 @@
 'use client'
 
 import { PriceType } from '@db-core/enums'
+// Other imports
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { ChartColumnIncreasing, RotateCw } from 'lucide-react'
@@ -13,9 +16,6 @@ import {
   ActiveStatusTag,
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
-// Other imports
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import core from '@/utils/core'
 
 export type PriceTableRowData = {

@@ -331,22 +331,10 @@ export const safeZodNonNegativeInteger = z.coerce
     { message: 'Value must be a non-negative integer' }
   )
 
-export const safeZodPositiveInteger = z.coerce
-  .number()
-  .int()
-  .positive()
-  .meta({
-    description: 'A positive integer',
-  })
-
 export const zodOptionalNullableString = z
   .string()
   .nullable()
   .optional()
-
-export const safeZodPositiveIntegerOrZero = safeZodPositiveInteger.or(
-  z.literal(0)
-)
 
 export const safeZodNullOrUndefined = z
   .null()
@@ -582,10 +570,8 @@ export const core = {
   nowTime,
   safeZodNullOrUndefined,
   safeZodNullishString,
-  safeZodPositiveInteger,
   safeZodDate,
   safeZodAlwaysNull,
-  safeZodPositiveIntegerOrZero,
   safeZodNonNegativeInteger,
   safeZodSanitizedString,
   IS_DEV,

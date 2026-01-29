@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
 import type { OpenAPIV3Document } from './swagger'
 import { createFlowgladOpenApiDocument } from './swagger'
 

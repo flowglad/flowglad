@@ -23,11 +23,11 @@
  * - **ContractTypeDep**: Platform vs MoR affects fee structure and compliance
  */
 
+import type { Country } from '@db-core/schema/countries'
+import type { Membership } from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Country } from '@/db/schema/countries'
-import type { Membership } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'

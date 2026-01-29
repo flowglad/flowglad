@@ -6,14 +6,11 @@
  */
 
 import { FeatureType, PriceType } from '@db-core/enums'
-import { Result } from 'better-result'
-import * as R from 'ramda'
-import { z } from 'zod'
 import {
   resourceFeatureClientUpdateSchema,
   toggleFeatureClientUpdateSchema,
   usageCreditGrantFeatureClientUpdateSchema,
-} from '@/db/schema/features'
+} from '@db-core/schema/features'
 import {
   priceImmutableFields,
   singlePaymentPriceClientInsertSchema,
@@ -22,9 +19,12 @@ import {
   subscriptionPriceClientUpdateSchema,
   usagePriceClientInsertSchema,
   usagePriceClientUpdateSchema,
-} from '@/db/schema/prices'
-import { productsClientUpdateSchema } from '@/db/schema/products'
-import { usageMetersClientUpdateSchema } from '@/db/schema/usageMeters'
+} from '@db-core/schema/prices'
+import { productsClientUpdateSchema } from '@db-core/schema/products'
+import { usageMetersClientUpdateSchema } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
+import * as R from 'ramda'
+import { z } from 'zod'
 import { ValidationError } from '@/errors'
 import type {
   SetupPricingModelInput,

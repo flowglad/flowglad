@@ -9,6 +9,7 @@ import {
   spyOn,
 } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   CurrencyCode,
   FlowgladEventType,
@@ -18,6 +19,15 @@ import {
   PurchaseStatus,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -29,15 +39,6 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { Purchase } from '@/db/schema/purchases'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
@@ -53,7 +54,7 @@ import {
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
-import { CancellationReason, CheckoutSessionStatus } from '@/types'
+import { CancellationReason } from '@/types'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import {
   type CoreSripeSetupIntent,

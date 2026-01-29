@@ -9,11 +9,11 @@
  * @see https://www.svix.com/
  */
 
+import type { Event } from '@db-core/schema/events'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Webhook } from '@db-core/schema/webhooks'
 import { type ApplicationOut, Svix } from 'svix'
 import { ApiException } from 'svix/dist/util'
-import type { Event } from '@/db/schema/events'
-import type { Organization } from '@/db/schema/organizations'
-import type { Webhook } from '@/db/schema/webhooks'
 import {
   type Checkpoint,
   svixTraced,

@@ -6,6 +6,9 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import { DollarSign, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -30,9 +33,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useAuthContext } from '@/contexts/authContext'
-import type { Customer } from '@/db/schema/customers'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { PricingModel } from '@/db/schema/pricingModels'
 import { getSubscriptionDateInfo } from '@/lib/subscription-utils'
 import type { RichSubscription } from '@/subscriptions/schemas'
 import core from '@/utils/core'

@@ -4,6 +4,12 @@ import {
   LedgerTransactionType,
   PriceType,
 } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   setupCustomer,
   setupOrg,
@@ -12,12 +18,6 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
-import type { Customer } from '../schema/customers'
-import type { Organization } from '../schema/organizations'
-import type { Price } from '../schema/prices'
-import type { PricingModel } from '../schema/pricingModels'
-import type { Product } from '../schema/products'
-import type { Subscription } from '../schema/subscriptions'
 import {
   insertLedgerTransaction,
   insertLedgerTransactionOrDoNothingByIdempotencyKey,

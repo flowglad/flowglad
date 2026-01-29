@@ -1,4 +1,4 @@
-import { PriceType } from '@db-core/enums'
+import { CheckoutSessionStatus, PriceType } from '@db-core/enums'
 import { notFound, redirect } from 'next/navigation'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
@@ -7,7 +7,6 @@ import {
   type CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { CheckoutSessionStatus } from '@/types'
 import {
   checkoutInfoForCheckoutSession,
   getClientSecretsForCheckoutSession,

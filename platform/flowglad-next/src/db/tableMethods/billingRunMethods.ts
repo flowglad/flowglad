@@ -1,5 +1,12 @@
 import { BillingRunStatus, SubscriptionStatus } from '@db-core/enums'
 import {
+  type BillingRun,
+  billingRuns,
+  billingRunsInsertSchema,
+  billingRunsSelectSchema,
+  billingRunsUpdateSchema,
+} from '@db-core/schema/billingRuns'
+import {
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -9,13 +16,6 @@ import {
 import { Result } from 'better-result'
 import { and, eq, lt } from 'drizzle-orm'
 import type { z } from 'zod'
-import {
-  type BillingRun,
-  billingRuns,
-  billingRunsInsertSchema,
-  billingRunsSelectSchema,
-  billingRunsUpdateSchema,
-} from '@/db/schema/billingRuns'
 import type { DbTransaction } from '@/db/types'
 import { ValidationError } from '@/errors'
 import { selectSubscriptionById } from './subscriptionMethods'

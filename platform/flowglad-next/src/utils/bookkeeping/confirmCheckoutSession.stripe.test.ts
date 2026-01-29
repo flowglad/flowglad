@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
   EventNoun,
@@ -9,6 +10,14 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -32,14 +41,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Purchase } from '@/db/schema/purchases'
 import {
   selectCheckoutSessionById,
   updateCheckoutSession,
@@ -50,7 +51,6 @@ import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableM
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
 import { createMockCustomer } from '@/test/helpers/stripeMocks'
-import { CheckoutSessionStatus } from '@/types'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import core from '@/utils/core'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'

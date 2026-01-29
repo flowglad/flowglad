@@ -1,7 +1,7 @@
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { useEffect, useState } from 'react'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { IntervalPicker } from '@/components/ui/interval-picker'
-import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalConfig } from '@/utils/chartIntervalUtils'
 import { RevenueChart } from './RevenueChart'
 

@@ -1,5 +1,19 @@
 // NOTE: Import utilities only - don't import server-only functions from subscriptionItemMethods.server.ts
 
+import { features } from '@db-core/schema/features'
+import { productFeatures } from '@db-core/schema/productFeatures'
+import {
+  type SubscriptionItemFeature,
+  subscriptionItemFeatures,
+  subscriptionItemFeaturesClientSelectSchema,
+  subscriptionItemFeaturesInsertSchema,
+  subscriptionItemFeaturesSelectSchema,
+  subscriptionItemFeaturesUpdateSchema,
+} from '@db-core/schema/subscriptionItemFeatures'
+import {
+  SubscriptionItem,
+  subscriptionItems,
+} from '@db-core/schema/subscriptionItems'
 import {
   createBulkUpsertFunction,
   createInsertFunction,
@@ -12,14 +26,6 @@ import {
 } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { eq, inArray } from 'drizzle-orm'
-import {
-  type SubscriptionItemFeature,
-  subscriptionItemFeatures,
-  subscriptionItemFeaturesClientSelectSchema,
-  subscriptionItemFeaturesInsertSchema,
-  subscriptionItemFeaturesSelectSchema,
-  subscriptionItemFeaturesUpdateSchema,
-} from '@/db/schema/subscriptionItemFeatures'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError } from '@/errors'
 import {
@@ -28,12 +34,6 @@ import {
   cachedBulkLookup,
 } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import { features } from '../schema/features'
-import { productFeatures } from '../schema/productFeatures'
-import {
-  SubscriptionItem,
-  subscriptionItems,
-} from '../schema/subscriptionItems'
 import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscriptionItem,

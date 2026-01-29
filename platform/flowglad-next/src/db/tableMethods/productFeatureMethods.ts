@@ -1,4 +1,17 @@
 import {
+  features,
+  featuresSelectSchema,
+} from '@db-core/schema/features'
+import {
+  type ProductFeature,
+  productFeatureClientSelectSchema,
+  productFeatures,
+  productFeaturesInsertSchema,
+  productFeaturesSelectSchema,
+  productFeaturesUpdateSchema,
+} from '@db-core/schema/productFeatures'
+import type { Product } from '@db-core/schema/products'
+import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
   createDateNotPassedFilter,
@@ -13,14 +26,6 @@ import {
 } from '@db-core/tableUtils'
 import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
-import {
-  type ProductFeature,
-  productFeatureClientSelectSchema,
-  productFeatures,
-  productFeaturesInsertSchema,
-  productFeaturesSelectSchema,
-  productFeaturesUpdateSchema,
-} from '@/db/schema/productFeatures'
 import type {
   AuthenticatedTransactionParams,
   DbTransaction,
@@ -28,8 +33,6 @@ import type {
 } from '@/db/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import { features, featuresSelectSchema } from '../schema/features'
-import type { Product } from '../schema/products'
 import {
   derivePricingModelIdFromProduct,
   pricingModelIdsForProducts,
@@ -183,7 +186,7 @@ export const expireProductFeaturesByFeatureId = async (
   >
 ): Promise<{
   expiredProductFeature: ProductFeature.Record[]
-  detachedSubscriptionItemFeatures: import('@/db/schema/subscriptionItemFeatures').SubscriptionItemFeature.Record[]
+  detachedSubscriptionItemFeatures: import('@db-core/schema/subscriptionItemFeatures').SubscriptionItemFeature.Record[]
 }> => {
   // First, detach any existing subscription item features
   const detachedSubscriptionItemFeatures =

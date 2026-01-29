@@ -1,4 +1,11 @@
 import {
+  type ResourceClaim,
+  resourceClaims,
+  resourceClaimsInsertSchema,
+  resourceClaimsSelectSchema,
+  resourceClaimsUpdateSchema,
+} from '@db-core/schema/resourceClaims'
+import {
   createBulkInsertFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
@@ -17,13 +24,6 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
-import {
-  type ResourceClaim,
-  resourceClaims,
-  resourceClaimsInsertSchema,
-  resourceClaimsSelectSchema,
-  resourceClaimsUpdateSchema,
-} from '@/db/schema/resourceClaims'
 import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<

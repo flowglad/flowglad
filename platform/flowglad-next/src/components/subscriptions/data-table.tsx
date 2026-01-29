@@ -1,6 +1,7 @@
 'use client'
 
 import { SubscriptionStatus } from '@db-core/enums'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   type ColumnSizingState,
   flexRender,
@@ -27,7 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { columns } from './columns'
 
 export interface SubscriptionsTableFilters {

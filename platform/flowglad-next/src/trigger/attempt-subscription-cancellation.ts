@@ -1,7 +1,7 @@
 import { SubscriptionStatus } from '@db-core/enums'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { logger, task } from '@trigger.dev/sdk'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { storeTelemetry } from '@/utils/redis'
 

@@ -7,6 +7,12 @@
 
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { FlowgladApiKeyType, MembershipRole } from '@db-core/enums'
+import type { ApiKey } from '@db-core/schema/apiKeys'
+import type { Customer } from '@db-core/schema/customers'
+import type { Membership } from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Product } from '@db-core/schema/products'
+import type { User } from '@db-core/schema/users'
 import {
   setupCustomer,
   setupOrg,
@@ -15,12 +21,6 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import type { ApiKey } from '@/db/schema/apiKeys'
-import type { Customer } from '@/db/schema/customers'
-import type { Membership } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
-import type { Product } from '@/db/schema/products'
-import type { User } from '@/db/schema/users'
 import {
   deleteApiKey,
   insertApiKey,

@@ -3,7 +3,7 @@ import { CurrencyCode } from '@db-core/enums'
 import {
   type CustomerTableRowData,
   InferredCustomerStatus,
-} from '@/db/schema/customers'
+} from '@db-core/schema/customers'
 import {
   createCustomersWithAllStatuses,
   createMockCustomerTableRowData,

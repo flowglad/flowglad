@@ -1,23 +1,24 @@
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   EventNoun,
   FlowgladEventType,
   PurchaseStatus,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { BillingRun } from '@db-core/schema/billingRuns'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import { Customer } from '@db-core/schema/customers'
+import { DiscountRedemption } from '@db-core/schema/discountRedemptions'
+import type { Discount } from '@db-core/schema/discounts'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import { Purchase } from '@db-core/schema/purchases'
+import { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import Stripe from 'stripe'
-import type { BillingRun } from '@/db/schema/billingRuns'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Customer } from '@/db/schema/customers'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import type { Discount } from '@/db/schema/discounts'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import { Purchase } from '@/db/schema/purchases'
-import { Subscription } from '@/db/schema/subscriptions'
 import {
   checkoutSessionIsInTerminalState,
   isCheckoutSessionSubscriptionCreating,
@@ -46,7 +47,6 @@ import type {
 import { NotFoundError, ValidationError } from '@/errors'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import { CheckoutSessionStatus } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import {
   IntentMetadataType,
@@ -130,7 +130,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
         customer: Customer.Record
         discount: Discount.Record | null
         feeCalculation:
-          | import('@/db/schema/feeCalculations').FeeCalculation.Record
+          | import('@db-core/schema/feeCalculations').FeeCalculation.Record
           | null
         discountRedemption: DiscountRedemption.Record | null
         paymentMethod: PaymentMethod.Record

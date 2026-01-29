@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { MembershipRole } from '@db-core/enums'
+import type { Membership } from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Membership } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
 import {
   insertMembership,
   selectFocusedMembershipAndOrganization,

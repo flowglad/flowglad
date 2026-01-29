@@ -6,12 +6,12 @@
  */
 
 import { PriceType } from '@db-core/enums'
-import type { Feature } from '@/db/schema/features'
-import type { Price } from '@/db/schema/prices'
-import type { ProductFeature } from '@/db/schema/productFeatures'
-import type { Product } from '@/db/schema/products'
-import type { Resource } from '@/db/schema/resources'
-import type { UsageMeter } from '@/db/schema/usageMeters'
+import type { Feature } from '@db-core/schema/features'
+import type { Price } from '@db-core/schema/prices'
+import type { ProductFeature } from '@db-core/schema/productFeatures'
+import type { Product } from '@db-core/schema/products'
+import type { Resource } from '@db-core/schema/resources'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import {

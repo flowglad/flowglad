@@ -1,4 +1,14 @@
 import {
+  createDiscountInputSchema,
+  discountClientSelectSchema,
+  discountsPaginatedListSchema,
+  discountsPaginatedListWithRedemptionsSchema,
+  discountsPaginatedSelectSchema,
+  discountsTableRowDataSchema,
+  discountWithRedemptionsSchema,
+  editDiscountInputSchema,
+} from '@db-core/schema/discounts'
+import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
@@ -8,16 +18,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createDiscountInputSchema,
-  discountClientSelectSchema,
-  discountsPaginatedListSchema,
-  discountsPaginatedListWithRedemptionsSchema,
-  discountsPaginatedSelectSchema,
-  discountsTableRowDataSchema,
-  discountWithRedemptionsSchema,
-  editDiscountInputSchema,
-} from '@/db/schema/discounts'
 import {
   deleteDiscount as deleteDiscountMethod,
   enrichDiscountsWithRedemptionCounts,
