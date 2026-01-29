@@ -1,3 +1,4 @@
+import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -10,7 +11,6 @@ import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
-import { NotFoundError } from '@/db/tableUtils'
 import { OrganizationSubscriptionCanceledNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { ValidationError } from '@/errors'
 import {

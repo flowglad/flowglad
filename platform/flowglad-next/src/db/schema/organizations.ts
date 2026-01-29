@@ -1,17 +1,9 @@
-import { sql } from 'drizzle-orm'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
-  boolean,
-  integer,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import { nanoid } from 'nanoid'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { countries } from '@/db/schema/countries'
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -24,12 +16,20 @@ import {
   pgEnumColumn,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
 import {
-  BusinessOnboardingStatus,
-  CurrencyCode,
-  StripeConnectContractType,
-} from '@/types'
+  boolean,
+  integer,
+  jsonb,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import { nanoid } from 'nanoid'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { countries } from '@/db/schema/countries'
 import { generateRandomBytes } from '@/utils/backendCore'
 import core, { zodOptionalNullableString } from '@/utils/core'
 

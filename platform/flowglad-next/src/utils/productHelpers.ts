@@ -1,4 +1,4 @@
-import { PriceType } from '@/types'
+import { PriceType } from '@db-core/enums'
 
 /**
  * Filters products to only include those available for subscription creation.

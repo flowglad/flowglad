@@ -1,3 +1,5 @@
+import { SubscriptionStatus } from '@db-core/enums'
+import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -8,10 +10,8 @@ import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { NotFoundError } from '@/db/tableUtils'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
 import { PaymentError, ValidationError } from '@/errors'
-import { SubscriptionStatus } from '@/types'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,

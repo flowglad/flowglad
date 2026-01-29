@@ -1,5 +1,10 @@
 'use client'
 import {
+  type CurrencyCode,
+  type PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
+import {
   AddressElement,
   LinkAuthenticationElement,
   type LinkAuthenticationElementProps,
@@ -23,13 +28,7 @@ import {
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import { cn } from '@/lib/utils'
-import {
-  CheckoutFlowType,
-  CheckoutSessionStatus,
-  type CurrencyCode,
-  type PaymentMethodType,
-  PriceType,
-} from '@/types'
+import { CheckoutFlowType, CheckoutSessionStatus } from '@/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'

@@ -1,8 +1,8 @@
 {
   "name": "@flowglad/shared",
-  "version": "0.17.1",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "version": "0.18.0",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.mjs",
   "types": "./dist/types/index.d.ts",
   "files": [
     "dist"
@@ -36,8 +36,8 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
+      "import": "./dist/esm/index.mjs",
+      "require": "./dist/cjs/index.cjs"
     }
   }
 }

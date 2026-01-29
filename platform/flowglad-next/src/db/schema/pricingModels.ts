@@ -1,12 +1,5 @@
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  pgTable,
-  text,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { organizations } from '@/db/schema/organizations'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { DestinationEnvironment, IntervalUnit } from '@db-core/enums'
 import {
   constructIndex,
   createPaginatedListQuerySchema,
@@ -19,10 +12,17 @@ import {
   orgIdEqualsCurrentSQL,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
-import { DestinationEnvironment, IntervalUnit } from '@/types'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  pgTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'pricing_models'
 

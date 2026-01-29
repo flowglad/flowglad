@@ -1,5 +1,10 @@
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CheckoutSessionType,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -15,7 +20,6 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import { CheckoutSessionType, IntervalUnit, PriceType } from '@/types'
 import { core } from '@/utils/core'
 import { createNonInvoiceCheckoutSession } from './checkoutSessionState'
 

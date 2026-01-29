@@ -1,5 +1,6 @@
 'use client'
 
+import { IntervalUnit } from '@db-core/enums'
 import { Controller } from 'react-hook-form'
 import {
   FormControl,
@@ -19,7 +20,6 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import type { CreatePricingModelInput } from '@/db/schema/pricingModels'
-import { IntervalUnit } from '@/types'
 
 /**
  * Sentinel value representing non-renewing (one-time payment) behavior.

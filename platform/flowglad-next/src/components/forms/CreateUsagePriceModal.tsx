@@ -1,5 +1,6 @@
 'use client'
 
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import { Info } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -28,7 +29,6 @@ import {
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { createPriceFormSchema } from '@/db/schema/prices'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import { IntervalUnit, PriceType } from '@/types'
 import {
   isCurrencyZeroDecimal,
   rawStringAmountToCountableCurrencyAmount,
@@ -195,7 +195,7 @@ export const CreateUsagePriceModal = ({
 
   // Default values for usage price form
   // Note: currency and pricingModelId are read-only and derived server-side
-  const defaultValues: CreateUsagePriceFormSchema = {
+  const getDefaultValues = (): CreateUsagePriceFormSchema => ({
     price: {
       type: PriceType.Usage,
       name: '',
@@ -210,13 +210,13 @@ export const CreateUsagePriceModal = ({
       productId: null, // Usage prices belong to meters, not products
     },
     __rawPriceString: zeroDecimal ? '0' : '0.00',
-  }
+  })
 
   return (
     <FormModal
       title="Create Usage Price"
       formSchema={createUsagePriceFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (input) => {
         const unitPrice = rawStringAmountToCountableCurrencyAmount(
           organization.defaultCurrency,

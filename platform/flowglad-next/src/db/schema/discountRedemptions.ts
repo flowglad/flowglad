@@ -1,17 +1,5 @@
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  integer,
-  pgPolicy,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { discounts } from '@/db/schema/discounts'
-import { purchases } from '@/db/schema/purchases'
-import { subscriptions } from '@/db/schema/subscriptions'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -26,10 +14,22 @@ import {
   pgEnumColumn,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
-import { DiscountAmountType, DiscountDuration } from '@/types'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { discounts } from '@/db/schema/discounts'
+import { purchases } from '@/db/schema/purchases'
+import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'discount_redemptions'

@@ -11,11 +11,11 @@
  *   bun run seed:countries
  */
 
+import { CountryCode } from '@db-core/enums'
 import { loadEnvConfig } from '@next/env'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { countries } from '@/db/schema/countries'
-import { CountryCode } from '@/types'
 import core from '@/utils/core'
 import { countryNameByCountryCode } from '@/utils/countries'
 import { logger } from '@/utils/logger'

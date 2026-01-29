@@ -1,13 +1,13 @@
-import { pgTable, text } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
 import {
   constructIndex,
   ommittedColumnsForInsertSchema,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { pgTable, text } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
 
 const USERS_TABLE_NAME = 'users'
 

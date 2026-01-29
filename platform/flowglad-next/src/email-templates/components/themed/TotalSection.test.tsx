@@ -1,10 +1,6 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it } from 'bun:test'
+import type { CurrencyCode } from '@db-core/enums'
 import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import type { CurrencyCode } from '@/types'
 import { TotalSection } from './TotalSection'
 
 describe('TotalSection', () => {

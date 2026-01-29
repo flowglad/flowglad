@@ -1,3 +1,5 @@
+import { FeatureType, PriceType } from '@db-core/enums'
+import { idInputSchema } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
@@ -20,9 +22,7 @@ import {
   selectProductFeaturesPaginated,
 } from '@/db/tableMethods/productFeatureMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { FeatureType, PriceType } from '@/types'
 import {
   createPostOpenApiMeta,
   generateOpenApiMetas,

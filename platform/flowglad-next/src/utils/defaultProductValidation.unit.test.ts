@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test'
+import { PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 import { ValidationError } from '@/errors'
-import { PriceType } from '@/types'
 import { validateDefaultProductSchema } from './defaultProductValidation'
 
 describe('defaultProductValidation', () => {

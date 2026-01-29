@@ -1,11 +1,7 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
 import type { Price } from '@/db/schema/prices'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { UsagePriceCard } from './UsagePriceCard'
 
 /**

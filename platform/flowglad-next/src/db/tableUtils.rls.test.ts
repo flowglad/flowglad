@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode, PriceType } from '@db-core/enums'
 import { and as drizzleAnd, eq } from 'drizzle-orm'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -25,7 +26,6 @@ import {
   insertProduct,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
-import { CurrencyCode, PriceType } from '@/types'
 import { core } from '@/utils/core'
 
 describe('RLS Integration Tests: organizationId integrity on pricingModels', () => {

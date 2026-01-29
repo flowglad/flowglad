@@ -1,4 +1,5 @@
 'use client'
+import { PriceType } from '@db-core/enums'
 import { createContext, useContext } from 'react'
 import type {
   BillingAddress,
@@ -9,7 +10,7 @@ import {
   type CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { type Nullish, PriceType } from '@/types'
+import { type Nullish } from '@/types'
 
 export type CheckoutInfoContextValues = {
   taxAmount?: Nullish<number>

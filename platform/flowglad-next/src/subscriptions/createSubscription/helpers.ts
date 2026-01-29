@@ -1,3 +1,11 @@
+import {
+  FeatureType,
+  IntervalUnit,
+  NormalBalanceType,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { panic, Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type { BillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
@@ -37,14 +45,6 @@ import {
 } from '@/errors'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
-import {
-  FeatureType,
-  IntervalUnit,
-  NormalBalanceType,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import core from '@/utils/core'
 import { generateNextBillingPeriod } from '../billingIntervalHelpers'
 import { createBillingPeriodAndItems } from '../billingPeriodHelpers'
@@ -435,16 +435,29 @@ export const activateSubscription = async (
   const { transaction } = ctx
   const { subscription, subscriptionItems, defaultPaymentMethod } =
     params
-  const { startDate, endDate } = generateNextBillingPeriod({
-    interval: subscription.interval ?? IntervalUnit.Month,
-    intervalCount: subscription.intervalCount ?? 1,
-    billingCycleAnchorDate:
-      subscription.billingCycleAnchorDate ??
-      subscription.startDate ??
-      new Date(),
-    lastBillingPeriodEndDate: subscription.currentBillingPeriodEnd,
-    subscriptionStartDate: subscription.startDate ?? undefined,
-  })
+
+  // If the subscription already has billing period dates set (from insertSubscriptionAndItems),
+  // use those directly. This happens when a subscription is created but no billing period
+  // record has been created yet (e.g., default free plan without payment method).
+  // Only generate new dates if they're not already set.
+  const { startDate, endDate } =
+    subscription.currentBillingPeriodStart &&
+    subscription.currentBillingPeriodEnd
+      ? {
+          startDate: subscription.currentBillingPeriodStart,
+          endDate: subscription.currentBillingPeriodEnd,
+        }
+      : generateNextBillingPeriod({
+          interval: subscription.interval ?? IntervalUnit.Month,
+          intervalCount: subscription.intervalCount ?? 1,
+          billingCycleAnchorDate:
+            subscription.billingCycleAnchorDate ??
+            subscription.startDate ??
+            new Date(),
+          lastBillingPeriodEndDate:
+            subscription.currentBillingPeriodEnd,
+          subscriptionStartDate: subscription.startDate ?? undefined,
+        })
 
   const price = (
     await selectPriceById(subscription.priceId!, transaction)
@@ -458,7 +471,8 @@ export const activateSubscription = async (
       status: SubscriptionStatus.Active,
       currentBillingPeriodStart: startDate,
       currentBillingPeriodEnd: endDate,
-      billingCycleAnchorDate: startDate,
+      billingCycleAnchorDate:
+        subscription.billingCycleAnchorDate ?? startDate,
       defaultPaymentMethodId: defaultPaymentMethod?.id,
       interval: subscription.interval ?? IntervalUnit.Month,
       intervalCount: subscription.intervalCount ?? 1,

@@ -1,6 +1,6 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { CheckoutSessionType } from '@/types'
 import AddPaymentCheckoutSuccessPage from './AddPaymentCheckoutSuccessPage'
 import ProductCheckoutSuccessPage from './ProductCheckoutSuccessPage'
 import PurchaseCheckoutSuccessPage from './PurchaseCheckoutSuccessPage'

@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -17,12 +23,8 @@ import {
   ValidationError,
 } from '@/errors'
 import {
-  CurrencyCode,
-  IntervalUnit,
   InvoiceStatus,
-  PaymentMethodType,
   PaymentStatus,
-  PriceType,
   RevenueChartIntervalUnit,
 } from '@/types'
 import { nanoid } from '@/utils/core'
@@ -37,6 +39,7 @@ import type { Purchase } from '../schema/purchases'
 import type { Subscription } from '../schema/subscriptions'
 import {
   insertPayment,
+  isPaymentInTerminalState,
   safelyUpdatePaymentForRefund,
   safelyUpdatePaymentStatus,
   selectPaymentById,
@@ -2562,5 +2565,58 @@ describe('pricingModelId derivation', () => {
         expect(payment.pricingModelId).toBe(pricingModel.id)
       })
     })
+  })
+})
+
+describe('isPaymentInTerminalState', () => {
+  const createMockPayment = (
+    status: PaymentStatus
+  ): Payment.Record => ({
+    id: 'pay_test',
+    organizationId: 'org_test',
+    customerId: 'cust_test',
+    invoiceId: 'inv_test',
+    subscriptionId: null,
+    purchaseId: null,
+    paymentMethodId: null,
+    amount: 1000,
+    refundedAmount: null,
+    refundedAt: null,
+    refunded: false,
+    currency: CurrencyCode.USD,
+    status,
+    chargeDate: Date.now(),
+    stripePaymentIntentId: 'pi_test',
+    stripeChargeId: 'ch_test',
+    paymentMethod: PaymentMethodType.Card,
+    livemode: true,
+    pricingModelId: 'pm_test',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  })
+
+  it('returns true for terminal statuses (Succeeded, Refunded, Canceled, Failed)', () => {
+    const terminalStatuses = [
+      PaymentStatus.Succeeded,
+      PaymentStatus.Refunded,
+      PaymentStatus.Canceled,
+      PaymentStatus.Failed,
+    ]
+    for (const status of terminalStatuses) {
+      const payment = createMockPayment(status)
+      expect(isPaymentInTerminalState(payment)).toBe(true)
+    }
+  })
+
+  it('returns false for non-terminal statuses (Processing, RequiresConfirmation, RequiresAction)', () => {
+    const nonTerminalStatuses = [
+      PaymentStatus.Processing,
+      PaymentStatus.RequiresConfirmation,
+      PaymentStatus.RequiresAction,
+    ]
+    for (const status of nonTerminalStatuses) {
+      const payment = createMockPayment(status)
+      expect(isPaymentInTerminalState(payment)).toBe(false)
+    }
   })
 })

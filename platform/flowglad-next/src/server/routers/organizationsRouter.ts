@@ -1,3 +1,8 @@
+import { UsageMeterAggregationType } from '@db-core/enums'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
@@ -36,16 +41,9 @@ import {
 import { updateOrganization as updateOrganizationDB } from '@/db/tableMethods/organizationMethods'
 import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-} from '@/db/tableUtils'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { protectedProcedure, router } from '@/server/trpc'
-import {
-  RevenueChartIntervalUnit,
-  UsageMeterAggregationType,
-} from '@/types'
+import { RevenueChartIntervalUnit } from '@/types'
 import { getSession } from '@/utils/auth'
 import {
   calculateARR,
@@ -137,7 +135,23 @@ const getFocusedMembership = protectedProcedure
             userId,
             transaction
           )
-        return focusedMembership
+        if (!focusedMembership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'No focused membership found for user',
+          })
+        }
+        // Explicitly parse through client schemas to ensure output validation passes.
+        // selectFocusedMembershipAndOrganization returns server schemas which include
+        // hidden columns (position, createdByCommit, etc.) that must be stripped.
+        return {
+          membership: membershipsClientSelectSchema.parse(
+            focusedMembership.membership
+          ),
+          organization: organizationsClientSelectSchema.parse(
+            focusedMembership.organization
+          ),
+        }
       }
     )
   )

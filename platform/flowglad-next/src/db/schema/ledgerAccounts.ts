@@ -1,18 +1,5 @@
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  integer,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
-import { subscriptions } from '@/db/schema/subscriptions'
-import { usageMeters } from '@/db/schema/usageMeters'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { NormalBalanceType } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -24,8 +11,21 @@ import {
   orgIdEqualsCurrentSQL,
   pgEnumColumn,
   tableBase,
-} from '@/db/tableUtils'
-import { NormalBalanceType } from '@/types'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { subscriptions } from '@/db/schema/subscriptions'
+import { usageMeters } from '@/db/schema/usageMeters'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'ledger_accounts'

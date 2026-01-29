@@ -1,4 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
@@ -12,12 +18,6 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import {
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  IntervalUnit,
-  PriceType,
-} from '@/types'
 import type { SetupPricingModelInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import { updatePricingModelTransaction } from './updateTransaction'

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { PaymentMethodType } from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -7,7 +8,6 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { createCapturingEffectsContext } from '@/test-utils/transactionCallbacks'
-import { PaymentMethodType } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 import type { Customer } from '../schema/customers'

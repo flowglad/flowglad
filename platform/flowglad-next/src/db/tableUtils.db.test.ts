@@ -1,4 +1,13 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  buildWhereClauses,
+  createCursorPaginatedSelectFunction,
+  decodeCursor,
+  encodeCursor,
+  metadataSchema,
+  sanitizeBaseTableFilters,
+  whereClauseFromObject,
+} from '@db-core/tableUtils'
 import { eq, inArray, or, sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { setupCustomer, setupOrg } from '@/../seedDatabase'
@@ -16,15 +25,6 @@ import {
   selectCustomersCursorPaginatedWithTableRowData,
   selectCustomersPaginated,
 } from './tableMethods/customerMethods'
-import {
-  buildWhereClauses,
-  createCursorPaginatedSelectFunction,
-  decodeCursor,
-  encodeCursor,
-  metadataSchema,
-  sanitizeBaseTableFilters,
-  whereClauseFromObject,
-} from './tableUtils'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string

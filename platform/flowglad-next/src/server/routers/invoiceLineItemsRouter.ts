@@ -1,3 +1,4 @@
+import { idInputSchema } from '@db-core/tableUtils'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   invoiceLineItemsClientSelectSchema,
@@ -8,7 +9,6 @@ import {
   selectInvoiceLineItemById,
   selectInvoiceLineItemsPaginated,
 } from '@/db/tableMethods/invoiceLineItemMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 

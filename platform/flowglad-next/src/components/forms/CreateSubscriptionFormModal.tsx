@@ -1,5 +1,7 @@
 'use client'
 
+import { PaymentMethodType, PriceType } from '@db-core/enums'
+import { encodeCursor } from '@db-core/tableUtils'
 import { useEffect, useMemo } from 'react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -28,8 +30,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModelWithProductsAndUsageMeters } from '@/db/schema/prices'
-import { encodeCursor } from '@/db/tableUtils'
-import { PaymentMethodType, PriceType } from '@/types'
 import { filterAvailableSubscriptionProducts } from '@/utils/productHelpers'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 
@@ -313,11 +313,11 @@ export function CreateSubscriptionFormModal({
     },
   })
 
-  const defaultValues: CreateSubscriptionFormData = {
+  const getDefaultValues = (): CreateSubscriptionFormData => ({
     productId: '',
     defaultPaymentMethodId: 'none', // Will be updated by PaymentMethodSelector when payment methods load
     doNotCharge: false,
-  }
+  })
 
   const handleSubmit = async (data: CreateSubscriptionFormData) => {
     if (!pricingModelData?.pricingModel) {
@@ -362,7 +362,7 @@ export function CreateSubscriptionFormModal({
         setIsOpen={setIsOpen}
         title="Create Subscription"
         formSchema={createSubscriptionFormSchema}
-        defaultValues={defaultValues}
+        defaultValues={getDefaultValues}
         onSubmit={handleSubmit}
         autoClose={false}
       >
@@ -388,7 +388,7 @@ export function CreateSubscriptionFormModal({
         setIsOpen={setIsOpen}
         title="Create Subscription"
         formSchema={createSubscriptionFormSchema}
-        defaultValues={defaultValues}
+        defaultValues={getDefaultValues}
         onSubmit={handleSubmit}
         autoClose={false}
       >
@@ -413,7 +413,7 @@ export function CreateSubscriptionFormModal({
       setIsOpen={setIsOpen}
       title="Create Subscription"
       formSchema={createSubscriptionFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={handleSubmit}
       submitButtonText={
         createSubscription.isPending ? 'Creating...' : 'Create'

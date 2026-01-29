@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  EventNoun,
+  FlowgladEventType,
+  MembershipRole,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -8,7 +13,6 @@ import {
   setupOrg,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { EventNoun, FlowgladEventType, MembershipRole } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
 import { adminTransaction } from './adminTransaction'

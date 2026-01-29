@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 
 describe('validateAndResolvePricingModelId', () => {

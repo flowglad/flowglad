@@ -1,3 +1,5 @@
+import { FeatureType, PriceType } from '@db-core/enums'
+import { encodeCursor } from '@db-core/tableUtils'
 import { useEffect, useMemo } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
@@ -5,9 +7,7 @@ import MultipleSelector from '@/components/forms/MultiSelect'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CreateProductSchema } from '@/db/schema/prices'
-import { encodeCursor } from '@/db/tableUtils'
 import { cn } from '@/lib/utils'
-import { FeatureType, PriceType } from '@/types'
 
 export const ProductFeatureMultiSelect = ({
   pricingModelId,

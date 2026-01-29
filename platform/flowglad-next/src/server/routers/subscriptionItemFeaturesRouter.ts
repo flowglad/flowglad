@@ -1,3 +1,4 @@
+import { idInputSchema } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { kebabCase } from 'change-case'
@@ -20,7 +21,6 @@ import {
   selectSubscriptionItemFeatureById,
   updateSubscriptionItemFeature as updateSubscriptionItemFeatureDB,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { CacheDependency } from '@/utils/cache'
 import {

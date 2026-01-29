@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FlowgladApiKeyType, MembershipRole } from '@db-core/enums'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -32,7 +33,6 @@ import {
   selectProducts,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType, MembershipRole } from '@/types'
 
 describe('RLS Access Control with selectOrganizations', () => {
   // Global test state variables
@@ -176,6 +176,8 @@ describe('RLS Access Control with selectMemberships', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
+  let org1PricingModelIdLive: string
+  let org2PricingModelIdLive: string
   let userA: User.Record
   let userB: User.Record
   let apiKeyA: ApiKey.Record
@@ -186,9 +188,11 @@ describe('RLS Access Control with selectMemberships', () => {
     // Setup two test organizations
     const org1Setup = await setupOrg()
     testOrg1 = org1Setup.organization
+    org1PricingModelIdLive = org1Setup.pricingModel.id
 
     const org2Setup = await setupOrg()
     testOrg2 = org2Setup.organization
+    org2PricingModelIdLive = org2Setup.pricingModel.id
 
     // Setup userA and API key for testOrg1
     const userApiKeyA = await setupUserAndApiKey({
@@ -269,6 +273,7 @@ describe('RLS Access Control with selectMemberships', () => {
         return insertApiKey(
           {
             organizationId: testOrg2.id,
+            pricingModelId: org2PricingModelIdLive,
             name: 'Test API Key for unfocused membership',
             token: `test_unfocused_${Date.now()}`,
             type: FlowgladApiKeyType.Secret,

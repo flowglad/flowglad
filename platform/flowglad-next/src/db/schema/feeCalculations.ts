@@ -1,25 +1,6 @@
-import { sql } from 'drizzle-orm'
-import {
-  integer,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
-import {
-  type CheckoutSession,
-  checkoutSessions,
-} from '@/db/schema/checkoutSessions'
-import { discounts } from '@/db/schema/discounts'
-import {
-  billingAddressSchema,
-  organizations,
-} from '@/db/schema/organizations'
-import { purchases } from '@/db/schema/purchases'
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { CurrencyCode, PaymentMethodType } from '@db-core/enums'
 import {
   constructIndex,
   createSupabaseWebhookSchema,
@@ -34,14 +15,30 @@ import {
   pgEnumColumn,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
 import {
-  CurrencyCode,
-  FeeCalculationType,
-  PaymentMethodType,
-} from '@/types'
+  integer,
+  jsonb,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import {
+  type CheckoutSession,
+  checkoutSessions,
+} from '@/db/schema/checkoutSessions'
+import { discounts } from '@/db/schema/discounts'
+import {
+  billingAddressSchema,
+  organizations,
+} from '@/db/schema/organizations'
+import { purchases } from '@/db/schema/purchases'
+import { FeeCalculationType } from '@/types'
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 import { billingPeriods } from './billingPeriods'
 import { prices } from './prices'
 import { pricingModels } from './pricingModels'

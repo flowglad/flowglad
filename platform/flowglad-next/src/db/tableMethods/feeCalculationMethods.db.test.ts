@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  BillingPeriodStatus,
+  CheckoutSessionType,
+  CountryCode,
+  CurrencyCode,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupCheckoutSession,
   setupCustomer,
@@ -16,16 +24,7 @@ import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
-import {
-  BillingPeriodStatus,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CountryCode,
-  CurrencyCode,
-  FeeCalculationType,
-  PaymentMethodType,
-  PriceType,
-} from '@/types'
+import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 import { core } from '@/utils/core'
 import {
   derivePricingModelIdForFeeCalculation,

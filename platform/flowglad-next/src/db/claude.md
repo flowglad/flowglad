@@ -203,7 +203,7 @@ const response = apiResponseSchema.parse({
 
 ```typescript
 // Tests use real database operations with setup helpers
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import { setupOrg, setupCustomer } from '@/../seedDatabase'
 import { selectCustomers, updateCustomer } from './tableMethods/customerMethods'

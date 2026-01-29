@@ -80,8 +80,8 @@ This project uses isolated-by-default test infrastructure. Tests are categorized
 | Category | File Pattern | Database | External APIs | Setup File |
 |----------|--------------|----------|---------------|------------|
 | **Pure Unit** | `*.unit.test.ts` | BLOCKED | MSW strict | `bun.unit.setup.ts` |
-| **DB-Backed** | `*.db.test.ts` | Full access | MSW strict | `bun.db.test.setup.ts` |
-| **Backend** (legacy) | `*.test.ts` | Full access | MSW warn | `bun.setup.ts` |
+| **DB-Backed** | `*.db.test.ts` | Full access | MSW strict + stripe-mock | `bun.db.test.setup.ts` |
+| **Stripe Mocked** | `*.stripe.test.ts` | Full access | Stripe functions mocked | `bun.stripe.test.setup.ts` |
 | **Integration** | `*.integration.test.ts` | Full access | Real APIs | `bun.integration.setup.ts` |
 | **RLS** | `*.rls.test.ts` | Full access | MSW | `bun.rls.setup.ts` |
 
@@ -93,7 +93,10 @@ bun run test:unit
 # DB-backed tests (with database access)
 bun run test:db
 
-# Legacy backend tests (existing pattern)
+# Stripe mocked tests (tests that mock Stripe SDK functions)
+bun run test:stripe
+
+# All backend tests (unit + db + stripe)
 bun run test:backend
 
 # All tests (backend + frontend)
@@ -101,20 +104,70 @@ bun run test
 
 # Integration tests (real APIs)
 bun run test:integration
-
-# Everything
-bun run test:all
 ```
 
 **When to use which pattern:**
 
 - **Pure Unit (`*.unit.test.ts`)**: Schema validation, utility functions, UI logic, pure business rules. Database imports will throw an error - if your test needs DB, use `*.db.test.ts`.
 
-- **DB-Backed (`*.db.test.ts`)**: Table methods, services with database access, business logic requiring real data. Use unique identifiers (nanoid) to avoid collisions between tests.
+- **DB-Backed (`*.db.test.ts`)**: Table methods, services with database access, business logic requiring real data. Stripe API calls go to stripe-mock. Use unique identifiers (nanoid) to avoid collisions between tests.
 
-- **Legacy Backend (`*.test.ts`)**: Existing tests. Migrate to `*.unit.test.ts` or `*.db.test.ts` for better isolation.
+- **Stripe Mocked (`*.stripe.test.ts`)**: Tests that need to verify Stripe SDK function call parameters, mock specific Stripe responses, or test conditional Stripe API call logic. Stripe functions are mocked centrally via `bun.stripe.mocks.ts`.
 
 - **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, Redis, and other external services. Located in `src/` alongside other tests.
+
+### Stripe Testing with stripe-mock
+
+This project uses [stripe-mock](https://github.com/stripe/stripe-mock) for Stripe API testing instead of MSW mocking. stripe-mock is Stripe's official mock server that validates requests against Stripe's OpenAPI spec.
+
+**How it works:**
+- stripe-mock runs as a Docker container alongside the test postgres database
+- The Stripe SDK is configured to point to stripe-mock when `STRIPE_MOCK_HOST` is set
+- Stripe API calls from tests go directly to stripe-mock (no MSW interception)
+- stripe-mock validates request/response schemas automatically
+
+**Starting stripe-mock:**
+```bash
+bun run test:setup  # Starts postgres AND stripe-mock via docker compose
+```
+
+**Configuration:**
+- `docker-compose.test.yml` - Defines the stripe-mock service
+- `src/utils/stripe.ts` - Configures Stripe SDK to use stripe-mock when `STRIPE_MOCK_HOST` is set
+- `.env.test` - Contains `STRIPE_MOCK_HOST` (presence triggers stripe-mock usage)
+
+**Benefits over MSW mocking:**
+- No mock handlers to maintain (~480 lines removed)
+- Request/response validation against Stripe's OpenAPI spec
+- No module import order issues or test leakage
+- Consistent behavior without needing real Stripe keys locally
+
+### Integration Tests with Real Stripe
+
+For testing card declines, specific error scenarios, or behaviors stripe-mock can't simulate, use integration tests (`*.integration.test.ts`).
+
+**Environment separation:**
+- `.env.test` - Used by unit/db tests, has `STRIPE_MOCK_HOST` → uses stripe-mock
+- `.env.integration` - Used by integration tests, NO `STRIPE_MOCK_HOST` → uses real Stripe API
+
+**Setup for integration tests:**
+```bash
+# Auto-generates .env.integration from .env.development + .env.test
+bun run vercel:env-pull:dev
+
+# Run integration tests
+bun run test:integration
+```
+
+**Test card numbers for integration tests:**
+- `4242424242424242` - Success
+- `4000000000000002` - Generic decline
+- `4000000000000069` - Expired card
+- `4000000000009995` - Insufficient funds
+
+**Webhook testing:**
+- Use mock factories in `src/test/helpers/stripeMocks.ts` for webhook event payloads
+- These create properly-typed Stripe event objects without calling the API
 
 ### Automatic Isolation (No Opt-In Required)
 
@@ -148,13 +201,13 @@ Tests run in parallel by default. Follow these patterns to ensure tests don't in
 Mock module registration order is critical in bun:test. All `mock.module()` calls are centralized in `bun.mocks.ts` and must be imported **before** any other imports that might load the mocked modules:
 
 ```typescript
-// bun.setup.ts (correct order)
+// bun.db.test.setup.ts (correct order)
 import './bun.mocks'  // MUST be first - registers mock.module() calls
 import { afterAll, afterEach, beforeAll } from 'bun:test'
 // ... other imports
 ```
 
-The setup files (`bun.unit.setup.ts`, `bun.db.test.setup.ts`, `bun.setup.ts`) already handle this correctly.
+The setup files (`bun.unit.setup.ts`, `bun.db.test.setup.ts`) already handle this correctly.
 
 #### 2. Spy Restoration with trackSpy
 
@@ -203,7 +256,9 @@ In `*.unit.test.ts` and `*.db.test.ts` files, MSW runs in **strict mode**: any u
 - All external dependencies are explicitly mocked
 - Tests are deterministic and fast
 
-If a test legitimately needs real API calls, use `*.integration.test.ts` instead.
+**Exception:** Stripe API calls are passed through to stripe-mock (not intercepted by MSW). The MSW server has a passthrough handler for `http://localhost:12111/*`.
+
+If a test legitimately needs real API calls to external services other than Stripe, use `*.integration.test.ts` instead.
 
 #### 5. Global Mock State
 
@@ -230,28 +285,20 @@ afterEach(() => {
 ```
 
 ### Test Environments
-The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
+The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs (Svix, Trigger.dev, Unkey). Stripe API calls go directly to stripe-mock.
 
-**Tests using React or DOM APIs** must include this directive at the top of the file:
-```typescript
-/**
- * @vitest-environment jsdom
- */
-```
-
-This includes:
-- React component tests (`.test.tsx` files)
+**Tests using React or DOM APIs** (`.test.tsx` files) are run via `test:frontend` which uses happy-dom for DOM emulation. This includes:
+- React component tests
 - React hook tests using `renderHook` from `@testing-library/react`
 - Any test that needs DOM APIs like `document` or `window`
-
-This tells Vitest to run that specific test file in a jsdom environment.
 
 ### Test Organization
 
 All tests live in `src/` with different file patterns:
 
 - **`*.unit.test.ts`** - Pure unit tests (no DB access)
-- **`*.db.test.ts`** - DB-backed tests (external services blocked)
+- **`*.db.test.ts`** - DB-backed tests (Stripe calls go to stripe-mock)
+- **`*.stripe.test.ts`** - Stripe mocked tests (Stripe SDK functions are mocked)
 - **`*.integration.test.ts`** - Integration tests (real external APIs)
 - **`*.rls.test.ts`** - Row Level Security tests (in `src/db/`)
 
@@ -337,6 +384,28 @@ import { cachedRecomputable } from '@/utils/cache-recomputable'
 export const selectSubscriptionItemsWithPricesBySubscriptionId = cachedRecomputable(...)
 export const selectRichSubscriptionsAndActiveItems = ...
 ```
+
+## Avoid Barrel Exports and Re-exports
+
+Do not create barrel files (`index.ts` that re-exports from other modules) or re-export imports from other modules. Instead:
+
+- **Import directly from the source module** - If you need `validateDatabaseUrl` from `db/safety.ts`, import from `@/db/safety`, not from a re-exporting `index.ts`
+- **Keep each module self-contained** - Each file should export its own functions/types, not re-export from others
+- **Don't create index.ts files** for the sole purpose of aggregating exports
+
+```typescript
+// BAD - barrel export pattern
+// db/index.ts
+export * from './safety'
+export * from './client'
+export { validateDatabaseUrl } from './safety'  // re-export
+
+// GOOD - import directly from source
+import { validateDatabaseUrl } from '@/db/safety'
+import { db } from '@/db/client'
+```
+
+This keeps imports explicit, makes dependencies traceable, and avoids circular import issues.
 
 ## Write Tests Coverage for Changes to Backend Business Logic
 

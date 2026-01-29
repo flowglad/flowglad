@@ -1,8 +1,5 @@
-import { sql } from 'drizzle-orm'
-import { jsonb, pgTable, text } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { LedgerTransactionType } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -12,8 +9,11 @@ import {
   orgIdEqualsCurrentSQL,
   pgEnumColumn,
   tableBase,
-} from '@/db/tableUtils'
-import { LedgerTransactionType } from '@/types'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
 import { pricingModels } from './pricingModels'
 import { subscriptions } from './subscriptions'

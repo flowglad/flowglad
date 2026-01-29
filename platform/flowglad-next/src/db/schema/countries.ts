@@ -1,8 +1,6 @@
-import { sql } from 'drizzle-orm'
-import { pgTable, text } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
+import { countryCodeSchema } from '@db-core/commonZodSchema'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { CountryCode } from '@db-core/enums'
 import {
   constructUniqueIndex,
   customerRole,
@@ -12,11 +10,13 @@ import {
   ommittedColumnsForInsertSchema,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
-import { CountryCode } from '@/types'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { pgTable, text } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
 import core from '@/utils/core'
-import { countryCodeSchema } from '../commonZodSchema'
-import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'countries'
 

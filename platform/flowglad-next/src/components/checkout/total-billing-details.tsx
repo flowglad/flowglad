@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  type CurrencyCode,
+  PriceType,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import * as React from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
@@ -14,13 +19,7 @@ import type { Invoice } from '@/db/schema/invoices'
 import type { Price } from '@/db/schema/prices'
 import type { Purchase } from '@/db/schema/purchases'
 import { cn } from '@/lib/utils'
-import {
-  CheckoutFlowType,
-  type CurrencyCode,
-  type Nullish,
-  PriceType,
-  StripeConnectContractType,
-} from '@/types'
+import { CheckoutFlowType, type Nullish } from '@/types'
 import {
   calculateDiscountAmount,
   calculateInvoiceBaseAmount,

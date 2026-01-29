@@ -1,5 +1,7 @@
 'use client'
 
+import { CurrencyCode, PriceType } from '@db-core/enums'
+import { encodeCursor } from '@db-core/tableUtils'
 import { sentenceCase } from 'change-case'
 import { Check } from 'lucide-react'
 import Image from 'next/image'
@@ -12,9 +14,8 @@ import {
 } from '@/contexts/checkoutPageContext'
 import type { Price } from '@/db/schema/prices'
 import type { Purchase } from '@/db/schema/purchases'
-import { encodeCursor } from '@/db/tableUtils'
 import { cn } from '@/lib/utils'
-import { CheckoutFlowType, CurrencyCode, PriceType } from '@/types'
+import { CheckoutFlowType } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export interface BillingHeaderProps

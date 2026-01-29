@@ -1,7 +1,8 @@
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
+import { FeatureType } from '@db-core/enums'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
   resourceFeatureClientInsertSchema,
   toggleFeatureClientInsertSchema,
@@ -19,7 +20,6 @@ import { productsClientInsertSchema } from '@/db/schema/products'
 import { resourcesClientInsertSchema } from '@/db/schema/resources'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
 import { NotFoundError, ValidationError } from '@/errors'
-import { FeatureType } from '@/types'
 import core, { safeZodSanitizedString } from '../core'
 
 /**

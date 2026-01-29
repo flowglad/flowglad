@@ -1,5 +1,6 @@
 'use client'
 
+import { idInputSchema } from '@db-core/tableUtils'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,6 @@ import {
   editPriceSchema,
   type Price,
 } from '@/db/schema/prices'
-import { idInputSchema } from '@/db/tableUtils'
 
 interface ArchivePriceModalProps {
   trigger?: React.ReactNode

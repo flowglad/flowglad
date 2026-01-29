@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CurrencyCode,
+  SubscriptionMeterPeriodCalculationStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupBillingRun,
   setupCustomer,
@@ -19,10 +23,6 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import {
-  CurrencyCode,
-  SubscriptionMeterPeriodCalculationStatus,
-} from '@/types'
 import { core } from '@/utils/core'
 import { insertSubscriptionMeterPeriodCalculation } from './subscriptionMeterPeriodCalculationMethods'
 

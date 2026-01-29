@@ -1,11 +1,3 @@
-import { z } from 'zod'
-import {
-  apiKeys,
-  apiKeysClientSelectSchema,
-  apiKeysInsertSchema,
-  apiKeysSelectSchema,
-  apiKeysUpdateSchema,
-} from '@/db/schema/apiKeys'
 import {
   createCursorPaginatedSelectFunction,
   createDeleteFunction,
@@ -14,10 +6,19 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { zodEpochMs } from '@db-core/timestampMs'
+import { z } from 'zod'
+import {
+  apiKeys,
+  apiKeysClientSelectSchema,
+  apiKeysInsertSchema,
+  apiKeysSelectSchema,
+  apiKeysUpdateSchema,
+} from '@/db/schema/apiKeys'
 import type { DbTransaction } from '@/db/types'
-import { zodEpochMs } from '../timestampMs'
 import { selectOrganizations } from './organizationMethods'
+import { selectPricingModels } from './pricingModelMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof apiKeys,
@@ -49,6 +50,10 @@ const apiKeyWithOrganizationSchema = z.object({
     createdAt: zodEpochMs,
     updatedAt: zodEpochMs.nullable().optional(),
   }),
+  pricingModel: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
 })
 
 const enrichApiKeysWithOrganizations = async (
@@ -56,17 +61,29 @@ const enrichApiKeysWithOrganizations = async (
   transaction: DbTransaction
 ) => {
   const organizationIds = data.map((item) => item.organizationId)
-  const orgs = await selectOrganizations(
-    { id: organizationIds },
-    transaction
-  )
+  const pricingModelIds = data.map((item) => item.pricingModelId)
+
+  const [orgs, pricingModelsData] = await Promise.all([
+    selectOrganizations({ id: organizationIds }, transaction),
+    selectPricingModels({ id: pricingModelIds }, transaction),
+  ])
+
   const orgsById = new Map(orgs.map((org) => [org.id, org]))
+  const pricingModelsById = new Map(
+    pricingModelsData.map((pm) => [pm.id, pm])
+  )
 
   return data.map((apiKey) => {
     const organization = orgsById.get(apiKey.organizationId)
     if (!organization) {
       throw new Error(
         `Organization not found for API key ${apiKey.id}`
+      )
+    }
+    const pricingModel = pricingModelsById.get(apiKey.pricingModelId)
+    if (!pricingModel) {
+      throw new Error(
+        `Pricing model not found for API key ${apiKey.id}`
       )
     }
     return {
@@ -76,6 +93,10 @@ const enrichApiKeysWithOrganizations = async (
         name: organization.name,
         createdAt: organization.createdAt,
         updatedAt: organization.updatedAt,
+      },
+      pricingModel: {
+        id: pricingModel.id,
+        name: pricingModel.name,
       },
     }
   })

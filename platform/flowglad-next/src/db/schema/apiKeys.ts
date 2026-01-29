@@ -1,9 +1,5 @@
-import { sql } from 'drizzle-orm'
-import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { organizations } from '@/db/schema/organizations'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { FlowgladApiKeyType } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -18,11 +14,15 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
-import { FlowgladApiKeyType } from '@/types'
-
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import core from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'api_keys'
 
@@ -33,6 +33,10 @@ export const apiKeys = pgTable(
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
+    ),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
     ),
     name: text('name').notNull(),
     token: text('token').notNull(),
@@ -51,6 +55,7 @@ export const apiKeys = pgTable(
   },
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     merchantPolicy('Enable all actions for own organizations', {
       as: 'permissive',
       for: 'all',
@@ -67,6 +72,10 @@ const readOnlyColumns = {
   organizationId: true,
   livemode: true,
   token: true,
+} as const
+
+const createOnlyColumns = {
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -96,6 +105,7 @@ export const {
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
 })
 
@@ -121,6 +131,7 @@ export const {
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
   entityName: 'SecretApiKey',
 })
@@ -174,6 +185,7 @@ export const secretApiKeyMetadataSchema = z.object({
   type: z.literal(FlowgladApiKeyType.Secret),
   userId: z.string(),
   organizationId: z.string().optional(),
+  pricingModelId: z.string(),
 })
 
 export const apiKeyMetadataSchema = secretApiKeyMetadataSchema

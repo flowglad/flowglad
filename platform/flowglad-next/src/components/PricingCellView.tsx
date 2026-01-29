@@ -1,5 +1,5 @@
+import { PriceType } from '@db-core/enums'
 import type { Price } from '@/db/schema/prices'
-import { PriceType } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 const PricingCellView = ({

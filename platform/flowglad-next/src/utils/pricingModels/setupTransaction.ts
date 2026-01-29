@@ -1,3 +1,4 @@
+import { CurrencyCode, FeatureType, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 import type { Feature } from '@/db/schema/features'
@@ -17,7 +18,6 @@ import { bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug } from '@/db/tabl
 import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { CurrencyCode, FeatureType, PriceType } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
 import { createProductPriceInsert } from '@/utils/pricingModels/setupHelpers'

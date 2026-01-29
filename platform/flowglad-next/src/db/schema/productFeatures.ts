@@ -1,11 +1,4 @@
-import { sql } from 'drizzle-orm'
-import { pgTable } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { features } from '@/db/schema/features'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
-import { products } from '@/db/schema/products'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -22,7 +15,14 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { pgTable } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { features } from '@/db/schema/features'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { products } from '@/db/schema/products'
 
 const TABLE_NAME = 'product_features'
 

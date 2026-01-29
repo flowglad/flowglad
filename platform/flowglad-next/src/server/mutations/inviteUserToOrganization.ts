@@ -1,3 +1,4 @@
+import { MembershipRole } from '@db-core/enums'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -17,7 +18,6 @@ import {
   selectUsers,
 } from '@/db/tableMethods/userMethods'
 import { protectedProcedure } from '@/server/trpc'
-import { MembershipRole } from '@/types'
 import core from '@/utils/core'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 

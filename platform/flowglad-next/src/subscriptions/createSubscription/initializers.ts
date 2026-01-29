@@ -1,3 +1,9 @@
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { Price } from '@/db/schema/prices'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
@@ -10,12 +16,6 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
 import { ValidationError } from '@/errors'
-import {
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import { generateNextBillingPeriod } from '../billingIntervalHelpers'
 import { deriveSubscriptionStatus } from './helpers'
 import type { CreateSubscriptionParams } from './types'

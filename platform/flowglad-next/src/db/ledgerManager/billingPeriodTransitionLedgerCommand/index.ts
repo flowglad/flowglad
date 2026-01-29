@@ -1,3 +1,4 @@
+import { LedgerTransactionType } from '@db-core/enums'
 import { Result } from 'better-result'
 import type {
   BillingPeriodTransitionLedgerCommand,
@@ -16,7 +17,6 @@ import {
 } from '@/db/tableMethods/ledgerTransactionMethods'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError } from '@/errors'
-import { LedgerTransactionType } from '@/types'
 import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
 import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
 

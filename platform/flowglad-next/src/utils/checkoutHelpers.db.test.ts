@@ -19,6 +19,15 @@ mock.module('next/headers', () => ({
 }))
 
 import {
+  CheckoutSessionType,
+  CurrencyCode,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupCheckoutSession,
   setupCustomer,
   setupDiscount,
@@ -33,17 +42,7 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { Price } from '@/db/schema/prices'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import {
-  CheckoutFlowType,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
+import { CheckoutFlowType, CheckoutSessionStatus } from '@/types'
 import {
   calculateTrialEligibility,
   checkoutInfoForCheckoutSession,
@@ -170,7 +169,7 @@ describe('checkoutHelpers', () => {
       expect(result.checkoutInfo.flowType).toBe(expected)
     })
     // Intentionally avoid asserting on Stripe client_secret here to
-    // keep tests aligned with msw stripeServer and real flows
+    // keep tests aligned with stripe-mock and real flows
   })
 
   describe('checkoutInfoForCheckoutSession', () => {

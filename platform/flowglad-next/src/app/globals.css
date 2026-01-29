@@ -148,10 +148,12 @@
 
   :root {
     --radius: 0.625rem;
+    --onboarding-max-w: 608px;
+    --onboarding-border-gap: 0.5rem; /* 8px on mobile */
     --background: 51 47% 97%;
     --foreground: 30 5.3% 7.5%;
     --card: 0 0% 100%;
-    --muted-card: 60 43% 99%;
+    --card-muted: 60 43% 99%;
     --card-foreground: 30 5.3% 7.5%;
     --popover: 60 43% 99%;
     --popover-foreground: 30 5.3% 7.5%;
@@ -167,6 +169,7 @@
     --destructive: 15 85% 58%;
     --border: 12 9.1% 89.2%;
     --input: 12 9.1% 89.2%;
+    --input-bg: 60 43% 99%;
     --ring: 43 25.5% 73.1%;
     --chart-1: 35 75% 65%;
     --chart-2: 195 40% 60%;
@@ -221,11 +224,17 @@
     --status-muted-border: var(--border);
   }
 
+  @media (min-width: 640px) {
+    :root {
+      --onboarding-border-gap: 1rem; /* 16px on sm+ */
+    }
+  }
+
   .dark {
     --background: 24 5.9% 16.7%;
     --foreground: 51 47% 97%;
     --card: 25 8.6% 22.8%;
-    --muted-card: 30 5.1% 20.4%;
+    --card-muted: 30 5.1% 20.4%;
     --card-foreground: 51 47% 97%;
     --popover: 30 5.1% 20.4%;
     --popover-foreground: 51 47% 97%;
@@ -241,6 +250,7 @@
     --destructive: 0 90.8% 70.8%;
     --border: 0 0% 100% / 10%;
     --input: 0 0% 100% / 15%;
+    --input-bg: 30 5.1% 20.4%;
     --ring: 39 17% 46.3%;
     --chart-1: 270 85% 49%;
     --chart-2: 155 50% 70%;

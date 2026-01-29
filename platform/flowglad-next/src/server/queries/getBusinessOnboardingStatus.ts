@@ -1,3 +1,4 @@
+import { BusinessOnboardingStatus } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -7,7 +8,6 @@ import {
   updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
 import { protectedProcedure } from '@/server/trpc'
-import { BusinessOnboardingStatus } from '@/types'
 import { getConnectedAccountOnboardingStatus } from '@/utils/stripe'
 
 export const getBusinessOnboardingStatus = protectedProcedure

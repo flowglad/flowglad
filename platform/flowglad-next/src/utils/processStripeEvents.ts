@@ -1,3 +1,4 @@
+import { BusinessOnboardingStatus } from '@db-core/enums'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -12,7 +13,6 @@ import { stripePaymentIntentPaymentFailedTask } from '@/trigger/stripe/payment-i
 import { stripePaymentIntentProcessingTask } from '@/trigger/stripe/payment-intent-processing'
 import { stripePaymentIntentSucceededTask } from '@/trigger/stripe/payment-intent-succeeded'
 import { setupIntentSucceededTask } from '@/trigger/stripe/setup-intent-succeeded'
-import { BusinessOnboardingStatus } from '@/types'
 import { createTriggerIdempotencyKey } from './backendCore'
 import { getConnectedAccountOnboardingStatus } from './stripe'
 

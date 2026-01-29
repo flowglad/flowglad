@@ -1,23 +1,6 @@
-import { TRPCError } from '@trpc/server'
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  check,
-  integer,
-  pgTable,
-  text,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import {
-  products,
-  productsClientInsertSchema,
-  productsClientSelectSchema,
-  productsClientUpdateSchema,
-} from '@/db/schema/products'
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
+import { buildSchemas } from '@db-core/createZodSchemas'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -35,10 +18,27 @@ import {
   pgEnumColumn,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
+} from '@db-core/tableUtils'
+import { TRPCError } from '@trpc/server'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  check,
+  integer,
+  pgTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
+import { createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import {
+  products,
+  productsClientInsertSchema,
+  productsClientSelectSchema,
+  productsClientUpdateSchema,
+} from '@/db/schema/products'
 import core from '@/utils/core'
-import { currencyCodeSchema } from '../commonZodSchema'
 import { featuresClientSelectSchema } from './features'
 import {
   pricingModels,
@@ -715,7 +715,9 @@ export const createProductPriceInputSchema = z
   })
 
 export const createProductSchema = z.object({
-  product: productsClientInsertSchema,
+  product: productsClientInsertSchema.safeExtend({
+    name: z.string().min(1, 'Name is required'),
+  }),
   price: createProductPriceInputSchema,
   featureIds: z.array(z.string()).optional(),
 })

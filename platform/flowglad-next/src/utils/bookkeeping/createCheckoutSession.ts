@@ -1,3 +1,5 @@
+import { CheckoutSessionType, PriceType } from '@db-core/enums'
+import { NotFoundError } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import type {
   CheckoutSession,
@@ -21,14 +23,9 @@ import {
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { NotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { ValidationError } from '@/errors'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PriceType,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import core from '@/utils/core'
 import {
   createPaymentIntentForCheckoutSession,

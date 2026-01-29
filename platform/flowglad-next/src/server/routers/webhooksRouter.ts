@@ -1,3 +1,8 @@
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { z } from 'zod'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -13,11 +18,6 @@ import {
   selectWebhooksTableRowData,
   updateWebhook as updateWebhookDB,
 } from '@/db/tableMethods/webhookMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {

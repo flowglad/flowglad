@@ -1,13 +1,3 @@
-import { eq } from 'drizzle-orm'
-import { z } from 'zod'
-import {
-  type Feature,
-  features,
-  featuresClientSelectSchema,
-  featuresInsertSchema,
-  featuresSelectSchema,
-  featuresUpdateSchema,
-} from '@/db/schema/features'
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
@@ -19,7 +9,17 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import {
+  type Feature,
+  features,
+  featuresClientSelectSchema,
+  featuresInsertSchema,
+  featuresSelectSchema,
+  featuresUpdateSchema,
+} from '@/db/schema/features'
 import type {
   DbTransaction,
   TransactionEffectsContext,

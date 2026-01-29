@@ -1,9 +1,5 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'

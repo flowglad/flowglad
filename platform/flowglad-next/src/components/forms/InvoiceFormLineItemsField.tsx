@@ -1,3 +1,4 @@
+import { SubscriptionItemType } from '@db-core/enums'
 import {
   closestCenter,
   DndContext,
@@ -23,7 +24,6 @@ import type {
   CreateInvoiceInput,
   InvoiceLineItem,
 } from '@/db/schema/invoiceLineItems'
-import { SubscriptionItemType } from '@/types'
 import InvoiceFormLineItem from './InvoiceFormLineItem'
 
 export const newInvoiceLineItem: CreateInvoiceInput['invoiceLineItems'][0] =

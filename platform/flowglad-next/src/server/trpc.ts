@@ -1,11 +1,11 @@
 // trpc.ts
 export const runtime = 'nodejs' // Force Node.js runtime
 
+import { NotFoundError as DBNotFoundError } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerAndOrganizationByCustomerWhere } from '@/db/tableMethods/customerMethods'
-import { NotFoundError as DBNotFoundError } from '@/db/tableUtils'
 import {
   AuthorizationError,
   ConflictError,

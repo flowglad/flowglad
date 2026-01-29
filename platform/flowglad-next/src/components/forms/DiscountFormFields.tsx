@@ -1,5 +1,6 @@
 'use client'
 
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import { Percent } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
 import PricingModelSelect from '@/components/forms/PricingModelSelect'
@@ -31,7 +32,6 @@ import {
   CreateDiscountInput,
 } from '@/db/schema/discounts'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import { core } from '@/utils/core'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
 

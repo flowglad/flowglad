@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -9,7 +10,6 @@ import {
   updateProduct,
 } from '@/db/tableMethods/productMethods'
 import { ValidationError } from '@/errors'
-import { IntervalUnit, PriceType } from '@/types'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import core from '@/utils/core'
 import {

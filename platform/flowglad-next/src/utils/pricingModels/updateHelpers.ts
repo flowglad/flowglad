@@ -5,6 +5,7 @@
  * and batch-syncing product features during pricing model updates.
  */
 
+import { PriceType } from '@db-core/enums'
 import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
 import type { ProductFeature } from '@/db/schema/productFeatures'
@@ -26,7 +27,6 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { PriceType } from '@/types'
 import { buildSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**

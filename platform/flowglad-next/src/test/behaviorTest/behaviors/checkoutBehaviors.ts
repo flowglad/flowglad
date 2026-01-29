@@ -28,6 +28,11 @@
  *   their own tax compliance outside of Flowglad.
  */
 
+import {
+  CheckoutSessionType,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Discount } from '@/db/schema/discounts'
@@ -46,12 +51,7 @@ import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-  PriceType,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import core from '@/utils/core'
 import { ContractTypeDep } from '../dependencies/contractTypeDependencies'

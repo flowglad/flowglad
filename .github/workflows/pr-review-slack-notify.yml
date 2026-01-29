@@ -1,0 +1,50 @@
+name: PR Review Slack Notify
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  notify:
+    if: github.event.label.name == 'needs-review'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PULL_REQUEST_URL }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not set; skipping Slack notification."
+            exit 0
+          fi
+
+          PAYLOAD=$(jq -n --arg title "$TITLE" --arg url "$URL" '{
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: ("🟡 Needs Review: <" + $url + "|" + $title + "> <!channel>")
+                }
+              },
+              { type: "divider" }
+            ]
+          }')
+
+          curl -sS -f -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            || echo "Slack notification failed (non-blocking)"
+
+  all-jobs-succeed:
+    runs-on: ubuntu-latest
+    needs: [notify]
+    if: always()
+    steps:
+      - name: Verify all jobs succeeded
+        run: |
+          if [ "${{ needs.notify.result }}" != "success" ] && [ "${{ needs.notify.result }}" != "skipped" ]; then
+            exit 1
+          fi

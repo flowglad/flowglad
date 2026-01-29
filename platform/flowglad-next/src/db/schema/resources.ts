@@ -1,9 +1,4 @@
-import { sql } from 'drizzle-orm'
-import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -15,7 +10,12 @@ import {
   orgIdEqualsCurrentSQL,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 
 const TABLE_NAME = 'resources'
 

@@ -1,3 +1,4 @@
+import { UsageCreditApplicationStatus } from '@db-core/enums'
 import { Result } from 'better-result'
 import type {
   LedgerCommandResult,
@@ -25,7 +26,6 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
   LedgerTransactionInitiatingSourceType,
-  UsageCreditApplicationStatus,
 } from '@/types'
 
 export const createUsageCreditApplicationsForUsageEvent = async (

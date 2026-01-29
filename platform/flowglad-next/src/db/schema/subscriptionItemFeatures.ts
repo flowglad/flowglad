@@ -1,21 +1,8 @@
-import { sql } from 'drizzle-orm'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
-  boolean,
-  integer,
-  pgPolicy,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { features } from '@/db/schema/features'
-import { pricingModels } from '@/db/schema/pricingModels'
-import { productFeatures } from '@/db/schema/productFeatures'
-import { resources } from '@/db/schema/resources'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
-import { usageMeters } from '@/db/schema/usageMeters'
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import {
   hiddenColumnsForClientSchema as baseHiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
@@ -31,9 +18,25 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
-import { zodEpochMs } from '@/db/timestampMs'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+} from '@db-core/tableUtils'
+import { zodEpochMs } from '@db-core/timestampMs'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { features } from '@/db/schema/features'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { productFeatures } from '@/db/schema/productFeatures'
+import { resources } from '@/db/schema/resources'
+import { subscriptionItems } from '@/db/schema/subscriptionItems'
+import { usageMeters } from '@/db/schema/usageMeters'
 import core, { zodOptionalNullableString } from '@/utils/core'
 
 const TABLE_NAME = 'subscription_item_features'
