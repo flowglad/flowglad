@@ -151,6 +151,10 @@ export const useFeatures = (
         }
       )
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
       const json = await response.json()
       return json as FeatureAccessRouteResponse
     },

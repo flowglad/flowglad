@@ -10,6 +10,8 @@ export type {
   CreateSubscriptionParams,
   CreateUsageEventParams,
   FlowgladActionValidatorMap,
+  GetFeatureAccessParams,
+  GetFeatureAccessResponse,
   GetResourcesParams,
   GetResourceUsageParams,
   GetSubscriptionsParams,
@@ -60,6 +62,7 @@ export {
 export {
   type AuthenticatedActionKey,
   type BillingWithChecks,
+  type FeatureAccessItem,
   type FeatureItem,
   FlowgladActionKey,
   HTTPMethod,

@@ -21,6 +21,9 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
+  type FeatureAccessItem,
+  type GetFeatureAccessParams,
+  type GetFeatureAccessResponse,
   type GetSubscriptionsParams,
   type GetSubscriptionsResponse,
   type GetUsageMeterBalancesParams,
@@ -642,6 +645,61 @@ export class FlowgladServer {
         query: params ?? {},
       }
     )
+  }
+
+  /**
+   * Get feature access items for the authenticated customer.
+   *
+   * Returns toggle features only (binary access checks).
+   * By default, returns features across all current subscriptions.
+   * Optionally filter by a specific subscriptionId.
+   *
+   * @param params - Optional parameters for fetching feature access
+   * @param params.subscriptionId - Optional. Filter to a specific subscription.
+   *
+   * @returns A promise that resolves to an object containing feature access items
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all feature access items for current subscriptions
+   * const { features } = await flowglad.getFeatureAccessItems()
+   *
+   * @example
+   * // Get features for a specific subscription
+   * const { features } = await flowglad.getFeatureAccessItems({
+   *   subscriptionId: 'sub_123'
+   * })
+   */
+  public getFeatureAccessItems = async (
+    params?: GetFeatureAccessParams
+  ): Promise<GetFeatureAccessResponse> => {
+    // Delegate to getBilling() initially (no dedicated platform endpoint yet)
+    const billing = await this.getBilling()
+    const currentSubscriptions = billing.currentSubscriptions ?? []
+
+    // Filter by subscriptionId if provided
+    const subscriptions = params?.subscriptionId
+      ? currentSubscriptions.filter(s => s.id === params.subscriptionId)
+      : currentSubscriptions
+
+    // Extract toggle features only, deduplicate by slug
+    const featuresBySlug = new Map<string, FeatureAccessItem>()
+    for (const sub of subscriptions) {
+      const featureItems = sub.experimental?.featureItems ?? []
+      for (const item of featureItems) {
+        if (item.type === 'toggle' && !featuresBySlug.has(item.slug)) {
+          featuresBySlug.set(item.slug, {
+            id: item.id,
+            livemode: item.livemode,
+            slug: item.slug,
+            name: item.name,
+          })
+        }
+      }
+    }
+
+    return { features: Array.from(featuresBySlug.values()) }
   }
 
   private deriveSubscriptionId = async (
