@@ -6,6 +6,7 @@ import {
   assert405MethodNotAllowed,
   assertHandlerResponse,
 } from './test-utils'
+import { getFeatureAccessItems } from './featureHandlers'
 
 const mockFeatureAccessItems = [
   {
@@ -38,45 +39,194 @@ const createMockFlowgladServer = () => {
 }
 
 describe('Feature subroute handlers', () => {
-  describe.skip('getFeatureAccessItems handler', () => {
+  describe('getFeatureAccessItems handler', () => {
     it('returns 405 for GET request', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server } = createMockFlowgladServer()
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.GET,
+          data: {},
+        } as unknown as Parameters<typeof getFeatureAccessItems>[0],
+        server
+      )
+
+      assert405MethodNotAllowed(result)
     })
 
     it('returns 405 for PUT request', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server } = createMockFlowgladServer()
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.PUT,
+          data: {},
+        } as unknown as Parameters<typeof getFeatureAccessItems>[0],
+        server
+      )
+
+      assert405MethodNotAllowed(result)
     })
 
     it('returns 405 for DELETE request', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server } = createMockFlowgladServer()
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.DELETE,
+          data: {},
+        } as unknown as Parameters<typeof getFeatureAccessItems>[0],
+        server
+      )
+
+      assert405MethodNotAllowed(result)
     })
 
     it('returns features via FlowgladServer', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getFeatureAccessItems.mockResolvedValue({
+        features: mockFeatureAccessItems,
+      })
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        },
+        server
+      )
+
+      expect(mocks.getFeatureAccessItems).toHaveBeenCalledWith({})
+      assert200Success(result, {
+        features: mockFeatureAccessItems,
+      })
     })
 
     it('filters to toggle features only', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server, mocks } = createMockFlowgladServer()
+      const toggleFeatures = [
+        {
+          id: 'feature_123',
+          livemode: true,
+          slug: 'advanced-analytics',
+          name: 'Advanced Analytics',
+        },
+      ]
+      mocks.getFeatureAccessItems.mockResolvedValue({
+        features: toggleFeatures,
+      })
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        },
+        server
+      )
+
+      assert200Success(result, { features: toggleFeatures })
     })
 
     it('deduplicates features by slug', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server, mocks } = createMockFlowgladServer()
+      // Mock returns deduplicated features
+      mocks.getFeatureAccessItems.mockResolvedValue({
+        features: mockFeatureAccessItems,
+      })
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        },
+        server
+      )
+
+      assert200Success(result, { features: mockFeatureAccessItems })
     })
 
     it('filters by subscriptionId', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getFeatureAccessItems.mockResolvedValue({
+        features: mockFeatureAccessItems,
+      })
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.POST,
+          data: { subscriptionId: 'sub_123' },
+        },
+        server
+      )
+
+      expect(mocks.getFeatureAccessItems).toHaveBeenCalledWith({
+        subscriptionId: 'sub_123',
+      })
+      assert200Success(result, {
+        features: mockFeatureAccessItems,
+      })
     })
 
     it('returns empty array when no features', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getFeatureAccessItems.mockResolvedValue({
+        features: [],
+      })
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        },
+        server
+      )
+
+      assert200Success(result, { features: [] })
     })
 
     it('returns 500 with parsed error on failure', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getFeatureAccessItems.mockRejectedValue(
+        new Error('404 {"message": "Customer not found"}')
+      )
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        },
+        server
+      )
+
+      assertHandlerResponse(result, {
+        status: 500,
+        error: {
+          code: '404',
+          json: { message: 'Customer not found' },
+        },
+        data: {},
+      })
     })
 
     it('rejects unknown keys (strict schema)', async () => {
-      // Test stub - to be implemented in Patch 4
+      const { server, mocks } = createMockFlowgladServer()
+
+      const result = await getFeatureAccessItems(
+        {
+          method: HTTPMethod.POST,
+          // Cast to bypass TypeScript - we're intentionally testing Zod's strict() validation
+          data: {
+            subscriptionId: 'sub_123',
+            unknownKey: 'value',
+          } as unknown as { subscriptionId?: string },
+        },
+        server
+      )
+
+      // Should fail Zod strict() validation
+      expect(result.status).toBe(500)
+      expect(result.error?.code).toBe('Unknown')
+      expect(mocks.getFeatureAccessItems).not.toHaveBeenCalled()
     })
   })
 })
