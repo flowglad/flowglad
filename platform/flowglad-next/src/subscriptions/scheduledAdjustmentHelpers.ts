@@ -96,8 +96,9 @@ export const cancelScheduledAdjustment = async (
     const itemIds = scheduledItems.map((item) => item.id)
     await expireSubscriptionItems(itemIds, now, transaction)
 
-    // Invalidate cache for each expired subscription item's features
+    // Invalidate cache for subscription items collection and each item's features
     invalidateCache(
+      CacheDependency.subscriptionItems(subscriptionId),
       ...itemIds.map((itemId) =>
         CacheDependency.subscriptionItemFeatures(itemId)
       )

@@ -289,6 +289,7 @@ export const cancelScheduledAdjustmentOutputSchema = z
     canceledItemCount: z
       .number()
       .int()
+      .nonnegative()
       .describe(
         'The number of scheduled subscription items that were canceled'
       ),
