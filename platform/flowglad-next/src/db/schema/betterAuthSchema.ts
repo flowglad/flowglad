@@ -1,9 +1,15 @@
 import {
   boolean,
+  pgEnum,
   pgTable,
   text,
   timestamp,
 } from 'drizzle-orm/pg-core'
+
+export const sessionScopeEnum = pgEnum('session_scope', [
+  'merchant',
+  'customer',
+])
 
 export const user = pgTable('better_auth_user', {
   id: text('id').primaryKey(),
@@ -34,6 +40,8 @@ export const session = pgTable('better_auth_session', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  scope: sessionScopeEnum('scope').notNull().default('merchant'),
+  contextOrganizationId: text('context_organization_id'),
 }).enableRLS()
 
 export const account = pgTable('better_auth_account', {
