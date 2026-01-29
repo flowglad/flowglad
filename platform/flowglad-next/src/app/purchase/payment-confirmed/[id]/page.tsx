@@ -1,5 +1,6 @@
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectPurchaseById,
   selectPurchases,
@@ -14,9 +15,11 @@ interface PageProps {
 
 const PaymentConfirmedPage = async ({ params }: PageProps) => {
   const { id } = await params
-  const purchase = await adminTransaction(async ({ transaction }) => {
-    return selectPurchaseById(id, transaction)
-  })
+  const purchase = (
+    await adminTransactionWithResult(async ({ transaction }) => {
+      return selectPurchaseById(id, transaction)
+    })
+  ).unwrap()
 
   if (!purchase) {
     notFound()

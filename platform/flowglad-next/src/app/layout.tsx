@@ -8,8 +8,9 @@ import {
 } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
 import * as Sentry from '@sentry/nextjs'
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertUser,
@@ -56,20 +57,22 @@ export default async function RootLayout({
   let user: User.Record | undefined
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
-    const [membershipData] = await adminTransaction(
-      async ({ transaction }) => {
+    const [membershipData] = (
+      await adminTransactionWithResult(async ({ transaction }) => {
         if (!user) {
           throw new Error('User not found')
         }
-        return await selectMembershipAndOrganizations(
-          {
-            userId: user.id,
-            focused: true,
-          },
-          transaction
+        return Result.ok(
+          await selectMembershipAndOrganizations(
+            {
+              userId: user.id,
+              focused: true,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     livemode = membershipData?.membership.livemode
     if (membershipData?.organization && membershipData.membership) {

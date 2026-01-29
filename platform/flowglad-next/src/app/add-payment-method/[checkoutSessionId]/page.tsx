@@ -2,13 +2,14 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
 } from '@db-core/enums'
+import { Result } from 'better-result'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutForm from '@/components/CheckoutForm'
 import { LightThemeWrapper } from '@/components/LightThemeWrapper'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -23,8 +24,8 @@ const CheckoutSessionPage = async ({
   params: Promise<{ checkoutSessionId: string }>
 }) => {
   const { checkoutSessionId } = await params
-  const { checkoutSession, sellerOrganization, customer } =
-    await adminTransaction(async ({ transaction }) => {
+  const { checkoutSession, sellerOrganization, customer } = (
+    await adminTransactionWithResult(async ({ transaction }) => {
       const checkoutSession = (
         await selectCheckoutSessionById(
           checkoutSessionId,
@@ -48,12 +49,13 @@ const CheckoutSessionPage = async ({
           transaction
         )
       ).unwrap()
-      return {
+      return Result.ok({
         checkoutSession,
         sellerOrganization: organization,
         customer,
-      }
+      })
     })
+  ).unwrap()
 
   if (!checkoutSession) {
     notFound()

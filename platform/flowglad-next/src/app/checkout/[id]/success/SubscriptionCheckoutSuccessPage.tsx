@@ -2,8 +2,9 @@ import { PriceType } from '@db-core/enums'
 import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
+import { Result } from 'better-result'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 
@@ -28,14 +29,16 @@ const SubscriptionCheckoutSuccessPage = async ({
 
   // If we don't have the price and organization, fetch them
   if (!innerOrganization || !innerPrice) {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const [data] =
-        await selectPriceProductAndOrganizationByPriceWhere(
-          { id: checkoutSession.priceId! },
-          transaction
-        )
-      return data
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const [data] =
+          await selectPriceProductAndOrganizationByPriceWhere(
+            { id: checkoutSession.priceId! },
+            transaction
+          )
+        return Result.ok(data)
+      })
+    ).unwrap()
 
     if (!innerOrganization) {
       innerOrganization = result.organization
@@ -48,16 +51,14 @@ const SubscriptionCheckoutSuccessPage = async ({
   // Get customer email from customer record (same source the email system uses)
   let customerEmail: string | null = null
   if (checkoutSession.customerId) {
-    const customer = await adminTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectCustomerById(
-            checkoutSession.customerId!,
-            transaction
-          )
-        ).unwrap()
-      }
-    )
+    const customer = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return selectCustomerById(
+          checkoutSession.customerId!,
+          transaction
+        )
+      })
+    ).unwrap()
     customerEmail = customer.email || null
   }
 
