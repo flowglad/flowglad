@@ -1,12 +1,11 @@
 import type { Config } from 'drizzle-kit'
-import core from './src/utils/core'
 
 export default {
-  schema: './src/db/schema/!(*.test).ts',
-  out: './drizzle-migrations',
+  schema: './schema/!(*.test).ts',
+  out: './migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: core.envVariable('DATABASE_URL'),
+    url: process.env.DATABASE_URL!,
   },
   verbose: true,
   strict: true,
