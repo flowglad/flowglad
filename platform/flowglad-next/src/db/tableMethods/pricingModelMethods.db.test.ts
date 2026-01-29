@@ -1781,14 +1781,14 @@ describe('Pricing Model Table Rows - Products Count Alignment', () => {
       trialPeriodDays: 0,
     })
 
-    const usageProduct = await setupProduct({
+    const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
-      name: 'Usage Product',
+      name: 'Usage Meter',
     })
 
     await setupPrice({
-      productId: usageProduct.id,
+      usageMeterId: usageMeter.id,
       name: 'Usage Price',
       type: PriceType.Usage,
       intervalUnit: IntervalUnit.Month,
