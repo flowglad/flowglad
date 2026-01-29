@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/server",
-  "version": "0.17.2",
+  "version": "0.18.0",
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.mjs",
   "types": "./dist/types/index.d.ts",
