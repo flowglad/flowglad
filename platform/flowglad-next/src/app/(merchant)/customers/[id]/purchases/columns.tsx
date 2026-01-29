@@ -1,5 +1,6 @@
 'use client'
 
+import { CurrencyCode } from '@db-core/enums'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
@@ -10,7 +11,6 @@ import {
 } from '@/components/ui/status-tag'
 import type { Customer } from '@/db/schema/customers'
 import type { Purchase } from '@/db/schema/purchases'
-import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 

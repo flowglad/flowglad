@@ -1,4 +1,8 @@
 'use client'
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import { Check, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -16,7 +20,6 @@ import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { PricesDataTable } from './prices/data-table'
 
 export type InternalProductDetailsPageProps = {

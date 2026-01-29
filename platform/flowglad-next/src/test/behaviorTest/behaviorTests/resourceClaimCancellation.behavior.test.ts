@@ -22,8 +22,8 @@
  * - Subscription status is 'Canceled'
  */
 
+import { SubscriptionStatus } from '@db-core/enums'
 import { expect } from 'vitest'
-import { SubscriptionStatus } from '@/types'
 import { teardownOrg } from '../../../../seedDatabase'
 import { authenticateUserBehavior } from '../behaviors/authBehaviors'
 import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'

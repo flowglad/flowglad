@@ -1,3 +1,4 @@
+import { SupabasePayloadType } from '@db-core/enums'
 import { NextResponse } from 'next/server'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
@@ -12,7 +13,6 @@ import { organizationUpdatedTask } from '@/trigger/supabase/organization-updated
 import {
   type SupabaseDatabaseUpdatePayload,
   type SupabaseInsertPayload,
-  SupabasePayloadType,
   type SupabaseUpdatePayload,
 } from '@/types'
 import core from '@/utils/core'

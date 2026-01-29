@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  LedgerTransactionType,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import * as core from 'nanoid'
 // Setup helpers from seedDatabase.ts
@@ -32,14 +39,7 @@ import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
-import {
-  CurrencyCode,
-  IntervalUnit,
-  LedgerTransactionInitiatingSourceType,
-  LedgerTransactionType,
-  PriceType,
-  UsageMeterAggregationType,
-} from '@/types'
+import { LedgerTransactionInitiatingSourceType } from '@/types'
 // Function to test
 import {
   createUsageEventWithSlugSchema,

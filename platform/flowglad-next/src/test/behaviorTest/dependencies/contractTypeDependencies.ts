@@ -43,7 +43,10 @@
  * - No model-specific bugs slip through
  */
 
-import { CurrencyCode, StripeConnectContractType } from '@/types'
+import {
+  CurrencyCode,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import { Dependency } from '../index'
 
 /**

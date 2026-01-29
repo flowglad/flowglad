@@ -1,3 +1,8 @@
+import {
+  CheckoutSessionType,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Purchase } from '@/db/schema/purchases'
@@ -9,12 +14,7 @@ import {
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import type { TransactionEffectsContext } from '@/db/types'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PriceType,
-  PurchaseStatus,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { createInitialInvoiceForPurchase } from '@/utils/bookkeeping'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { isNil } from '../core'

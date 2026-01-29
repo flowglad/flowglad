@@ -1,9 +1,6 @@
+import { SupabasePayloadType } from '@db-core/enums'
 import { z } from 'zod'
-import {
-  SupabaseInsertPayload,
-  SupabasePayloadType,
-  SupabaseUpdatePayload,
-} from '@/types'
+import { SupabaseInsertPayload, SupabaseUpdatePayload } from '@/types'
 import core from '@/utils/core'
 
 export const supabasePayloadBaseSchema = z.object({

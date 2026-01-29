@@ -1,10 +1,10 @@
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import {
   nulledPriceColumns,
   type Price,
   singlePaymentPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 
 export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   id: '1',

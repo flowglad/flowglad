@@ -1,3 +1,4 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { and, eq, inArray, lt, not } from 'drizzle-orm'
 import {
@@ -19,7 +20,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { TerminalStateError, ValidationError } from '@/errors'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { feeCalculations } from '../schema/feeCalculations'
 import { selectCustomerById } from './customerMethods'
 import { selectInvoiceById } from './invoiceMethods'

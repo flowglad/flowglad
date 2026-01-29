@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  CountryCode,
+  CurrencyCode,
+  DiscountAmountType,
+  PaymentMethodType,
+  PriceType,
+  StripeConnectContractType,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupInvoice,
   setupOrg,
@@ -18,16 +26,7 @@ import type { Purchase } from '@/db/schema/purchases'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
-import {
-  CountryCode,
-  CurrencyCode,
-  DiscountAmountType,
-  FeeCalculationType,
-  PaymentMethodType,
-  PaymentStatus,
-  PriceType,
-  StripeConnectContractType,
-} from '@/types'
+import { FeeCalculationType, PaymentStatus } from '@/types'
 import core from '@/utils/core'
 import {
   calculateDiscountAmount,

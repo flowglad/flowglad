@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode, PriceType } from '@db-core/enums'
 import {
   setupCustomer,
   setupOrg,
@@ -9,8 +10,6 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  CurrencyCode,
-  PriceType,
   UsageCreditSourceReferenceType,
   UsageCreditStatus,
   UsageCreditType,

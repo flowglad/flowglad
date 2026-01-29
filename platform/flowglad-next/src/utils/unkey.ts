@@ -1,3 +1,4 @@
+import { FlowgladApiKeyType } from '@db-core/enums'
 import { Unkey } from '@unkey/api'
 import type { V2KeysVerifyKeyResponseData } from '@unkey/api/models/components'
 import {
@@ -6,7 +7,7 @@ import {
   secretApiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
 import type { Organization } from '@/db/schema/organizations'
-import { type ApiEnvironment, FlowgladApiKeyType } from '@/types'
+import { type ApiEnvironment } from '@/types'
 import { hashData } from './backendCore'
 import core from './core'
 import { logger } from './logger'

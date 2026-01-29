@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { PaymentMethodType } from '@db-core/enums'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -12,7 +13,6 @@ import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
-import { PaymentMethodType } from '@/types'
 import { core } from '@/utils/core'
 import {
   paymentMethodForStripePaymentMethodId,

@@ -5,6 +5,7 @@
  * (features, products, usage meters) to identify what needs to be created, updated, or removed.
  */
 
+import { FeatureType, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
@@ -25,7 +26,6 @@ import {
 import { productsClientUpdateSchema } from '@/db/schema/products'
 import { usageMetersClientUpdateSchema } from '@/db/schema/usageMeters'
 import { ValidationError } from '@/errors'
-import { FeatureType, PriceType } from '@/types'
 import type {
   SetupPricingModelInput,
   SetupPricingModelProductInput,

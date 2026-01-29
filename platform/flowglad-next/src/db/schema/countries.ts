@@ -1,3 +1,4 @@
+import { CountryCode } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { pgTable, text } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
@@ -13,7 +14,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { CountryCode } from '@/types'
 import core from '@/utils/core'
 import { countryCodeSchema } from '../commonZodSchema'
 import { buildSchemas } from '../createZodSchemas'

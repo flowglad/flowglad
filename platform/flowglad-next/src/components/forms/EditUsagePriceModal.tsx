@@ -1,5 +1,6 @@
 'use client'
 
+import { PriceType } from '@db-core/enums'
 import { useFormContext } from 'react-hook-form'
 import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
@@ -35,7 +36,6 @@ import {
   type Price,
 } from '@/db/schema/prices'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { PriceType } from '@/types'
 import {
   countableCurrencyAmountToRawStringAmount,
   isCurrencyZeroDecimal,

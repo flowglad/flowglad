@@ -1,3 +1,4 @@
+import { NormalBalanceType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -25,7 +26,6 @@ import {
   pgEnumColumn,
   tableBase,
 } from '@/db/tableUtils'
-import { NormalBalanceType } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'ledger_accounts'

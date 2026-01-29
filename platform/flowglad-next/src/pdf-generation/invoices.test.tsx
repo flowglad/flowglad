@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode } from '@db-core/enums'
 import { render } from '@testing-library/react'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import type { Customer } from '@/db/schema/customers'
@@ -6,7 +7,7 @@ import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
-import { CurrencyCode, InvoiceStatus, PaymentStatus } from '@/types'
+import { InvoiceStatus, PaymentStatus } from '@/types'
 import { formatDate } from '@/utils/core'
 import {
   BillingInfo,

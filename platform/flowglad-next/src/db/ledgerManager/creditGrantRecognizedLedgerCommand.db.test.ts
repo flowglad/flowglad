@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { LedgerTransactionType } from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupLedgerAccount,
@@ -29,7 +30,6 @@ import {
   LedgerEntryDirection,
   LedgerEntryStatus,
   LedgerEntryType,
-  LedgerTransactionType,
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'

@@ -1,3 +1,4 @@
+import { CurrencyCode, PaymentMethodType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -29,12 +30,7 @@ import {
   taxSchemaColumns,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import {
-  CurrencyCode,
-  PaymentMethodType,
-  PaymentStatus,
-  RevenueChartIntervalUnit,
-} from '@/types'
+import { PaymentStatus, RevenueChartIntervalUnit } from '@/types'
 import core, { zodOptionalNullableString } from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { zodEpochMs } from '../timestampMs'

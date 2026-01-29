@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode } from '@db-core/enums'
 import {
   type CustomerTableRowData,
   InferredCustomerStatus,
@@ -8,7 +9,6 @@ import {
   createMockCustomerTableRowData,
   customerTestScenarios,
 } from '@/test/helpers/customerMocks'
-import { CurrencyCode } from '@/types'
 import { createCustomersCsv } from '@/utils/csv-export'
 
 describe('createCustomersCsv', () => {

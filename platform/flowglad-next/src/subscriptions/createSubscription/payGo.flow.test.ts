@@ -1,4 +1,12 @@
 import { describe, expect, it } from 'bun:test'
+import {
+  CheckoutSessionType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupOrg,
@@ -22,15 +30,7 @@ import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
-import {
-  CheckoutSessionType,
-  FeatureUsageGrantFrequency,
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  SubscriptionStatus,
-  UsageCreditStatus,
-} from '@/types'
+import { UsageCreditStatus } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'

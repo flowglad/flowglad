@@ -1,10 +1,10 @@
 'use client'
 
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import { ArrowLeft, Check, ChevronDown, Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { IntervalUnit, PriceType } from '@/types'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import { formatCurrency } from '@/utils/pricingModelTemplates'
 

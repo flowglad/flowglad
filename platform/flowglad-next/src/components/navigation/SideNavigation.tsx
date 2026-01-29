@@ -1,4 +1,5 @@
 'use client'
+import { BusinessOnboardingStatus } from '@db-core/enums'
 import type { LucideIcon } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -34,7 +35,6 @@ import { useAuthContext } from '@/contexts/authContext'
 import { useClickOutside } from '@/hooks/use-click-outside'
 import { useContextAwareNavigation } from '@/hooks/useContextAwareNavigation'
 import { cn } from '@/lib/utils'
-import { BusinessOnboardingStatus } from '@/types'
 import { signOut, useSession } from '@/utils/authClient'
 import { Skeleton } from '../ui/skeleton'
 import {

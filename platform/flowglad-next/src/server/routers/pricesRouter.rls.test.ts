@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
@@ -16,12 +22,6 @@ import {
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { ValidationError } from '@/errors'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import {
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-  UsageMeterAggregationType,
-} from '@/types'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import core from '@/utils/core'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'

@@ -1,3 +1,7 @@
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
@@ -18,7 +22,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import core, { safeZodSanitizedString } from '@/utils/core'
 import { pricingModels } from './pricingModels'
 import { resources } from './resources'

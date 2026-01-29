@@ -1,5 +1,5 @@
+import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import { z } from 'zod'
-import { CurrencyCode, IntervalUnit } from '@/types'
 import type { EmailType } from './registry'
 
 // ============================================================================

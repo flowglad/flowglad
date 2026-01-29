@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+} from '@db-core/enums'
 import { Check, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -15,11 +20,6 @@ import {
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { Discount } from '@/db/schema/discounts'
-import {
-  CurrencyCode,
-  DiscountAmountType,
-  DiscountDuration,
-} from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import ToggleDiscountModal from './ToggleDiscountModal'
 

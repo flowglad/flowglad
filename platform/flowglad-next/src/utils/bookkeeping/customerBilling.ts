@@ -1,3 +1,4 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -27,7 +28,6 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import type { RichSubscription } from '@/subscriptions/schemas'
-import { CheckoutSessionType } from '@/types'
 import {
   CacheDependency,
   type CacheRecomputationContext,

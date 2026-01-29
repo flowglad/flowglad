@@ -1,5 +1,11 @@
 'use client'
 
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { DollarSign, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -29,12 +35,6 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import { getSubscriptionDateInfo } from '@/lib/subscription-utils'
 import type { RichSubscription } from '@/subscriptions/schemas'
-import {
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import core from '@/utils/core'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'

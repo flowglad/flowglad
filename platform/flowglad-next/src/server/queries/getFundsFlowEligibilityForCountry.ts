@@ -1,7 +1,7 @@
+import { StripeConnectContractType } from '@db-core/enums'
 import { z } from 'zod'
 import { countryCodeSchema } from '@/db/commonZodSchema'
 import { protectedProcedure } from '@/server/trpc'
-import { StripeConnectContractType } from '@/types'
 import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 
 export const getFundsFlowEligibilityForCountry = protectedProcedure

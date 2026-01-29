@@ -1,6 +1,6 @@
 import type { Mock } from 'bun:test'
 import { describe, expect, it, mock, spyOn } from 'bun:test'
-import { CurrencyCode, DiscountAmountType } from '@/types'
+import { CurrencyCode, DiscountAmountType } from '@db-core/enums'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 // Mock the stripe utils

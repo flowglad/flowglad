@@ -1,3 +1,4 @@
+import { FlowgladApiKeyType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
@@ -20,7 +21,6 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { FlowgladApiKeyType } from '@/types'
 
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'

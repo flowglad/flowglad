@@ -1,3 +1,4 @@
+import { UsageMeterAggregationType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 import { customers } from '@/db/schema/customers'
@@ -5,10 +6,7 @@ import { products } from '@/db/schema/products'
 import { usageEvents } from '@/db/schema/usageEvents'
 import { usageMeters } from '@/db/schema/usageMeters'
 import type { DbTransaction } from '@/db/types'
-import {
-  RevenueChartIntervalUnit,
-  UsageMeterAggregationType,
-} from '@/types'
+import { RevenueChartIntervalUnit } from '@/types'
 
 /**
  * Options for calculating usage volume by interval.

@@ -22,7 +22,7 @@
  * - No status-specific bugs slip through
  */
 
-import { SubscriptionStatus } from '@/types'
+import { SubscriptionStatus } from '@db-core/enums'
 import { Dependency } from '../index'
 
 /**

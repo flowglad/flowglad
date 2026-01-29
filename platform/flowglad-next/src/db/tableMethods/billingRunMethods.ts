@@ -1,3 +1,4 @@
+import { BillingRunStatus, SubscriptionStatus } from '@db-core/enums'
 import { Result } from 'better-result'
 import { and, eq, lt } from 'drizzle-orm'
 import type { z } from 'zod'
@@ -17,7 +18,6 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { ValidationError } from '@/errors'
-import { BillingRunStatus, SubscriptionStatus } from '@/types'
 import { selectSubscriptionById } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<

@@ -1,5 +1,6 @@
 'use client'
 
+import { CurrencyCode } from '@db-core/enums'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
@@ -11,7 +12,6 @@ import type { Customer } from '@/db/schema/customers'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
-import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupCustomer,
   setupOrg,
@@ -21,12 +27,6 @@ import {
   insertUsageEvent,
   selectUsageEvents,
 } from '@/db/tableMethods/usageEventMethods'
-import {
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 
 describe('usage_events RLS policies', () => {
   let org1Data: Awaited<ReturnType<typeof setupOrg>>

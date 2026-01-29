@@ -1,8 +1,15 @@
 /// <reference lib="dom" />
 
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import {
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
 import { render } from '@testing-library/react'
-
 // Import types and non-mocked exports from the original module
 import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
 import { subscriptionDetailsFromCheckoutInfoCore } from '@/contexts/checkoutPageContext'
@@ -18,14 +25,8 @@ import { dummyProduct } from '@/stubs/productStubs'
 import { subscriptionWithTrialDummyPurchase } from '@/stubs/purchaseStubs'
 import {
   CheckoutFlowType,
-  CurrencyCode,
-  DiscountAmountType,
-  DiscountDuration,
   FeeCalculationType,
-  IntervalUnit,
   InvoiceStatus,
-  PaymentMethodType,
-  PriceType,
 } from '@/types'
 import core from '@/utils/core'
 import {

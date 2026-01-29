@@ -1,3 +1,4 @@
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import type { Price } from '@/db/schema/prices'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -7,7 +8,6 @@ import {
   type AuthenticatedTransactionParams,
   noopTransactionCallbacks,
 } from '@/db/types'
-import { IntervalUnit, PriceType } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
 

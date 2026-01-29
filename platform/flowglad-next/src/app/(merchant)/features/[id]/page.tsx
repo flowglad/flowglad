@@ -1,10 +1,10 @@
+import { FeatureType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
-import { FeatureType } from '@/types'
 import InnerFeatureDetailsPage from './InnerFeatureDetailsPage'
 
 interface FeaturePageProps {

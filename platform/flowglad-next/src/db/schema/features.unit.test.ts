@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import {
   featuresClientInsertSchema,
   featuresClientUpdateSchema,

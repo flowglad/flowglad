@@ -8,6 +8,7 @@ import {
   type Mock,
   mock,
 } from 'bun:test'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import {
   fireEvent,
   render,
@@ -15,13 +16,11 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { FormProvider, useForm } from 'react-hook-form'
-
 import {
   useAuthContext,
   useAuthenticatedContext,
 } from '@/contexts/authContext'
 import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import DiscountFormFields from './DiscountFormFields'
 
 // Mock the auth context

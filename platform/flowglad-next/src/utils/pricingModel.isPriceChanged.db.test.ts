@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import type { Price } from '@/db/schema/prices'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { isPriceChanged } from './pricingModel'
 
 // Helper function to create a base subscription price ClientInsert

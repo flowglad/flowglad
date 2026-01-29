@@ -1,6 +1,6 @@
+import { PriceType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { Price } from '@/db/schema/prices'
-import { PriceType } from '@/types'
 
 /**
  * Raw input type for price validation before Zod transforms.

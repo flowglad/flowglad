@@ -10,6 +10,14 @@
  */
 import { afterEach, beforeEach, expect, it } from 'bun:test'
 import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupBillingPeriodItem,
   setupBillingRun,
@@ -50,14 +58,6 @@ import {
   createTestStripeCustomer,
   describeIfStripeKey,
 } from '@/test/stripeIntegrationHelpers'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import { executeBillingRun } from './billingRunHelpers'
 
 describeIfStripeKey(

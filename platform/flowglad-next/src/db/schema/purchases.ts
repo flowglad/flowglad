@@ -1,3 +1,8 @@
+import {
+  IntervalUnit,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -43,7 +48,6 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
 import core from '@/utils/core'
 
 export const TABLE_NAME = 'purchases'

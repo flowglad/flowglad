@@ -1,3 +1,4 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -9,11 +10,7 @@ import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMeth
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
-import {
-  CheckoutFlowType,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-} from '@/types'
+import { CheckoutFlowType, CheckoutSessionStatus } from '@/types'
 import { getClientSecretsForCheckoutSession } from '@/utils/checkoutHelpers'
 import core from '@/utils/core'
 

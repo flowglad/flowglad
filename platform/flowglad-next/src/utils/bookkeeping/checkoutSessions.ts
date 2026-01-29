@@ -1,5 +1,10 @@
 // checkoutSessions.ts
 
+import {
+  PriceType,
+  PurchaseStatus,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import type Stripe from 'stripe'
 import {
   type CheckoutSession,
@@ -50,13 +55,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import {
-  CheckoutSessionStatus,
-  FeeCalculationType,
-  PriceType,
-  PurchaseStatus,
-  StripeConnectContractType,
-} from '@/types'
+import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import {
   createCheckoutSessionFeeCalculation,

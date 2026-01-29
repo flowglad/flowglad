@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
@@ -25,12 +31,6 @@ import {
   selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
-import {
-  FeatureType,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   claimResourceTransaction,
   getResourceUsage,

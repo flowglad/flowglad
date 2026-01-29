@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FlowgladApiKeyType } from '@db-core/enums'
 import type { User as BetterAuthUser } from 'better-auth'
 import { eq } from 'drizzle-orm'
 import {
@@ -19,7 +20,6 @@ import { type Membership, memberships } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
 import { type User, users } from '@/db/schema/users'
 import { selectMembershipAndOrganizationsByBetterAuthUserId } from '@/db/tableMethods/membershipMethods'
-import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 
 type BetterAuthUserWithRole = BetterAuthUser & { role: string }

@@ -1,5 +1,6 @@
 'use client'
 
+import { SubscriptionStatus } from '@db-core/enums'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -14,7 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { Customer } from '@/db/schema/customers'
-import { SubscriptionStatus } from '@/types'
 
 interface ArchiveCustomerModalProps {
   customer: Customer.ClientRecord

@@ -8,6 +8,7 @@ import {
   type Mock,
   mock,
 } from 'bun:test'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import {
   fireEvent,
   render,
@@ -15,10 +16,8 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { FormProvider, useForm } from 'react-hook-form'
-
 import { trpc } from '@/app/_trpc/client'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import EditDiscountModal from './EditDiscountModal'
 
 // Mock the auth context (compatible with DiscountFormFields.test.tsx)

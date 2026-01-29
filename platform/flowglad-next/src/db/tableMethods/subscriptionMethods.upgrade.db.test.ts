@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupCustomer,
   setupOrg,
@@ -16,13 +22,7 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
-import {
-  CancellationReason,
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
+import { CancellationReason } from '@/types'
 import { calculateSubscriberBreakdown } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import type { CacheRecomputationContext } from '@/utils/cache'

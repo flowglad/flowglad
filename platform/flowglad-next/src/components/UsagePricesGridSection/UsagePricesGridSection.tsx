@@ -1,5 +1,6 @@
 'use client'
 
+import { PriceType } from '@db-core/enums'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
@@ -10,7 +11,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { Price } from '@/db/schema/prices'
 import { cn } from '@/lib/utils'
 import type { PricesGetTableRowsFilters } from '@/server/routers/pricesRouter'
-import { PriceType } from '@/types'
 import { UsagePriceCard } from './UsagePriceCard'
 
 interface UsagePricesGridSectionProps {

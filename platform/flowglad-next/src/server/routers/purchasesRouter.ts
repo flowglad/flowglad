@@ -1,3 +1,4 @@
+import { PurchaseStatus } from '@db-core/enums'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -17,7 +18,6 @@ import {
   idInputSchema,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { PurchaseStatus } from '@/types'
 import { generateOpenApiMetas } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({

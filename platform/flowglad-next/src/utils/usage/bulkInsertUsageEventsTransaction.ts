@@ -1,3 +1,4 @@
+import { PriceType, UsageMeterAggregationType } from '@db-core/enums'
 import { Result } from 'better-result'
 import type { z } from 'zod'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -36,7 +37,6 @@ import {
   panic,
   ValidationError,
 } from '@/errors'
-import { PriceType, UsageMeterAggregationType } from '@/types'
 import { generateLedgerCommandsForBulkUsageEvents } from '@/utils/usage/usageEventHelpers'
 
 type BulkInsertUsageEventsInput = z.infer<

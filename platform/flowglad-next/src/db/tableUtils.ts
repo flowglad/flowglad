@@ -1,3 +1,8 @@
+import {
+  CountryCode,
+  SupabasePayloadType,
+  TaxType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { noCase, snakeCase } from 'change-case'
 import {
@@ -55,7 +60,6 @@ import type {
   PgTableWithIdAndPricingModelId,
   PgTableWithPosition,
 } from '@/db/types'
-import { CountryCode, SupabasePayloadType, TaxType } from '@/types'
 import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import { countryCodeSchema } from './commonZodSchema'
 import { timestamptzMs } from './timestampMs'

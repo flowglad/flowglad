@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupCheckoutSession,
   setupCustomer,
   setupFeeCalculation,
@@ -30,16 +39,7 @@ import {
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  PurchaseStatus,
-  SubscriptionStatus,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import {
   type CoreSripeSetupIntent,
   processSetupIntentSucceeded,

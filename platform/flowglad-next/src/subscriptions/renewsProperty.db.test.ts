@@ -1,4 +1,13 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupBillingPeriod,
@@ -41,16 +50,7 @@ import {
   createDiscardingEffectsContext,
   createProcessingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-  UsageCreditType,
-} from '@/types'
+import { UsageCreditType } from '@/types'
 import core from '@/utils/core'
 
 describe('Renewing vs Non-Renewing Subscriptions', () => {

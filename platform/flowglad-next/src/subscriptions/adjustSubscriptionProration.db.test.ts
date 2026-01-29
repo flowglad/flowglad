@@ -1,5 +1,10 @@
 import type { Mock } from 'bun:test'
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  BillingPeriodStatus,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 // Test database setup functions
 import {
@@ -31,12 +36,9 @@ import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMet
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
-  BillingPeriodStatus,
   FeatureFlag,
   PaymentStatus,
   SubscriptionAdjustmentTiming,
-  SubscriptionItemType,
-  SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
 import { adjustSubscription } from './adjustSubscription'

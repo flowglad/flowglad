@@ -1,5 +1,6 @@
 'use client'
 
+import { PaymentMethodType } from '@db-core/enums'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -34,7 +35,6 @@ import {
   updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
 import { encodeCursor } from '@/db/tableUtils'
-import { PaymentMethodType } from '@/types'
 
 interface EditSubscriptionPaymentMethodModalProps
   extends ModalInterfaceProps {

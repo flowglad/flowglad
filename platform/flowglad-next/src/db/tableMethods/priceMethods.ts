@@ -1,3 +1,4 @@
+import { FeatureType, PriceType } from '@db-core/enums'
 import {
   and,
   asc,
@@ -36,7 +37,6 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { FeatureType, PriceType } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'

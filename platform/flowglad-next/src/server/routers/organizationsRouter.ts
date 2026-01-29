@@ -1,3 +1,4 @@
+import { UsageMeterAggregationType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
@@ -42,10 +43,7 @@ import {
 } from '@/db/tableUtils'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { protectedProcedure, router } from '@/server/trpc'
-import {
-  RevenueChartIntervalUnit,
-  UsageMeterAggregationType,
-} from '@/types'
+import { RevenueChartIntervalUnit } from '@/types'
 import { getSession } from '@/utils/auth'
 import {
   calculateARR,

@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -17,12 +23,8 @@ import {
   ValidationError,
 } from '@/errors'
 import {
-  CurrencyCode,
-  IntervalUnit,
   InvoiceStatus,
-  PaymentMethodType,
   PaymentStatus,
-  PriceType,
   RevenueChartIntervalUnit,
 } from '@/types'
 import { nanoid } from '@/utils/core'

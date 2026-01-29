@@ -1,4 +1,4 @@
-import { IntervalUnit, PriceType } from '@/types'
+import { IntervalUnit, PriceType } from '@db-core/enums'
 
 export const createDefaultProductConfig = () => ({
   name: 'Free Plan',

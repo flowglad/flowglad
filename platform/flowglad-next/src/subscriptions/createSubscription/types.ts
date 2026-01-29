@@ -1,3 +1,4 @@
+import type { IntervalUnit } from '@db-core/enums'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { BillingRun } from '@/db/schema/billingRuns'
@@ -9,7 +10,6 @@ import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import type { IntervalUnit } from '@/types'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record

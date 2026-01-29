@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { MembershipRole } from '@db-core/enums'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Membership } from '@/db/schema/memberships'
@@ -15,7 +16,6 @@ import {
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
-import { MembershipRole } from '@/types'
 import core from '@/utils/core'
 
 /**

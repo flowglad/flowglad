@@ -21,8 +21,8 @@
  * - No discount (null) is handled gracefully
  */
 
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import type { Discount } from '@/db/schema/discounts'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import { Dependency } from '../index'
 
 /**

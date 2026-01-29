@@ -1,5 +1,6 @@
 'use client'
 
+import { PaymentMethodType, PriceType } from '@db-core/enums'
 import { useEffect, useMemo } from 'react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -29,7 +30,6 @@ import { Switch } from '@/components/ui/switch'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModelWithProductsAndUsageMeters } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'
-import { PaymentMethodType, PriceType } from '@/types'
 import { filterAvailableSubscriptionProducts } from '@/utils/productHelpers'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 

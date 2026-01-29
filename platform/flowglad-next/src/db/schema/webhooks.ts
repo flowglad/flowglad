@@ -1,3 +1,4 @@
+import { FlowgladEventType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
@@ -11,7 +12,6 @@ import {
   orgIdEqualsCurrentSQL,
   tableBase,
 } from '@/db/tableUtils'
-import { FlowgladEventType } from '@/types'
 import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'webhooks'

@@ -6,6 +6,10 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+import {
+  LedgerTransactionType,
+  SubscriptionItemType,
+} from '@db-core/enums'
 import { eq } from 'drizzle-orm'
 import {
   setupBillingRun,
@@ -41,8 +45,6 @@ import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMet
 import {
   InvoiceStatus,
   LedgerEntryType,
-  LedgerTransactionType,
-  SubscriptionItemType,
   UsageCreditSourceReferenceType,
   UsageCreditType,
 } from '@/types'

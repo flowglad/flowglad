@@ -1,3 +1,4 @@
+import { CurrencyCode, PaymentMethodType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   integer,
@@ -35,11 +36,7 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import {
-  CurrencyCode,
-  FeeCalculationType,
-  PaymentMethodType,
-} from '@/types'
+import { FeeCalculationType } from '@/types'
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { billingPeriods } from './billingPeriods'

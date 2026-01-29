@@ -1,3 +1,8 @@
+import {
+  CurrencyCode,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -26,13 +31,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError } from '@/errors'
-import {
-  CheckoutFlowType,
-  CurrencyCode,
-  PaymentStatus,
-  PriceType,
-  PurchaseStatus,
-} from '@/types'
+import { CheckoutFlowType, PaymentStatus } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'

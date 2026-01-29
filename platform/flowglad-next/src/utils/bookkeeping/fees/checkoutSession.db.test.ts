@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'bun:test'
+import {
+  CountryCode,
+  CurrencyCode,
+  PaymentMethodType,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Country } from '@/db/schema/countries'
 import type {
@@ -6,12 +12,6 @@ import type {
   Organization,
 } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
-import {
-  CountryCode,
-  CurrencyCode,
-  PaymentMethodType,
-  StripeConnectContractType,
-} from '@/types'
 import { createCheckoutSessionFeeCalculationInsertForPrice } from '@/utils/bookkeeping/fees/checkoutSession'
 
 describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {

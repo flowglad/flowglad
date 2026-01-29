@@ -1,4 +1,11 @@
 import { afterEach, beforeEach, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { inArray } from 'drizzle-orm'
 import { z } from 'zod'
@@ -32,13 +39,6 @@ import {
   waitForCacheInvalidation,
   waitForCachePopulation,
 } from '@/test/redisIntegrationHelpers'
-import {
-  CurrencyCode,
-  FeatureType,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   CacheDependency,
   type CacheRecomputeMetadata,

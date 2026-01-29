@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupBillingPeriodItem,
   setupBillingRun,
@@ -36,14 +44,6 @@ import {
   getResourceUsage,
   releaseResourceTransaction,
 } from '@/resources/resourceClaimHelpers'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import { executeBillingRun } from './billingRunHelpers'
 
 describe('executeBillingRun with adjustment and resource claims', () => {
