@@ -136,5 +136,19 @@ export const createFlowgladOpenApiDocument = () => {
     )
   }
 
+  // Add conditional validation for PreviewAdjustSubscriptionOutput:
+  // When canAdjust is false, reason is required
+  // Note: JSON Schema if/then is not part of OpenAPI 3.0 types but is valid JSON Schema draft-07+
+  const previewAdjustSchema =
+    rawDocument.components?.schemas?.PreviewAdjustSubscriptionOutput
+  if (isObject(previewAdjustSchema)) {
+    ;(previewAdjustSchema as Record<string, unknown>).if = {
+      properties: { canAdjust: { const: false } },
+    }
+    ;(previewAdjustSchema as Record<string, unknown>).then = {
+      required: ['reason'],
+    }
+  }
+
   return rawDocument
 }

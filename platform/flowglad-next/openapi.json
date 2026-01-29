@@ -19616,7 +19616,17 @@
           }
         },
         "required": ["canAdjust", "previewGeneratedAt"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "if": {
+          "properties": {
+            "canAdjust": {
+              "const": false
+            }
+          }
+        },
+        "then": {
+          "required": ["reason"]
+        }
       },
       "PreviewPaymentMethod": {
         "type": "object",
