@@ -38,10 +38,12 @@ describe('membership deactivation filtering', () => {
     // Create two memberships - one active, one to be deactivated
     activeMembership = await setupMemberships({
       organizationId: org.id,
+      focusedPricingModelId: orgData.pricingModel.id,
     })
 
     const membershipToDeactivate = await setupMemberships({
       organizationId: org.id,
+      focusedPricingModelId: orgData.pricingModel.id,
     })
 
     // Deactivate one membership

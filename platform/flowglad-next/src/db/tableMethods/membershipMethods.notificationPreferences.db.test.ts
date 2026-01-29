@@ -19,9 +19,12 @@ describe('memberships notificationPreferences', () => {
   let membership: Membership.Record
 
   beforeEach(async () => {
-    const { organization } = await setupOrg()
+    const { organization, pricingModel } = await setupOrg()
     organizationId = organization.id
-    membership = await setupMemberships({ organizationId })
+    membership = await setupMemberships({
+      organizationId,
+      focusedPricingModelId: pricingModel.id,
+    })
   })
 
   describe('getMembershipNotificationPreferences', () => {
