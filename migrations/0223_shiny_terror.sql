@@ -1,0 +1,1 @@
+ALTER TABLE "checkout_sessions" ADD COLUMN "automatically_update_subscriptions" boolean;

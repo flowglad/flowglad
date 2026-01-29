@@ -1,0 +1,1 @@
+ALTER TABLE "Customers" ALTER COLUMN "email" SET NOT NULL;

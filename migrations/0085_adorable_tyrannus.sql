@@ -1,0 +1,2 @@
+ALTER TABLE "Communities" ADD COLUMN "platformId" text;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "Communities_OrganizationId_platformId_platform_unique_idx" ON "Communities" USING btree ("OrganizationId","platformId","platform");

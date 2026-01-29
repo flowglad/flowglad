@@ -1,0 +1,1 @@
+ALTER TABLE "subscriptions" ADD COLUMN "renews" boolean DEFAULT true NOT NULL;

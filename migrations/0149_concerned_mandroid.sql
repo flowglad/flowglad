@@ -1,0 +1,1 @@
+ALTER TABLE "Invoices" ADD COLUMN "receiptPdfURL" text;

@@ -1,0 +1,1 @@
+ALTER TABLE "Purchases" ADD COLUMN "billingAddress" jsonb;

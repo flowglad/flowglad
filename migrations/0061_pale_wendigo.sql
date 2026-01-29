@@ -1,0 +1,1 @@
+ALTER TABLE "PurchaseSessions" ALTER COLUMN "expires" SET NOT NULL;

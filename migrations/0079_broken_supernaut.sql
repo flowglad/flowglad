@@ -1,0 +1,4 @@
+ALTER TABLE "Files" RENAME COLUMN "fileName" TO "name";--> statement-breakpoint
+ALTER TABLE "Files" RENAME COLUMN "fileSizeKb" TO "sizeKb";--> statement-breakpoint
+ALTER POLICY "Enable read for own organizations" ON "Files" TO authenticated USING ("OrganizationId" in (select "OrganizationId" from "Memberships")) WITH CHECK ("ProductId" is null OR "ProductId" in (select "id" from "Products"));--> statement-breakpoint
+ALTER POLICY "Enable read for own organizations" ON "Links" TO authenticated USING ("OrganizationId" in (select "OrganizationId" from "Memberships")) WITH CHECK ("ProductId" is null OR "ProductId" in (select "id" from "Products"));

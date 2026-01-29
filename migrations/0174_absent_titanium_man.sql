@@ -1,0 +1,1 @@
+ALTER TABLE "discounts" DROP COLUMN IF EXISTS "stripe_coupon_id";

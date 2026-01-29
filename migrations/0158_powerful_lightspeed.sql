@@ -1,0 +1,1 @@
+ALTER TABLE "Products" ADD COLUMN "quantity_label" text;

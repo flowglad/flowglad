@@ -1,0 +1,858 @@
+{
+  "id": "a709de82-eb85-4423-8f33-cbd6b78c10d5",
+  "prevId": "e17c88ce-de51-4dd9-9126-9629b9b45393",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.Countries": {
+      "name": "Countries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Countries_name_unique_idx": {
+          "name": "Countries_name_unique_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Countries_code_unique_idx": {
+          "name": "Countries_code_unique_idx",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Countries_externalId_unique": {
+          "name": "Countries_externalId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["externalId"]
+        },
+        "Countries_name_unique": {
+          "name": "Countries_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["name"]
+        },
+        "Countries_code_unique": {
+          "name": "Countries_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["code"]
+        }
+      }
+    },
+    "public.Memberships": {
+      "name": "Memberships",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "UserId": {
+          "name": "UserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Memberships_UserId_idx": {
+          "name": "Memberships_UserId_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Memberships_OrganizationId_idx": {
+          "name": "Memberships_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Memberships_UserId_OrganizationId_unique_idx": {
+          "name": "Memberships_UserId_OrganizationId_unique_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Memberships_UserId_Users_id_fk": {
+          "name": "Memberships_UserId_Users_id_fk",
+          "tableFrom": "Memberships",
+          "tableTo": "Users",
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Memberships_OrganizationId_Organizations_id_fk": {
+          "name": "Memberships_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Memberships",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Memberships_externalId_unique": {
+          "name": "Memberships_externalId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["externalId"]
+        }
+      }
+    },
+    "public.Organizations": {
+      "name": "Organizations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripeAccountId": {
+          "name": "stripeAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "CountryId": {
+          "name": "CountryId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Organizations_name_unique_idx": {
+          "name": "Organizations_name_unique_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Organizations_stripeAccountId_unique_idx": {
+          "name": "Organizations_stripeAccountId_unique_idx",
+          "columns": [
+            {
+              "expression": "stripeAccountId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Organizations_CountryId_idx": {
+          "name": "Organizations_CountryId_idx",
+          "columns": [
+            {
+              "expression": "CountryId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Organizations_CountryId_Countries_id_fk": {
+          "name": "Organizations_CountryId_Countries_id_fk",
+          "tableFrom": "Organizations",
+          "tableTo": "Countries",
+          "columnsFrom": ["CountryId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Organizations_externalId_unique": {
+          "name": "Organizations_externalId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["externalId"]
+        },
+        "Organizations_name_unique": {
+          "name": "Organizations_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["name"]
+        },
+        "Organizations_stripeAccountId_unique": {
+          "name": "Organizations_stripeAccountId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripeAccountId"]
+        }
+      }
+    },
+    "public.Prices": {
+      "name": "Prices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "interval": {
+          "name": "interval",
+          "type": "interval",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "intervalCount": {
+          "name": "intervalCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "priceMode": {
+          "name": "priceMode",
+          "type": "priceMode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isProjectPrice": {
+          "name": "isProjectPrice",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "isDefault": {
+          "name": "isDefault",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unitAmount": {
+          "name": "unitAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ProductId": {
+          "name": "ProductId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripePriceId": {
+          "name": "stripePriceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Prices_priceMode_idx": {
+          "name": "Prices_priceMode_idx",
+          "columns": [
+            {
+              "expression": "priceMode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Prices_ProductId_idx": {
+          "name": "Prices_ProductId_idx",
+          "columns": [
+            {
+              "expression": "ProductId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Prices_stripePriceId_idx": {
+          "name": "Prices_stripePriceId_idx",
+          "columns": [
+            {
+              "expression": "stripePriceId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Prices_ProductId_Products_id_fk": {
+          "name": "Prices_ProductId_Products_id_fk",
+          "tableFrom": "Prices",
+          "tableTo": "Products",
+          "columnsFrom": ["ProductId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Prices_externalId_unique": {
+          "name": "Prices_externalId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["externalId"]
+        },
+        "Prices_stripePriceId_unique": {
+          "name": "Prices_stripePriceId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripePriceId"]
+        }
+      }
+    },
+    "public.Products": {
+      "name": "Products",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price": {
+          "name": "price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priceMode": {
+          "name": "priceMode",
+          "type": "priceMode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeProductId": {
+          "name": "stripeProductId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "defaultStripePriceId": {
+          "name": "defaultStripePriceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isActive": {
+          "name": "isActive",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Products_OrganizationId_idx": {
+          "name": "Products_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Products_isActive_idx": {
+          "name": "Products_isActive_idx",
+          "columns": [
+            {
+              "expression": "isActive",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Products_stripeProductId_idx": {
+          "name": "Products_stripeProductId_idx",
+          "columns": [
+            {
+              "expression": "stripeProductId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Products_priceMode_idx": {
+          "name": "Products_priceMode_idx",
+          "columns": [
+            {
+              "expression": "priceMode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Products_OrganizationId_Organizations_id_fk": {
+          "name": "Products_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Products",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Products_externalId_unique": {
+          "name": "Products_externalId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["externalId"]
+        },
+        "Products_stripeProductId_unique": {
+          "name": "Products_stripeProductId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripeProductId"]
+        },
+        "Products_defaultStripePriceId_unique": {
+          "name": "Products_defaultStripePriceId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["defaultStripePriceId"]
+        }
+      }
+    },
+    "public.Terms": {
+      "name": "Terms",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Terms_OrganizationId_idx": {
+          "name": "Terms_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Terms_OrganizationId_Organizations_id_fk": {
+          "name": "Terms_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Terms",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Terms_externalId_unique": {
+          "name": "Terms_externalId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["externalId"]
+        }
+      }
+    },
+    "public.Users": {
+      "name": "Users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "externalId": {
+          "name": "externalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Users_name_idx": {
+          "name": "Users_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Users_email_idx": {
+          "name": "Users_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Users_id_unique": {
+          "name": "Users_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Users_externalId_unique": {
+          "name": "Users_externalId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["externalId"]
+        }
+      }
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

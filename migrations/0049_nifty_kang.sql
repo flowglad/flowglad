@@ -1,0 +1,1 @@
+ALTER TABLE "Projects" ADD COLUMN "archived" boolean DEFAULT false;

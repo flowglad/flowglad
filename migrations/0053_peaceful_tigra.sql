@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "CustomerProfiles_email_OrganizationId_idx" ON "CustomerProfiles" USING btree ("email","OrganizationId");

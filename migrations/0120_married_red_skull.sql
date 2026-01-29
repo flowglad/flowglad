@@ -1,0 +1,1 @@
+ALTER TABLE "CustomerProfiles" ALTER COLUMN "externalId" SET NOT NULL;

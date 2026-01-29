@@ -1,0 +1,1 @@
+ALTER TABLE "Memberships" ADD COLUMN "focused" boolean DEFAULT false NOT NULL;

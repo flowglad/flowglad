@@ -1,0 +1,1 @@
+ALTER POLICY "Enable read for own organizations" ON "ApiKeys" RENAME TO "Enable all actions for own organizations";

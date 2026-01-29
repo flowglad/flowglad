@@ -1,0 +1,1 @@
+ALTER TABLE "Customers" DROP CONSTRAINT "Customers_name_unique";

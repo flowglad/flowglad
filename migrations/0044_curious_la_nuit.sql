@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "Customers_email_unique_idx" ON "Customers" USING btree ("email");--> statement-breakpoint
+ALTER TABLE "Customers" ADD CONSTRAINT "Customers_email_unique" UNIQUE("email");

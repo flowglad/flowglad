@@ -1,0 +1,5517 @@
+{
+  "id": "58497b39-3dc6-4823-b143-b936dffe41ec",
+  "prevId": "57cc2808-4824-4ed2-bd83-b86939bc7a59",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.Communities": {
+      "name": "Communities",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "IntegrationId": {
+          "name": "IntegrationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "CommunityPlatform",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platformId": {
+          "name": "platformId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ProductId": {
+          "name": "ProductId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inviteURL": {
+          "name": "inviteURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Communities_OrganizationId_idx": {
+          "name": "Communities_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Communities_IntegrationId_idx": {
+          "name": "Communities_IntegrationId_idx",
+          "columns": [
+            {
+              "expression": "IntegrationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Communities_OrganizationId_platformId_platform_unique_idx": {
+          "name": "Communities_OrganizationId_platformId_platform_unique_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "platformId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "platform",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Communities_OrganizationId_Organizations_id_fk": {
+          "name": "Communities_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Communities",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Communities_IntegrationId_Integrations_id_fk": {
+          "name": "Communities_IntegrationId_Integrations_id_fk",
+          "tableFrom": "Communities",
+          "tableTo": "Integrations",
+          "columnsFrom": ["IntegrationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Communities_ProductId_Products_id_fk": {
+          "name": "Communities_ProductId_Products_id_fk",
+          "tableFrom": "Communities",
+          "tableTo": "Products",
+          "columnsFrom": ["ProductId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Communities_id_unique": {
+          "name": "Communities_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")",
+          "withCheck": "\n          \"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")\n          AND (\"ProductId\" IS NULL OR \"ProductId\" in (select id from \"Products\"))\n          AND (\n            \"IntegrationId\" IS NULL \n            OR \n            EXISTS (\n              SELECT 1 FROM \"Integrations\" i \n              WHERE i.id = \"IntegrationId\" \n              AND CASE \n                WHEN platform = 'discord' THEN i.provider = 'discord'\n                WHEN platform = 'slack' THEN i.provider = 'slack'\n              END\n            )\n          )\n        "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.CommunityMembershipClaims": {
+      "name": "CommunityMembershipClaims",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "CommunityMembershipId": {
+          "name": "CommunityMembershipId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tokenHash": {
+          "name": "tokenHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claimedAt": {
+          "name": "claimedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "CommunityMembershipClaims_CommunityMembershipId_idx": {
+          "name": "CommunityMembershipClaims_CommunityMembershipId_idx",
+          "columns": [
+            {
+              "expression": "CommunityMembershipId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CommunityMembershipClaims_tokenHash_idx": {
+          "name": "CommunityMembershipClaims_tokenHash_idx",
+          "columns": [
+            {
+              "expression": "tokenHash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "CommunityMembershipClaims_CommunityMembershipId_CommunityMemberships_id_fk": {
+          "name": "CommunityMembershipClaims_CommunityMembershipId_CommunityMemberships_id_fk",
+          "tableFrom": "CommunityMembershipClaims",
+          "tableTo": "CommunityMemberships",
+          "columnsFrom": ["CommunityMembershipId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "CommunityMembershipClaims_id_unique": {
+          "name": "CommunityMembershipClaims_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"CommunityMembershipId\" in (\n          select \"id\" \n          from \"CommunityMemberships\"\n        )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.CommunityMemberships": {
+      "name": "CommunityMemberships",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "PurchaseId": {
+          "name": "PurchaseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "CommunityId": {
+          "name": "CommunityId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "UserId": {
+          "name": "UserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "CommunityMembershipStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "startDate": {
+          "name": "startDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endDate": {
+          "name": "endDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "CustomerProfileId": {
+          "name": "CustomerProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "CommunityMemberships_PurchaseId_idx": {
+          "name": "CommunityMemberships_PurchaseId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CommunityMemberships_CommunityId_idx": {
+          "name": "CommunityMemberships_CommunityId_idx",
+          "columns": [
+            {
+              "expression": "CommunityId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CommunityMemberships_UserId_idx": {
+          "name": "CommunityMemberships_UserId_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CommunityMemberships_status_idx": {
+          "name": "CommunityMemberships_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CommunityMemberships_CustomerProfileId_idx": {
+          "name": "CommunityMemberships_CustomerProfileId_idx",
+          "columns": [
+            {
+              "expression": "CustomerProfileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CommunityMemberships_UserId_CommunityId_unique_idx": {
+          "name": "CommunityMemberships_UserId_CommunityId_unique_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "CommunityId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CommunityMemberships_CustomerProfileId_CommunityId_unique_idx": {
+          "name": "CommunityMemberships_CustomerProfileId_CommunityId_unique_idx",
+          "columns": [
+            {
+              "expression": "CustomerProfileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "CommunityId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "CommunityMemberships_PurchaseId_Purchases_id_fk": {
+          "name": "CommunityMemberships_PurchaseId_Purchases_id_fk",
+          "tableFrom": "CommunityMemberships",
+          "tableTo": "Purchases",
+          "columnsFrom": ["PurchaseId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "CommunityMemberships_CommunityId_Communities_id_fk": {
+          "name": "CommunityMemberships_CommunityId_Communities_id_fk",
+          "tableFrom": "CommunityMemberships",
+          "tableTo": "Communities",
+          "columnsFrom": ["CommunityId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "CommunityMemberships_UserId_Users_id_fk": {
+          "name": "CommunityMemberships_UserId_Users_id_fk",
+          "tableFrom": "CommunityMemberships",
+          "tableTo": "Users",
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "CommunityMemberships_CustomerProfileId_CustomerProfiles_id_fk": {
+          "name": "CommunityMemberships_CustomerProfileId_CustomerProfiles_id_fk",
+          "tableFrom": "CommunityMemberships",
+          "tableTo": "CustomerProfiles",
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "CommunityMemberships_id_unique": {
+          "name": "CommunityMemberships_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own communities": {
+          "name": "Enable read for own communities",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"CommunityId\" in (select \"id\" from \"Communities\") OR \"UserId\" = requesting_user_id() OR \"CustomerProfileId\" IN (select \"id\" from \"CustomerProfiles\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Countries": {
+      "name": "Countries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Countries_name_unique_idx": {
+          "name": "Countries_name_unique_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Countries_code_unique_idx": {
+          "name": "Countries_code_unique_idx",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Countries_id_unique": {
+          "name": "Countries_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Countries_name_unique": {
+          "name": "Countries_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["name"]
+        },
+        "Countries_code_unique": {
+          "name": "Countries_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["code"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.CustomerProfiles": {
+      "name": "CustomerProfiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "CustomerId": {
+          "name": "CustomerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "invoiceNumberBase": {
+          "name": "invoiceNumberBase",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived": {
+          "name": "archived",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "stripeCustomerId": {
+          "name": "stripeCustomerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerTaxId": {
+          "name": "customerTaxId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slackId": {
+          "name": "slackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logoURL": {
+          "name": "logoURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iconURL": {
+          "name": "iconURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "billingAddress": {
+          "name": "billingAddress",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "CustomerProfiles_CustomerId_idx": {
+          "name": "CustomerProfiles_CustomerId_idx",
+          "columns": [
+            {
+              "expression": "CustomerId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CustomerProfiles_OrganizationId_idx": {
+          "name": "CustomerProfiles_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CustomerProfiles_email_OrganizationId_idx": {
+          "name": "CustomerProfiles_email_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CustomerProfiles_CustomerId_OrganizationId_unique_idx": {
+          "name": "CustomerProfiles_CustomerId_OrganizationId_unique_idx",
+          "columns": [
+            {
+              "expression": "CustomerId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CustomerProfiles_OrganizationId_invoiceNumberBase_unique_idx": {
+          "name": "CustomerProfiles_OrganizationId_invoiceNumberBase_unique_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "invoiceNumberBase",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CustomerProfiles_stripeCustomerId_unique_idx": {
+          "name": "CustomerProfiles_stripeCustomerId_unique_idx",
+          "columns": [
+            {
+              "expression": "stripeCustomerId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "CustomerProfiles_slackId_idx": {
+          "name": "CustomerProfiles_slackId_idx",
+          "columns": [
+            {
+              "expression": "slackId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "CustomerProfiles_CustomerId_Customers_id_fk": {
+          "name": "CustomerProfiles_CustomerId_Customers_id_fk",
+          "tableFrom": "CustomerProfiles",
+          "tableTo": "Customers",
+          "columnsFrom": ["CustomerId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "CustomerProfiles_OrganizationId_Organizations_id_fk": {
+          "name": "CustomerProfiles_OrganizationId_Organizations_id_fk",
+          "tableFrom": "CustomerProfiles",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "CustomerProfiles_id_unique": {
+          "name": "CustomerProfiles_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Customers": {
+      "name": "Customers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "billingAddress": {
+          "name": "billingAddress",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "UserId": {
+          "name": "UserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Customers_UserId_idx": {
+          "name": "Customers_UserId_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Customers_email_unique_idx": {
+          "name": "Customers_email_unique_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Customers_UserId_Users_id_fk": {
+          "name": "Customers_UserId_Users_id_fk",
+          "tableFrom": "Customers",
+          "tableTo": "Users",
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Customers_id_unique": {
+          "name": "Customers_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Customers_email_unique": {
+          "name": "Customers_email_unique",
+          "nullsNotDistinct": false,
+          "columns": ["email"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.DiscountRedemptions": {
+      "name": "DiscountRedemptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "DiscountId": {
+          "name": "DiscountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "PurchaseId": {
+          "name": "PurchaseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "discountName": {
+          "name": "discountName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "discountCode": {
+          "name": "discountCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "discountAmount": {
+          "name": "discountAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "discountAmountType": {
+          "name": "discountAmountType",
+          "type": "DiscountAmountType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration": {
+          "name": "duration",
+          "type": "DiscountDuration",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numberOfPayments": {
+          "name": "numberOfPayments",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "DiscountRedemptions_DiscountId_idx": {
+          "name": "DiscountRedemptions_DiscountId_idx",
+          "columns": [
+            {
+              "expression": "DiscountId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "DiscountRedemptions_PurchaseId_idx": {
+          "name": "DiscountRedemptions_PurchaseId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "DiscountRedemptions_PurchaseId_unique_idx": {
+          "name": "DiscountRedemptions_PurchaseId_unique_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "DiscountRedemptions_DiscountId_Discounts_id_fk": {
+          "name": "DiscountRedemptions_DiscountId_Discounts_id_fk",
+          "tableFrom": "DiscountRedemptions",
+          "tableTo": "Discounts",
+          "columnsFrom": ["DiscountId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DiscountRedemptions_PurchaseId_Purchases_id_fk": {
+          "name": "DiscountRedemptions_PurchaseId_Purchases_id_fk",
+          "tableFrom": "DiscountRedemptions",
+          "tableTo": "Purchases",
+          "columnsFrom": ["PurchaseId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "DiscountRedemptions_id_unique": {
+          "name": "DiscountRedemptions_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"DiscountId\" in (select \"DiscountId\" from \"Discounts\" where \"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\"))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Discounts": {
+      "name": "Discounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amountType": {
+          "name": "amountType",
+          "type": "DiscountAmountType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "duration": {
+          "name": "duration",
+          "type": "DiscountDuration",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numberOfPayments": {
+          "name": "numberOfPayments",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Discounts_OrganizationId_idx": {
+          "name": "Discounts_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Discounts_code_idx": {
+          "name": "Discounts_code_idx",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Discounts_code_OrganizationId_unique_idx": {
+          "name": "Discounts_code_OrganizationId_unique_idx",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Discounts_OrganizationId_Organizations_id_fk": {
+          "name": "Discounts_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Discounts",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Discounts_id_unique": {
+          "name": "Discounts_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable all actions for discounts in own organization": {
+          "name": "Enable all actions for discounts in own organization",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Events": {
+      "name": "Events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "type": {
+          "name": "type",
+          "type": "FlowgladEventType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eventCategory": {
+          "name": "eventCategory",
+          "type": "EventCategory",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eventRetentionPolicy": {
+          "name": "eventRetentionPolicy",
+          "type": "EventRetentionPolicy",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rawPayload": {
+          "name": "rawPayload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurredAt": {
+          "name": "occurredAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "submittedAt": {
+          "name": "submittedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "processedAt": {
+          "name": "processedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subjectEntity": {
+          "name": "subjectEntity",
+          "type": "EventNoun",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subjectId": {
+          "name": "subjectId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "objectEntity": {
+          "name": "objectEntity",
+          "type": "EventNoun",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "objectId": {
+          "name": "objectId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Events_type_idx": {
+          "name": "Events_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Events_eventCategory_idx": {
+          "name": "Events_eventCategory_idx",
+          "columns": [
+            {
+              "expression": "eventCategory",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Events_eventRetentionPolicy_idx": {
+          "name": "Events_eventRetentionPolicy_idx",
+          "columns": [
+            {
+              "expression": "eventRetentionPolicy",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Events_subjectEntity_idx": {
+          "name": "Events_subjectEntity_idx",
+          "columns": [
+            {
+              "expression": "subjectEntity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Events_objectEntity_idx": {
+          "name": "Events_objectEntity_idx",
+          "columns": [
+            {
+              "expression": "objectEntity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Events_subjectEntity_subjectId_idx": {
+          "name": "Events_subjectEntity_subjectId_idx",
+          "columns": [
+            {
+              "expression": "subjectEntity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subjectId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Events_objectEntity_objectId_idx": {
+          "name": "Events_objectEntity_objectId_idx",
+          "columns": [
+            {
+              "expression": "objectEntity",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "objectId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Events_hash_unique_idx": {
+          "name": "Events_hash_unique_idx",
+          "columns": [
+            {
+              "expression": "hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Events_OrganizationId_Organizations_id_fk": {
+          "name": "Events_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Events",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Events_id_unique": {
+          "name": "Events_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Events_hash_unique": {
+          "name": "Events_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": ["hash"]
+        }
+      },
+      "policies": {
+        "Enable all actions for own organization": {
+          "name": "Enable all actions for own organization",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.FeeCalculations": {
+      "name": "FeeCalculations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "PurchaseSessionId": {
+          "name": "PurchaseSessionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "PurchaseId": {
+          "name": "PurchaseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "DiscountId": {
+          "name": "DiscountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "VariantId": {
+          "name": "VariantId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentMethodType": {
+          "name": "paymentMethodType",
+          "type": "PaymentMethodType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "discountAmountFixed": {
+          "name": "discountAmountFixed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentMethodFeeFixed": {
+          "name": "paymentMethodFeeFixed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseAmount": {
+          "name": "baseAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "internationalFeePercentage": {
+          "name": "internationalFeePercentage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flowgladFeePercentage": {
+          "name": "flowgladFeePercentage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "billingAddress": {
+          "name": "billingAddress",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxAmountFixed": {
+          "name": "taxAmountFixed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pretaxTotal": {
+          "name": "pretaxTotal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripeTaxCalculationId": {
+          "name": "stripeTaxCalculationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripeTaxTransactionId": {
+          "name": "stripeTaxTransactionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "FeeCalculations_OrganizationId_idx": {
+          "name": "FeeCalculations_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "FeeCalculations_PurchaseSessionId_idx": {
+          "name": "FeeCalculations_PurchaseSessionId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseSessionId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "FeeCalculations_PurchaseId_idx": {
+          "name": "FeeCalculations_PurchaseId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "FeeCalculations_DiscountId_idx": {
+          "name": "FeeCalculations_DiscountId_idx",
+          "columns": [
+            {
+              "expression": "DiscountId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "FeeCalculations_OrganizationId_Organizations_id_fk": {
+          "name": "FeeCalculations_OrganizationId_Organizations_id_fk",
+          "tableFrom": "FeeCalculations",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FeeCalculations_PurchaseSessionId_PurchaseSessions_id_fk": {
+          "name": "FeeCalculations_PurchaseSessionId_PurchaseSessions_id_fk",
+          "tableFrom": "FeeCalculations",
+          "tableTo": "PurchaseSessions",
+          "columnsFrom": ["PurchaseSessionId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FeeCalculations_PurchaseId_Purchases_id_fk": {
+          "name": "FeeCalculations_PurchaseId_Purchases_id_fk",
+          "tableFrom": "FeeCalculations",
+          "tableTo": "Purchases",
+          "columnsFrom": ["PurchaseId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FeeCalculations_DiscountId_Discounts_id_fk": {
+          "name": "FeeCalculations_DiscountId_Discounts_id_fk",
+          "tableFrom": "FeeCalculations",
+          "tableTo": "Discounts",
+          "columnsFrom": ["DiscountId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FeeCalculations_VariantId_Variants_id_fk": {
+          "name": "FeeCalculations_VariantId_Variants_id_fk",
+          "tableFrom": "FeeCalculations",
+          "tableTo": "Variants",
+          "columnsFrom": ["VariantId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "FeeCalculations_id_unique": {
+          "name": "FeeCalculations_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable select for own organization": {
+          "name": "Enable select for own organization",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Files": {
+      "name": "Files",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ProductId": {
+          "name": "ProductId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sizeKb": {
+          "name": "sizeKb",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contentType": {
+          "name": "contentType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "objectKey": {
+          "name": "objectKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cdnUrl": {
+          "name": "cdnUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "etag": {
+          "name": "etag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contentHash": {
+          "name": "contentHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Files_OrganizationId_idx": {
+          "name": "Files_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Files_objectKey_unique_idx": {
+          "name": "Files_objectKey_unique_idx",
+          "columns": [
+            {
+              "expression": "objectKey",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Files_OrganizationId_Organizations_id_fk": {
+          "name": "Files_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Files",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Files_ProductId_Products_id_fk": {
+          "name": "Files_ProductId_Products_id_fk",
+          "tableFrom": "Files",
+          "tableTo": "Products",
+          "columnsFrom": ["ProductId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Files_id_unique": {
+          "name": "Files_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Files_objectKey_unique": {
+          "name": "Files_objectKey_unique",
+          "nullsNotDistinct": false,
+          "columns": ["objectKey"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")",
+          "withCheck": "\"ProductId\" is null OR \"ProductId\" in (select \"id\" from \"Products\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Flows": {
+      "name": "Flows",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "Flows_OrganizationId_idx": {
+          "name": "Flows_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Flows_active_idx": {
+          "name": "Flows_active_idx",
+          "columns": [
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Flows_OrganizationId_Organizations_id_fk": {
+          "name": "Flows_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Flows",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Flows_id_unique": {
+          "name": "Flows_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable all actions for own organization": {
+          "name": "Enable all actions for own organization",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.FormFields": {
+      "name": "FormFields",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "FormId": {
+          "name": "FormId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "FormFieldType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "question": {
+          "name": "question",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "required": {
+          "name": "required",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "fieldParameters": {
+          "name": "fieldParameters",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "FormFields_FormId_idx": {
+          "name": "FormFields_FormId_idx",
+          "columns": [
+            {
+              "expression": "FormId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "FormFields_type_idx": {
+          "name": "FormFields_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "FormFields_FormId_Forms_id_fk": {
+          "name": "FormFields_FormId_Forms_id_fk",
+          "tableFrom": "FormFields",
+          "tableTo": "Forms",
+          "columnsFrom": ["FormId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "FormFields_id_unique": {
+          "name": "FormFields_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable all for own forms": {
+          "name": "Enable all for own forms",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"FormId\" in (select \"id\" from \"Forms\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Forms": {
+      "name": "Forms",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ProductId": {
+          "name": "ProductId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Forms_OrganizationId_idx": {
+          "name": "Forms_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Forms_ProductId_unique_idx": {
+          "name": "Forms_ProductId_unique_idx",
+          "columns": [
+            {
+              "expression": "ProductId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Forms_OrganizationId_Organizations_id_fk": {
+          "name": "Forms_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Forms",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Forms_ProductId_Products_id_fk": {
+          "name": "Forms_ProductId_Products_id_fk",
+          "tableFrom": "Forms",
+          "tableTo": "Products",
+          "columnsFrom": ["ProductId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Forms_id_unique": {
+          "name": "Forms_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable all for own organizations": {
+          "name": "Enable all for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")",
+          "withCheck": "\"ProductId\" is null OR \"ProductId\" in (select \"id\" from \"Products\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.FormSubmissions": {
+      "name": "FormSubmissions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "FormId": {
+          "name": "FormId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "UserId": {
+          "name": "UserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "response": {
+          "name": "response",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "FormSubmissions_FormId_idx": {
+          "name": "FormSubmissions_FormId_idx",
+          "columns": [
+            {
+              "expression": "FormId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "FormSubmissions_UserId_idx": {
+          "name": "FormSubmissions_UserId_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "FormSubmissions_FormId_Forms_id_fk": {
+          "name": "FormSubmissions_FormId_Forms_id_fk",
+          "tableFrom": "FormSubmissions",
+          "tableTo": "Forms",
+          "columnsFrom": ["FormId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FormSubmissions_UserId_Users_id_fk": {
+          "name": "FormSubmissions_UserId_Users_id_fk",
+          "tableFrom": "FormSubmissions",
+          "tableTo": "Users",
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "FormSubmissions_id_unique": {
+          "name": "FormSubmissions_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Integrations": {
+      "name": "Integrations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "UserId": {
+          "name": "UserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "IntegrationMethod",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "encryptedAccessToken": {
+          "name": "encryptedAccessToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "encryptedRefreshToken": {
+          "name": "encryptedRefreshToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "encryptedApiKey": {
+          "name": "encryptedApiKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "IntegrationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tokenExpiresAt": {
+          "name": "tokenExpiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastTokenRefresh": {
+          "name": "lastTokenRefresh",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "providerConfig": {
+          "name": "providerConfig",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Integrations_UserId_idx": {
+          "name": "Integrations_UserId_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Integrations_OrganizationId_idx": {
+          "name": "Integrations_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Integrations_provider_idx": {
+          "name": "Integrations_provider_idx",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Integrations_status_idx": {
+          "name": "Integrations_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Integrations_UserId_Users_id_fk": {
+          "name": "Integrations_UserId_Users_id_fk",
+          "tableFrom": "Integrations",
+          "tableTo": "Users",
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Integrations_OrganizationId_Organizations_id_fk": {
+          "name": "Integrations_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Integrations",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Integrations_id_unique": {
+          "name": "Integrations_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\") OR \"UserId\" = requesting_user_id()"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.IntegrationSessions": {
+      "name": "IntegrationSessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "IntegrationId": {
+          "name": "IntegrationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "codeVerifier": {
+          "name": "codeVerifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "redirectUrl": {
+          "name": "redirectUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "IntegrationSessions_IntegrationId_idx": {
+          "name": "IntegrationSessions_IntegrationId_idx",
+          "columns": [
+            {
+              "expression": "IntegrationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "IntegrationSessions_state_idx": {
+          "name": "IntegrationSessions_state_idx",
+          "columns": [
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "IntegrationSessions_IntegrationId_Integrations_id_fk": {
+          "name": "IntegrationSessions_IntegrationId_Integrations_id_fk",
+          "tableFrom": "IntegrationSessions",
+          "tableTo": "Integrations",
+          "columnsFrom": ["IntegrationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "IntegrationSessions_id_unique": {
+          "name": "IntegrationSessions_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.InvoiceLineItems": {
+      "name": "InvoiceLineItems",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "InvoiceId": {
+          "name": "InvoiceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "VariantId": {
+          "name": "VariantId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price": {
+          "name": "price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "InvoiceLineItems_InvoiceId_idx": {
+          "name": "InvoiceLineItems_InvoiceId_idx",
+          "columns": [
+            {
+              "expression": "InvoiceId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "InvoiceLineItems_VariantId_idx": {
+          "name": "InvoiceLineItems_VariantId_idx",
+          "columns": [
+            {
+              "expression": "VariantId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "InvoiceLineItems_InvoiceId_Invoices_id_fk": {
+          "name": "InvoiceLineItems_InvoiceId_Invoices_id_fk",
+          "tableFrom": "InvoiceLineItems",
+          "tableTo": "Invoices",
+          "columnsFrom": ["InvoiceId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "InvoiceLineItems_VariantId_Variants_id_fk": {
+          "name": "InvoiceLineItems_VariantId_Variants_id_fk",
+          "tableFrom": "InvoiceLineItems",
+          "tableTo": "Variants",
+          "columnsFrom": ["VariantId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "InvoiceLineItems_id_unique": {
+          "name": "InvoiceLineItems_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Invoices": {
+      "name": "Invoices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "PurchaseId": {
+          "name": "PurchaseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invoiceNumber": {
+          "name": "invoiceNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invoiceDate": {
+          "name": "invoiceDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "dueDate": {
+          "name": "dueDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripePaymentIntentId": {
+          "name": "stripePaymentIntentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "CustomerProfileId": {
+          "name": "CustomerProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "InvoiceStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "billingInterval": {
+          "name": "billingInterval",
+          "type": "interval",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "billingIntervalCount": {
+          "name": "billingIntervalCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "billingAnchorDate": {
+          "name": "billingAnchorDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdfURL": {
+          "name": "pdfURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memo": {
+          "name": "memo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bankPaymentOnly": {
+          "name": "bankPaymentOnly",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "taxAmount": {
+          "name": "taxAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subtotal": {
+          "name": "subtotal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeTaxCalculationId": {
+          "name": "stripeTaxCalculationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeTaxTransactionId": {
+          "name": "stripeTaxTransactionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxType": {
+          "name": "taxType",
+          "type": "TaxType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxCountry": {
+          "name": "taxCountry",
+          "type": "CountryCode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxState": {
+          "name": "taxState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxRatePercentage": {
+          "name": "taxRatePercentage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationFee": {
+          "name": "applicationFee",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Invoices_invoiceNumber_unique_idx": {
+          "name": "Invoices_invoiceNumber_unique_idx",
+          "columns": [
+            {
+              "expression": "invoiceNumber",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Invoices_PurchaseId_idx": {
+          "name": "Invoices_PurchaseId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Invoices_status_idx": {
+          "name": "Invoices_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Invoices_CustomerProfileId_idx": {
+          "name": "Invoices_CustomerProfileId_idx",
+          "columns": [
+            {
+              "expression": "CustomerProfileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Invoices_stripePaymentIntentId_idx": {
+          "name": "Invoices_stripePaymentIntentId_idx",
+          "columns": [
+            {
+              "expression": "stripePaymentIntentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Invoices_OrganizationId_idx": {
+          "name": "Invoices_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Invoices_PurchaseId_Purchases_id_fk": {
+          "name": "Invoices_PurchaseId_Purchases_id_fk",
+          "tableFrom": "Invoices",
+          "tableTo": "Purchases",
+          "columnsFrom": ["PurchaseId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Invoices_CustomerProfileId_CustomerProfiles_id_fk": {
+          "name": "Invoices_CustomerProfileId_CustomerProfiles_id_fk",
+          "tableFrom": "Invoices",
+          "tableTo": "CustomerProfiles",
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Invoices_OrganizationId_Organizations_id_fk": {
+          "name": "Invoices_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Invoices",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Invoices_id_unique": {
+          "name": "Invoices_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Invoices_invoiceNumber_unique": {
+          "name": "Invoices_invoiceNumber_unique",
+          "nullsNotDistinct": false,
+          "columns": ["invoiceNumber"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Links": {
+      "name": "Links",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ProductId": {
+          "name": "ProductId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Links_OrganizationId_idx": {
+          "name": "Links_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Links_ProductId_idx": {
+          "name": "Links_ProductId_idx",
+          "columns": [
+            {
+              "expression": "ProductId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Links_OrganizationId_Organizations_id_fk": {
+          "name": "Links_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Links",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Links_ProductId_Products_id_fk": {
+          "name": "Links_ProductId_Products_id_fk",
+          "tableFrom": "Links",
+          "tableTo": "Products",
+          "columnsFrom": ["ProductId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Links_id_unique": {
+          "name": "Links_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")",
+          "withCheck": "\"ProductId\" is null OR \"ProductId\" in (select \"id\" from \"Products\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Memberships": {
+      "name": "Memberships",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "UserId": {
+          "name": "UserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "Memberships_UserId_idx": {
+          "name": "Memberships_UserId_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Memberships_OrganizationId_idx": {
+          "name": "Memberships_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Memberships_UserId_OrganizationId_unique_idx": {
+          "name": "Memberships_UserId_OrganizationId_unique_idx",
+          "columns": [
+            {
+              "expression": "UserId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Memberships_UserId_Users_id_fk": {
+          "name": "Memberships_UserId_Users_id_fk",
+          "tableFrom": "Memberships",
+          "tableTo": "Users",
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Memberships_OrganizationId_Organizations_id_fk": {
+          "name": "Memberships_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Memberships",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Memberships_id_unique": {
+          "name": "Memberships_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": ["authenticated"],
+          "using": "\"UserId\" = requesting_user_id()"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Messages": {
+      "name": "Messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "CustomerProfileId": {
+          "name": "CustomerProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "messageSentAt": {
+          "name": "messageSentAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationMemberId": {
+          "name": "OrganizationMemberId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rawText": {
+          "name": "rawText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platformThreadId": {
+          "name": "platformThreadId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platformChannelId": {
+          "name": "platformChannelId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platformId": {
+          "name": "platformId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platformUserId": {
+          "name": "platformUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Messages_platformId_idx": {
+          "name": "Messages_platformId_idx",
+          "columns": [
+            {
+              "expression": "platformId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Messages_platformThreadId_idx": {
+          "name": "Messages_platformThreadId_idx",
+          "columns": [
+            {
+              "expression": "platformThreadId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Messages_platformId_platform_unique_idx": {
+          "name": "Messages_platformId_platform_unique_idx",
+          "columns": [
+            {
+              "expression": "platformId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "platform",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Messages_CustomerProfileId_CustomerProfiles_id_fk": {
+          "name": "Messages_CustomerProfileId_CustomerProfiles_id_fk",
+          "tableFrom": "Messages",
+          "tableTo": "CustomerProfiles",
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Messages_OrganizationMemberId_Memberships_id_fk": {
+          "name": "Messages_OrganizationMemberId_Memberships_id_fk",
+          "tableFrom": "Messages",
+          "tableTo": "Memberships",
+          "columnsFrom": ["OrganizationMemberId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Messages_id_unique": {
+          "name": "Messages_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Organizations": {
+      "name": "Organizations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripeAccountId": {
+          "name": "stripeAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "CountryId": {
+          "name": "CountryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logoURL": {
+          "name": "logoURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tagline": {
+          "name": "tagline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subdomainSlug": {
+          "name": "subdomainSlug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payoutsEnabled": {
+          "name": "payoutsEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "onboardingStatus": {
+          "name": "onboardingStatus",
+          "type": "BusinessOnboardingStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serviceFeePercentage": {
+          "name": "serviceFeePercentage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1.00'"
+        },
+        "digitalFeePercentage": {
+          "name": "digitalFeePercentage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'3.00'"
+        }
+      },
+      "indexes": {
+        "Organizations_name_idx": {
+          "name": "Organizations_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Organizations_stripeAccountId_unique_idx": {
+          "name": "Organizations_stripeAccountId_unique_idx",
+          "columns": [
+            {
+              "expression": "stripeAccountId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Organizations_domain_unique_idx": {
+          "name": "Organizations_domain_unique_idx",
+          "columns": [
+            {
+              "expression": "domain",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Organizations_CountryId_idx": {
+          "name": "Organizations_CountryId_idx",
+          "columns": [
+            {
+              "expression": "CountryId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Organizations_CountryId_Countries_id_fk": {
+          "name": "Organizations_CountryId_Countries_id_fk",
+          "tableFrom": "Organizations",
+          "tableTo": "Countries",
+          "columnsFrom": ["CountryId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Organizations_id_unique": {
+          "name": "Organizations_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Organizations_stripeAccountId_unique": {
+          "name": "Organizations_stripeAccountId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripeAccountId"]
+        },
+        "Organizations_domain_unique": {
+          "name": "Organizations_domain_unique",
+          "nullsNotDistinct": false,
+          "columns": ["domain"]
+        },
+        "Organizations_subdomainSlug_unique": {
+          "name": "Organizations_subdomainSlug_unique",
+          "nullsNotDistinct": false,
+          "columns": ["subdomainSlug"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Payments": {
+      "name": "Payments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "InvoiceId": {
+          "name": "InvoiceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentMethod": {
+          "name": "paymentMethod",
+          "type": "PaymentMethod",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "Currency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "PaymentStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chargeDate": {
+          "name": "chargeDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settlementDate": {
+          "name": "settlementDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "PurchaseId": {
+          "name": "PurchaseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripePaymentIntentId": {
+          "name": "stripePaymentIntentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxAmount": {
+          "name": "taxAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subtotal": {
+          "name": "subtotal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeTaxCalculationId": {
+          "name": "stripeTaxCalculationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeTaxTransactionId": {
+          "name": "stripeTaxTransactionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxType": {
+          "name": "taxType",
+          "type": "TaxType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxCountry": {
+          "name": "taxCountry",
+          "type": "CountryCode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxState": {
+          "name": "taxState",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxRatePercentage": {
+          "name": "taxRatePercentage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationFee": {
+          "name": "applicationFee",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refunded": {
+          "name": "refunded",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refundedAmount": {
+          "name": "refundedAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refundedAt": {
+          "name": "refundedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Payments_InvoiceId_idx": {
+          "name": "Payments_InvoiceId_idx",
+          "columns": [
+            {
+              "expression": "InvoiceId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Payments_OrganizationId_idx": {
+          "name": "Payments_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Payments_paymentMethod_idx": {
+          "name": "Payments_paymentMethod_idx",
+          "columns": [
+            {
+              "expression": "paymentMethod",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Payments_status_idx": {
+          "name": "Payments_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Payments_currency_idx": {
+          "name": "Payments_currency_idx",
+          "columns": [
+            {
+              "expression": "currency",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Payments_PurchaseId_idx": {
+          "name": "Payments_PurchaseId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Payments_stripePaymentIntentId_unique_idx": {
+          "name": "Payments_stripePaymentIntentId_unique_idx",
+          "columns": [
+            {
+              "expression": "stripePaymentIntentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Payments_InvoiceId_Invoices_id_fk": {
+          "name": "Payments_InvoiceId_Invoices_id_fk",
+          "tableFrom": "Payments",
+          "tableTo": "Invoices",
+          "columnsFrom": ["InvoiceId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Payments_OrganizationId_Organizations_id_fk": {
+          "name": "Payments_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Payments",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Payments_PurchaseId_Purchases_id_fk": {
+          "name": "Payments_PurchaseId_Purchases_id_fk",
+          "tableFrom": "Payments",
+          "tableTo": "Purchases",
+          "columnsFrom": ["PurchaseId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Payments_id_unique": {
+          "name": "Payments_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Products": {
+      "name": "Products",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "productType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "imageURL": {
+          "name": "imageURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeProductId": {
+          "name": "stripeProductId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "defaultStripePriceId": {
+          "name": "defaultStripePriceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "Products_OrganizationId_idx": {
+          "name": "Products_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Products_active_idx": {
+          "name": "Products_active_idx",
+          "columns": [
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Products_stripeProductId_idx": {
+          "name": "Products_stripeProductId_idx",
+          "columns": [
+            {
+              "expression": "stripeProductId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Products_type_idx": {
+          "name": "Products_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Products_OrganizationId_Organizations_id_fk": {
+          "name": "Products_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Products",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Products_id_unique": {
+          "name": "Products_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Products_stripeProductId_unique": {
+          "name": "Products_stripeProductId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripeProductId"]
+        },
+        "Products_defaultStripePriceId_unique": {
+          "name": "Products_defaultStripePriceId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["defaultStripePriceId"]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"OrganizationId\" in (select \"OrganizationId\" from \"Memberships\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.PurchaseAccessSessions": {
+      "name": "PurchaseAccessSessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "PurchaseId": {
+          "name": "PurchaseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "PurchaseAccessSessionSource",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires": {
+          "name": "expires",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "granted": {
+          "name": "granted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "PurchaseAccessSessions_PurchaseId_idx": {
+          "name": "PurchaseAccessSessions_PurchaseId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "PurchaseAccessSessions_token_unique_idx": {
+          "name": "PurchaseAccessSessions_token_unique_idx",
+          "columns": [
+            {
+              "expression": "token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "PurchaseAccessSessions_PurchaseId_Purchases_id_fk": {
+          "name": "PurchaseAccessSessions_PurchaseId_Purchases_id_fk",
+          "tableFrom": "PurchaseAccessSessions",
+          "tableTo": "Purchases",
+          "columnsFrom": ["PurchaseId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "PurchaseAccessSessions_id_unique": {
+          "name": "PurchaseAccessSessions_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Purchases": {
+      "name": "Purchases",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "PurchaseStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'open'"
+        },
+        "CustomerProfileId": {
+          "name": "CustomerProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "billingCycleAnchor": {
+          "name": "billingCycleAnchor",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeSetupIntentId": {
+          "name": "stripeSetupIntentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeSubscriptionId": {
+          "name": "stripeSubscriptionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "VariantId": {
+          "name": "VariantId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priceType": {
+          "name": "priceType",
+          "type": "PriceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'single_payment'"
+        },
+        "trialPeriodDays": {
+          "name": "trialPeriodDays",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "pricePerBillingCycle": {
+          "name": "pricePerBillingCycle",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "intervalUnit": {
+          "name": "intervalUnit",
+          "type": "IntervalUnit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "intervalCount": {
+          "name": "intervalCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "firstInvoiceValue": {
+          "name": "firstInvoiceValue",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "totalPurchaseValue": {
+          "name": "totalPurchaseValue",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bankPaymentOnly": {
+          "name": "bankPaymentOnly",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "purchaseDate": {
+          "name": "purchaseDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endDate": {
+          "name": "endDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proposal": {
+          "name": "proposal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived": {
+          "name": "archived",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "billingAddress": {
+          "name": "billingAddress",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripePaymentIntentId": {
+          "name": "stripePaymentIntentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Purchases_CustomerProfileId_idx": {
+          "name": "Purchases_CustomerProfileId_idx",
+          "columns": [
+            {
+              "expression": "CustomerProfileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Purchases_OrganizationId_idx": {
+          "name": "Purchases_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Purchases_VariantId_idx": {
+          "name": "Purchases_VariantId_idx",
+          "columns": [
+            {
+              "expression": "VariantId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Purchases_stripeSetupIntentId_idx": {
+          "name": "Purchases_stripeSetupIntentId_idx",
+          "columns": [
+            {
+              "expression": "stripeSetupIntentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Purchases_stripePaymentIntentId_unique_idx": {
+          "name": "Purchases_stripePaymentIntentId_unique_idx",
+          "columns": [
+            {
+              "expression": "stripePaymentIntentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Purchases_CustomerProfileId_CustomerProfiles_id_fk": {
+          "name": "Purchases_CustomerProfileId_CustomerProfiles_id_fk",
+          "tableFrom": "Purchases",
+          "tableTo": "CustomerProfiles",
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Purchases_OrganizationId_Organizations_id_fk": {
+          "name": "Purchases_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Purchases",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Purchases_VariantId_Variants_id_fk": {
+          "name": "Purchases_VariantId_Variants_id_fk",
+          "tableFrom": "Purchases",
+          "tableTo": "Variants",
+          "columnsFrom": ["VariantId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Purchases_id_unique": {
+          "name": "Purchases_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Purchases_stripeSetupIntentId_unique": {
+          "name": "Purchases_stripeSetupIntentId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripeSetupIntentId"]
+        },
+        "Purchases_stripeSubscriptionId_unique": {
+          "name": "Purchases_stripeSubscriptionId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripeSubscriptionId"]
+        },
+        "Purchases_stripePaymentIntentId_unique": {
+          "name": "Purchases_stripePaymentIntentId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripePaymentIntentId"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.PurchaseSessions": {
+      "name": "PurchaseSessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "PurchaseSessionStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "billingAddress": {
+          "name": "billingAddress",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "VariantId": {
+          "name": "VariantId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customerName": {
+          "name": "customerName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerEmail": {
+          "name": "customerEmail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripeSetupIntentId": {
+          "name": "stripeSetupIntentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripePaymentIntentId": {
+          "name": "stripePaymentIntentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "PurchaseId": {
+          "name": "PurchaseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires": {
+          "name": "expires",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paymentMethodType": {
+          "name": "paymentMethodType",
+          "type": "PaymentMethodType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "DiscountId": {
+          "name": "DiscountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "PurchaseSessions_VariantId_idx": {
+          "name": "PurchaseSessions_VariantId_idx",
+          "columns": [
+            {
+              "expression": "VariantId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "PurchaseSessions_stripePaymentIntentId_idx": {
+          "name": "PurchaseSessions_stripePaymentIntentId_idx",
+          "columns": [
+            {
+              "expression": "stripePaymentIntentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "PurchaseSessions_OrganizationId_idx": {
+          "name": "PurchaseSessions_OrganizationId_idx",
+          "columns": [
+            {
+              "expression": "OrganizationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "PurchaseSessions_status_idx": {
+          "name": "PurchaseSessions_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "PurchaseSessions_stripeSetupIntentId_idx": {
+          "name": "PurchaseSessions_stripeSetupIntentId_idx",
+          "columns": [
+            {
+              "expression": "stripeSetupIntentId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "PurchaseSessions_PurchaseId_idx": {
+          "name": "PurchaseSessions_PurchaseId_idx",
+          "columns": [
+            {
+              "expression": "PurchaseId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "PurchaseSessions_DiscountId_idx": {
+          "name": "PurchaseSessions_DiscountId_idx",
+          "columns": [
+            {
+              "expression": "DiscountId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "PurchaseSessions_VariantId_Variants_id_fk": {
+          "name": "PurchaseSessions_VariantId_Variants_id_fk",
+          "tableFrom": "PurchaseSessions",
+          "tableTo": "Variants",
+          "columnsFrom": ["VariantId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseSessions_OrganizationId_Organizations_id_fk": {
+          "name": "PurchaseSessions_OrganizationId_Organizations_id_fk",
+          "tableFrom": "PurchaseSessions",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseSessions_PurchaseId_Purchases_id_fk": {
+          "name": "PurchaseSessions_PurchaseId_Purchases_id_fk",
+          "tableFrom": "PurchaseSessions",
+          "tableTo": "Purchases",
+          "columnsFrom": ["PurchaseId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseSessions_DiscountId_Discounts_id_fk": {
+          "name": "PurchaseSessions_DiscountId_Discounts_id_fk",
+          "tableFrom": "PurchaseSessions",
+          "tableTo": "Discounts",
+          "columnsFrom": ["DiscountId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "PurchaseSessions_id_unique": {
+          "name": "PurchaseSessions_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Testimonials": {
+      "name": "Testimonials",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "public": {
+          "name": "public",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "TestimonialStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thumbnailURL": {
+          "name": "thumbnailURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "OrganizationId": {
+          "name": "OrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "CustomerProfileId": {
+          "name": "CustomerProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customerName": {
+          "name": "customerName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerProfilePicURL": {
+          "name": "customerProfilePicURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerEmail": {
+          "name": "customerEmail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerTagline": {
+          "name": "customerTagline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerCompany": {
+          "name": "customerCompany",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerCompanyLogo": {
+          "name": "customerCompanyLogo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerPosition": {
+          "name": "customerPosition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerTeam": {
+          "name": "customerTeam",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customerURL": {
+          "name": "customerURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "starRating": {
+          "name": "starRating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "viewWorkURL": {
+          "name": "viewWorkURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "videoURL": {
+          "name": "videoURL",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Testimonials_CustomerProfileId_idx": {
+          "name": "Testimonials_CustomerProfileId_idx",
+          "columns": [
+            {
+              "expression": "CustomerProfileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Testimonials_status_idx": {
+          "name": "Testimonials_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Testimonials_OrganizationId_Organizations_id_fk": {
+          "name": "Testimonials_OrganizationId_Organizations_id_fk",
+          "tableFrom": "Testimonials",
+          "tableTo": "Organizations",
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Testimonials_CustomerProfileId_CustomerProfiles_id_fk": {
+          "name": "Testimonials_CustomerProfileId_CustomerProfiles_id_fk",
+          "tableFrom": "Testimonials",
+          "tableTo": "CustomerProfiles",
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Testimonials_id_unique": {
+          "name": "Testimonials_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Users": {
+      "name": "Users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "Users_name_idx": {
+          "name": "Users_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Users_email_idx": {
+          "name": "Users_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Users_id_unique": {
+          "name": "Users_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.Variants": {
+      "name": "Variants",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "intervalUnit": {
+          "name": "intervalUnit",
+          "type": "IntervalUnit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "intervalCount": {
+          "name": "intervalCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "priceType": {
+          "name": "priceType",
+          "type": "PriceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trialPeriodDays": {
+          "name": "trialPeriodDays",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "setupFeeAmount": {
+          "name": "setupFeeAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "firstInstallmentAmount": {
+          "name": "firstInstallmentAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "totalInstallmentsAmount": {
+          "name": "totalInstallmentsAmount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isDefault": {
+          "name": "isDefault",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unitPrice": {
+          "name": "unitPrice",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ProductId": {
+          "name": "ProductId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripePriceId": {
+          "name": "stripePriceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "Variants_priceType_idx": {
+          "name": "Variants_priceType_idx",
+          "columns": [
+            {
+              "expression": "priceType",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Variants_ProductId_idx": {
+          "name": "Variants_ProductId_idx",
+          "columns": [
+            {
+              "expression": "ProductId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "Variants_stripePriceId_unique_idx": {
+          "name": "Variants_stripePriceId_unique_idx",
+          "columns": [
+            {
+              "expression": "stripePriceId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "Variants_ProductId_Products_id_fk": {
+          "name": "Variants_ProductId_Products_id_fk",
+          "tableFrom": "Variants",
+          "tableTo": "Products",
+          "columnsFrom": ["ProductId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Variants_id_unique": {
+          "name": "Variants_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        },
+        "Variants_stripePriceId_unique": {
+          "name": "Variants_stripePriceId_unique",
+          "nullsNotDistinct": false,
+          "columns": ["stripePriceId"]
+        }
+      },
+      "policies": {
+        "Enable all for self organizations via products": {
+          "name": "Enable all for self organizations via products",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["authenticated"],
+          "using": "\"ProductId\" in (select \"id\" from \"Products\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

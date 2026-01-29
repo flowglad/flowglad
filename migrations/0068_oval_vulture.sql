@@ -1,0 +1,1 @@
+ALTER TABLE "Purchases" ADD COLUMN "priceType" "PriceType" DEFAULT 'single_payment' NOT NULL;

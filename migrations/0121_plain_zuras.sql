@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "CustomerProfiles_OrganizationId_externalId_unique_idx" ON "CustomerProfiles" USING btree ("OrganizationId","externalId");

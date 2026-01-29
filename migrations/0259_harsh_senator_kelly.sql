@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "usage_credits_source_reference_id_idx" ON "usage_credits" USING btree ("source_reference_id");

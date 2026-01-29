@@ -1,0 +1,1 @@
+CREATE POLICY "Enable insert for own organizations" ON "events" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ("organization_id" in (select "organization_id" from "memberships"));

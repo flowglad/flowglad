@@ -1,0 +1,1 @@
+ALTER TABLE "CustomerProfiles" ADD COLUMN "email" text;

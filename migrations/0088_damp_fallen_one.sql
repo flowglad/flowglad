@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "Discounts_code_OrganizationId_unique_idx" ON "Discounts" USING btree ("code","OrganizationId");

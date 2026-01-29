@@ -1,0 +1,2 @@
+ALTER TABLE "FeeCalculations" ALTER COLUMN "type" SET NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "Payments_stripeChargeId_unique_idx" ON "Payments" USING btree ("stripeChargeId");

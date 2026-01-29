@@ -1,0 +1,1 @@
+ALTER TABLE "Variants" ADD COLUMN "includeTaxInPrice" boolean DEFAULT false NOT NULL;

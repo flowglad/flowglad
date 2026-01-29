@@ -1,0 +1,3 @@
+ALTER TABLE "billing_runs" ADD COLUMN "is_adjustment" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "subscription_item_features" ADD COLUMN "manually_created" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER POLICY "Enable read for own organizations (billing_periods)" ON "billing_periods" TO merchant USING ("subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships")));

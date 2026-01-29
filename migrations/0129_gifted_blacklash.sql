@@ -1,0 +1,1 @@
+ALTER POLICY "Enable update for own organization" ON "Payments" TO authenticated USING ("OrganizationId" in (select "OrganizationId" from "Memberships"));

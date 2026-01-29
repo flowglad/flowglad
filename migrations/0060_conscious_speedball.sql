@@ -1,0 +1,1 @@
+ALTER TABLE "PurchaseSessions" ADD COLUMN IF NOT EXISTS "expires" timestamp;

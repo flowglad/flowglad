@@ -1,0 +1,1 @@
+ALTER TABLE "CustomerProfiles" ADD COLUMN "archived" boolean DEFAULT false;

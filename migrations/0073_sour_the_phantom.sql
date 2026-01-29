@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS "Flows_active_idx" ON "Flows" USING btree ("active");--> statement-breakpoint
+CREATE POLICY "Enable all actions for own organization" ON "Flows" AS PERMISSIVE FOR ALL TO "authenticated" USING ("OrganizationId" in (select "OrganizationId" from "Memberships"));

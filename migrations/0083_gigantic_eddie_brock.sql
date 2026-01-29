@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "CommunityMemberships_UserId_CommunityId_unique_idx" ON "CommunityMemberships" USING btree ("UserId","CommunityId");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "CommunityMemberships_CustomerProfileId_CommunityId_unique_idx" ON "CommunityMemberships" USING btree ("CustomerProfileId","CommunityId");

@@ -1,0 +1,2 @@
+ALTER POLICY "Enable read for own organizations" ON "Forms" RENAME TO "Enable all for own organizations";--> statement-breakpoint
+CREATE POLICY "Enable all for own forms" ON "FormFields" AS PERMISSIVE FOR ALL TO "authenticated" USING ("FormId" in (select "id" from "Forms"));
