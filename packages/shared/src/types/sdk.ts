@@ -11,6 +11,7 @@ export enum FlowgladActionKey {
   UncancelSubscription = 'subscriptions/uncancel',
   AdjustSubscription = 'subscriptions/adjust',
   CreateSubscription = 'subscriptions/create',
+  GetSubscriptions = 'subscriptions/list',
   UpdateCustomer = 'customers/update',
   CreateUsageEvent = 'usage-events/create',
   GetResourceUsages = 'resources/usages',

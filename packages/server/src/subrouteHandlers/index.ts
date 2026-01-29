@@ -24,6 +24,7 @@ import {
 import {
   adjustSubscription,
   cancelSubscription,
+  getSubscriptions,
   uncancelSubscription,
 } from './subscriptionHandlers'
 import type { HybridSubRouteHandler, SubRouteHandler } from './types'
@@ -54,6 +55,7 @@ export const routeToHandlerMap: {
       },
     }
   },
+  [FlowgladActionKey.GetSubscriptions]: getSubscriptions,
   [FlowgladActionKey.CreateUsageEvent]: createUsageEvent,
   [FlowgladActionKey.GetResourceUsages]: getResources,
   [FlowgladActionKey.GetResourceUsage]: getResourceUsage,

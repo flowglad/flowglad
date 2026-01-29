@@ -1,5 +1,6 @@
 import { handleHealth } from './routes/health'
 import { handleSvixRoute } from './routes/svix'
+import { handleTriggerRoute } from './routes/trigger'
 import { handleUnkeyRoute } from './routes/unkey'
 
 const SVIX_PORT = 9001
@@ -66,7 +67,11 @@ createServer({
   serviceName: 'unkey',
   routeHandler: handleUnkeyRoute,
 })
-createServer({ port: TRIGGER_PORT, serviceName: 'trigger' })
+createServer({
+  port: TRIGGER_PORT,
+  serviceName: 'trigger',
+  routeHandler: handleTriggerRoute,
+})
 
 console.log('\nMock servers started:')
 console.log(`  Svix:    http://localhost:${SVIX_PORT}/health`)
