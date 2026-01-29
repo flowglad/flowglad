@@ -98,9 +98,9 @@ describe('fetchCustomerBilling', () => {
   it('includes Content-Type application/json header by default', async () => {
     let capturedHeaders: HeadersInit | undefined
 
-    const mockFetch: typeof fetch = async (
-      _url,
-      init
+    const mockFetch = async (
+      _url: RequestInfo | URL,
+      init?: RequestInit
     ): Promise<Response> => {
       capturedHeaders = init?.headers
       return new Response(JSON.stringify({ data: null }), {
@@ -112,7 +112,7 @@ describe('fetchCustomerBilling', () => {
     await fetchCustomerBilling({
       baseURL: 'https://example.com',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as typeof fetch,
       },
     })
 
@@ -124,9 +124,9 @@ describe('fetchCustomerBilling', () => {
   it('merges custom headers from requestConfig while preserving Content-Type', async () => {
     let capturedHeaders: HeadersInit | undefined
 
-    const mockFetch: typeof fetch = async (
-      _url,
-      init
+    const mockFetch = async (
+      _url: RequestInfo | URL,
+      init?: RequestInit
     ): Promise<Response> => {
       capturedHeaders = init?.headers
       return new Response(JSON.stringify({ data: null }), {
@@ -138,7 +138,7 @@ describe('fetchCustomerBilling', () => {
     await fetchCustomerBilling({
       baseURL: 'https://example.com',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as typeof fetch,
         headers: {
           Authorization: 'Bearer token123',
           'X-Custom-Header': 'custom-value',
@@ -156,9 +156,9 @@ describe('fetchCustomerBilling', () => {
   it('allows requestConfig headers to override Content-Type if explicitly provided', async () => {
     let capturedHeaders: HeadersInit | undefined
 
-    const mockFetch: typeof fetch = async (
-      _url,
-      init
+    const mockFetch = async (
+      _url: RequestInfo | URL,
+      init?: RequestInit
     ): Promise<Response> => {
       capturedHeaders = init?.headers
       return new Response(JSON.stringify({ data: null }), {
@@ -170,7 +170,7 @@ describe('fetchCustomerBilling', () => {
     await fetchCustomerBilling({
       baseURL: 'https://example.com',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as typeof fetch,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
         },
@@ -185,9 +185,9 @@ describe('fetchCustomerBilling', () => {
   it('constructs correct URL using betterAuthBasePath when provided', async () => {
     let capturedUrl: string = ''
 
-    const mockFetch: typeof fetch = async (
-      url,
-      _init
+    const mockFetch = async (
+      url: RequestInfo | URL,
+      _init?: RequestInit
     ): Promise<Response> => {
       capturedUrl = String(url)
       return new Response(JSON.stringify({ data: null }), {
@@ -199,7 +199,7 @@ describe('fetchCustomerBilling', () => {
     await fetchCustomerBilling({
       betterAuthBasePath: '/api/auth',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as typeof fetch,
       },
     })
 
@@ -214,7 +214,7 @@ describe('fetchCustomerBilling', () => {
       },
     }
 
-    const mockFetch: typeof fetch = async (): Promise<Response> => {
+    const mockFetch = async (): Promise<Response> => {
       return new Response(JSON.stringify(mockBillingData), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -224,7 +224,7 @@ describe('fetchCustomerBilling', () => {
     const result = await fetchCustomerBilling({
       baseURL: 'https://example.com',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as unknown as typeof fetch,
       },
     })
 
@@ -236,7 +236,7 @@ describe('fetchCustomerBilling', () => {
       error: { message: 'Customer not found' },
     }
 
-    const mockFetch: typeof fetch = async (): Promise<Response> => {
+    const mockFetch = async (): Promise<Response> => {
       return new Response(JSON.stringify(mockErrorResponse), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
@@ -246,7 +246,7 @@ describe('fetchCustomerBilling', () => {
     const result = await fetchCustomerBilling({
       baseURL: 'https://example.com',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as unknown as typeof fetch,
       },
     })
 
@@ -254,7 +254,7 @@ describe('fetchCustomerBilling', () => {
   })
 
   it('returns unexpected shape error when response lacks data or error fields', async () => {
-    const mockFetch: typeof fetch = async (): Promise<Response> => {
+    const mockFetch = async (): Promise<Response> => {
       return new Response(JSON.stringify({ unexpected: 'shape' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -264,7 +264,7 @@ describe('fetchCustomerBilling', () => {
     const result = await fetchCustomerBilling({
       baseURL: 'https://example.com',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as unknown as typeof fetch,
       },
     })
 
@@ -275,7 +275,7 @@ describe('fetchCustomerBilling', () => {
   })
 
   it('returns JSON parse error when response is not valid JSON', async () => {
-    const mockFetch: typeof fetch = async (): Promise<Response> => {
+    const mockFetch = async (): Promise<Response> => {
       return new Response('not valid json', {
         status: 200,
         headers: { 'Content-Type': 'text/plain' },
@@ -285,7 +285,7 @@ describe('fetchCustomerBilling', () => {
     const result = await fetchCustomerBilling({
       baseURL: 'https://example.com',
       requestConfig: {
-        fetch: mockFetch,
+        fetch: mockFetch as unknown as typeof fetch,
       },
     })
 

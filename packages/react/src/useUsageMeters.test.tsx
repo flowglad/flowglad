@@ -216,7 +216,7 @@ describe('useUsageMeters', () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch
     mockFetch = vi.fn()
-    globalThis.fetch = mockFetch
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
@@ -369,7 +369,7 @@ describe('useUsageMeter', () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch
     mockFetch = vi.fn()
-    globalThis.fetch = mockFetch
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
@@ -440,7 +440,7 @@ describe('createUsageEvent invalidation', () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch
     mockFetch = vi.fn()
-    globalThis.fetch = mockFetch
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {

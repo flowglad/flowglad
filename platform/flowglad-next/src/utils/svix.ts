@@ -25,13 +25,20 @@ import core from './core'
 /**
  * Create a Svix client configured from the `SVIX_API_KEY` environment variable.
  *
+ * When `SVIX_MOCK_HOST` is set, the client uses that URL as the server endpoint.
+ * This enables testing against a mock server (e.g., flowglad-mock-server) instead
+ * of the production Svix API.
+ *
  * @returns A Svix client instance initialized with the value of `SVIX_API_KEY`.
  */
 export function svix() {
   return new Svix(
     core.IS_TEST
       ? 'test_svix_api_key'
-      : core.envVariable('SVIX_API_KEY')
+      : core.envVariable('SVIX_API_KEY'),
+    {
+      serverUrl: process.env.SVIX_MOCK_HOST || undefined,
+    }
   )
 }
 
