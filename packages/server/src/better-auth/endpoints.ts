@@ -786,5 +786,13 @@ export const createBillingEndpoints = (
         routeToHandlerMap[FlowgladActionKey.GetUsageMeterBalances],
       options,
     }),
+    // Feature access endpoints
+    getFeatureAccess: createFlowgladBillingEndpoint({
+      actionKey: FlowgladActionKey.GetFeatureAccess,
+      validator:
+        flowgladActionValidators[FlowgladActionKey.GetFeatureAccess],
+      handler: routeToHandlerMap[FlowgladActionKey.GetFeatureAccess],
+      options,
+    }),
   }
 }
