@@ -510,11 +510,14 @@ describe('subscriptionsRouteConfigs', () => {
 
       // Check that custom routes exist
       expect(routeKeys).toContain('POST /subscriptions/:id/adjust') // custom adjust
+      expect(routeKeys).toContain(
+        'POST /subscriptions/:id/preview-adjust'
+      ) // custom preview-adjust
       expect(routeKeys).toContain('POST /subscriptions/:id/cancel') // custom cancel
       expect(routeKeys).toContain('POST /subscriptions/:id/uncancel') // custom uncancel
 
-      // Check that we have exactly 8 routes (5 CRUD + 3 custom)
-      expect(routeKeys).toHaveLength(8)
+      // Check that we have exactly 9 routes (5 CRUD + 4 custom)
+      expect(routeKeys).toHaveLength(9)
     })
 
     it('should have consistent id parameter usage', () => {
