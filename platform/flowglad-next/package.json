@@ -131,7 +131,6 @@
     "@turbopuffer/turbopuffer": "^1.7.0",
     "@unkey/api": "2.2.1",
     "@unkey/nextjs": "2.0.0",
-    "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.35.3",
     "@vercel/otel": "^1.10.4",
     "ai": "^5.0.97",
