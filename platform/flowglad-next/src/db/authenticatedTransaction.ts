@@ -358,26 +358,36 @@ export async function authenticatedTransactionWithResult<T>(
   ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<Result<T, Error>> {
-  const { output } = await traced(
-    {
-      options: {
-        spanName: 'db.authenticatedTransactionWithResult',
-        tracerName: 'db.transaction',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'db.transaction.type': 'authenticated',
+  try {
+    const { output } = await traced(
+      {
+        options: {
+          spanName: 'db.authenticatedTransactionWithResult',
+          tracerName: 'db.transaction',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'db.transaction.type': 'authenticated',
+          },
         },
+        extractResultAttributes: (data) => ({
+          'db.user_id': data.userId,
+          'db.organization_id': data.organizationId,
+          'db.livemode': data.livemode,
+          'db.events_count': data.processedEventsCount,
+          'db.ledger_commands_count':
+            data.processedLedgerCommandsCount,
+        }),
       },
-      extractResultAttributes: (data) => ({
-        'db.user_id': data.userId,
-        'db.organization_id': data.organizationId,
-        'db.livemode': data.livemode,
-        'db.events_count': data.processedEventsCount,
-        'db.ledger_commands_count': data.processedLedgerCommandsCount,
-      }),
-    },
-    () => executeComprehensiveAuthenticatedTransaction(fn, options)
-  )()
+      () => executeComprehensiveAuthenticatedTransaction(fn, options)
+    )()
 
-  return output
+    return output
+  } catch (error) {
+    // Convert thrown errors back to Result.err
+    // This happens when the callback returns Result.err, which triggers
+    // a throw inside executeComprehensiveAuthenticatedTransaction to roll back the transaction
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    )
+  }
 }

@@ -246,25 +246,36 @@ export async function adminTransactionWithResult<T>(
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
-  const { output } = await traced(
-    {
-      options: {
-        spanName: 'db.adminTransactionWithResult',
-        tracerName: 'db.transaction',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'db.transaction.type': 'admin',
-          'db.user_id': 'ADMIN',
-          'db.livemode': effectiveLivemode,
+  try {
+    const { output } = await traced(
+      {
+        options: {
+          spanName: 'db.adminTransactionWithResult',
+          tracerName: 'db.transaction',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'db.transaction.type': 'admin',
+            'db.user_id': 'ADMIN',
+            'db.livemode': effectiveLivemode,
+          },
         },
+        extractResultAttributes: (data) => ({
+          'db.events_count': data.processedEventsCount,
+          'db.ledger_commands_count':
+            data.processedLedgerCommandsCount,
+        }),
       },
-      extractResultAttributes: (data) => ({
-        'db.events_count': data.processedEventsCount,
-        'db.ledger_commands_count': data.processedLedgerCommandsCount,
-      }),
-    },
-    () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
-  )()
+      () =>
+        executeComprehensiveAdminTransaction(fn, effectiveLivemode)
+    )()
 
-  return output
+    return output
+  } catch (error) {
+    // Convert thrown errors back to Result.err
+    // This happens when the callback returns Result.err, which triggers
+    // a throw inside executeComprehensiveAdminTransaction to roll back the transaction
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    )
+  }
 }
