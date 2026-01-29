@@ -843,7 +843,11 @@ export const calculateAdjustmentPreview = async (
 
 /**
  * Converts a preview failure reason to an appropriate domain error.
- * Uses heuristics to determine the error type based on the reason text.
+ *
+ * IMPORTANT: This function relies on string matching against reason text from
+ * calculateAdjustmentPreview. If reason message formats change, update the
+ * matching logic here. Falls back to ValidationError which preserves the
+ * full reason text, so functionality is not broken on mismatch.
  */
 const convertPreviewFailureToError = (
   reason: string,

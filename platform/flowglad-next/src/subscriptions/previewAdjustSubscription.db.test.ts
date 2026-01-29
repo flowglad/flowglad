@@ -13,7 +13,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { calculateAdjustmentPreview } from '@/subscriptions/adjustSubscription'
@@ -33,7 +32,6 @@ describe('previewAdjustSubscription', async () => {
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let subscription: Subscription.Record
-  let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -67,7 +65,7 @@ describe('previewAdjustSubscription', async () => {
       endDate: periodEnd,
     })
 
-    subscriptionItem = await setupSubscriptionItem({
+    await setupSubscriptionItem({
       subscriptionId: subscription.id,
       priceId: price.id,
       quantity: 1,
@@ -254,9 +252,7 @@ describe('previewAdjustSubscription', async () => {
             SubscriptionAdjustmentTiming.Immediately
           )
           expect(result.paymentMethodId).toBe(paymentMethod.id)
-          expect(
-            result.currentSubscriptionItems.length
-          ).toBeGreaterThan(0)
+          expect(result.currentSubscriptionItems.length).toBe(1)
           expect(result.resolvedNewSubscriptionItems.length).toBe(1)
           expect(result.currentPlanTotal).toBe(price.unitPrice)
           expect(result.newPlanTotal).toBe(higherPrice.unitPrice)
