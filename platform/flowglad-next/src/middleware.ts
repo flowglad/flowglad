@@ -3,7 +3,10 @@ import { getSessionCookie } from 'better-auth/cookies'
 import { type NextRequest, NextResponse } from 'next/server'
 import { middlewareLogic } from './routing-logic/middlewareLogic'
 import { isPublicRoute } from './routing-logic/publicRoutes'
-import { getCustomerBillingPortalOrganizationId } from './utils/customerBillingPortalState'
+import {
+  CUSTOMER_COOKIE_PREFIX,
+  MERCHANT_COOKIE_PREFIX,
+} from './utils/auth/constants'
 
 /**
  * Extracts the current trace context and formats it as a W3C traceparent header.
@@ -47,16 +50,22 @@ export default async function middleware(req: NextRequest) {
       }
     )
   }
-  const sessionCookie = getSessionCookie(req)
+  // Read both session cookies
+  const merchantSessionCookie = getSessionCookie(req, {
+    cookiePrefix: MERCHANT_COOKIE_PREFIX,
+  })
+  const customerSessionCookie = getSessionCookie(req, {
+    cookiePrefix: CUSTOMER_COOKIE_PREFIX,
+  })
+
   const isProtectedRoute = !isPublicRoute(req)
   const pathName = req.nextUrl.pathname
-  const customerBillingPortalOrganizationId =
-    await getCustomerBillingPortalOrganizationId()
+
   const logicParams = {
-    sessionCookie,
+    merchantSessionCookie,
+    customerSessionCookie,
     isProtectedRoute,
     pathName,
-    customerBillingPortalOrganizationId,
     req: { nextUrl: req.url },
   }
   const logicResult = middlewareLogic(logicParams)
