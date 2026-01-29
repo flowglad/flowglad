@@ -169,11 +169,13 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       pricingModelId: pricingModel.id,
     })
 
-    productFeature = await setupProductFeature({
-      organizationId: organization.id,
-      productId: product.id,
-      featureId: feature.id,
-    })
+    productFeature = (
+      await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: feature.id,
+      })
+    ).unwrap()
 
     subscriptionFeatureItem =
       await setupSubscriptionItemFeatureUsageCreditGrant({
@@ -314,11 +316,13 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             livemode: true,
           })
-          const otherProductFeature = await setupProductFeature({
-            organizationId: organization.id,
-            productId: product.id,
-            featureId: otherFeature.id,
-          })
+          const otherProductFeature = (
+            await setupProductFeature({
+              organizationId: organization.id,
+              productId: product.id,
+              featureId: otherFeature.id,
+            })
+          ).unwrap()
           const otherSubFeatureItem =
             await setupSubscriptionItemFeatureUsageCreditGrant({
               subscriptionItemId: subscriptionItem.id,
@@ -767,17 +771,21 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       })
 
       // Create product features
-      productFeatureOnce = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: onceFeature.id,
-      })
+      productFeatureOnce = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: onceFeature.id,
+        })
+      ).unwrap()
 
-      productFeatureRecurring = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: recurringFeature.id,
-      })
+      productFeatureRecurring = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: recurringFeature.id,
+        })
+      ).unwrap()
 
       // Create subscription item features
       subscriptionItemFeatureOnce =
@@ -1083,11 +1091,13 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             pricingModelId: pricingModel.id,
           })
 
-          const thirdProductFeature = await setupProductFeature({
-            organizationId: organization.id,
-            productId: product.id,
-            featureId: thirdFeature.id,
-          })
+          const thirdProductFeature = (
+            await setupProductFeature({
+              organizationId: organization.id,
+              productId: product.id,
+              featureId: thirdFeature.id,
+            })
+          ).unwrap()
           const usageCreditGrantFeatureOnce =
             await setupUsageCreditGrantFeature({
               organizationId: organization.id,
@@ -1530,17 +1540,21 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             })
 
           // Create product features and subscription item features
-          const pf2 = await setupProductFeature({
-            organizationId: organization.id,
-            productId: product.id,
-            featureId: onceFeature2.id,
-          })
+          const pf2 = (
+            await setupProductFeature({
+              organizationId: organization.id,
+              productId: product.id,
+              featureId: onceFeature2.id,
+            })
+          ).unwrap()
 
-          const pf3 = await setupProductFeature({
-            organizationId: organization.id,
-            productId: product.id,
-            featureId: recurringFeature2.id,
-          })
+          const pf3 = (
+            await setupProductFeature({
+              organizationId: organization.id,
+              productId: product.id,
+              featureId: recurringFeature2.id,
+            })
+          ).unwrap()
 
           const sif2 =
             await setupSubscriptionItemFeatureUsageCreditGrant({
@@ -1583,17 +1597,21 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               pricingModelId: pricingModel.id,
             })
 
-          const pf100 = await setupProductFeature({
-            organizationId: organization.id,
-            productId: product.id,
-            featureId: onceFeature100.id,
-          })
+          const pf100 = (
+            await setupProductFeature({
+              organizationId: organization.id,
+              productId: product.id,
+              featureId: onceFeature100.id,
+            })
+          ).unwrap()
 
-          const pf300 = await setupProductFeature({
-            organizationId: organization.id,
-            productId: product.id,
-            featureId: recurringFeature300.id,
-          })
+          const pf300 = (
+            await setupProductFeature({
+              organizationId: organization.id,
+              productId: product.id,
+              featureId: recurringFeature300.id,
+            })
+          ).unwrap()
 
           const sif100 =
             await setupSubscriptionItemFeatureUsageCreditGrant({

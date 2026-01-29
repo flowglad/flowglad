@@ -1394,12 +1394,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       amount: grantAmount,
       livemode: true,
     })
-    await setupProductFeature({
-      organizationId: orgForGrants.id,
-      productId: product.id,
-      featureId: feature.id,
-      livemode: true,
-    })
+    ;(
+      await setupProductFeature({
+        organizationId: orgForGrants.id,
+        productId: product.id,
+        featureId: feature.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create subscription with autoStart (creates billing run)
     const workflowResult = await adminTransaction(async (params) => {
@@ -1592,12 +1594,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       livemode: true,
       pricingModelId: pricingModel.id,
     })
-    await setupProductFeature({
-      organizationId: orgForGrants.id,
-      productId: product.id,
-      featureId: feature.id,
-      livemode: true,
-    })
+    ;(
+      await setupProductFeature({
+        organizationId: orgForGrants.id,
+        productId: product.id,
+        featureId: feature.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create subscription with autoStart (creates billing run)
     const workflowResult = await adminTransaction(async (params) => {
@@ -1786,12 +1790,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       amount: grantAmount,
       livemode: true,
     })
-    await setupProductFeature({
-      organizationId: orgForGrants.id,
-      productId: product.id,
-      featureId: feature.id,
-      livemode: true,
-    })
+    ;(
+      await setupProductFeature({
+        organizationId: orgForGrants.id,
+        productId: product.id,
+        featureId: feature.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const workflowResult = await adminTransaction(async (params) => {
       const stripeSetupIntentId = `setupintent_idempotent_${core.nanoid()}`

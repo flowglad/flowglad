@@ -74,24 +74,30 @@ describe('unexpireProductFeatures', () => {
   it('should un-expire a list of previously expired product features', async () => {
     // - Create two associated product features and set their `expiredAt` to a past date.
     // - Create one other associated product feature that remains active (expiredAt is null).
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: null, // active
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: null, // active
+      })
+    ).unwrap()
 
     // - Call `unexpireProductFeatures` with the `productId`, `organizationId`, and an array of the two expired feature IDs.
     const unexpired = await adminTransaction(async (ctx) => {
@@ -134,16 +140,20 @@ describe('unexpireProductFeatures', () => {
 
   it('should return an empty array when no features match the un-expire criteria', async () => {
     // - Create a product with several *active* (not expired) product features.
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     // - Call `unexpireProductFeatures` with `featureIds` corresponding to these active features.
     const result = await adminTransaction(async (ctx) => {
@@ -162,18 +172,22 @@ describe('unexpireProductFeatures', () => {
 
   it('should only un-expire features that are in the provided list', async () => {
     // - Create a product with two expired product features (Feature A, Feature B).
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
     // - Call `unexpireProductFeatures` with a list containing only the ID for Feature A and a non-existent Feature C.
     const result = await adminTransaction(async (ctx) => {
       return unexpireProductFeatures(
@@ -201,12 +215,14 @@ describe('unexpireProductFeatures', () => {
 
   it('should return an empty array when an empty featureIds list is provided', async () => {
     // - Create a product with several expired product features.
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
 
     // - Call `unexpireProductFeatures` with an empty `featureIds` array.
     const result = await adminTransaction(async (ctx) => {
@@ -226,12 +242,14 @@ describe('unexpireProductFeatures', () => {
 
   it('should not un-expire features if the productId or organizationId does not match', async () => {
     // - Create a product with an expired product feature.
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
     // - Create a second, different product.
     const otherProduct = (
       await setupProduct({
@@ -280,24 +298,30 @@ describe('batchUnexpireProductFeatures', () => {
     ).unwrap()
 
     // Create expired product features on different products
-    const pf1 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
-    const pf2 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
-    const pf3 = await setupProductFeature({
-      productId: product2.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
+    const pf1 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
+    const pf2 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
+    const pf3 = (
+      await setupProductFeature({
+        productId: product2.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
 
     // Batch unexpire all three
     const result = await adminTransaction(
@@ -343,18 +367,22 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('only unexpires features that are currently expired', async () => {
     // Create one expired and one active product feature
-    const expiredPf = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
-    const activePf = await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: null, // active
-    })
+    const expiredPf = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
+    const activePf = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: null, // active
+      })
+    ).unwrap()
 
     // Try to unexpire both
     const result = await adminTransaction(
@@ -375,18 +403,22 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('returns empty array when all provided IDs are already active', async () => {
     // Create active product features
-    const pf1 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: null,
-    })
-    const pf2 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: null,
-    })
+    const pf1 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: null,
+      })
+    ).unwrap()
+    const pf2 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     // Try to unexpire active features
     const result = await adminTransaction(
@@ -405,12 +437,14 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('ignores non-existent productFeature IDs without error', async () => {
     // Create one real expired product feature
-    const realPf = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
+    const realPf = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
 
     // Include a non-existent ID
     const fakeId = `product_feature_${core.nanoid()}`
@@ -433,24 +467,30 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('returns only the previously-expired product features when given mixed expired and active IDs', async () => {
     // Create mixed state product features
-    const expired1 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
-    const active1 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: null,
-    })
-    const expired2 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 2000,
-    })
+    const expired1 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
+    const active1 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: null,
+      })
+    ).unwrap()
+    const expired2 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 2000,
+      })
+    ).unwrap()
 
     // Unexpire all three
     const result = await adminTransaction(
@@ -512,12 +552,14 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Create an expired product feature
-    const expiredPf = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
+    const expiredPf = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
 
     // Unexpire the product feature and capture effects
     await adminTransaction(async ({ transaction }) => {
@@ -608,19 +650,23 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Create expired product features on both products
-    const expiredPf1 = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
+    const expiredPf1 = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
 
-    const expiredPf2 = await setupProductFeature({
-      productId: product2.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
+    const expiredPf2 = (
+      await setupProductFeature({
+        productId: product2.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
 
     // Unexpire both product features and capture effects
     await adminTransaction(async ({ transaction }) => {
@@ -643,12 +689,14 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('does not emit cache invalidations when no product features are actually unexpired', async () => {
     // Create an active (not expired) product feature
-    const activePf = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: null,
-    })
+    const activePf = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     // Try to unexpire the already-active feature
     await adminTransaction(async ({ transaction }) => {
@@ -668,12 +716,14 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('emits productFeaturesByPricingModel cache invalidation even when there are no subscription items', async () => {
     // Create an expired product feature but no subscription items
-    const expiredPf = await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000,
-    })
+    const expiredPf = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000,
+      })
+    ).unwrap()
 
     // Unexpire the product feature
     await adminTransaction(async ({ transaction }) => {
@@ -746,16 +796,20 @@ describe('syncProductFeatures', () => {
 
   it('should expire all existing active product features when an empty array is provided', async () => {
     // - Create a product with two active product features.
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
     // - Call `syncProductFeatures` with an empty `desiredFeatureIds` array.
     const result = await adminTransaction(
       async ({ transaction, invalidateCache }) => {
@@ -783,18 +837,22 @@ describe('syncProductFeatures', () => {
 
   it('should restore all existing expired product features when they are in the desired list', async () => {
     // - Create a product with two *expired* product features.
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` matching the two expired features.
     const result = await adminTransaction(
@@ -825,24 +883,30 @@ describe('syncProductFeatures', () => {
   it('should perform a mix of create, expire, restore, and no-op actions correctly', async () => {
     // - Create a product with the following product features:
     //   - Feature A: Active
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
     //   - Feature B: Active
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
     //   - Feature C: Expired
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
     // - Feature D is a new feature that doesn't have a product feature record yet.
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` for Feature A, Feature C, and Feature D.
@@ -891,18 +955,22 @@ describe('syncProductFeatures', () => {
   it('should do nothing if the desired state already matches the current state', async () => {
     // - Create a product with:
     //   - Feature A: Active
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
     //   - Feature B: Expired
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: Date.now(),
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: Date.now(),
+      })
+    ).unwrap()
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` = `['feature_A_id']`.
     const result = await adminTransaction(
@@ -940,26 +1008,32 @@ describe('syncProductFeatures', () => {
 describe('selectFeaturesByProductFeatureWhere', () => {
   it('should only return active features (expiredAt is null)', async () => {
     // Create active features
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: null, // active
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: null, // active
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: null, // active
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: null, // active
+      })
+    ).unwrap()
 
     // Create expired features
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000, // expired in the past
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000, // expired in the past
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -981,28 +1055,34 @@ describe('selectFeaturesByProductFeatureWhere', () => {
     const futureTime = Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
 
     // Create a feature that expires in the future
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: futureTime,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: futureTime,
+      })
+    ).unwrap()
 
     // Create a feature that never expires
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: null,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     // Create a feature that already expired
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000, // expired in the past
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000, // expired in the past
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -1024,26 +1104,32 @@ describe('selectFeaturesByProductFeatureWhere', () => {
     const pastTime = Date.now() - 1000 // 1 second ago
 
     // Create features with past expiration
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: pastTime,
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: pastTime,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: pastTime,
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: pastTime,
+      })
+    ).unwrap()
 
     // Create one active feature for comparison
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: null,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -1062,18 +1148,22 @@ describe('selectFeaturesByProductFeatureWhere', () => {
     const pastTime = Date.now() - 1000
 
     // Create only expired features
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: pastTime,
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: pastTime,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: pastTime,
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: pastTime,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -1092,36 +1182,44 @@ describe('selectFeaturesByProductFeatureWhere', () => {
     const futureTime = Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
 
     // Feature A: Never expires (null)
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: null,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     // Feature B: Expires in the future
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: futureTime,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: futureTime,
+      })
+    ).unwrap()
 
     // Feature C: Already expired
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureC.id,
-      organizationId: organization.id,
-      expiredAt: pastTime,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureC.id,
+        organizationId: organization.id,
+        expiredAt: pastTime,
+      })
+    ).unwrap()
 
     // Feature D: Expires in the future (different time)
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureD.id,
-      organizationId: organization.id,
-      expiredAt: futureTime + 1000,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureD.id,
+        organizationId: organization.id,
+        expiredAt: futureTime + 1000,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -1142,18 +1240,22 @@ describe('selectFeaturesByProductFeatureWhere', () => {
 
   it('should work with specific feature filtering', async () => {
     // Create active and expired features
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureA.id,
-      organizationId: organization.id,
-      expiredAt: null, // active
-    })
-    await setupProductFeature({
-      productId: product.id,
-      featureId: featureB.id,
-      organizationId: organization.id,
-      expiredAt: Date.now() - 1000, // expired
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureA.id,
+        organizationId: organization.id,
+        expiredAt: null, // active
+      })
+    ).unwrap()
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: featureB.id,
+        organizationId: organization.id,
+        expiredAt: Date.now() - 1000, // expired
+      })
+    ).unwrap()
 
     // Query for specific feature
     const result = await adminTransaction(async (ctx) => {

@@ -872,12 +872,14 @@ describe('Ledger Interactions', () => {
           amount: grantAmount,
           livemode: true,
         })
-        const productFeature = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: feature.id,
-          livemode: true,
-        })
+        const productFeature = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: feature.id,
+            livemode: true,
+          })
+        ).unwrap()
         await setupSubscriptionItemFeature({
           subscriptionItemId: subscriptionItem.id,
           featureId: feature.id,
@@ -1122,12 +1124,14 @@ describe('Ledger Interactions', () => {
           amount: grantAmount,
           livemode: true,
         })
-        const productFeature = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: feature.id,
-          livemode: true,
-        })
+        const productFeature = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: feature.id,
+            livemode: true,
+          })
+        ).unwrap()
         await setupSubscriptionItemFeature({
           subscriptionItemId: subscriptionItem.id,
           featureId: feature.id,
@@ -1217,18 +1221,22 @@ describe('Ledger Interactions', () => {
           amount: grantAmount2,
           livemode: true,
         })
-        const productFeature1 = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: feature1.id,
-          livemode: true,
-        })
-        const productFeature2 = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: feature2.id,
-          livemode: true,
-        })
+        const productFeature1 = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: feature1.id,
+            livemode: true,
+          })
+        ).unwrap()
+        const productFeature2 = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: feature2.id,
+            livemode: true,
+          })
+        ).unwrap()
         await setupSubscriptionItemFeature({
           subscriptionItemId: subscriptionItem.id,
           featureId: feature1.id,
@@ -1322,12 +1330,14 @@ describe('Ledger Interactions', () => {
           amount: grantAmount,
           livemode: true,
         })
-        const productFeature = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: feature.id,
-          livemode: true,
-        })
+        const productFeature = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: feature.id,
+            livemode: true,
+          })
+        ).unwrap()
         await setupSubscriptionItemFeature({
           subscriptionItemId: subscriptionItem.id,
           featureId: feature.id,
@@ -1411,18 +1421,22 @@ describe('Ledger Interactions', () => {
           amount: everyGrantAmount,
           livemode: true,
         })
-        const productFeatureOnce = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: featureOnce.id,
-          livemode: true,
-        })
-        const productFeatureEvery = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: featureEvery.id,
-          livemode: true,
-        })
+        const productFeatureOnce = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: featureOnce.id,
+            livemode: true,
+          })
+        ).unwrap()
+        const productFeatureEvery = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: featureEvery.id,
+            livemode: true,
+          })
+        ).unwrap()
         await setupSubscriptionItemFeature({
           subscriptionItemId: subscriptionItem.id,
           featureId: featureOnce.id,
@@ -2156,12 +2170,14 @@ describe('Ledger Interactions', () => {
         amount: grantAmount,
         livemode: true,
       })
-      const productFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: feature.id,
-        livemode: true,
-      })
+      const productFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: feature.id,
+          livemode: true,
+        })
+      ).unwrap()
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: feature.id,
@@ -2315,12 +2331,14 @@ describe('Ledger Interactions', () => {
         amount: grantAmount,
         livemode: true,
       })
-      const productFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: feature.id,
-        livemode: true,
-      })
+      const productFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: feature.id,
+          livemode: true,
+        })
+      ).unwrap()
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: feature.id,
@@ -2454,14 +2472,16 @@ describe('Resource claim expiration during billing period transition', async () 
     ).unwrap()
 
     // Create resource feature with capacity
-    const resourceFeature = await setupResourceFeature({
-      organizationId: organization.id,
-      name: 'Seats Feature',
-      resourceId: resource.id,
-      livemode: true,
-      pricingModelId: pricingModel.id,
-      amount: 10,
-    })
+    const resourceFeature = (
+      await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seats Feature',
+        resourceId: resource.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        amount: 10,
+      })
+    ).unwrap()
 
     // Create subscription item
     const subscriptionItem = await setupSubscriptionItem({

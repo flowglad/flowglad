@@ -757,12 +757,14 @@ describe('Pricing Model Migration Test Suite', async () => {
         livemode: false,
       })
 
-      const productFeature1 = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product1.id,
-        featureId: feature1.id,
-        livemode: false,
-      })
+      const productFeature1 = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product1.id,
+          featureId: feature1.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const usageMeter2 = (
         await setupUsageMeter({
@@ -782,12 +784,14 @@ describe('Pricing Model Migration Test Suite', async () => {
         livemode: false,
       })
 
-      const productFeature2 = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product2.id,
-        featureId: feature2.id,
-        livemode: false,
-      })
+      const productFeature2 = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product2.id,
+          featureId: feature2.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Setup: Customer starts with subscription on pricing model 1
       const subscription1 = await setupSubscription({
@@ -888,12 +892,14 @@ describe('Pricing Model Migration Test Suite', async () => {
         livemode: false,
       })
 
-      const oldProductFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product1.id,
-        featureId: oldFeature.id,
-        livemode: false,
-      })
+      const oldProductFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product1.id,
+          featureId: oldFeature.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const newUsageMeter = (
         await setupUsageMeter({
@@ -914,12 +920,14 @@ describe('Pricing Model Migration Test Suite', async () => {
         livemode: false,
       })
 
-      const newProductFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product2.id,
-        featureId: newFeature.id,
-        livemode: false,
-      })
+      const newProductFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product2.id,
+          featureId: newFeature.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Setup: Customer starts with subscription on old pricing model
       const oldSubscription = await setupSubscription({
@@ -1165,12 +1173,14 @@ describe('Pricing Model Migration Test Suite', async () => {
         livemode: false,
       })
 
-      const productFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: paidProduct.id,
-        featureId: feature.id,
-        livemode: false,
-      })
+      const productFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: paidProduct.id,
+          featureId: feature.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,

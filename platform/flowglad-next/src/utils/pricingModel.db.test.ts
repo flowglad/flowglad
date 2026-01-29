@@ -856,19 +856,23 @@ describe('clonePricingModelTransaction', () => {
   describe('Product Features Cloning', () => {
     it('should clone product features associations', async () => {
       // Associate features with the product
-      const productFeature1 = await setupProductFeature({
-        productId: product.id,
-        featureId: features[0].id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const productFeature1 = (
+        await setupProductFeature({
+          productId: product.id,
+          featureId: features[0].id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const productFeature2 = await setupProductFeature({
-        productId: product.id,
-        featureId: features[1].id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const productFeature2 = (
+        await setupProductFeature({
+          productId: product.id,
+          featureId: features[1].id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
@@ -940,22 +944,26 @@ describe('clonePricingModelTransaction', () => {
 
     it('should not clone expired product features', async () => {
       // Create active product feature
-      const activeProductFeature = await setupProductFeature({
-        productId: product.id,
-        featureId: features[0].id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const activeProductFeature = (
+        await setupProductFeature({
+          productId: product.id,
+          featureId: features[0].id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create expired product feature
       const expiredProductFeature = await adminTransaction(
         async (ctx) => {
-          const pf = await setupProductFeature({
-            productId: product.id,
-            featureId: features[1].id,
-            organizationId: organization.id,
-            livemode: false,
-          })
+          const pf = (
+            await setupProductFeature({
+              productId: product.id,
+              featureId: features[1].id,
+              organizationId: organization.id,
+              livemode: false,
+            })
+          ).unwrap()
           // Mark it as expired
           return await ctx.transaction
             .update(productFeatures)
@@ -1056,27 +1064,33 @@ describe('clonePricingModelTransaction', () => {
 
       // 4. Associate features with products
       // Associate features with first product
-      await setupProductFeature({
-        productId: product.id,
-        featureId: features[0].id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product.id,
+          featureId: features[0].id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Associate features with second product
-      await setupProductFeature({
-        productId: product2.id,
-        featureId: additionalFeature.id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product2.id,
+          featureId: additionalFeature.id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      await setupProductFeature({
-        productId: product2.id,
-        featureId: features[1].id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product2.id,
+          featureId: features[1].id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Clone the comprehensive pricing model
       const clonedPricingModel = await adminTransaction(
@@ -1281,12 +1295,14 @@ describe('clonePricingModelTransaction', () => {
         unitPrice: 2000,
       })
 
-      await setupProductFeature({
-        productId: testProduct.id,
-        featureId: feature.id,
-        organizationId: organization.id,
-        livemode: true,
-      })
+      ;(
+        await setupProductFeature({
+          productId: testProduct.id,
+          featureId: feature.id,
+          organizationId: organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Clone with destinationEnvironment = Testmode (should override source's livemode)
       const clonedPricingModel = await adminTransaction(
@@ -1624,19 +1640,23 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Associate features with product
-      await setupProductFeature({
-        productId: sourceProduct.id,
-        featureId: sourceToggleFeature.id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      ;(
+        await setupProductFeature({
+          productId: sourceProduct.id,
+          featureId: sourceToggleFeature.id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      await setupProductFeature({
-        productId: sourceProduct.id,
-        featureId: sourceUsageFeature.id,
-        organizationId: organization.id,
-        livemode: false,
-      })
+      ;(
+        await setupProductFeature({
+          productId: sourceProduct.id,
+          featureId: sourceUsageFeature.id,
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(

@@ -828,11 +828,13 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           }
         )
 
-        const productFeature = await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: creditGrantFeature.id,
-        })
+        const productFeature = (
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: creditGrantFeature.id,
+          })
+        ).unwrap()
 
         // Create credit trial price
         const creditTrialPrice = await setupPrice({

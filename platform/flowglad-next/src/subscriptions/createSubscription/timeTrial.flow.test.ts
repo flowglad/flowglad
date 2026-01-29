@@ -152,11 +152,13 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         }
       )
     // 2. Associate the toggle feature with the created product
-    await setupProductFeature({
-      organizationId: organization.id,
-      productId: createdProduct.id,
-      featureId: toggleFeature.id,
-    })
+    ;(
+      await setupProductFeature({
+        organizationId: organization.id,
+        productId: createdProduct.id,
+        featureId: toggleFeature.id,
+      })
+    ).unwrap()
     // Override product and price for the rest of the test
     const product = createdProduct
     const price = prices[0]

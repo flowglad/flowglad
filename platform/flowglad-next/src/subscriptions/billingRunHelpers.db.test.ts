@@ -1553,12 +1553,14 @@ describe('billingRunHelpers', async () => {
           livemode: true,
         })
 
-        await setupProductFeature({
-          organizationId: organization.id,
-          productId: product.id,
-          featureId: feature.id,
-          livemode: true,
-        })
+        ;(
+          await setupProductFeature({
+            organizationId: organization.id,
+            productId: product.id,
+            featureId: feature.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         await adminTransaction(async ({ transaction }) => {
           const activeSubscriptionItems =

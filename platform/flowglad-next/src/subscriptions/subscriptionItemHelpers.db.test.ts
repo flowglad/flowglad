@@ -359,11 +359,13 @@ describe('subscriptionItemHelpers', () => {
         amount: 100,
         pricingModelId: orgData.pricingModel.id,
       })
-      productFeature = await setupProductFeature({
-        organizationId: orgData.organization.id,
-        productId: product.id,
-        featureId: feature.id,
-      })
+      productFeature = (
+        await setupProductFeature({
+          organizationId: orgData.organization.id,
+          productId: product.id,
+          featureId: feature.id,
+        })
+      ).unwrap()
       subscription = await setupSubscription({
         organizationId: orgData.organization.id,
         customerId: customer.id,
@@ -1172,11 +1174,13 @@ describe('subscriptionItemHelpers', () => {
         })
 
         // Create product feature linking it to the product
-        const onceProductFeature = await setupProductFeature({
-          organizationId: orgData.organization.id,
-          productId: product.id,
-          featureId: onceFeature.id,
-        })
+        const onceProductFeature = (
+          await setupProductFeature({
+            organizationId: orgData.organization.id,
+            productId: product.id,
+            featureId: onceFeature.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1278,11 +1282,13 @@ describe('subscriptionItemHelpers', () => {
             pricingModelId: orgData.pricingModel.id,
           })
 
-          const onceProductFeature = await setupProductFeature({
-            organizationId: orgData.organization.id,
-            productId: product.id,
-            featureId: onceFeature.id,
-          })
+          const onceProductFeature = (
+            await setupProductFeature({
+              organizationId: orgData.organization.id,
+              productId: product.id,
+              featureId: onceFeature.id,
+            })
+          ).unwrap()
 
           // Create subscription item with Once feature
           const itemWithOnceFeature = await setupSubscriptionItem({
@@ -1832,11 +1838,13 @@ describe('subscriptionItemHelpers', () => {
           })
 
           // Add the second feature to the SAME product (so both features are granted in one adjustment)
-          await setupProductFeature({
-            organizationId: orgData.organization.id,
-            productId: product.id,
-            featureId: feature2.id,
-          })
+          ;(
+            await setupProductFeature({
+              organizationId: orgData.organization.id,
+              productId: product.id,
+              featureId: feature2.id,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -2432,11 +2440,13 @@ describe('subscriptionItemHelpers', () => {
             usageMeterId: usageMeter.id,
           })
 
-          await setupProductFeature({
-            organizationId: orgData.organization.id,
-            productId: product.id,
-            featureId: onceFeature.id,
-          })
+          ;(
+            await setupProductFeature({
+              organizationId: orgData.organization.id,
+              productId: product.id,
+              featureId: onceFeature.id,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -2561,11 +2571,13 @@ describe('subscriptionItemHelpers', () => {
             usageMeterId: usageMeter.id,
           })
 
-          await setupProductFeature({
-            organizationId: orgData.organization.id,
-            productId: product.id,
-            featureId: onceFeature.id,
-          })
+          ;(
+            await setupProductFeature({
+              organizationId: orgData.organization.id,
+              productId: product.id,
+              featureId: onceFeature.id,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -2998,11 +3010,13 @@ describe('subscriptionItemHelpers', () => {
           })
 
           // Link second feature to the same product
-          await setupProductFeature({
-            organizationId: orgData.organization.id,
-            productId: product.id,
-            featureId: feature2.id,
-          })
+          ;(
+            await setupProductFeature({
+              organizationId: orgData.organization.id,
+              productId: product.id,
+              featureId: feature2.id,
+            })
+          ).unwrap()
 
           // Setup existing credits from BillingPeriodTransition (50 credits)
           const existingCreditAmount = 50

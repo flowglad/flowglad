@@ -136,20 +136,24 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
     })
 
     // Create a feature for the resource
-    const feature = await setupResourceFeature({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Seats Feature',
-      resourceId: resource.id,
-      livemode: true,
-    })
+    const feature = (
+      await setupResourceFeature({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Seats Feature',
+        resourceId: resource.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const productFeature = await setupProductFeature({
-      productId: product.id,
-      featureId: feature.id,
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const productFeature = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature.id,
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create subscription item feature to provide capacity for the resource
     await setupResourceSubscriptionItemFeature({

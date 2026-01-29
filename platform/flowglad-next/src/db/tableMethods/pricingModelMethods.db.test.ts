@@ -577,23 +577,29 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     })
 
     // Assign features to products
-    await setupProductFeature({
-      productId: product1.id,
-      featureId: feature1.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product1.id,
+        featureId: feature1.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    await setupProductFeature({
-      productId: product1.id,
-      featureId: feature2.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product1.id,
+        featureId: feature2.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    await setupProductFeature({
-      productId: product2.id,
-      featureId: feature3.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product2.id,
+        featureId: feature3.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     // Query the pricing models with products and features
     const result = (
@@ -1003,26 +1009,32 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     const futureTime = now + 1000 * 60 * 60 * 24 // 1 day from now
 
     // Assign features to product with different expiration times
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature1.id,
-      organizationId: organization.id,
-      // No expiration (null) - should be included
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature1.id,
+        organizationId: organization.id,
+        // No expiration (null) - should be included
+      })
+    ).unwrap()
 
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature2.id,
-      organizationId: organization.id,
-      expiredAt: pastTime, // Expired in the past - should be filtered out
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature2.id,
+        organizationId: organization.id,
+        expiredAt: pastTime, // Expired in the past - should be filtered out
+      })
+    ).unwrap()
 
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature3.id,
-      organizationId: organization.id,
-      expiredAt: futureTime, // Expires in the future - should be included
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature3.id,
+        organizationId: organization.id,
+        expiredAt: futureTime, // Expires in the future - should be included
+      })
+    ).unwrap()
 
     // Query the pricing model
     const result = (
@@ -1058,19 +1070,23 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     const pastTime = now - 1000 * 60 * 60 * 24 // 1 day ago
 
     // Assign only expired features
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature1.id,
-      organizationId: organization.id,
-      expiredAt: pastTime,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature1.id,
+        organizationId: organization.id,
+        expiredAt: pastTime,
+      })
+    ).unwrap()
 
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature2.id,
-      organizationId: organization.id,
-      expiredAt: pastTime,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature2.id,
+        organizationId: organization.id,
+        expiredAt: pastTime,
+      })
+    ).unwrap()
 
     // Query the pricing model
     const result = (
@@ -1129,12 +1145,14 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     const now = Date.now()
 
     // Assign feature that expires exactly now
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature1.id,
-      organizationId: organization.id,
-      expiredAt: now, // Expires exactly now - should be filtered out
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature1.id,
+        organizationId: organization.id,
+        expiredAt: now, // Expires exactly now - should be filtered out
+      })
+    ).unwrap()
 
     // Query the pricing model
     const result = (
@@ -1191,27 +1209,33 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     const futureTime = now + 1000 * 60 * 60 * 24 // 1 day from now
 
     // Product 1: Mix of active, expired, and future-expired features
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature1.id,
-      organizationId: organization.id,
-      // No expiration - should be included
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature1.id,
+        organizationId: organization.id,
+        // No expiration - should be included
+      })
+    ).unwrap()
 
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature2.id,
-      organizationId: organization.id,
-      expiredAt: pastTime, // Expired - should be filtered out
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature2.id,
+        organizationId: organization.id,
+        expiredAt: pastTime, // Expired - should be filtered out
+      })
+    ).unwrap()
 
     // Product 2: Only future-expired features
-    await setupProductFeature({
-      productId: product2.id,
-      featureId: feature3.id,
-      organizationId: organization.id,
-      expiredAt: futureTime, // Future expired - should be included
-    })
+    ;(
+      await setupProductFeature({
+        productId: product2.id,
+        featureId: feature3.id,
+        organizationId: organization.id,
+        expiredAt: futureTime, // Future expired - should be included
+      })
+    ).unwrap()
 
     // Query the pricing model
     const result = (
@@ -1619,11 +1643,13 @@ describe('selectPricingModelSlugResolutionData', () => {
       livemode: false,
     })
 
-    await setupProductFeature({
-      productId: product.id,
-      featureId: feature.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: product.id,

@@ -3716,11 +3716,13 @@ describe('adjustSubscription Integration Tests', async () => {
         livemode: true,
       })
 
-      const premiumProductFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: premiumFeature.id,
-      })
+      const premiumProductFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: premiumFeature.id,
+        })
+      ).unwrap()
 
       // Create a basic product with basic price and basic feature
       const basicProduct = (
@@ -3742,11 +3744,13 @@ describe('adjustSubscription Integration Tests', async () => {
         intervalCount: 1,
       })
 
-      const basicProductFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: basicProduct.id,
-        featureId: basicFeature.id,
-      })
+      const basicProductFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: basicProduct.id,
+          featureId: basicFeature.id,
+        })
+      ).unwrap()
 
       // Setup subscription with premium item
       const premiumItem = await setupSubscriptionItem({
@@ -4039,20 +4043,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const resourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5,
-        })
+        const resourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 5,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: resourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: resourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -4099,20 +4107,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const premiumResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Premium Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 10,
-        })
+        const premiumResourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Premium Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 10,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: premiumResourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: premiumResourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -4204,20 +4216,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const resourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 10, // High capacity
-        })
+        const resourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 10, // High capacity
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: resourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: resourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -4264,20 +4280,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const limitedResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Limited Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5, // Lower capacity than current claims
-        })
+        const limitedResourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Limited Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 5, // Lower capacity than current claims
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: limitedResourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: limitedResourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -4363,21 +4383,25 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const resourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5, // 5 seat capacity
-        })
+        const resourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 5, // 5 seat capacity
+          })
+        ).unwrap()
 
         // Create product feature linking the feature to the product
-        await setupProductFeature({
-          productId: product.id,
-          featureId: resourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: resourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         // Setup subscription item with resource feature
         const subscriptionItem = await setupSubscriptionItem({
@@ -4425,20 +4449,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const premiumResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Premium Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 10, // 10 seat capacity
-        })
+        const premiumResourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Premium Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 10, // 10 seat capacity
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: premiumResourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: premiumResourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -4521,20 +4549,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const highCapacityFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'High Capacity Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 10, // 10 seat capacity
-        })
+        const highCapacityFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'High Capacity Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 10, // 10 seat capacity
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: highCapacityFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: highCapacityFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const premiumPrice = await setupPrice({
           productId: product.id,
@@ -4593,20 +4625,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const basicResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Basic Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5, // 5 seat capacity (still >= 3 claimed)
-        })
+        const basicResourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Basic Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 5, // 5 seat capacity (still >= 3 claimed)
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: basicResourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: basicResourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -4686,20 +4722,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const highCapacityFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'High Capacity Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 10, // 10 seat capacity
-        })
+        const highCapacityFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'High Capacity Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 10, // 10 seat capacity
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: highCapacityFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: highCapacityFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const premiumPrice = await setupPrice({
           productId: product.id,
@@ -4758,20 +4798,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const tinyResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Tiny Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 3, // 3 seat capacity (less than 5 claimed)
-        })
+        const tinyResourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Tiny Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 3, // 3 seat capacity (less than 5 claimed)
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: tinyResourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: tinyResourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -4867,20 +4911,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const highCapacityFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'High Capacity Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 10,
-        })
+        const highCapacityFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'High Capacity Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 10,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: highCapacityFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: highCapacityFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -4936,20 +4984,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const tinyResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Tiny Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 3, // Less than 5 claimed
-        })
+        const tinyResourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Tiny Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 3, // Less than 5 claimed
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: tinyProduct.id,
-          featureId: tinyResourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: tinyProduct.id,
+            featureId: tinyResourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -5027,20 +5079,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const highCapacityFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'High Capacity Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 10,
-        })
+        const highCapacityFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'High Capacity Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 10,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: highCapacityFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: highCapacityFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5096,20 +5152,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const basicResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Basic Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5, // More than 3 claimed
-        })
+        const basicResourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Basic Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 5, // More than 3 claimed
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: basicProduct.id,
-          featureId: basicResourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: basicProduct.id,
+            featureId: basicResourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -5207,20 +5267,24 @@ describe('adjustSubscription Integration Tests', async () => {
         ).unwrap()
 
         // Create base plan with 3 seat capacity
-        const basePlanFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Base Plan Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 3,
-        })
+        const basePlanFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Base Plan Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 3,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: basePlanFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: basePlanFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         // Create addon with 2 seat capacity
         const addonProduct = (
@@ -5243,20 +5307,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const addonFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Addon Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 2,
-        })
+        const addonFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Addon Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 2,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: addonProduct.id,
-          featureId: addonFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: addonProduct.id,
+            featureId: addonFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         // Setup subscription with both items (3 + 2 = 5 total capacity)
         const baseItem = await setupSubscriptionItem({
@@ -5385,20 +5453,24 @@ describe('adjustSubscription Integration Tests', async () => {
         ).unwrap()
 
         // Create base plan with 3 seat capacity
-        const basePlanFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Base Plan Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 3,
-        })
+        const basePlanFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Base Plan Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 3,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: basePlanFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: basePlanFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         // Create addon with 2 seat capacity
         const addonProduct = (
@@ -5421,20 +5493,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const addonFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Addon Seats',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 2,
-        })
+        const addonFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Addon Seats',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 2,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: addonProduct.id,
-          featureId: addonFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: addonProduct.id,
+            featureId: addonFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         // Setup subscription with both items (3 + 2 = 5 total capacity)
         const baseItem = await setupSubscriptionItem({
@@ -5572,20 +5648,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const resourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5,
-        })
+        const resourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 5,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: resourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: resourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5747,20 +5827,24 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        const resourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5,
-        })
+        const resourceFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 5,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: resourceFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: resourceFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5922,20 +6006,24 @@ describe('adjustSubscription Integration Tests', async () => {
         ).unwrap()
 
         // Create initial plan with 3 seat capacity
-        const initialFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Initial Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 3,
-        })
+        const initialFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Initial Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 3,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: initialFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: initialFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5983,20 +6071,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const downgradedFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Downgraded Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 2, // Exactly matches claimed (2)
-        })
+        const downgradedFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Downgraded Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 2, // Exactly matches claimed (2)
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: downgradedFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: downgradedFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -6109,20 +6201,24 @@ describe('adjustSubscription Integration Tests', async () => {
         ).unwrap()
 
         // Create initial plan with 3 seat capacity
-        const initialFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Initial Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 3,
-        })
+        const initialFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Initial Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 3,
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: initialFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: initialFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -6170,20 +6266,24 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const downgradedFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Downgraded Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 2, // Less than current 3
-        })
+        const downgradedFeature = (
+          await setupResourceFeature({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Downgraded Seats Feature',
+            resourceId: resource.id,
+            livemode: subscription.livemode,
+            amount: 2, // Less than current 3
+          })
+        ).unwrap()
 
-        await setupProductFeature({
-          productId: product.id,
-          featureId: downgradedFeature.id,
-          organizationId: organization.id,
-        })
+        ;(
+          await setupProductFeature({
+            productId: product.id,
+            featureId: downgradedFeature.id,
+            organizationId: organization.id,
+          })
+        ).unwrap()
 
         // Set billing period to end in the future
         const periodEnd = Date.now() + 24 * 60 * 60 * 1000 // 1 day from now

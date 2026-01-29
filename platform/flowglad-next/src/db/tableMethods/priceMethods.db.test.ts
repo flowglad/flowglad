@@ -2363,14 +2363,16 @@ describe('priceMethods.ts', () => {
       ).unwrap()
 
       // Create a resource feature
-      const resourceFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Seat Feature',
-        resourceId: resource.id,
-        livemode: true,
-        amount: 5,
-        slug: `seat-feature-${core.nanoid()}`,
-      })
+      const resourceFeature = (
+        await setupResourceFeature({
+          organizationId: organization.id,
+          name: 'Seat Feature',
+          resourceId: resource.id,
+          livemode: true,
+          amount: 5,
+          slug: `seat-feature-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       // Create a product
       const product = (
@@ -2383,11 +2385,13 @@ describe('priceMethods.ts', () => {
       ).unwrap()
 
       // Link the feature to the product
-      await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature.id,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create a price for the product
       const price = await setupPrice({
@@ -2467,14 +2471,16 @@ describe('priceMethods.ts', () => {
         })
       ).unwrap()
 
-      const resourceFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Seat Feature',
-        resourceId: resource.id,
-        livemode: true,
-        amount: 5,
-        slug: `seat-feature-${core.nanoid()}`,
-      })
+      const resourceFeature = (
+        await setupResourceFeature({
+          organizationId: organization.id,
+          name: 'Seat Feature',
+          resourceId: resource.id,
+          livemode: true,
+          amount: 5,
+          slug: `seat-feature-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       const product = (
         await setupProduct({
@@ -2486,12 +2492,14 @@ describe('priceMethods.ts', () => {
       ).unwrap()
 
       // Link the feature to the product with an expired timestamp
-      await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature.id,
-        organizationId: organization.id,
-        expiredAt: Date.now() - 10000, // Expired 10 seconds ago
-      })
+      ;(
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+          expiredAt: Date.now() - 10000, // Expired 10 seconds ago
+        })
+      ).unwrap()
 
       const price = await setupPrice({
         productId: product.id,
@@ -2541,23 +2549,27 @@ describe('priceMethods.ts', () => {
       ).unwrap()
 
       // Create two resource features
-      const resourceFeature1 = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Seat Feature',
-        resourceId: resource1.id,
-        livemode: true,
-        amount: 5,
-        slug: `seat-feature-${core.nanoid()}`,
-      })
+      const resourceFeature1 = (
+        await setupResourceFeature({
+          organizationId: organization.id,
+          name: 'Seat Feature',
+          resourceId: resource1.id,
+          livemode: true,
+          amount: 5,
+          slug: `seat-feature-${core.nanoid()}`,
+        })
+      ).unwrap()
 
-      const resourceFeature2 = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'API Key Feature',
-        resourceId: resource2.id,
-        livemode: true,
-        amount: 10,
-        slug: `api-key-feature-${core.nanoid()}`,
-      })
+      const resourceFeature2 = (
+        await setupResourceFeature({
+          organizationId: organization.id,
+          name: 'API Key Feature',
+          resourceId: resource2.id,
+          livemode: true,
+          amount: 10,
+          slug: `api-key-feature-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       const product = (
         await setupProduct({
@@ -2569,17 +2581,21 @@ describe('priceMethods.ts', () => {
       ).unwrap()
 
       // Link both features to the product
-      await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature1.id,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature1.id,
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
-      await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature2.id,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature2.id,
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       const price = await setupPrice({
         productId: product.id,
@@ -2626,14 +2642,16 @@ describe('priceMethods.ts', () => {
       ).unwrap()
 
       // Create a resource feature
-      const resourceFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Seat Feature',
-        resourceId: resource.id,
-        livemode: true,
-        amount: 5,
-        slug: `seat-feature-${core.nanoid()}`,
-      })
+      const resourceFeature = (
+        await setupResourceFeature({
+          organizationId: organization.id,
+          name: 'Seat Feature',
+          resourceId: resource.id,
+          livemode: true,
+          amount: 5,
+          slug: `seat-feature-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       // Create two products
       const product1 = (
@@ -2655,11 +2673,13 @@ describe('priceMethods.ts', () => {
       ).unwrap()
 
       // Link feature to product1 only
-      await setupProductFeature({
-        productId: product1.id,
-        featureId: resourceFeature.id,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product1.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create prices for both products
       const price1 = await setupPrice({
@@ -2733,14 +2753,16 @@ describe('priceMethods.ts', () => {
         })
       ).unwrap()
 
-      const resourceFeature = await setupResourceFeature({
-        organizationId: organization.id,
-        name: 'Seat Feature',
-        resourceId: resource.id,
-        livemode: true,
-        amount: 5,
-        slug: `seat-feature-${core.nanoid()}`,
-      })
+      const resourceFeature = (
+        await setupResourceFeature({
+          organizationId: organization.id,
+          name: 'Seat Feature',
+          resourceId: resource.id,
+          livemode: true,
+          amount: 5,
+          slug: `seat-feature-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       const product = (
         await setupProduct({
@@ -2751,11 +2773,13 @@ describe('priceMethods.ts', () => {
         })
       ).unwrap()
 
-      await setupProductFeature({
-        productId: product.id,
-        featureId: resourceFeature.id,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create two prices for the same product
       const price1 = await setupPrice({

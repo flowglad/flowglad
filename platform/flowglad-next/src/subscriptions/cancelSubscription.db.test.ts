@@ -2233,12 +2233,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
       })
-      const productFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: paidProduct.id,
-        featureId: feature.id,
-        livemode: true,
-      })
+      const productFeature = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: paidProduct.id,
+          featureId: feature.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
@@ -2394,18 +2396,22 @@ describe('Subscription Cancellation Test Suite', async () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
       })
-      const productFeature1 = await setupProductFeature({
-        organizationId: organization.id,
-        productId: paidProduct.id,
-        featureId: feature1.id,
-        livemode: true,
-      })
-      const productFeature2 = await setupProductFeature({
-        organizationId: organization.id,
-        productId: paidProduct.id,
-        featureId: feature2.id,
-        livemode: true,
-      })
+      const productFeature1 = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: paidProduct.id,
+          featureId: feature1.id,
+          livemode: true,
+        })
+      ).unwrap()
+      const productFeature2 = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: paidProduct.id,
+          featureId: feature2.id,
+          livemode: true,
+        })
+      ).unwrap()
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem1.id,
         featureId: feature1.id,
@@ -3987,16 +3993,18 @@ describe('cancelSubscription with resources', async () => {
     })
 
     // Create a Resource feature
-    const resourceFeature = await setupResourceFeature({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Seats Feature',
-      slug: 'seats-feature',
-      description: 'Resource feature for seats',
-      amount: 10,
-      resourceId: resource.id,
-      livemode: true,
-    })
+    const resourceFeature = (
+      await setupResourceFeature({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Seats Feature',
+        slug: 'seats-feature',
+        description: 'Resource feature for seats',
+        amount: 10,
+        resourceId: resource.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
@@ -4197,16 +4205,18 @@ describe('cancelSubscription with resources', async () => {
     })
 
     // Create a Resource feature
-    const resourceFeature = await setupResourceFeature({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'API Keys Feature',
-      slug: 'api-keys-feature',
-      description: 'Resource feature for API keys',
-      amount: 5,
-      resourceId: resource.id,
-      livemode: true,
-    })
+    const resourceFeature = (
+      await setupResourceFeature({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'API Keys Feature',
+        slug: 'api-keys-feature',
+        description: 'Resource feature for API keys',
+        amount: 5,
+        resourceId: resource.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({

@@ -100,17 +100,21 @@ describe('Pay as You Go Workflow E2E', () => {
       })
     ).unwrap()
 
-    await setupProductFeature({
-      productId: freeProduct.id,
-      featureId: freeOneTimeCreditGrant.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: freeProduct.id,
+        featureId: freeOneTimeCreditGrant.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    await setupProductFeature({
-      productId: paidProduct.id,
-      featureId: paidOneTimeCreditGrant.id,
-      organizationId: organization.id,
-    })
+    ;(
+      await setupProductFeature({
+        productId: paidProduct.id,
+        featureId: paidOneTimeCreditGrant.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     const singlePaymentPrice = await setupPrice({
       productId: paidProduct.id,

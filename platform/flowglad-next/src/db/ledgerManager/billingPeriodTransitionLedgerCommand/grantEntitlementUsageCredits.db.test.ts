@@ -159,12 +159,14 @@ describe('grantEntitlementUsageCredits', () => {
       livemode: true,
     })
 
-    baseProductFeature = await setupProductFeature({
-      organizationId: organization.id,
-      productId: product.id,
-      featureId: baseFeature.id,
-      livemode: true,
-    })
+    baseProductFeature = (
+      await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: baseFeature.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     baseSubscriptionItemFeature =
       await setupSubscriptionItemFeatureUsageCreditGrant({
@@ -337,12 +339,14 @@ describe('grantEntitlementUsageCredits', () => {
       livemode: true,
     })
 
-    const productFeature2 = await setupProductFeature({
-      organizationId: organization.id,
-      productId: product.id,
-      featureId: feature2.id,
-      livemode: true,
-    })
+    const productFeature2 = (
+      await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: feature2.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const sif2 = await setupSubscriptionItemFeatureUsageCreditGrant({
       subscriptionItemId: baseSubscriptionItem.id,
@@ -751,12 +755,14 @@ describe('grantEntitlementUsageCredits', () => {
     })
 
     // 3. Create a product feature for feature2
-    const productFeature2 = await setupProductFeature({
-      organizationId: organization.id,
-      productId: product.id, // Using the existing product
-      featureId: feature2.id,
-      livemode: true,
-    })
+    const productFeature2 = (
+      await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id, // Using the existing product
+        featureId: feature2.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // 4. Create a subscription item feature for feature2
     const sif2 = await setupSubscriptionItemFeatureUsageCreditGrant({
@@ -918,11 +924,13 @@ describe('grantEntitlementUsageCredits', () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
       })
-      const productFeatureOnce = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: featureOnce.id,
-      })
+      const productFeatureOnce = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: featureOnce.id,
+        })
+      ).unwrap()
       const sifOnce =
         await setupSubscriptionItemFeatureUsageCreditGrant({
           subscriptionItemId: baseSubscriptionItem.id,
@@ -942,11 +950,13 @@ describe('grantEntitlementUsageCredits', () => {
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         livemode: true,
       })
-      const productFeatureEvery = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: featureEvery.id,
-      })
+      const productFeatureEvery = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: featureEvery.id,
+        })
+      ).unwrap()
       const sifEvery =
         await setupSubscriptionItemFeatureUsageCreditGrant({
           subscriptionItemId: baseSubscriptionItem.id,
@@ -1045,11 +1055,13 @@ describe('grantEntitlementUsageCredits', () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
       })
-      const productFeatureOnce = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: featureOnce.id,
-      })
+      const productFeatureOnce = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: featureOnce.id,
+        })
+      ).unwrap()
       const sifOnce =
         await setupSubscriptionItemFeatureUsageCreditGrant({
           subscriptionItemId: baseSubscriptionItem.id,
@@ -1069,11 +1081,13 @@ describe('grantEntitlementUsageCredits', () => {
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         livemode: true,
       })
-      const productFeatureEvery = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: featureEvery.id,
-      })
+      const productFeatureEvery = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: featureEvery.id,
+        })
+      ).unwrap()
       const sifEvery =
         await setupSubscriptionItemFeatureUsageCreditGrant({
           subscriptionItemId: baseSubscriptionItem.id,
@@ -1155,11 +1169,13 @@ describe('grantEntitlementUsageCredits', () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
       })
-      const productFeatureOnce = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: featureOnce.id,
-      })
+      const productFeatureOnce = (
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: featureOnce.id,
+        })
+      ).unwrap()
       const sifOnce =
         await setupSubscriptionItemFeatureUsageCreditGrant({
           subscriptionItemId: baseSubscriptionItem.id,

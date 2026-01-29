@@ -93,21 +93,25 @@ describe('Resource Capacity Integration Tests', () => {
     resourceId = resource.id
 
     // Create resource feature
-    const resourceFeature = await setupResourceFeature({
-      organizationId,
-      pricingModelId,
-      name: `Test Resource Feature ${nanoid}`,
-      resourceId,
-      livemode,
-      amount: 5, // Capacity of 5
-    })
+    const resourceFeature = (
+      await setupResourceFeature({
+        organizationId,
+        pricingModelId,
+        name: `Test Resource Feature ${nanoid}`,
+        resourceId,
+        livemode,
+        amount: 5, // Capacity of 5
+      })
+    ).unwrap()
 
     // Create product feature
-    await setupProductFeature({
-      productId,
-      featureId: resourceFeature.id,
-      organizationId,
-    })
+    ;(
+      await setupProductFeature({
+        productId,
+        featureId: resourceFeature.id,
+        organizationId,
+      })
+    ).unwrap()
 
     // Create customer
     const customer = (

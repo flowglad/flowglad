@@ -1260,12 +1260,14 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       livemode: true,
       pricingModelId: pricingModel.id,
     })
-    await setupProductFeature({
-      organizationId: organization.id,
-      productId: product.id,
-      featureId: creditGrantFeature.id,
-      livemode: true,
-    })
+    ;(
+      await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: creditGrantFeature.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Action
     const { subscriptionItems } = (

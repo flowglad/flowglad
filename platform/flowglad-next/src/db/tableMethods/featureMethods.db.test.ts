@@ -258,11 +258,13 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     // Associate feature with product
-    productFeature = await setupProductFeature({
-      productId: product.id,
-      featureId: feature.id,
-      organizationId: organization.id,
-    })
+    productFeature = (
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature.id,
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     // Setup customer and subscription
     customer = (

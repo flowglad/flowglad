@@ -98,12 +98,14 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
   it('handles unspecified expiredAt (null by default)', async () => {
     // Insert a productFeature without specifying expiredAt
-    const insertedFeature = await setupProductFeature({
-      productId,
-      featureId,
-      organizationId: orgId,
-      // expiredAt is not specified, should default to null
-    })
+    const insertedFeature = (
+      await setupProductFeature({
+        productId,
+        featureId,
+        organizationId: orgId,
+        // expiredAt is not specified, should default to null
+      })
+    ).unwrap()
 
     // Query the record back
     const queriedRecords = (
@@ -146,12 +148,14 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
   it('handles explicitly set expiredAt to null', async () => {
     // Insert a productFeature with expiredAt explicitly set to null
-    const insertedFeature = await setupProductFeature({
-      productId,
-      featureId,
-      organizationId: orgId,
-      expiredAt: null,
-    })
+    const insertedFeature = (
+      await setupProductFeature({
+        productId,
+        featureId,
+        organizationId: orgId,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     // Query the record back
     const queriedRecords = (
@@ -194,12 +198,14 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
   it('distinguishes between null, expired, and non-expired records', async () => {
     // Insert a productFeature with null expiredAt
-    const nullExpiredFeature = await setupProductFeature({
-      productId,
-      featureId: featureId,
-      organizationId: orgId,
-      expiredAt: null,
-    })
+    const nullExpiredFeature = (
+      await setupProductFeature({
+        productId,
+        featureId: featureId,
+        organizationId: orgId,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     // Create another feature and product for the expired case
     const expiredFeature = await setupToggleFeature({
@@ -210,12 +216,14 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Insert a productFeature with expiredAt in the past
     const pastDate = new Date('2020-01-01T00:00:00.000Z').getTime()
-    const expiredProductFeature = await setupProductFeature({
-      productId,
-      featureId: expiredFeature.id,
-      organizationId: orgId,
-      expiredAt: pastDate,
-    })
+    const expiredProductFeature = (
+      await setupProductFeature({
+        productId,
+        featureId: expiredFeature.id,
+        organizationId: orgId,
+        expiredAt: pastDate,
+      })
+    ).unwrap()
 
     // Create another feature and product for the future case
     const futureFeature = await setupToggleFeature({
@@ -226,12 +234,14 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Insert a productFeature with expiredAt in the future
     const futureDate = new Date('2099-01-01T00:00:00.000Z').getTime()
-    const futureProductFeature = await setupProductFeature({
-      productId,
-      featureId: futureFeature.id,
-      organizationId: orgId,
-      expiredAt: futureDate,
-    })
+    const futureProductFeature = (
+      await setupProductFeature({
+        productId,
+        featureId: futureFeature.id,
+        organizationId: orgId,
+        expiredAt: futureDate,
+      })
+    ).unwrap()
 
     // Apply createDateNotPassedFilter and verify:
     // - null expiredAt record IS included
@@ -266,12 +276,14 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
   it('handles setting expiredAt to a value and then back to null', async () => {
     // Insert a productFeature with null expiredAt
-    const insertedFeature = await setupProductFeature({
-      productId,
-      featureId,
-      organizationId: orgId,
-      expiredAt: null,
-    })
+    const insertedFeature = (
+      await setupProductFeature({
+        productId,
+        featureId,
+        organizationId: orgId,
+        expiredAt: null,
+      })
+    ).unwrap()
 
     // Verify initial null state
     const initialRecords = (

@@ -110,14 +110,16 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     ).unwrap()
 
     // Setup resource feature with 5 capacity
-    resourceFeature = await setupResourceFeature({
-      organizationId: organization.id,
-      name: 'Seats Feature',
-      resourceId: resource.id,
-      livemode: true,
-      pricingModelId: pricingModel.id,
-      amount: 5,
-    })
+    resourceFeature = (
+      await setupResourceFeature({
+        organizationId: organization.id,
+        name: 'Seats Feature',
+        resourceId: resource.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        amount: 5,
+      })
+    ).unwrap()
 
     // Setup customer and payment method
     customer = (
