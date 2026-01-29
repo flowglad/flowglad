@@ -1,3 +1,4 @@
+import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import axios from 'axios'
 import { Result } from 'better-result'
@@ -5,7 +6,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Membership } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
 import type { User } from '@/db/schema/users'
-import { NotFoundError } from '@/db/tableUtils'
 import { ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,

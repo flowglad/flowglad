@@ -1,3 +1,8 @@
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import yaml from 'json-to-pretty-yaml'
@@ -24,11 +29,6 @@ import {
   selectPricingModelsTableRows,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from '@/db/tableMethods/pricingModelMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import {

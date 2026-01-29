@@ -1,12 +1,3 @@
-import { Result } from 'better-result'
-import { inArray } from 'drizzle-orm'
-import {
-  type UsageCredit,
-  usageCredits,
-  usageCreditsInsertSchema,
-  usageCreditsSelectSchema,
-  usageCreditsUpdateSchema,
-} from '@/db/schema/usageCredits'
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
@@ -17,7 +8,16 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { inArray } from 'drizzle-orm'
+import {
+  type UsageCredit,
+  usageCredits,
+  usageCreditsInsertSchema,
+  usageCreditsSelectSchema,
+  usageCreditsUpdateSchema,
+} from '@/db/schema/usageCredits'
 import { NotFoundError } from '@/errors'
 import { UsageCreditStatus } from '@/types'
 import type { Payment } from '../schema/payments'

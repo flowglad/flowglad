@@ -1,4 +1,5 @@
 import type { CurrencyCode } from '@db-core/enums'
+import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -9,7 +10,6 @@ import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { NotFoundError } from '@/db/tableUtils'
 import {
   OrganizationSubscriptionAdjustedEmail,
   type SubscriptionItem,

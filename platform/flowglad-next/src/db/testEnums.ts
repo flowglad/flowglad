@@ -22,6 +22,7 @@ import {
   SubscriptionStatus,
   UsageMeterAggregationType,
 } from '@db-core/enums'
+import { testEnumColumn } from '@db-core/tableUtils'
 import { apiKeys } from '@/db/schema/apiKeys'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { billingRuns } from '@/db/schema/billingRuns'
@@ -45,7 +46,6 @@ import { subscriptions } from '@/db/schema/subscriptions'
 // Add new schema imports needed for the moved tests
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { testEnumColumn } from '@/db/tableUtils'
 import {
   CheckoutSessionStatus,
   FeeCalculationType,

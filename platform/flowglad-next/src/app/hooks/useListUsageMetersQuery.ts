@@ -1,5 +1,5 @@
+import { encodeCursor } from '@db-core/tableUtils'
 import { trpc } from '@/app/_trpc/client'
-import { encodeCursor } from '@/db/tableUtils'
 
 export const useListUsageMetersQuery = (pricingModelId?: string) => {
   return trpc.usageMeters.list.useQuery(

@@ -1,11 +1,5 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { FlowgladApiKeyType } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -20,10 +14,15 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
-
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import core from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'api_keys'
 

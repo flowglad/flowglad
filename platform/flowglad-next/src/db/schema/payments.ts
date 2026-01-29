@@ -1,15 +1,6 @@
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { CurrencyCode, PaymentMethodType } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  integer,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -29,11 +20,20 @@ import {
   taxColumns,
   taxSchemaColumns,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { zodEpochMs } from '@db-core/timestampMs'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
+import { z } from 'zod'
 import { PaymentStatus, RevenueChartIntervalUnit } from '@/types'
 import core, { zodOptionalNullableString } from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
-import { zodEpochMs } from '../timestampMs'
 import { billingPeriods } from './billingPeriods'
 import { customerClientSelectSchema, customers } from './customers'
 import { invoices } from './invoices'

@@ -1,3 +1,4 @@
+import { idInputSchema } from '@db-core/tableUtils'
 import { z } from 'zod'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -9,7 +10,6 @@ import {
   selectPaymentMethodById,
   selectPaymentMethodsPaginated,
 } from '@/db/tableMethods/paymentMethodMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 

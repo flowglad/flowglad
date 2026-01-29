@@ -1,4 +1,5 @@
 import { FeatureType } from '@db-core/enums'
+import { metadataSchema } from '@db-core/tableUtils'
 import { sql } from 'drizzle-orm'
 import * as core from 'nanoid'
 import { z } from 'zod'
@@ -25,7 +26,6 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
-import { metadataSchema } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 
 // ============================================================================

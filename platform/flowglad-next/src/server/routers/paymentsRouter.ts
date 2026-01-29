@@ -1,3 +1,8 @@
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -16,11 +21,6 @@ import {
   selectPaymentsCursorPaginatedWithTableRowData,
   selectPaymentsPaginated,
 } from '@/db/tableMethods/paymentMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { refundPayment } from '@/server/mutations/refundPayment'
 import { protectedProcedure, router } from '@/server/trpc'
 import { PaymentStatus } from '@/types'

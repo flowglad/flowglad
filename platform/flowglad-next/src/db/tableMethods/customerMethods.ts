@@ -1,16 +1,3 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { z } from 'zod'
-import {
-  type Customer,
-  type CustomerTableRowData,
-  customers,
-  customersInsertSchema,
-  customersPaginatedTableRowDataSchema,
-  customersSelectSchema,
-  customers as customersTable,
-  customersUpdateSchema,
-  InferredCustomerStatus,
-} from '@/db/schema/customers'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -24,7 +11,20 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { z } from 'zod'
+import {
+  type Customer,
+  type CustomerTableRowData,
+  customers,
+  customersInsertSchema,
+  customersPaginatedTableRowDataSchema,
+  customersSelectSchema,
+  customers as customersTable,
+  customersUpdateSchema,
+  InferredCustomerStatus,
+} from '@/db/schema/customers'
 import type { DbTransaction } from '@/db/types'
 import { ArchivedCustomerError } from '@/errors'
 import { PaymentStatus } from '@/types'

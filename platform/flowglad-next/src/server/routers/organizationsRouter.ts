@@ -1,4 +1,8 @@
 import { UsageMeterAggregationType } from '@db-core/enums'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
@@ -37,10 +41,6 @@ import {
 import { updateOrganization as updateOrganizationDB } from '@/db/tableMethods/organizationMethods'
 import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-} from '@/db/tableUtils'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { protectedProcedure, router } from '@/server/trpc'
 import { RevenueChartIntervalUnit } from '@/types'

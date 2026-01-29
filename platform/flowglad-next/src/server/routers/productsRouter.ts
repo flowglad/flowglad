@@ -1,3 +1,7 @@
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import * as R from 'ramda'
@@ -26,10 +30,6 @@ import {
   selectProductsCursorPaginated,
   selectProductsPaginated,
 } from '@/db/tableMethods/productMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-} from '@/db/tableUtils'
 import { validateProductCreation } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import {

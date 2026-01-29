@@ -1,17 +1,4 @@
-import { sql } from 'drizzle-orm'
-import {
-  index,
-  jsonb,
-  pgTable,
-  text,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
-import { resources } from '@/db/schema/resources'
-import { subscriptions } from '@/db/schema/subscriptions'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   constructIndex,
   enableCustomerReadPolicy,
@@ -23,7 +10,20 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  index,
+  jsonb,
+  pgTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { resources } from '@/db/schema/resources'
+import { subscriptions } from '@/db/schema/subscriptions'
 
 const TABLE_NAME = 'resource_claims'
 

@@ -1,8 +1,8 @@
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
 import { FeatureType } from '@db-core/enums'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
   resourceFeatureClientInsertSchema,
   toggleFeatureClientInsertSchema,

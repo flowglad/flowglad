@@ -10,6 +10,7 @@
  */
 
 import type { SubscriptionStatus } from '@db-core/enums'
+import { type SelectConditions } from '@db-core/tableUtils'
 import { eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -17,7 +18,6 @@ import {
   subscriptionItems,
   subscriptionItemsSelectSchema,
 } from '@/db/schema/subscriptionItems'
-import { type SelectConditions } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import {
   type RichSubscription,

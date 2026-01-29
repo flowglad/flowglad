@@ -1,3 +1,16 @@
+import {
+  createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
+  createDateNotPassedFilter,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+  whereClauseFromObject,
+} from '@db-core/tableUtils'
 import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -8,18 +21,6 @@ import {
   productFeaturesSelectSchema,
   productFeaturesUpdateSchema,
 } from '@/db/schema/productFeatures'
-import {
-  createBulkInsertFunction,
-  createBulkInsertOrDoNothingFunction,
-  createInsertFunction,
-  createPaginatedSelectFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  createUpsertFunction,
-  type ORMMethodCreatorConfig,
-  whereClauseFromObject,
-} from '@/db/tableUtils'
 import type {
   AuthenticatedTransactionParams,
   DbTransaction,
@@ -29,7 +30,6 @@ import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
-import { createDateNotPassedFilter } from '../tableUtils'
 import {
   derivePricingModelIdFromProduct,
   pricingModelIdsForProducts,

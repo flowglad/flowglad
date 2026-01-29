@@ -4,6 +4,13 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+  metadataSchema,
+  NotFoundError,
+} from '@db-core/tableUtils'
 import { runs } from '@trigger.dev/sdk/v3'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
@@ -57,13 +64,6 @@ import {
   selectSubscriptionsTableRowData,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-  metadataSchema,
-  NotFoundError,
-} from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import {

@@ -1,16 +1,6 @@
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { CurrencyCode, IntervalUnit } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -30,10 +20,20 @@ import {
   taxColumns,
   taxSchemaColumns,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
 import { InvoiceStatus, InvoiceType } from '@/types'
 import core, { safeZodNullOrUndefined } from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 import { billingPeriods } from './billingPeriods'
 import { billingRuns } from './billingRuns'
 import { customers } from './customers'
