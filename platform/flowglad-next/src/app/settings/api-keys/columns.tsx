@@ -19,6 +19,7 @@ import core from '@/utils/core'
 export type ApiKeyTableRowData = {
   apiKey: ApiKey.ClientRecord
   organization: { id: string; name: string }
+  pricingModel: { id: string; name: string }
 }
 
 function ApiKeyActionsMenu({
@@ -96,6 +97,19 @@ export const columns: ColumnDef<ApiKeyTableRowData>[] = [
     size: 225,
     minSize: 180,
     maxSize: 300,
+  },
+  {
+    id: 'pricingModel',
+    accessorFn: (row) => row.pricingModel.name,
+    header: 'Pricing Model',
+    cell: ({ row }) => (
+      <div className="truncate" title={row.getValue('pricingModel')}>
+        {row.getValue('pricingModel')}
+      </div>
+    ),
+    size: 150,
+    minSize: 120,
+    maxSize: 200,
   },
   {
     id: 'createdAt',

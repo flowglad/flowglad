@@ -41,6 +41,7 @@ const CreateApiKeyModal = ({
         apiKey: {
           name: '',
           type: FlowgladApiKeyType.Secret as const,
+          pricingModelId: '',
         },
       })}
       onSubmit={async (data) => {

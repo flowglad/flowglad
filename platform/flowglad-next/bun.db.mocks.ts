@@ -22,7 +22,6 @@ import { unkeyUtilsMockExports } from './mocks/unkey-utils-mock'
 
 mock.module('@/utils/unkey', () => unkeyUtilsMockExports)
 
-// Import and register @/utils/stripe mock for db tests
-import { stripeUtilsMockExports } from './mocks/stripe-utils-mock'
-
-mock.module('@/utils/stripe', () => stripeUtilsMockExports)
+// NOTE: Stripe is NOT mocked in db tests.
+// DB tests use stripe-mock (Docker container) for Stripe API calls.
+// Tests that need to mock Stripe functions should use *.stripe.test.ts instead.

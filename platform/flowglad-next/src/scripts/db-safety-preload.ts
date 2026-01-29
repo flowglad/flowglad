@@ -21,14 +21,59 @@
  * actually tries to use the database.
  */
 
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
+
+// ============================================================================
+// Environment Loading for NODE_ENV=integration
+// ============================================================================
+// Bun only auto-loads .env.test, .env.development, .env.production.
+// For NODE_ENV=integration, we must load .env.integration explicitly.
+// This must happen FIRST, before any other code uses env vars.
+
+function loadEnvIntegration(): void {
+  const nodeEnv = process.env.NODE_ENV?.toLowerCase()
+
+  if (nodeEnv !== 'integration') return
+
+  const envPath = resolve(process.cwd(), '.env.integration')
+  if (!existsSync(envPath)) return
+  const content = readFileSync(envPath, 'utf-8')
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+
+    const eqIndex = trimmed.indexOf('=')
+    if (eqIndex === -1) continue
+
+    const key = trimmed.slice(0, eqIndex)
+    let value = trimmed.slice(eqIndex + 1)
+
+    // Remove surrounding quotes if present
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+
+    // Override env vars for integration (we want these values, not the auto-loaded ones)
+    process.env[key] = value
+  }
+}
+
+// Load integration env FIRST, before anything else
+loadEnvIntegration()
 
 // ============================================================================
 // Environment Detection
 // ============================================================================
 
-export type NodeEnvType = 'development' | 'production' | 'test'
+export type NodeEnvType =
+  | 'development'
+  | 'production'
+  | 'test'
+  | 'integration'
 
 /**
  * Scripts that don't require environment files.
@@ -67,16 +112,21 @@ export function isTestScript(): boolean {
  * Get the effective NODE_ENV.
  *
  * Detection order:
- * 1. If script name starts with "test" → 'test'
- * 2. If NODE_ENV is 'production' → 'production'
- * 3. If NODE_ENV is 'test' → 'test'
- * 4. Otherwise → 'development' (default)
+ * 1. If NODE_ENV is 'integration' → 'integration' (explicit, takes precedence)
+ * 2. If script name starts with "test" → 'test'
+ * 3. If NODE_ENV is 'production' → 'production'
+ * 4. If NODE_ENV is 'test' → 'test'
+ * 5. Otherwise → 'development' (default)
  */
 export function getEffectiveNodeEnv(): NodeEnvType {
+  const nodeEnv = process.env.NODE_ENV?.toLowerCase()
+
+  // Integration takes precedence - explicitly set by test runner for integration tests
+  if (nodeEnv === 'integration') return 'integration'
+
   // Auto-detect test environment from script name
   if (isTestScript()) return 'test'
 
-  const nodeEnv = process.env.NODE_ENV?.toLowerCase()
   if (nodeEnv === 'production') return 'production'
   if (nodeEnv === 'test') return 'test'
   return 'development' // Default to development
@@ -108,6 +158,7 @@ function validateEnvironmentFiles(): void {
     development: '.env.development',
     production: '.env.production',
     test: '.env.test',
+    integration: '.env.integration',
   }
 
   const envFile = envFileMap[nodeEnv]
@@ -122,6 +173,10 @@ function validateEnvironmentFiles(): void {
       console.warn('To set up: bun run vercel:env-pull:prod')
     } else if (nodeEnv === 'test') {
       console.warn('To set up: bun run test:setup')
+    } else if (nodeEnv === 'integration') {
+      console.warn(
+        'To set up: bun run vercel:env-pull:dev (post-hook generates .env.integration)'
+      )
     }
     return
   }

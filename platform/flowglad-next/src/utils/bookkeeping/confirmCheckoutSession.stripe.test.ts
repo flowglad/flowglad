@@ -2,6 +2,14 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
+  mockCancelPaymentIntent,
+  mockCreateStripeCustomer,
+  mockGetPaymentIntent,
+  mockGetSetupIntent,
+  mockUpdatePaymentIntent,
+  mockUpdateSetupIntent,
+} from '@/../bun.stripe.mocks'
+import {
   setupCheckoutSession,
   setupCustomer,
   setupDiscount,
@@ -46,15 +54,6 @@ import {
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import core from '@/utils/core'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
-
-// Use global mocks from bun.db.mocks.ts
-// Configure default behaviors for this test file
-const mockCancelPaymentIntent = globalThis.__mockCancelPaymentIntent
-const mockCreateStripeCustomer = globalThis.__mockCreateStripeCustomer
-const mockGetPaymentIntent = globalThis.__mockGetPaymentIntent
-const mockGetSetupIntent = globalThis.__mockGetSetupIntent
-const mockUpdatePaymentIntent = globalThis.__mockUpdatePaymentIntent
-const mockUpdateSetupIntent = globalThis.__mockUpdateSetupIntent
 
 describe('confirmCheckoutSessionTransaction', () => {
   // Common variables for all tests

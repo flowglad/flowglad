@@ -9,6 +9,15 @@
  * This file is used by ALL test types (unit, db, integration).
  * For db-specific blockers and mocks, see bun.db.mocks.ts.
  */
+
+// Set environment variable defaults FIRST, before any imports that might use them
+// These are fallbacks for when the env vars aren't set in .env files
+process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
+process.env.UNKEY_ROOT_KEY =
+  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
+process.env.BETTER_AUTH_URL =
+  process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+
 import { mock } from 'bun:test'
 
 // Import common module mocks (trigger tasks, auth, server-only)
