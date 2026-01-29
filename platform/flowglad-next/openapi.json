@@ -19618,6 +19618,7 @@
         "required": ["canAdjust", "previewGeneratedAt"],
         "additionalProperties": false,
         "if": {
+          "required": ["canAdjust"],
           "properties": {
             "canAdjust": {
               "const": false
