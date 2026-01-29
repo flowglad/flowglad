@@ -6,8 +6,6 @@ Self-contained Drizzle schema definitions for git subtree export.
 
 This directory contains all database schema definitions, enums, and related utilities needed for the Flowglad application. It is designed to be fully self-contained with no dependencies on application-specific code, enabling it to be shared with other repositories via `git subtree`.
 
-The primary use case is synchronizing schema definitions from this open-source repository (`flowglad/flowglad`) to the closed-source internal repository (`flowglad/flowglad-internal`).
-
 ## Structure
 
 ```
@@ -54,50 +52,30 @@ import { users } from '@db-core/schema/users'
 import { PaymentStatus } from '@db-core/enums'
 ```
 
-## Usage in Internal Repo (via git subtree)
+## Consuming via git subtree
 
-The internal repository pulls this directory via `git subtree`:
+This directory can be exported and consumed by other repositories via `git subtree`.
 
-### Initial Setup (one-time)
-
-```bash
-# Add the remote
-git remote add flowglad-oss git@github.com:flowglad/flowglad.git
-
-# Pull the subtree into a local directory
-git subtree add --prefix=packages/db-core flowglad-oss db-core-export --squash
-```
-
-### Pulling Updates
-
-When schema changes are made in the open-source repo:
+### Exporting (from this repo)
 
 ```bash
-# In the open-source repo: export the subtree branch
+# Export the subtree to a dedicated branch
 git subtree split --prefix=platform/flowglad-next/db-core -b db-core-export
 git push origin db-core-export
+```
 
-# In the internal repo: pull the updates
+### Importing (in consuming repo)
+
+```bash
+# Initial setup (one-time)
+git remote add flowglad-oss git@github.com:flowglad/flowglad.git
+git subtree add --prefix=packages/db-core flowglad-oss db-core-export --squash
+
+# Pull updates
 git subtree pull --prefix=packages/db-core flowglad-oss db-core-export --squash
 ```
 
-## Workflow
-
-Schema changes flow **unidirectionally** from open-source to internal:
-
-```
-flowglad/flowglad (open-source)
-    │
-    │  git subtree split
-    ▼
-db-core-export branch
-    │
-    │  git subtree pull
-    ▼
-flowglad/flowglad-internal (closed-source)
-```
-
-**Important**: Schema definitions should only be modified in the open-source repository. The internal repository consumes these definitions but should not modify them directly.
+**Important**: Schema definitions should only be modified in this repository. Consuming repositories should not modify the subtree directly.
 
 ## Adding New Schema Files
 
