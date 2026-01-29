@@ -1,5 +1,6 @@
 import type { Flowglad as FlowgladNode } from '@flowglad/node'
 import type {
+  FeatureItem,
   SubscriptionExperimentalFields,
   UsageMeterBalance,
 } from './types/sdk'
@@ -17,6 +18,7 @@ export const getBaseURL = () => {
 export const constructCheckFeatureAccess = (
   subscriptions: {
     id: string
+    featureItems?: FeatureItem[]
     experimental?: SubscriptionExperimentalFields
   }[]
 ) => {
@@ -34,26 +36,24 @@ export const constructCheckFeatureAccess = (
     if (!subscription) {
       return false
     }
-    const experimental = subscription.experimental
+
+    const featureItems = subscription.featureItems
+      ?? subscription.experimental?.featureItems
+      ?? []
+
     const featureItemsBySlug =
-      experimental?.featureItems.reduce(
+      featureItems.reduce(
         (
-          acc: Record<
-            string,
-            SubscriptionExperimentalFields['featureItems'][number]
-          >,
-          featureItem: SubscriptionExperimentalFields['featureItems'][number]
+          acc: Record<string, FeatureItem>,
+          featureItem: FeatureItem
         ) => {
           if (featureItem.type === 'toggle') {
             acc[featureItem.slug] = featureItem
           }
           return acc
         },
-        {} as Record<
-          string,
-          SubscriptionExperimentalFields['featureItems'][number]
-        >
-      ) ?? {}
+        {} as Record<string, FeatureItem>
+      )
     const featureItem = featureItemsBySlug[featureSlug]
     if (!featureItem) {
       return false

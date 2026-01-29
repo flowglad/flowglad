@@ -1,6 +1,7 @@
 import type { Flowglad as FlowgladNode } from '@flowglad/node'
 import { describe, expect, it } from 'vitest'
-import { constructGetPrice, constructGetProduct } from './utils'
+import type { FeatureItem, SubscriptionExperimentalFields } from './types/sdk'
+import { constructCheckFeatureAccess, constructGetPrice, constructGetProduct } from './utils'
 
 type PricingModel =
   FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']
@@ -459,12 +460,75 @@ describe('constructGetPrice', () => {
   })
 })
 
-describe.skip('constructCheckFeatureAccess', () => {
+describe('constructCheckFeatureAccess', () => {
+  // Helper to create a minimal feature item fixture
+  const createFeatureItem = (overrides: Partial<FeatureItem> = {}): FeatureItem =>
+    ({
+      id: 'feature_default',
+      livemode: false,
+      slug: 'default-feature',
+      name: 'Default Feature',
+      type: 'toggle',
+      amount: 0,
+      usageMeterId: '',
+      renewalFrequency: 'once',
+      expiredAt: null,
+      detachedAt: null,
+      detachedReason: null,
+      ...overrides,
+    }) as FeatureItem
+
   it('prefers featureItems over experimental', () => {
-    // Test stub - to be implemented in Patch 6
+    const topLevelFeature = createFeatureItem({
+      id: 'feature_top_level',
+      slug: 'premium-feature',
+      name: 'Premium Feature (Top Level)',
+      type: 'toggle',
+    })
+    const experimentalFeature = createFeatureItem({
+      id: 'feature_experimental',
+      slug: 'premium-feature',
+      name: 'Premium Feature (Experimental)',
+      type: 'toggle',
+    })
+    const subscriptions = [
+      {
+        id: 'sub_123',
+        featureItems: [topLevelFeature],
+        experimental: {
+          featureItems: [experimentalFeature],
+        } as SubscriptionExperimentalFields,
+      },
+    ]
+    const checkFeatureAccess = constructCheckFeatureAccess(subscriptions)
+
+    const hasAccess = checkFeatureAccess('premium-feature')
+
+    // Should use the top-level featureItems, not experimental
+    expect(hasAccess).toBe(true)
   })
 
   it('falls back to experimental.featureItems', () => {
-    // Test stub - to be implemented in Patch 6
+    const experimentalFeature = createFeatureItem({
+      id: 'feature_experimental',
+      slug: 'legacy-feature',
+      name: 'Legacy Feature',
+      type: 'toggle',
+    })
+    const subscriptions = [
+      {
+        id: 'sub_456',
+        // No top-level featureItems
+        experimental: {
+          featureItems: [experimentalFeature],
+        } as SubscriptionExperimentalFields,
+      },
+    ]
+    const checkFeatureAccess = constructCheckFeatureAccess(subscriptions)
+
+    const hasAccess = checkFeatureAccess('legacy-feature')
+
+    // Should fall back to experimental.featureItems when top-level is not present
+    expect(hasAccess).toBe(true)
   })
 })
