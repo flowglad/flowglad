@@ -93,11 +93,21 @@ const mockHostVars = [
   'TRIGGER_API_URL',
 ] as const
 
+// Check for localhost variants: hostname, IPv4 loopback, IPv6 loopback
+const isLocalhostUrl = (url: string): boolean => {
+  const lower = url.toLowerCase()
+  return (
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1') ||
+    lower.includes('[::1]')
+  )
+}
+
 for (const envVar of mockHostVars) {
   const value = process.env[envVar]
-  if (value && value.includes('localhost')) {
+  if (value && isLocalhostUrl(value)) {
     console.error(
-      `\n❌ ${envVar} is set to a localhost URL (${value}) but integration tests require real APIs.\n`
+      `\n❌ ${envVar} is set to a local URL (${value}) but integration tests require real APIs.\n`
     )
     console.error(
       'Integration tests should not use mock servers. Either:'
