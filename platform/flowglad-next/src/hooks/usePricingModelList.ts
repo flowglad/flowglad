@@ -18,17 +18,13 @@ export const usePricingModelList = () => {
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
 
-  // Fetch all pricing models for the current organization
-  // We use getTableRows with no livemode filter to get both test and live PMs
-  const pricingModelsQuery = trpc.pricingModels.getTableRows.useQuery(
-    {
-      pageSize: 100, // Should be enough for most orgs
-      filters: {},
-    },
-    {
+  // Fetch all pricing models for the current organization across both livemodes.
+  // Uses getAllForSwitcher which bypasses RLS livemode check via adminTransaction,
+  // but still scopes to the user's organization for security.
+  const pricingModelsQuery =
+    trpc.pricingModels.getAllForSwitcher.useQuery(undefined, {
       enabled: !!focusedMembership.data?.organization,
-    }
-  )
+    })
 
   // Sort pricing models: livemode first, then test mode
   const sortedPricingModels = useMemo(() => {

@@ -324,6 +324,46 @@ const getTableRowsProcedure = protectedProcedure
     )
   )
 
+/**
+ * Get all pricing models for the organization across both livemode and test mode.
+ * Used by the pricing model switcher UI which needs to display all pricing models
+ * regardless of the current livemode context.
+ *
+ * Uses adminTransaction to bypass the livemode RLS policy on pricing_models table,
+ * but explicitly scopes to the user's organization for security.
+ */
+const getAllForSwitcherProcedure = protectedProcedure
+  .output(
+    createPaginatedTableRowOutputSchema(
+      z.object({
+        pricingModel: pricingModelsClientSelectSchema,
+        productsCount: z.number(),
+      })
+    )
+  )
+  .query(async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+
+    // Use adminTransaction to bypass RLS livemode check,
+    // but explicitly scope to the user's organization for security
+    return adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsTableRows({
+        input: {
+          pageSize: 100,
+          filters: {
+            organizationId: ctx.organizationId,
+          },
+        },
+        transaction,
+      })
+    })
+  })
+
 const setupPricingModelProcedure = protectedProcedure
   .meta({
     openapi: {
@@ -438,6 +478,7 @@ export const pricingModelsRouter = router({
   update: updatePricingModelProcedure,
   clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
+  getAllForSwitcher: getAllForSwitcherProcedure,
   export: exportPricingModelProcedure,
   getIntegrationGuide: {
     streaming: getIntegrationGuideProcedure,
