@@ -1,18 +1,20 @@
 ---
 name: resolve-checks
-description: Resolve all failing CI checks on the current branch's PR by running tests locally, fixing failures, and ensuring CI passes. Use when CI is red or before merging.
+description: Resolve all failing CI checks and address PR review feedback on the current branch's PR. Runs tests locally, fixes failures, incorporates valid review comments, and resolves addressed feedback. Use when CI is red, after receiving PR feedback, or before merging.
 ---
 
 # Resolve Checks
 
-Systematically resolve all failing CI checks by running tests locally first, fixing issues, and verifying CI passes.
+Systematically resolve all failing CI checks and address PR review feedback by running tests locally first, fixing issues, incorporating valid feedback, and verifying CI passes.
 
 ## When to Use
 
 - When CI checks are failing on your PR
+- When you have unresolved PR review comments
 - Before attempting to merge a PR
 - When you want to proactively verify all checks pass
 - After making changes and before pushing
+- After receiving code review feedback
 
 ## Core Principle
 
@@ -223,6 +225,98 @@ Repeat steps 4-7 until all checks pass. Common iteration scenarios:
 
 **Remember:** The goal is a stable, passing test suite - not a lucky CI run. Every fix should address the root cause.
 
+### 9. Address PR Review Feedback
+
+After CI checks pass, review and address any PR comments left by reviewers.
+
+#### Step 1: Fetch PR Comments
+
+Get all review comments on the PR:
+
+```
+mcp__github__get_pull_request_comments with owner, repo, and pull_number
+```
+
+Also get the formal reviews:
+
+```
+mcp__github__get_pull_request_reviews with owner, repo, and pull_number
+```
+
+#### Step 2: Categorize Each Comment
+
+For each comment, determine if it is:
+
+| Category | Description | Action |
+|----------|-------------|--------|
+| **Valid & Actionable** | Identifies a real issue, bug, or improvement | Implement the fix |
+| **Valid but Won't Fix** | Correct observation but intentional design choice | Reply explaining the rationale |
+| **Already Addressed** | Issue was fixed in a subsequent commit | Resolve the comment |
+| **Invalid/Misunderstanding** | Based on incorrect assumptions about the code | Reply with clarification |
+| **Nitpick/Optional** | Style preference or minor suggestion | Implement if quick, otherwise discuss |
+
+#### Step 3: Incorporate Valid Feedback
+
+For each valid comment:
+
+1. **Read the specific file and line** mentioned in the comment
+2. **Understand the concern** - What issue is the reviewer pointing out?
+3. **Implement the fix** - Make the necessary code changes
+4. **Reply to the comment** - Briefly explain what was changed
+
+```
+mcp__github__add_issue_comment with owner, repo, issue_number, and body
+```
+
+Or reply directly to the review comment thread.
+
+#### Step 4: Resolve Addressed Comments
+
+After incorporating feedback or providing clarification:
+
+**For comments you addressed:** The comment should be resolved to indicate the feedback was incorporated. If GitHub MCP supports resolving comments, use that. Otherwise, reply with "Done" or "Fixed in [commit hash]" to signal completion.
+
+**For invalid comments:** Reply with a clear, respectful explanation of why the current implementation is correct or intentional. Include:
+- What the code actually does
+- Why it's designed this way
+- Any relevant context the reviewer may have missed
+
+Example reply for invalid feedback:
+```
+This is intentional - the `userId` here refers to the authenticated user making the request, not the target user. The authorization check happens in the middleware at line 45, so by this point we know the user has permission.
+```
+
+#### Step 5: Handle Review Requests
+
+If the PR has "Changes Requested" status:
+
+1. Address all blocking comments from that review
+2. Re-request review from the reviewer once changes are made:
+   ```bash
+   gh pr edit <PR_NUMBER> --add-reviewer <USERNAME>
+   ```
+
+#### Common Review Feedback Patterns
+
+| Feedback Type | How to Address |
+|---------------|----------------|
+| Missing error handling | Add try/catch or Result type handling |
+| Type safety concerns | Add proper types, remove `any` |
+| Missing tests | Add test cases for the mentioned scenarios |
+| Security issues | Fix immediately, these are blocking |
+| Performance concerns | Evaluate and optimize if valid |
+| Code clarity | Rename variables, add comments, or refactor |
+| Breaking changes | Ensure backwards compatibility or document migration |
+
+### 10. Final Verification
+
+After addressing all feedback:
+
+1. **Re-run local tests** - Ensure your fixes didn't break anything
+2. **Push changes** - Trigger CI again
+3. **Verify CI passes** - All checks should be green
+4. **Verify comments resolved** - No unaddressed blocking feedback remains
+
 ## Quick Reference
 
 | Command | What It Tests |
@@ -242,12 +336,19 @@ For detailed test types, setup files, utilities, failure patterns, and parallel 
 
 Report the final status:
 
-**If all checks pass:**
+**If all checks pass and feedback addressed:**
 - Confirm all local tests pass
 - Confirm all CI checks are green
 - List any notable fixes made
+- Summarize PR feedback that was incorporated
+- Note any comments that were resolved with explanations (not code changes)
 
 **If checks still fail:**
 - List which checks are still failing
 - Describe what was attempted
 - Explain what remains to be investigated
+
+**If feedback remains unresolved:**
+- List comments that still need discussion
+- Explain any disagreements with reviewer feedback
+- Suggest next steps (e.g., "discuss with reviewer" or "waiting for clarification")
