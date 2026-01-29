@@ -34,6 +34,7 @@ export const session = pgTable('better_auth_session', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  contextOrganizationId: text('context_organization_id'),
 }).enableRLS()
 
 export const account = pgTable('better_auth_account', {

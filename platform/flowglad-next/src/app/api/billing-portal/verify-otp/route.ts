@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { auth } from '@/utils/auth'
 import {
   getCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
@@ -139,6 +141,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // After successful authentication, update the session to set contextOrganizationId
+    // This ensures the organization context is stored server-side in the session
+    // rather than relying on client-side cookies for authorization
+    await auth.api.updateSession({
+      body: {
+        contextOrganizationId: organizationId,
+      },
+      headers: await headers(),
+    })
 
     // Create success response and forward Set-Cookie headers from BetterAuth
     const response = NextResponse.json({

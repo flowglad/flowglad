@@ -22,35 +22,64 @@ export const createContext = async (
   let organization: Organization.Record | undefined
   let user: User.Record | undefined
 
+  // Check if this is a customer billing portal session with contextOrganizationId
+  // If so, prioritize that over the focused membership organization
+  const contextOrganizationId = session?.session
+    ?.contextOrganizationId as string | undefined
+
   if (betterAuthUserId) {
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMembershipAndOrganizationsByBetterAuthUserId(
-          betterAuthUserId,
-          transaction
-        )
-      }
-    )
-    const maybeMembership = memberships.find(
-      (membership) => membership.membership.focused
-    )
-    if (maybeMembership) {
-      const { membership } = maybeMembership
-      environment = membership.livemode ? 'live' : 'test'
-      organization = maybeMembership.organization
-      organizationId = organization.id
-      user = maybeMembership.user
-    } else {
-      const [maybeUser] = await adminTransaction(
+    // If contextOrganizationId is set, use it for customer billing portal context
+    if (contextOrganizationId) {
+      const [maybeUser, maybeOrganization] = await adminTransaction(
         async ({ transaction }) => {
-          return selectUsers(
+          const users = await selectUsers(
             { betterAuthId: betterAuthUserId },
+            transaction
+          )
+          const org = await selectOrganizationById(
+            contextOrganizationId,
+            transaction
+          )
+          return [users[0], org]
+        }
+      )
+      if (maybeUser && maybeOrganization) {
+        user = maybeUser
+        organization = maybeOrganization
+        organizationId = contextOrganizationId
+        environment = 'live' // Customer billing portal is always live mode
+      }
+    } else {
+      // Fall back to focused membership for merchant context
+      const memberships = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipAndOrganizationsByBetterAuthUserId(
+            betterAuthUserId,
             transaction
           )
         }
       )
-      if (maybeUser) {
-        user = maybeUser
+      const maybeMembership = memberships.find(
+        (membership) => membership.membership.focused
+      )
+      if (maybeMembership) {
+        const { membership } = maybeMembership
+        environment = membership.livemode ? 'live' : 'test'
+        organization = maybeMembership.organization
+        organizationId = organization.id
+        user = maybeMembership.user
+      } else {
+        const [maybeUser] = await adminTransaction(
+          async ({ transaction }) => {
+            return selectUsers(
+              { betterAuthId: betterAuthUserId },
+              transaction
+            )
+          }
+        )
+        if (maybeUser) {
+          user = maybeUser
+        }
       }
     }
   }

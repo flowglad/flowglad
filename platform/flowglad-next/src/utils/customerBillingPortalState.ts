@@ -3,11 +3,28 @@ import core from './core'
 
 const cookieName = 'customer-billing-organization-id'
 
+/**
+ * @deprecated This cookie is only used during the pre-auth OTP sign-in flow.
+ * Post-authentication, organization context is stored in session.contextOrganizationId
+ * and should be read from the session, not from this cookie.
+ *
+ * DO NOT use this function for authorization decisions in authenticated routes.
+ * Use the organizationId from the session context instead (via TRPC context or getSession()).
+ */
 export const clearCustomerBillingPortalOrganizationId = async () => {
   const cookieStore = await cookies()
   await cookieStore.delete(cookieName)
 }
 
+/**
+ * @deprecated This cookie is only used during the pre-auth OTP sign-in flow to pass
+ * organization context to the BetterAuth OTP verification process.
+ *
+ * Post-authentication, organization context is stored in session.contextOrganizationId
+ * and should be read from the session, not from this cookie.
+ *
+ * DO NOT use this function for authorization decisions in authenticated routes.
+ */
 export const setCustomerBillingPortalOrganizationId = async (
   organizationId: string
 ) => {
@@ -20,6 +37,19 @@ export const setCustomerBillingPortalOrganizationId = async (
   })
 }
 
+/**
+ * @deprecated This cookie is only used during the pre-auth OTP sign-in flow to pass
+ * organization context to the BetterAuth OTP verification process.
+ *
+ * Post-authentication, organization context is stored in session.contextOrganizationId
+ * and should be read from the session, not from this cookie.
+ *
+ * DO NOT use this function for authorization decisions in authenticated routes.
+ * Use the organizationId from the session context instead (via TRPC context or getSession()).
+ *
+ * Valid usage: Pre-auth UI (e.g., during OTP email sending) where no session exists yet.
+ * Invalid usage: Post-auth TRPC procedures or API routes for authorization.
+ */
 export const getCustomerBillingPortalOrganizationId =
   async (params?: { __testOrganizationId?: string }) => {
     if (core.IS_TEST) {

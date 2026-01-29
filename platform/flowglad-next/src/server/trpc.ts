@@ -15,7 +15,6 @@ import {
 } from '@/errors'
 import type { FeatureFlag } from '@/types'
 import { IS_DEV } from '@/utils/core'
-import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { t } from './coreTrpcObject'
 import { createTracingMiddleware } from './tracingMiddleware'
@@ -153,7 +152,7 @@ const isAuthed = t.middleware(({ next, ctx }) => {
  *
  * The middleware:
  * - Requires a logged-in user (no API key support)
- * - Gets the organization ID from the billing portal cookie state
+ * - Gets the organization ID from the session's contextOrganizationId (set server-side during OTP verification)
  * - Requires `customerId` in the request input
  * - Queries the database to find a matching customer for the user and organization
  * - Validates the user has access to that specific customer
@@ -162,6 +161,7 @@ const isAuthed = t.middleware(({ next, ctx }) => {
  * @param getRawInput - Used to extract required `customerId` from request input
  * @returns Context with user, customer, organization, and environment info
  * @throws {TRPCError} UNAUTHORIZED if no user or user doesn't have access to customer
+ * @throws {TRPCError} BAD_REQUEST if contextOrganizationId is missing from session
  */
 const isCustomerAuthed = t.middleware(
   async ({ next, ctx, getRawInput }) => {
@@ -171,8 +171,17 @@ const isCustomerAuthed = t.middleware(
     if (!user) {
       throw new TRPCError({ code: 'UNAUTHORIZED' })
     }
-    const organizationId =
-      await getCustomerBillingPortalOrganizationId()
+
+    // Get organizationId from context (which prioritizes session.contextOrganizationId)
+    // This ensures we use the server-side session context, not client-side cookies
+    const organizationId = (ctx as TRPCContext).organizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Customer session missing organizationId context. Please sign in again.',
+      })
+    }
 
     // Extract customerId from raw input to populate ctx.customer and ctx.organization.
     // Middleware runs before input validation, so we must use getRawInput() instead of validated input.
