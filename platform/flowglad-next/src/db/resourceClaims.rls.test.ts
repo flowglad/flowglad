@@ -152,16 +152,14 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
     })
 
     // Create subscription item feature to provide capacity for the resource
-    ;(
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        resourceId: resource.id,
-        pricingModelId: pricingModel.id,
-        productFeatureId: productFeature.id,
-        livemode: true,
-      })
-    ).unwrap()
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: feature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      productFeatureId: productFeature.id,
+      livemode: true,
+    })
   })
 
   describe('insertResourceClaim via authenticatedTransaction (merchant role)', () => {

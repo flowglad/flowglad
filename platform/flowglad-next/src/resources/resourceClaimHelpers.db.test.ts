@@ -80,12 +80,14 @@ describe('resourceClaimHelpers', () => {
       })
     ).unwrap()
 
-    const product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const price = await setupPrice({
       productId: product.id,
@@ -142,7 +144,7 @@ describe('resourceClaimHelpers', () => {
       })
     ).unwrap()
 
-    subscriptionItemFeature = (
+    subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -150,7 +152,6 @@ describe('resourceClaimHelpers', () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
-    ).unwrap()
   })
 
   describe('claimResourceTransaction', () => {
@@ -1444,12 +1445,14 @@ describe('expired_at functionality', () => {
       })
     ).unwrap()
 
-    const product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const price = await setupPrice({
       productId: product.id,
@@ -1506,7 +1509,7 @@ describe('expired_at functionality', () => {
       })
     ).unwrap()
 
-    subscriptionItemFeature = (
+    subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -1514,7 +1517,6 @@ describe('expired_at functionality', () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
-    ).unwrap()
   })
 
   describe('expired claims filtering', () => {

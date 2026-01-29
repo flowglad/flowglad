@@ -186,7 +186,7 @@ describe('Resource Capacity Integration Tests', () => {
     const subscriptionItem = subscriptionItems[0]
 
     // Create subscription item feature
-    const subscriptionItemFeature = (
+    const subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -194,7 +194,6 @@ describe('Resource Capacity Integration Tests', () => {
         pricingModelId,
         amount: 5,
       })
-    ).unwrap()
     subscriptionItemFeatureId = subscriptionItemFeature.id
   })
 

@@ -315,8 +315,10 @@ describe('createCustomerBookkeeping', () => {
         name: 'Empty Pricing Model',
         isDefault: false,
         livemode: false,
-      })(
-        // Create a non-default product (so there's no default product)
+      })
+
+      // Create a non-default product (so there's no default product)
+      ;(
         await setupProduct({
           organizationId: organization.id,
           name: 'Non-Default Product',

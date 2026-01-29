@@ -4061,15 +4061,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 5,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
 
         // Claim 3 resources before adjustment
         await adminTransaction(async (ctx) => {
@@ -4228,15 +4226,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 5000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 10,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
 
         // Claim 8 resources
         await adminTransaction(async (ctx) => {
@@ -4391,15 +4387,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 5,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
 
         // Claim 3 resources
         await adminTransaction(async (ctx) => {
@@ -4561,15 +4555,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: highCapacityFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 10,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
 
         // Claim 3 resources (less than new capacity)
         await adminTransaction(async (ctx) => {
@@ -4728,15 +4720,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: highCapacityFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 10,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
 
         // Claim 5 resources
         await adminTransaction(async (ctx) => {
@@ -4899,15 +4889,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: highCapacityFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 10,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
 
         // Claim 5 resources
         await adminTransaction(async (ctx) => {
@@ -5061,15 +5049,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: highCapacityFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 10,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
 
         // Claim 3 resources (less than new capacity)
         await adminTransaction(async (ctx) => {
@@ -5280,15 +5266,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: baseItem.id,
-            featureId: basePlanFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 3,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: baseItem.id,
+          featureId: basePlanFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
 
         const addonItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5297,15 +5281,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 500,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: addonItem.id,
-            featureId: addonFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 2,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: addonItem.id,
+          featureId: addonFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 2,
+        })
 
         // Claim 4 resources (uses capacity from both items)
         await adminTransaction(async (ctx) => {
@@ -5462,15 +5444,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: baseItem.id,
-            featureId: basePlanFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 3,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: baseItem.id,
+          featureId: basePlanFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
 
         const addonItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5479,15 +5459,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 500,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: addonItem.id,
-            featureId: addonFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 2,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: addonItem.id,
+          featureId: addonFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 2,
+        })
 
         // Claim 2 resources (can be satisfied by base plan alone)
         await adminTransaction(async (ctx) => {
@@ -5616,15 +5594,13 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 5,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
 
         // Claim 2 resources before adjustment
         await adminTransaction(async (ctx) => {
@@ -5794,15 +5770,13 @@ describe('adjustSubscription Integration Tests', async () => {
           unitPrice: 1000,
         })
 
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 5,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
 
         // Claim 3 resources before adjustment
         await adminTransaction(async (ctx) => {
@@ -5971,15 +5945,13 @@ describe('adjustSubscription Integration Tests', async () => {
           unitPrice: 1000,
         })
 
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: initialFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 3,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: initialFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
 
         // Step 2: Claim 2 seats
         await adminTransaction(async (ctx) => {
@@ -6160,15 +6132,13 @@ describe('adjustSubscription Integration Tests', async () => {
           unitPrice: 1000,
         })
 
-        ;(
-          await setupResourceSubscriptionItemFeature({
-            subscriptionItemId: subscriptionItem.id,
-            featureId: initialFeature.id,
-            resourceId: resource.id,
-            pricingModelId: pricingModel.id,
-            amount: 3,
-          })
-        ).unwrap()
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: initialFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
 
         // Step 2: Claim 2 seats initially
         await adminTransaction(async (ctx) => {

@@ -155,7 +155,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     })
 
     // Setup resource subscription item feature
-    subscriptionItemFeature = (
+    subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -163,7 +163,6 @@ describe('executeBillingRun with adjustment and resource claims', () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
-    ).unwrap()
 
     // Setup billing period
     billingPeriod = await setupBillingPeriod({

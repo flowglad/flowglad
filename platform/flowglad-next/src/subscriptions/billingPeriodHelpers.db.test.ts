@@ -2474,15 +2474,13 @@ describe('Resource claim expiration during billing period transition', async () 
     })
 
     // Link feature to subscription item
-    ;(
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: resourceFeature.id,
-        resourceId: resource.id,
-        pricingModelId: pricingModel.id,
-        amount: 10,
-      })
-    ).unwrap()
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: resourceFeature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
 
     // Create two resource claims:
     // 1. A normal claim without expiration

@@ -264,24 +264,20 @@ describe('resourceClaimsRouter', () => {
     })
 
     // Set up subscription item features to provide capacity for the resources
-    ;(
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: seatsFeature.id,
-        resourceId: resource.id,
-        pricingModelId: pricingModel.id,
-        amount: 10,
-      })
-    ).unwrap()
-    ;(
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: projectsFeature.id,
-        resourceId: resource2.id,
-        pricingModelId: pricingModel.id,
-        amount: 5,
-      })
-    ).unwrap()
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: seatsFeature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: projectsFeature.id,
+      resourceId: resource2.id,
+      pricingModelId: pricingModel.id,
+      amount: 5,
+    })
   })
 
   describe('getUsage procedure', () => {

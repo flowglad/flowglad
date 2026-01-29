@@ -3998,7 +3998,7 @@ describe('cancelSubscription with resources', async () => {
       livemode: true,
     })
 
-    const subscriptionItemFeature = (
+    const subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -4006,7 +4006,6 @@ describe('cancelSubscription with resources', async () => {
         pricingModelId: pricingModel.id,
         amount: 10,
       })
-    ).unwrap()
 
     // Create 3 cattle claims (no externalId)
     const cattleClaim1 = (
@@ -4209,7 +4208,7 @@ describe('cancelSubscription with resources', async () => {
       livemode: true,
     })
 
-    const subscriptionItemFeature = (
+    const subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -4217,7 +4216,6 @@ describe('cancelSubscription with resources', async () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
-    ).unwrap()
 
     // Create 5 claims
     for (let i = 0; i < 5; i++) {
