@@ -28,6 +28,7 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
   authenticatedTransactionUnwrap,
+  authenticatedTransactionWithResult,
   comprehensiveAuthenticatedTransaction,
 } from './authenticatedTransaction'
 import {
@@ -970,5 +971,136 @@ describe('authenticatedTransactionUnwrap', () => {
         { apiKey: apiKey.token }
       )
     ).rejects.toThrow(directErrorMessage)
+  })
+})
+
+describe('authenticatedTransactionWithResult', () => {
+  let testOrg: Organization.Record
+  let apiKey: ApiKey.Record
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    testOrg = orgSetup.organization
+
+    const userApiKey = await setupUserAndApiKey({
+      organizationId: testOrg.id,
+      livemode: true,
+    })
+    apiKey = userApiKey.apiKey
+  })
+
+  it('returns Result.ok on successful transaction', async () => {
+    // setup:
+    // - use valid API key
+    // - provide transaction function that returns Result.ok with a value
+    // expects:
+    // - the result should be Result.ok with the value
+    const result = await authenticatedTransactionWithResult(
+      async ({ transaction }) => {
+        const orgs = await selectOrganizations({}, transaction)
+        return Result.ok({ count: orgs.length, success: true })
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value.count).toBe(1)
+      expect(result.value.success).toBe(true)
+    }
+  })
+
+  it('returns Result.err when callback returns Result.err (does not throw)', async () => {
+    // setup:
+    // - use valid API key
+    // - provide transaction function that returns Result.err with an error
+    // expects:
+    // - the result should be Result.err with the error (not thrown)
+    const errorMessage = 'Business logic validation failed'
+
+    const result = await authenticatedTransactionWithResult(
+      async () => Result.err(new Error(errorMessage)),
+      { apiKey: apiKey.token }
+    )
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toBe(errorMessage)
+    }
+  })
+
+  it('returns Result.err when callback throws directly', async () => {
+    // setup:
+    // - use valid API key
+    // - throw an error directly inside the callback (not via Result.err)
+    // expects:
+    // - the result should be Result.err with the error (not thrown to caller)
+    const directErrorMessage = 'Direct throw converted to Result.err'
+
+    const result = await authenticatedTransactionWithResult(
+      async () => {
+        throw new Error(directErrorMessage)
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toBe(directErrorMessage)
+    }
+  })
+
+  it('provides ComprehensiveAuthenticatedTransactionParams with all required callbacks', async () => {
+    // setup:
+    // - use valid API key
+    // - verify params contains all expected properties
+    // expects:
+    // - params should have transaction, invalidateCache, emitEvent, enqueueLedgerCommand, organizationId
+    const result = await authenticatedTransactionWithResult(
+      async (params) => {
+        expect(typeof params.transaction.execute).toBe('function')
+        expect(typeof params.invalidateCache).toBe('function')
+        expect(typeof params.emitEvent).toBe('function')
+        expect(typeof params.enqueueLedgerCommand).toBe('function')
+        expect(params.organizationId).toBe(testOrg.id)
+        expect(typeof params.livemode).toBe('boolean')
+        return Result.ok('params_verified')
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBe('params_verified')
+    }
+  })
+
+  it('can be unwrapped at the caller level', async () => {
+    // setup:
+    // - call authenticatedTransactionWithResult and then unwrap the result
+    // expects:
+    // - unwrap should return the value directly on success
+    const result = await authenticatedTransactionWithResult(
+      async () => Result.ok('unwrap_test'),
+      { apiKey: apiKey.token }
+    )
+
+    const value = result.unwrap()
+    expect(value).toBe('unwrap_test')
+  })
+
+  it('unwrap throws when result is an error', async () => {
+    // setup:
+    // - call authenticatedTransactionWithResult with Result.err and then try to unwrap
+    // expects:
+    // - unwrap should throw the error
+    const errorMessage = 'Error to be thrown by unwrap'
+
+    const result = await authenticatedTransactionWithResult(
+      async () => Result.err(new Error(errorMessage)),
+      { apiKey: apiKey.token }
+    )
+
+    expect(() => result.unwrap()).toThrow(errorMessage)
   })
 })
