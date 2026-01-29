@@ -68,6 +68,19 @@ export function maskDatabaseUrl(url: string): string {
 }
 
 /**
+ * Get the command to bypass the safety check.
+ * Uses npm_lifecycle_event when available (for `bun run <script>` commands),
+ * otherwise falls back to a generic placeholder.
+ */
+export function getBypassCommand(): string {
+  const scriptName = process.env.npm_lifecycle_event
+  if (scriptName) {
+    return `DANGEROUSLY_ALLOW_REMOTE_DB=1 bun run ${scriptName}`
+  }
+  return `DANGEROUSLY_ALLOW_REMOTE_DB=1 bun run <script>`
+}
+
+/**
  * Check if the safety check should be skipped based on environment.
  */
 export function shouldSkipSafetyCheck(): boolean {
@@ -101,7 +114,7 @@ Recognized local hosts:
 ${LOCAL_HOST_PATTERNS.map((p) => `  - ${p}`).join('\n')}
 
 To bypass this check:
-  DANGEROUSLY_ALLOW_REMOTE_DB=1 bun run <script>
+  ${getBypassCommand()}
 `
     throw new Error(message)
   }
