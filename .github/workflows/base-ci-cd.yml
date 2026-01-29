@@ -238,6 +238,8 @@ jobs:
           FLOWGLAD_SECRET_KEY: ${{ secrets.FLOWGLAD_SECRET_KEY }}
           FLOWGLAD_BASE_URL: ${{ secrets.FLOWGLAD_BASE_URL }}
         run: cd packages/server && bun run test
+      - name: Run mock-server tests
+        run: cd packages/mock-server && bun run test
 
   check-todo:
     if: github.event_name == 'merge_group'

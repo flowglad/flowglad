@@ -162,7 +162,7 @@ describe('useResources', () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch
     mockFetch = vi.fn()
-    globalThis.fetch = mockFetch
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
@@ -439,7 +439,7 @@ describe('useResource', () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch
     mockFetch = vi.fn()
-    globalThis.fetch = mockFetch
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
