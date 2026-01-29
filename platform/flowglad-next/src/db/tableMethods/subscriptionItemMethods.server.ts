@@ -223,12 +223,17 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
   }
 
 /**
- * Determines if a subscription item is currently active based on its expiry date.
+ * Determines if a subscription item is currently active based on its added date and expiry date.
+ * An item is active if it has already started (addedDate <= now) and hasn't expired yet.
  */
 const isSubscriptionItemActive = (item: {
+  addedDate: number
   expiredAt?: number | null
 }): boolean => {
-  return !item.expiredAt || item.expiredAt > Date.now()
+  const now = Date.now()
+  return (
+    item.addedDate <= now && (!item.expiredAt || item.expiredAt > now)
+  )
 }
 
 /**
