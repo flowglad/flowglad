@@ -20,13 +20,13 @@ jobs:
             exit 0
           fi
 
-          PAYLOAD=$(jq -n --arg title "$TITLE" --arg url "$URL" --arg author "$AUTHOR" '{
+          PAYLOAD=$(jq -n --arg title "$TITLE" --arg url "$URL" '{
             blocks: [
               {
                 type: "section",
                 text: {
                   type: "mrkdwn",
-                  text: ("🟡 <" + $url + "|" + $title + "> - " + $author)
+                  text: ("🟡 Needs Review: <" + $url + "|" + $title + "> <!channel>")
                 }
               },
               { type: "divider" }
