@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Loader2, Plus } from 'lucide-react'
+import { Check, DollarSign, Loader2, Plus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -31,8 +31,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useOrganizationList } from '@/hooks/useOrganizationList'
+import { usePricingModelList } from '@/hooks/usePricingModelList'
 import { cn } from '@/lib/utils'
 import CreateOrganizationModal from '../forms/CreateOrganizationModal'
+import CreatePricingModelModal from '../forms/CreatePricingModelModal'
 
 export type NavUserProps = {
   user: {
@@ -43,42 +45,63 @@ export type NavUserProps = {
   organization: {
     id: string
     name: string
+    logoURL?: string | null
+  }
+  pricingModel?: {
+    id: string
+    name: string
+    livemode: boolean
   }
   onSignOut: () => void
 }
 
 /**
- * Generates initials from a user's name.
- * Returns the first letter of the first name, optionally combined with
- * the first letter of the last name.
+ * Generates initials from an organization's name.
+ * Returns the first letter of the first word, optionally combined with
+ * the first letter of the second word.
  */
-const getUserInitials = (name: string): string => {
+const getOrgInitials = (name: string): string => {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return '?'
   if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?'
-  return `${parts[0][0]?.toUpperCase() ?? ''}${parts[parts.length - 1][0]?.toUpperCase() ?? ''}`
+  return `${parts[0][0]?.toUpperCase() ?? ''}${parts[1][0]?.toUpperCase() ?? ''}`
 }
 
 export const NavUser: React.FC<NavUserProps> = ({
   user,
   organization,
+  pricingModel,
   onSignOut,
 }) => {
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
-  const initials = getUserInitials(user.name)
+  const initials = getOrgInitials(organization.name)
 
   const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] =
     useState(false)
+  const [isCreatePmModalOpen, setIsCreatePmModalOpen] =
+    useState(false)
+
   const {
     organizations,
     currentOrganizationId,
-    isSwitching,
+    isSwitching: isSwitchingOrg,
     switchOrganization,
   } = useOrganizationList()
 
+  const {
+    pricingModels,
+    currentPricingModelId,
+    isSwitching: isSwitchingPm,
+    switchPricingModel,
+  } = usePricingModelList()
+
   const handleSwitchOrganization = async (orgId: string) => {
     await switchOrganization(orgId)
+  }
+
+  const handleSwitchPricingModel = async (pmId: string) => {
+    await switchPricingModel(pmId)
   }
 
   return (
@@ -97,10 +120,10 @@ export const NavUser: React.FC<NavUserProps> = ({
             data-testid="nav-user-trigger"
           >
             <Avatar className="h-8 w-8 shrink-0">
-              {user.image && (
+              {organization.logoURL && (
                 <AvatarImage
-                  src={user.image}
-                  alt={user.name}
+                  src={organization.logoURL}
+                  alt={organization.name}
                   data-testid="nav-user-avatar-image"
                 />
               )}
@@ -117,13 +140,13 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="truncate text-sm font-semibold text-sidebar-accent-foreground"
                   data-testid="nav-user-name"
                 >
-                  {user.name}
+                  {organization.name}
                 </span>
                 <span
                   className="truncate text-xs font-medium text-muted-foreground"
                   data-testid="nav-user-org"
                 >
-                  {organization.name}
+                  {pricingModel?.name ?? 'No pricing model'}
                 </span>
               </div>
             )}
@@ -140,9 +163,9 @@ export const NavUser: React.FC<NavUserProps> = ({
               <DropdownMenuSubTrigger
                 className="flex items-center gap-2"
                 data-testid="nav-user-change-org"
-                disabled={isSwitching}
+                disabled={isSwitchingOrg}
               >
-                {isSwitching ? (
+                {isSwitchingOrg ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Shuffle className="h-4 w-4" />
@@ -195,6 +218,66 @@ export const NavUser: React.FC<NavUserProps> = ({
                   >
                     <Plus className="h-4 w-4" />
                     <span>Create New Organization</span>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger
+                className="flex items-center gap-2"
+                data-testid="nav-user-change-pricing"
+                disabled={isSwitchingPm}
+              >
+                {isSwitchingPm ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <DollarSign className="h-4 w-4" />
+                )}
+                <span>Change Pricing</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent
+                  className="w-64"
+                  data-testid="nav-user-pricing-submenu"
+                >
+                  {pricingModels.map(({ pricingModel: pm }) => (
+                    <DropdownMenuItem
+                      key={pm.id}
+                      className="flex items-center gap-2 cursor-pointer"
+                      data-testid={`nav-user-pm-${pm.id}`}
+                      onSelect={() => handleSwitchPricingModel(pm.id)}
+                    >
+                      <span className="truncate flex-1">
+                        {pm.name}
+                      </span>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold shrink-0',
+                          pm.livemode
+                            ? 'bg-jade-background text-jade-foreground border-jade-border'
+                            : 'bg-citrine-background text-citrine-foreground border-citrine-border'
+                        )}
+                      >
+                        {pm.livemode ? 'Live' : 'Test'}
+                      </span>
+                      <Check
+                        className={cn(
+                          'h-4 w-4 ml-1',
+                          currentPricingModelId === pm.id
+                            ? 'opacity-100'
+                            : 'opacity-0'
+                        )}
+                      />
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="flex items-center gap-2 cursor-pointer"
+                    data-testid="nav-user-create-pm"
+                    onSelect={() => setIsCreatePmModalOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Create Pricing Model</span>
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
@@ -254,6 +337,11 @@ export const NavUser: React.FC<NavUserProps> = ({
       <CreateOrganizationModal
         isOpen={isCreateOrgModalOpen}
         setIsOpen={setIsCreateOrgModalOpen}
+      />
+
+      <CreatePricingModelModal
+        isOpen={isCreatePmModalOpen}
+        setIsOpen={setIsCreatePmModalOpen}
       />
     </>
   )

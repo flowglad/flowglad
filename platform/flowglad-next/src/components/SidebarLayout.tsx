@@ -2,7 +2,9 @@
 
 import type React from 'react'
 import { useEffect, useState } from 'react'
+import { trpc } from '@/app/_trpc/client'
 import { SideNavigation } from '@/components/navigation/SideNavigation'
+import { TestModeBanner } from '@/components/navigation/TestModeBanner'
 import {
   Sidebar,
   SidebarInset,
@@ -32,6 +34,13 @@ const SidebarLayout = ({
 }) => {
   const [defaultOpen, setDefaultOpen] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
+
+  // Get focused membership to determine if we're in test mode
+  const focusedMembership =
+    trpc.organizations.getFocusedMembership.useQuery()
+  const isTestMode =
+    focusedMembership.data?.pricingModel?.livemode === false
+  const pricingModelName = focusedMembership.data?.pricingModel?.name
 
   // Read the sidebar state from cookies on client side to persist across navigation
   useEffect(() => {
@@ -72,18 +81,24 @@ const SidebarLayout = ({
   }
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
-      <Sidebar collapsible="icon" className="z-20">
-        <SideNavigation />
-      </Sidebar>
-      <SidebarInset>
-        {/* Mobile top bar with trigger */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center h-12 border-b bg-background px-2">
-          <SidebarTrigger />
-        </div>
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex min-h-screen flex-col">
+      {/* Test mode banner - appears above sidebar and main content when in test mode */}
+      {isTestMode && (
+        <TestModeBanner pricingModelName={pricingModelName} />
+      )}
+      <SidebarProvider defaultOpen={defaultOpen}>
+        <Sidebar collapsible="icon" className="z-20">
+          <SideNavigation />
+        </Sidebar>
+        <SidebarInset>
+          {/* Mobile top bar with trigger */}
+          <div className="md:hidden sticky top-0 z-30 flex items-center h-12 border-b bg-background px-2">
+            <SidebarTrigger />
+          </div>
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   )
 }
 

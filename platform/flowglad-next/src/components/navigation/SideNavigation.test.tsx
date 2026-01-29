@@ -31,14 +31,6 @@ mock.module('@/utils/authClient', () => ({
 
 mock.module('@/app/_trpc/client', () => ({
   trpc: {
-    utils: {
-      toggleTestMode: {
-        useMutation: () => ({
-          mutateAsync: mock(),
-          isPending: false,
-        }),
-      },
-    },
     useUtils: () => ({
       invalidate: mock(),
       banners: {
@@ -53,7 +45,14 @@ mock.module('@/app/_trpc/client', () => ({
     organizations: {
       getFocusedMembership: {
         useQuery: () => ({
-          data: { membership: { livemode: true } },
+          data: {
+            membership: { livemode: true },
+            pricingModel: {
+              id: 'pm-1',
+              name: 'Test PM',
+              livemode: true,
+            },
+          },
           isPending: false,
           refetch: mock(),
         }),
@@ -86,6 +85,12 @@ const mockOrganization = {
   name: 'Test Organization',
   logoURL: null as string | null,
   onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+}
+
+const mockPricingModel = {
+  id: 'pm-1',
+  name: 'Test Pricing Model',
+  livemode: true,
 }
 
 mock.module('@/contexts/authContext', () => ({
@@ -156,10 +161,17 @@ mock.module('./NavStandalone', () => ({
 }))
 
 mock.module('./NavUser', () => ({
-  NavUser: ({ user, organization, onSignOut }: NavUserProps) => (
+  NavUser: ({
+    user,
+    organization,
+    pricingModel,
+    onSignOut,
+  }: NavUserProps) => (
     <div data-testid="nav-user">
-      <span data-testid="nav-user-name">{user.name}</span>
-      <span data-testid="nav-user-org-name">{organization.name}</span>
+      <span data-testid="nav-user-name">{organization.name}</span>
+      <span data-testid="nav-user-org-name">
+        {pricingModel?.name ?? 'No PM'}
+      </span>
       <button data-testid="nav-user-signout" onClick={onSignOut}>
         Sign Out
       </button>
@@ -208,14 +220,14 @@ describe('SideNavigation', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('should pass user and organization data to NavUser', () => {
+  it('should pass organization and pricing model data to NavUser', () => {
     render(<SideNavigation />)
 
     expect(screen.getByTestId('nav-user-name')).toHaveTextContent(
-      'Test User'
+      'Test Organization'
     )
     expect(screen.getByTestId('nav-user-org-name')).toHaveTextContent(
-      'Test Organization'
+      'Test PM'
     )
   })
 
