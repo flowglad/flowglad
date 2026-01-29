@@ -43,7 +43,7 @@ jobs:
                 type: "section",
                 text: {
                   type: "mrkdwn",
-                  text: ($emoji + " <" + $url + "|" + $title + "> - " + $author + "\n\n\n")
+                  text: ($emoji + " <" + $url + "|" + $title + "> - " + $author)
                 }
               },
               { type: "divider" }
