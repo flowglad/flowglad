@@ -1,4 +1,4 @@
-All of the following changes will happen in the directory `./platform/flowglad-next`, so when you see a path like `./db-core/schema/unicornRiders.ts`, it should be translated to `./packages/flowglad-next/db-core/schema/unicornRiders.ts`.
+All of the following changes will happen in the directory `./platform/flowglad-next`, so when you see a path like `./db-core/schema/unicornRiders.ts`, it should be translated to `./platform/flowglad-next/db-core/schema/unicornRiders.ts`.
 
 You're creating a new ORM schema for a Postgres database table, as well as all the associated types, queries and mutations.
 
