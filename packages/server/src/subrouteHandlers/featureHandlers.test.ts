@@ -1,12 +1,12 @@
 import { HTTPMethod } from '@flowglad/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { FlowgladServer } from '../FlowgladServer'
+import { getFeatureAccessItems } from './featureHandlers'
 import {
   assert200Success,
   assert405MethodNotAllowed,
   assertHandlerResponse,
 } from './test-utils'
-import { getFeatureAccessItems } from './featureHandlers'
 
 const mockFeatureAccessItems = [
   {

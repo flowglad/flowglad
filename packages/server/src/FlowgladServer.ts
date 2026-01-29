@@ -21,6 +21,7 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
+  type FeatureAccessItem,
   type GetFeatureAccessParams,
   type GetFeatureAccessResponse,
   type GetSubscriptionsParams,
@@ -648,10 +649,13 @@ export class FlowgladServer {
 
   /**
    * Get feature access items for the authenticated customer.
-   * Returns toggle features only (binary access), optionally filtered by subscriptionId.
+   *
+   * By default, returns toggle features for all current subscriptions.
+   * Optionally filter by a specific subscriptionId.
    * Features are deduplicated by slug across subscriptions.
    *
-   * @param params - Optional parameters including subscriptionId filter
+   * @param params - Optional parameters for fetching feature access
+   * @param params.subscriptionId - Optional. Filter to a specific subscription.
    *
    * @returns A promise that resolves to an object containing feature access items
    *
@@ -662,7 +666,7 @@ export class FlowgladServer {
    * const { features } = await flowglad.getFeatureAccessItems()
    *
    * @example
-   * // Get feature access for a specific subscription
+   * // Get features for a specific subscription
    * const { features } = await flowglad.getFeatureAccessItems({
    *   subscriptionId: 'sub_123'
    * })
@@ -670,18 +674,21 @@ export class FlowgladServer {
   public getFeatureAccessItems = async (
     params?: GetFeatureAccessParams
   ): Promise<GetFeatureAccessResponse> => {
-    // Delegate to getBilling() initially (no dedicated platform endpoint yet)
     const billing = await this.getBilling()
     const subscriptions = params?.subscriptionId
-      ? billing.currentSubscriptions?.filter(s => s.id === params.subscriptionId)
+      ? billing.currentSubscriptions?.filter(
+          (s) => s.id === params.subscriptionId
+        )
       : billing.currentSubscriptions
 
-    // Extract toggle features only, deduplicate by slug
-    const featuresBySlug = new Map<string, GetFeatureAccessResponse['features'][number]>()
+    const featuresBySlug = new Map<string, FeatureAccessItem>()
     for (const sub of subscriptions ?? []) {
-      const featureItems = sub.featureItems ?? sub.experimental?.featureItems ?? []
+      const featureItems = sub.experimental?.featureItems ?? []
       for (const item of featureItems) {
-        if (item.type === 'toggle' && !featuresBySlug.has(item.slug)) {
+        if (
+          item.type === 'toggle' &&
+          !featuresBySlug.has(item.slug)
+        ) {
           featuresBySlug.set(item.slug, {
             id: item.id,
             livemode: item.livemode,

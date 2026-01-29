@@ -1,6 +1,6 @@
 import {
   type FlowgladActionKey,
-  getFeatureAccessSchema,
+  getFeatureAccessItemsSchema,
   HTTPMethod,
 } from '@flowglad/shared'
 import type { FlowgladServer } from '../FlowgladServer'
@@ -12,8 +12,8 @@ import type {
 
 /**
  * Handler for fetching feature access items for the authenticated customer.
- * Returns toggle features only, optionally filtered by subscriptionId.
- * Delegates to FlowgladServer.getFeatureAccessItems which calls getBilling.
+ * Returns toggle features only, deduplicated across subscriptions.
+ * Delegates to FlowgladServer.getFeatureAccessItems which processes billing data.
  */
 export const getFeatureAccessItems: SubRouteHandler<
   FlowgladActionKey.GetFeatureAccess
@@ -40,7 +40,7 @@ export const getFeatureAccessItems: SubRouteHandler<
 
   try {
     // Validate and parse input params
-    const parsedParams = getFeatureAccessSchema.parse(
+    const parsedParams = getFeatureAccessItemsSchema.parse(
       params.data
     )
 
