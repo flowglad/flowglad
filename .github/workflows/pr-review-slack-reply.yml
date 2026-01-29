@@ -5,6 +5,7 @@ on:
 
 jobs:
   notify:
+    if: github.event.review.user.type != 'Bot'
     runs-on: ubuntu-latest
     permissions:
       contents: read
