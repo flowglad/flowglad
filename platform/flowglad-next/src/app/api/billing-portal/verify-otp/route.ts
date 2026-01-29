@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call BetterAuth's API endpoint directly via HTTP to capture Set-Cookie headers
+    // Call customerAuth's API endpoint directly via HTTP to capture Set-Cookie headers
     const baseUrl = new URL(request.url).origin
     const originalCookies = request.headers.get('Cookie') || ''
     const orgCookie = `customer-billing-organization-id=${organizationId}`
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       : orgCookie
 
     const authResponse = await fetch(
-      `${baseUrl}/api/auth/sign-in/email-otp`,
+      `${baseUrl}/api/auth/customer/sign-in/email-otp`,
       {
         method: 'POST',
         headers: {
@@ -140,16 +140,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Update customer session with contextOrganizationId
+    const updateResponse = await fetch(
+      `${baseUrl}/api/auth/customer/update-session`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: authResponse.headers.get('Set-Cookie') || '',
+          Origin: baseUrl,
+        },
+        body: JSON.stringify({
+          contextOrganizationId: organizationId,
+        }),
+      }
+    )
+
     // Create success response and forward Set-Cookie headers from BetterAuth
     const response = NextResponse.json({
       success: true,
       redirectUrl: `/billing-portal/${organizationId}/${customerId}`,
     })
 
-    // Forward all Set-Cookie headers from BetterAuth's response
+    // Forward all Set-Cookie headers from BetterAuth's response (both from initial auth and update)
     const setCookieHeaders = authResponse.headers.getSetCookie()
     for (const cookie of setCookieHeaders) {
       response.headers.append('Set-Cookie', cookie)
+    }
+
+    // Also forward any cookies from the update response
+    if (updateResponse.ok) {
+      const updateCookieHeaders = updateResponse.headers.getSetCookie()
+      for (const cookie of updateCookieHeaders) {
+        response.headers.append('Set-Cookie', cookie)
+      }
     }
 
     return response

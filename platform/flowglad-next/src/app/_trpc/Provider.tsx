@@ -38,26 +38,43 @@ export default function Provider({
     trpc.createClient({
       links: [
         /**
-         * Conditional link to use streaming or batching based on the path
-         * .streaming suffix on procedure name indicates a streaming response.
+         * Route customer billing portal operations to dedicated customer handler.
+         * This ensures customerBillingPortal.* ops use createCustomerContext.
          */
         splitLink({
-          // decide which link to use
           condition(op) {
-            return op.path.endsWith('.streaming')
+            return op.path.startsWith('customerBillingPortal.')
           },
-          // true branch -> stream responses
           true: [
-            httpBatchStreamLink({
-              url: `${core.envVariable('APP_URL')}/api/trpc`,
+            httpBatchLink({
+              url: `${core.envVariable('APP_URL')}/api/trpc/customer`,
               transformer: SuperJSON,
             }),
           ],
-          // false branch -> normal batching
           false: [
-            httpBatchLink({
-              url: `${core.envVariable('APP_URL')}/api/trpc`,
-              transformer: SuperJSON,
+            /**
+             * Conditional link to use streaming or batching based on the path
+             * .streaming suffix on procedure name indicates a streaming response.
+             */
+            splitLink({
+              // decide which link to use
+              condition(op) {
+                return op.path.endsWith('.streaming')
+              },
+              // true branch -> stream responses
+              true: [
+                httpBatchStreamLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc`,
+                  transformer: SuperJSON,
+                }),
+              ],
+              // false branch -> normal batching
+              false: [
+                httpBatchLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc`,
+                  transformer: SuperJSON,
+                }),
+              ],
             }),
           ],
         }),

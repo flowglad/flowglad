@@ -1,6 +1,4 @@
 import { toNextJsHandler } from 'better-auth/next-js'
 import { merchantAuth } from '@/utils/auth/merchantAuth'
 
-// Backward compatibility - redirects to merchant auth
-// TODO: Remove this route after migration is complete
 export const { POST, GET } = toNextJsHandler(merchantAuth)

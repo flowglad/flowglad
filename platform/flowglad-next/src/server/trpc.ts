@@ -19,7 +19,7 @@ import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingP
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { t } from './coreTrpcObject'
 import { createTracingMiddleware } from './tracingMiddleware'
-import type { TRPCApiContext, TRPCContext } from './trpcContext'
+import type { TRPCApiContext, TRPCContext, TRPCCustomerContext } from './trpcContext'
 
 // Create tracing middleware factory
 const tracingMiddlewareFactory = createTracingMiddleware()
@@ -105,12 +105,12 @@ export const publicProcedure = baseProcedure
  *
  * Supports two authentication modes:
  * 1. API key authentication: If `isApi` is true, allows API key access
- * 2. User authentication: Requires a logged-in user
+ * 2. User authentication: Requires a logged-in user with merchant scope
  *
  * Uses organization from context (set by middleware/auth from user's focused membership).
  *
  * @returns Context with user (or API auth), organization, and environment info
- * @throws {TRPCError} UNAUTHORIZED if no user and not API key request
+ * @throws {TRPCError} UNAUTHORIZED if no user, wrong scope, or not API key request
  */
 const isAuthed = t.middleware(({ next, ctx }) => {
   const { isApi, environment, apiKey } = ctx as TRPCApiContext
@@ -129,7 +129,10 @@ const isAuthed = t.middleware(({ next, ctx }) => {
     })
   }
   const user = (ctx as TRPCContext).user
-  if (!user) {
+  const session = (ctx as TRPCContext).session
+
+  // Reject if no user or if session has wrong scope
+  if (!user || (session?.session?.scope && session.session.scope !== 'merchant')) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
   return next({
@@ -147,13 +150,12 @@ const isAuthed = t.middleware(({ next, ctx }) => {
 /**
  * Authentication middleware for customer billing portal operations.
  *
- * Authenticates logged-in users and validates their access to customer profiles.
- * Supports multi-customer scenarios where users can have multiple customer profiles
- * within the same organization.
+ * Authenticates logged-in users with customer scope and validates their access
+ * to customer profiles. Uses the customer session context organization.
  *
  * The middleware:
- * - Requires a logged-in user (no API key support)
- * - Gets the organization ID from the billing portal cookie state
+ * - Requires a logged-in user with customer scope (no API key support)
+ * - Gets organization ID from customer session's contextOrganizationId
  * - Requires `customerId` in the request input
  * - Queries the database to find a matching customer for the user and organization
  * - Validates the user has access to that specific customer
@@ -161,22 +163,51 @@ const isAuthed = t.middleware(({ next, ctx }) => {
  *
  * @param getRawInput - Used to extract required `customerId` from request input
  * @returns Context with user, customer, organization, and environment info
- * @throws {TRPCError} UNAUTHORIZED if no user or user doesn't have access to customer
+ * @throws {TRPCError} UNAUTHORIZED if no user, wrong scope, or no access to customer
  */
 const isCustomerAuthed = t.middleware(
   async ({ next, ctx, getRawInput }) => {
-    const { environment } = ctx as TRPCApiContext
-    const livemode = environment === 'live'
-    const user = (ctx as TRPCContext).user
-    if (!user) {
+    // API keys are merchant-only
+    if ((ctx as TRPCApiContext).apiKey) {
       throw new TRPCError({ code: 'UNAUTHORIZED' })
     }
-    const organizationId =
-      await getCustomerBillingPortalOrganizationId()
+
+    // Use customer session from context (avoid re-fetch)
+    const session = (ctx as TRPCCustomerContext).session
+    const user = (ctx as TRPCCustomerContext).user
+
+    if (!user || !session?.user || session.session?.scope !== 'customer') {
+      throw new TRPCError({ code: 'UNAUTHORIZED' })
+    }
+
+    // Get organizationId from customer session's contextOrganizationId
+    const organizationId = session.session?.contextOrganizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Customer session missing organizationId context'
+      })
+    }
+
+    // Validate route context matches session context
+    const rawInput = await getRawInput()
+    const routeOrganizationIdSchema = z.object({
+      organizationId: z.string().optional(),
+    })
+
+    const parsedRoute = routeOrganizationIdSchema.safeParse(rawInput)
+    if (parsedRoute.success && parsedRoute.data.organizationId) {
+      if (parsedRoute.data.organizationId !== organizationId) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message:
+            'Customer session does not match billing portal organization',
+        })
+      }
+    }
 
     // Extract customerId from raw input to populate ctx.customer and ctx.organization.
     // Middleware runs before input validation, so we must use getRawInput() instead of validated input.
-    const rawInput = await getRawInput()
     const customerIdSchema = z.object({
       customerId: z.string(),
     })
@@ -213,10 +244,11 @@ const isCustomerAuthed = t.middleware(
         user,
         customer: customerAndOrganization.customer,
         organization: customerAndOrganization.organization,
-        path: (ctx as TRPCContext).path,
-        environment,
+        path: (ctx as TRPCCustomerContext).path,
+        environment: 'live' as const,
         organizationId,
-        livemode,
+        livemode: true,
+        authScope: 'customer' as const,
       },
     })
   }
