@@ -3,6 +3,7 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { SideNavigation } from '@/components/navigation/SideNavigation'
+import { SupportChatWidget } from '@/components/support-chat'
 import {
   Sidebar,
   SidebarInset,
@@ -83,6 +84,7 @@ const SidebarLayout = ({
         </div>
         {children}
       </SidebarInset>
+      <SupportChatWidget />
     </SidebarProvider>
   )
 }

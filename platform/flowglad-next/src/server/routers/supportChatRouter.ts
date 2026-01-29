@@ -1,11 +1,7 @@
 import { openai } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 import { z } from 'zod'
-import {
-  RateLimiters,
-  rateLimitByFingerprint,
-} from '@/server/rateLimitMiddleware'
-import { publicProcedure, router } from '@/server/trpc'
+import { protectedProcedure, router } from '@/server/trpc'
 import { queryTurbopuffer } from '@/utils/turbopuffer'
 
 const SUPPORT_CHAT_SYSTEM_PROMPT = `You are Flowglad's support assistant helping developers integrate Flowglad's billing platform.
@@ -58,8 +54,7 @@ const sendMessageOutputSchema = z.object({
     .optional(),
 })
 
-export const sendMessage = publicProcedure
-  .use(rateLimitByFingerprint('supportChat', RateLimiters.ai()))
+export const sendMessage = protectedProcedure
   .input(sendMessageInputSchema)
   .output(sendMessageOutputSchema)
   .mutation(

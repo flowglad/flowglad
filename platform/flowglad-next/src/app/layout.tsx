@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Toaster } from 'sonner'
-import { SupportChatWidget } from '@/components/support-chat'
 import './globals.css'
 
 import * as Sentry from '@sentry/nextjs'
@@ -110,7 +109,6 @@ export default async function RootLayout({
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
           <Toaster />
-          <SupportChatWidget />
           {/* <ChatActionsProvider>
             <AIModal />
           </ChatActionsProvider> */}

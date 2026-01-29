@@ -34,7 +34,6 @@ const publicRoutes = [
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/utils.logout',
   '/api/trpc/utils.resetPassword',
-  '/api/trpc/supportChat.(.*)',
   '/apple-touch-icon(.*).png',
   '/api/v1/(.*)',
   '/api/mcp/(.*)',
@@ -53,7 +52,6 @@ const publicRoutes = [
    */
   '/preview-ui(.*)',
   '/blog/(.*)',
-  '/support-chat/embed',
 ]
 
 if (core.IS_DEV) {
