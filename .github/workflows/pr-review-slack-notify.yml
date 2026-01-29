@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Post to Slack
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PULL_REQUEST_URL }}
           TITLE: ${{ github.event.pull_request.title }}
           AUTHOR: ${{ github.event.pull_request.user.login }}
           URL: ${{ github.event.pull_request.html_url }}

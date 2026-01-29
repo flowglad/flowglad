@@ -43,7 +43,7 @@ jobs:
       - name: Post to Slack
         if: steps.msg.outputs.text != ''
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PULL_REQUEST_URL }}
           TEXT: ${{ steps.msg.outputs.text }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
