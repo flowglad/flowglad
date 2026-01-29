@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@flowglad/javascript",
@@ -28,9 +27,25 @@
         "vercel": "^50.1.6",
       },
     },
+    "packages/flowglad": {
+      "name": "flowglad",
+      "version": "0.0.1",
+      "bin": {
+        "flowglad": "./dist/cli.js",
+      },
+      "dependencies": {
+        "cac": "^6.7.14",
+        "js-yaml": "^4.1.0",
+      },
+      "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "typescript": "5.8.2",
+        "vitest": "3.0.5",
+      },
+    },
     "packages/nextjs": {
       "name": "@flowglad/nextjs",
-      "version": "0.17.1",
+      "version": "0.17.2",
       "dependencies": {
         "@flowglad/node": "0.29.0",
         "@flowglad/react": "workspace:*",
@@ -54,7 +69,7 @@
     },
     "packages/react": {
       "name": "@flowglad/react",
-      "version": "0.17.1",
+      "version": "0.17.2",
       "dependencies": {
         "@flowglad/node": "0.29.0",
         "@flowglad/shared": "workspace:*",
@@ -83,7 +98,7 @@
     },
     "packages/server": {
       "name": "@flowglad/server",
-      "version": "0.17.1",
+      "version": "0.17.2",
       "dependencies": {
         "@flowglad/node": "0.29.0",
         "@flowglad/shared": "workspace:*",
@@ -109,7 +124,7 @@
     },
     "packages/shared": {
       "name": "@flowglad/shared",
-      "version": "0.17.1",
+      "version": "0.17.2",
       "dependencies": {
         "@flowglad/node": "0.29.0",
         "date-fns": "4.1.0",
@@ -1260,6 +1275,8 @@
 
     "@types/istanbul-reports": ["@types/istanbul-reports@3.0.4", "", { "dependencies": { "@types/istanbul-lib-report": "*" } }, "sha512-pk2B1NWalF9toCRu6gjBzR69syFjP4Od8WRAX+0mmf9lAjCRicLOWc+ZrxZHx/0XRjotgkF9t6iaMJ+aXcOdZQ=="],
 
+    "@types/js-yaml": ["@types/js-yaml@4.0.9", "", {}, "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg=="],
+
     "@types/jsdom": ["@types/jsdom@20.0.1", "", { "dependencies": { "@types/node": "*", "@types/tough-cookie": "*", "parse5": "^7.0.0" } }, "sha512-d0r18sZPmMQr1eG35u12FZfhIXNrnsPU/g5wvRKCUf/tOGilKKwYMYGqh33BNR6ba+2gkHw1EUiHoN3mn7E5IQ=="],
 
     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
@@ -2085,6 +2102,8 @@
     "flatted": ["flatted@3.3.3", "", {}, "sha512-GX+ysw4PBCz0PzosHDepZGANEuFCMLrnRTiEy9McGjmkCQYwRq4A/X786G/fjM/+OjsWSU1ZrY5qyARZmO/uwg=="],
 
     "flow-enums-runtime": ["flow-enums-runtime@0.0.6", "", {}, "sha512-3PYnM29RFXwvAN6Pc/scUfkI7RwhQ/xqyLUyPNlXUp9S40zI8nup9tUSrTLSVnWGBN38FNiGWbwZOB6uR4OGdw=="],
+
+    "flowglad": ["flowglad@workspace:packages/flowglad"],
 
     "fontfaceobserver": ["fontfaceobserver@2.3.0", "", {}, "sha512-6FPvD/IVyT4ZlNe7Wcn5Fb/4ChigpucKYSvD6a+0iMoLn2inpo711eyIcKjmDtE5XNcgAkSH9uN/nfAeZzHEfg=="],
 

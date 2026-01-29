@@ -25,7 +25,9 @@ const RetryPaymentModal = ({
       setIsOpen={setIsOpen}
       onSubmit={retryBillingRun.mutateAsync}
       formSchema={retryBillingRunInputSchema}
-      defaultValues={{ billingPeriodId: payment.billingPeriodId! }}
+      defaultValues={() => ({
+        billingPeriodId: payment.billingPeriodId!,
+      })}
       title="Retry Payment"
     >
       <div className="flex flex-col gap-4">
