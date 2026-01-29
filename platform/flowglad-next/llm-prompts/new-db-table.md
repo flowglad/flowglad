@@ -245,7 +245,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
 We use "edit" instead of "update" to make it clear that this update may have side effects
 
 - If you do need to make a new zod schema, adhere to the following guidelines:
-  - Don't make a new zod object with individual properties. What you need should be available in the @/db/schema/<tableName.ts> file.
+  - Don't make a new zod object with individual properties. What you need should be available in the @db-core/schema/<tableName.ts> file.
   - Name the schema like so: <edit|create|delete><TableName>Schema
   - Export both the schema and the inferred type from the db-core/schema/<tableName.ts> file:
   ```ts
