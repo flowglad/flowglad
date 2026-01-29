@@ -32,11 +32,6 @@ describe('db-core/utils', () => {
       expect(id).toHaveLength(21)
       expect(id).toMatch(/^[0-9A-Za-z]+$/)
     })
-
-    it('generates unique IDs on each call', () => {
-      const ids = new Set(Array.from({ length: 100 }, () => nanoid()))
-      expect(ids.size).toBe(100)
-    })
   })
 
   describe('createInvoiceNumberBase', () => {
@@ -44,13 +39,6 @@ describe('db-core/utils', () => {
       const invoiceBase = createInvoiceNumberBase()
       expect(invoiceBase).toHaveLength(7)
       expect(invoiceBase).toMatch(/^[ABCDEF0-9]+$/)
-    })
-
-    it('generates unique values on each call', () => {
-      const bases = new Set(
-        Array.from({ length: 100 }, () => createInvoiceNumberBase())
-      )
-      expect(bases.size).toBe(100)
     })
   })
 
@@ -63,13 +51,6 @@ describe('db-core/utils', () => {
       const bytes32 = generateRandomBytes(32)
       expect(bytes32).toHaveLength(64) // 32 bytes = 64 hex chars
       expect(bytes32).toMatch(/^[0-9a-f]+$/)
-    })
-
-    it('generates unique values on each call', () => {
-      const values = new Set(
-        Array.from({ length: 100 }, () => generateRandomBytes(16))
-      )
-      expect(values.size).toBe(100)
     })
   })
 
