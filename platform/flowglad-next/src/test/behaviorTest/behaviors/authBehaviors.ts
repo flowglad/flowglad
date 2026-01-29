@@ -17,6 +17,7 @@
  * which all other behaviors build.
  */
 
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { User } from '@/db/schema/users'
 import { insertUser } from '@/db/tableMethods/userMethods'
@@ -77,17 +78,21 @@ export const authenticateUserBehavior = defineBehavior({
     const nanoid = core.nanoid()
     const betterAuthId = `ba_${nanoid}`
 
-    const user = await adminTransaction(async ({ transaction }) => {
-      return insertUser(
-        {
-          id: `usr_${nanoid}`,
-          email: `test+${nanoid}@flowglad.com`,
-          name: `Test User ${nanoid}`,
-          betterAuthId,
-        },
-        transaction
-      )
-    })
+    const user = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await insertUser(
+            {
+              id: `usr_${nanoid}`,
+              email: `test+${nanoid}@flowglad.com`,
+              name: `Test User ${nanoid}`,
+              betterAuthId,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     return { user }
   },

@@ -40,6 +40,7 @@
  * behavior when you just need an onboarded organization for subsequent tests.
  */
 
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { BusinessOnboardingStatus } from '@/types'
@@ -127,6 +128,7 @@ export const initiateStripeConnectBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(undefined)
       },
       { livemode: true }
     )
@@ -185,6 +187,7 @@ export const finalizeStripeOnboardingBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(undefined)
       },
       { livemode: true }
     )
@@ -254,6 +257,7 @@ export const completeStripeOnboardingBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(undefined)
       },
       { livemode: true }
     )

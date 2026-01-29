@@ -553,25 +553,27 @@ describe('adjustSubscription priceSlug resolution', () => {
       slug: `test-price-slug-${Date.now()}`,
     })
 
-    const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
-        return adjustSubscription(
-          {
-            id: setup.subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                { priceSlug: priceWithSlug.slug!, quantity: 1 },
-              ],
-              prorateCurrentBillingPeriod: false,
+    const result = (
+      await adminTransaction<AdjustSubscriptionResult>(
+        async (ctx) => {
+          return adjustSubscription(
+            {
+              id: setup.subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  { priceSlug: priceWithSlug.slug!, quantity: 1 },
+                ],
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          setup.organization,
-          ctx
-        )
-      },
-      { livemode }
-    )
+            setup.organization,
+            ctx
+          )
+        },
+        { livemode }
+      )
+    ).unwrap()
 
     // Verify the subscription was adjusted to the price identified by slug
     expect(result.subscription.priceId).toBe(priceWithSlug.id)
@@ -631,25 +633,27 @@ describe('adjustSubscription manual items preservation', () => {
       metadata: { manual: true },
     })
 
-    const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
-        return adjustSubscription(
-          {
-            id: setup.subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                { priceId: setup.targetPrice.id, quantity: 1 },
-              ],
-              prorateCurrentBillingPeriod: false,
+    const result = (
+      await adminTransaction<AdjustSubscriptionResult>(
+        async (ctx) => {
+          return adjustSubscription(
+            {
+              id: setup.subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  { priceId: setup.targetPrice.id, quantity: 1 },
+                ],
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          setup.organization,
-          ctx
-        )
-      },
-      { livemode }
-    )
+            setup.organization,
+            ctx
+          )
+        },
+        { livemode }
+      )
+    ).unwrap()
 
     // Manual item should still exist after adjustment
     const preservedManualItem = result.subscriptionItems.find(

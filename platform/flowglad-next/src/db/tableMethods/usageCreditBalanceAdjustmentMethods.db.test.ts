@@ -63,12 +63,14 @@ describe('Usage Credit Balance Adjustment Methods', () => {
       livemode: true,
     })
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     usageCredit = await setupUsageCredit({
       organizationId: organization.id,
@@ -82,40 +84,43 @@ describe('Usage Credit Balance Adjustment Methods', () => {
 
   describe('insertUsageCreditBalanceAdjustment', () => {
     it('should successfully insert usage credit balance adjustment and derive pricingModelId from usage credit', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageCreditBalanceAdjustment =
-          await insertUsageCreditBalanceAdjustment(
-            {
-              organizationId: organization.id,
-              adjustedUsageCreditId: usageCredit.id,
-              usageMeterId: usageMeter.id,
-              amountAdjusted: 100,
-              adjustmentInitiatedAt: Date.now(),
-              reason: 'Test adjustment',
-              livemode: true,
-            },
-            transaction
+      const usageCreditBalanceAdjustment = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertUsageCreditBalanceAdjustment(
+              {
+                organizationId: organization.id,
+                adjustedUsageCreditId: usageCredit.id,
+                usageMeterId: usageMeter.id,
+                amountAdjusted: 100,
+                adjustmentInitiatedAt: Date.now(),
+                reason: 'Test adjustment',
+                livemode: true,
+              },
+              transaction
+            )
           )
+        })
+      ).unwrap()
 
-        // Verify pricingModelId is correctly derived from usage credit
-        expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
-          usageCredit.pricingModelId
-        )
-        expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
-          usageMeter.pricingModelId
-        )
-        expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+      // Verify pricingModelId is correctly derived from usage credit
+      expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
+        usageCredit.pricingModelId
+      )
+      expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
+        usageMeter.pricingModelId
+      )
+      expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
+        pricingModel.id
+      )
     })
 
     it('should throw an error when adjustedUsageCreditId does not exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+      const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
-        await expect(
-          insertUsageCreditBalanceAdjustment(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await insertUsageCreditBalanceAdjustment(
             {
               organizationId: organization.id,
               adjustedUsageCreditId: nonExistentUsageCreditId,
@@ -127,32 +132,37 @@ describe('Usage Credit Balance Adjustment Methods', () => {
             },
             transaction
           )
-        ).rejects.toThrow()
-      })
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageCreditBalanceAdjustment =
-          await insertUsageCreditBalanceAdjustment(
-            {
-              organizationId: organization.id,
-              adjustedUsageCreditId: usageCredit.id,
-              usageMeterId: usageMeter.id,
-              amountAdjusted: 100,
-              adjustmentInitiatedAt: Date.now(),
-              reason: 'Test adjustment',
-              livemode: true,
-              pricingModelId: pricingModel.id, // explicitly provided
-            },
-            transaction
+      const usageCreditBalanceAdjustment = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertUsageCreditBalanceAdjustment(
+              {
+                organizationId: organization.id,
+                adjustedUsageCreditId: usageCredit.id,
+                usageMeterId: usageMeter.id,
+                amountAdjusted: 100,
+                adjustmentInitiatedAt: Date.now(),
+                reason: 'Test adjustment',
+                livemode: true,
+                pricingModelId: pricingModel.id, // explicitly provided
+              },
+              transaction
+            )
           )
+        })
+      ).unwrap()
 
-        // Verify the provided pricingModelId is used
-        expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+      // Verify the provided pricingModelId is used
+      expect(usageCreditBalanceAdjustment.pricingModelId).toBe(
+        pricingModel.id
+      )
     })
   })
 

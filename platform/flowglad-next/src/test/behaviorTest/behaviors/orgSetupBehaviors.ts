@@ -23,6 +23,7 @@
  * - **ContractTypeDep**: Platform vs MoR affects fee structure and compliance
  */
 
+import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Country } from '@/db/schema/countries'
@@ -118,55 +119,60 @@ export const createOrganizationBehavior = defineBehavior({
     // Teardown the temp org - we only needed it to seed countries
     await teardownOrg({ organizationId: seedResult.organization.id })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      // Get the country record
-      const [country] = await selectCountries(
-        { code: countryDep.countryCode },
-        transaction
-      )
-
-      if (!country) {
-        throw new Error(`Country ${countryDep.countryCode} not found`)
-      }
-
-      // Create organization using the production helper
-      const { organization: clientOrg } =
-        await createOrganizationTransaction(
-          {
-            organization: {
-              name: `Test Org ${core.nanoid()}`,
-              countryId: country.id,
-              stripeConnectContractType: contractTypeDep.contractType,
-            },
-          },
-          {
-            id: prev.user.id,
-            fullName: prev.user.name ?? undefined,
-            email: prev.user.email,
-          },
-          transaction,
-          { type: 'admin', livemode: true }
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        // Get the country record
+        const [country] = await selectCountries(
+          { code: countryDep.countryCode },
+          transaction
         )
 
-      // Get the full organization record (including stripeAccountId)
-      const organizationResult = await selectOrganizationById(
-        clientOrg.id,
-        transaction
-      )
-      const organization = organizationResult.unwrap()
+        if (!country) {
+          throw new Error(
+            `Country ${countryDep.countryCode} not found`
+          )
+        }
 
-      // Get the membership that was created
-      const [membership] = await selectMemberships(
-        { userId: prev.user.id, organizationId: organization.id },
-        transaction
-      )
+        // Create organization using the production helper
+        const { organization: clientOrg } =
+          await createOrganizationTransaction(
+            {
+              organization: {
+                name: `Test Org ${core.nanoid()}`,
+                countryId: country.id,
+                stripeConnectContractType:
+                  contractTypeDep.contractType,
+              },
+            },
+            {
+              id: prev.user.id,
+              fullName: prev.user.name ?? undefined,
+              email: prev.user.email,
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
 
-      return {
-        organization,
-        membership,
-        country,
-      }
-    })
+        // Get the full organization record (including stripeAccountId)
+        const organizationResult = await selectOrganizationById(
+          clientOrg.id,
+          transaction
+        )
+        const organization = organizationResult.unwrap()
+
+        // Get the membership that was created
+        const [membership] = await selectMemberships(
+          { userId: prev.user.id, organizationId: organization.id },
+          transaction
+        )
+
+        return Result.ok({
+          organization,
+          membership,
+          country,
+        })
+      })
+    ).unwrap()
 
     return {
       ...prev,
