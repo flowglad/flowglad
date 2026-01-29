@@ -73,19 +73,20 @@ export default function CustomerBillingPortalOTPSignIn() {
       },
     })
 
-  // Verify OTP using secure API route (email never exposed to client)
+  // Verify OTP using secure API route (email and organizationId never exposed to client)
   const verifyOTP = async () => {
     setLoading(true)
     setError('')
 
     try {
-      // Call secure API route - email is read from server-side cookie
+      // Call secure API route - email and organizationId are read from server-side
+      // The organizationId is retrieved from the verification record, not from the client
       const response = await fetch('/api/billing-portal/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ otp, organizationId, customerId }),
+        body: JSON.stringify({ otp, customerId }),
         credentials: 'include', // Include cookies
       })
 

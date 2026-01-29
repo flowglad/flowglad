@@ -175,6 +175,23 @@ export const auth = betterAuth({
         },
       },
     },
+    verification: {
+      create: {
+        before: async (verification) => {
+          // When creating a verification record for customer billing portal OTP,
+          // attach the organizationId context from the cookie
+          const customerBillingPortalOrganizationId =
+            await getCustomerBillingPortalOrganizationId()
+          if (customerBillingPortalOrganizationId) {
+            return {
+              ...verification,
+              contextOrganizationId: customerBillingPortalOrganizationId,
+            }
+          }
+          return verification
+        },
+      },
+    },
   },
   user: {
     additionalFields: {

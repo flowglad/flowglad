@@ -1,4 +1,7 @@
-import { user } from '@db-core/schema/betterAuthSchema'
+import {
+  user,
+  verification,
+} from '@db-core/schema/betterAuthSchema'
 import { eq } from 'drizzle-orm'
 import type { DbTransaction } from '../types'
 
@@ -30,4 +33,16 @@ export const selectBetterAuthUserByEmail = async (
     throw new Error('BetterAuth user not found')
   }
   return betterAuthUser
+}
+
+export const selectVerificationByIdentifier = async (
+  identifier: string,
+  transaction: DbTransaction
+) => {
+  const [verificationRecord] = await transaction
+    .select()
+    .from(verification)
+    .where(eq(verification.identifier, identifier))
+    .limit(1)
+  return verificationRecord || null
 }

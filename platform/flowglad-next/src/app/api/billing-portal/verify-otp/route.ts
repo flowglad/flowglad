@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectVerificationByIdentifier } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
   getCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
@@ -10,26 +11,29 @@ import {
 /**
  * API Route handler for OTP verification.
  *
- * This route exists as a separate API endpoint (rather than being handled via TRPC) for two critical reasons:
+ * This route exists as a separate API endpoint (rather than being handled via TRPC) for three critical security reasons:
  *
  * 1. **Email Security**: We cannot accept an email address from the client side. If we did, an attacker
  *    could guess customer IDs and receive the associated email addresses, exposing sensitive customer data.
  *    Instead, the email is stored server-side in a secure cookie during the send-otp flow and retrieved here.
  *
- * 2. **BetterAuth Session Cookie**: We need to correctly set the BetterAuth session ID cookie server-side.
+ * 2. **Organization Context Security**: We retrieve the organizationId from the verification record itself
+ *    (set server-side during OTP creation), not from the client request. This prevents an attacker from
+ *    manipulating the organization context during authentication.
+ *
+ * 3. **BetterAuth Session Cookie**: We need to correctly set the BetterAuth session ID cookie server-side.
  *    This requires forwarding Set-Cookie headers from BetterAuth's response, which is not easily achievable
  *    via TRPC. TRPC doesn't provide direct access to HTTP response headers like Set-Cookie, making it
  *    difficult to properly establish the authenticated session. By using a Next.js route handler, we can
  *    directly forward the Set-Cookie headers from BetterAuth's API response to the client.
  *
- * Client sends: { otp, organizationId, customerId }
- * Server: Validates OTP via BetterAuth, forwards Set-Cookie headers, returns success/error
+ * Client sends: { otp, customerId }
+ * Server: Retrieves email and organizationId server-side, validates OTP via BetterAuth, forwards Set-Cookie headers, returns success/error
  */
 export async function POST(request: NextRequest) {
   try {
     const verifyOtpSchema = z.object({
       otp: z.string().length(6, 'OTP must be 6 digits'),
-      organizationId: z.string(),
       customerId: z.string(),
     })
 
@@ -50,7 +54,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    const { otp, organizationId, customerId } = parseResult.data
+    const { otp, customerId } = parseResult.data
     if (!otp || typeof otp !== 'string' || otp.length !== 6) {
       return NextResponse.json(
         { success: false, error: 'Invalid OTP format' },
@@ -58,15 +62,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!organizationId || !customerId) {
+    if (!customerId) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing organizationId or customerId',
+          error: 'Missing customerId',
         },
         { status: 400 }
       )
     }
+    // Get email from secure cookie (set during sendOTP)
+    const email = await getCustomerBillingPortalEmail()
+
+    if (!email) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Session expired. Please request a new verification code.',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Retrieve the verification record to get the organizationId
+    // This ensures the org context is always server-controlled, not client-controlled
+    const verificationRecord = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectVerificationByIdentifier(email, transaction)
+      }
+    )
+
+    if (!verificationRecord || !verificationRecord.contextOrganizationId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Verification record not found or missing organization context.',
+        },
+        { status: 400 }
+      )
+    }
+
+    const organizationId = verificationRecord.contextOrganizationId
+
+    // Validate the customer belongs to the organization from the verification record
     const customer = await adminTransaction(
       async ({ transaction }) => {
         return (
@@ -92,22 +131,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
     // Set organization context (BetterAuth needs this)
     await setCustomerBillingPortalOrganizationId(organizationId)
-
-    // Get email from secure cookie (set during sendOTP)
-    const email = await getCustomerBillingPortalEmail()
-
-    if (!email) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Session expired. Please request a new verification code.',
-        },
-        { status: 400 }
-      )
-    }
 
     // Call BetterAuth's API endpoint directly via HTTP to capture Set-Cookie headers
     const baseUrl = new URL(request.url).origin

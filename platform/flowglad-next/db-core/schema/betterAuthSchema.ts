@@ -65,4 +65,5 @@ export const verification = pgTable('better_auth_verification', {
   updatedAt: timestamp('updated_at').$defaultFn(
     () => /* @__PURE__ */ new Date()
   ),
+  contextOrganizationId: text('context_organization_id'),
 }).enableRLS()
