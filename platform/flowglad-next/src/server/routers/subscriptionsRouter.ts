@@ -65,7 +65,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
-import { adjustSubscription } from '@/subscriptions/adjustSubscription'
+import {
+  adjustSubscription,
+  calculateAdjustmentPreview,
+} from '@/subscriptions/adjustSubscription'
 import {
   createBillingRun,
   executeBillingRun,
@@ -77,6 +80,7 @@ import {
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
   adjustSubscriptionInputSchema,
+  previewAdjustSubscriptionOutputSchema,
   scheduleSubscriptionCancellationSchema,
   uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
@@ -94,6 +98,10 @@ export const subscriptionsRouteConfigs = [
   ...routeConfigs,
   trpcToRest('subscriptions.adjust', {
     routeParams: ['id'],
+  }),
+  trpcToRest('subscriptions.previewAdjust', {
+    routeParams: ['id'],
+    routeSuffix: 'preview-adjust',
   }),
   trpcToRest('subscriptions.cancel', {
     routeParams: ['id'],
@@ -280,6 +288,121 @@ export const validateAndResolveCustomerForSubscription =
   }
 
 const BILLING_RUN_TIMEOUT_MS = 60_000 // 60 seconds max wait for billing run
+
+const previewAdjustSubscriptionProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/subscriptions/{id}/preview-adjust',
+      summary: 'Preview Subscription Adjustment',
+      description:
+        'Returns a preview of what a subscription adjustment would look like, including proration amount, ' +
+        'payment method, and whether the adjustment can be made. This endpoint does not make any changes ' +
+        'to the subscription. Use this to show users what will happen before they commit to an adjustment.',
+      tags: ['Subscriptions'],
+      protect: true,
+    },
+  })
+  .input(adjustSubscriptionInputSchema)
+  .output(previewAdjustSubscriptionOutputSchema)
+  .mutation(async ({ input, ctx }) => {
+    if (!ctx.organization) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization not found',
+      })
+    }
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const previewResult = await calculateAdjustmentPreview(
+          input,
+          transaction
+        )
+
+        if (!previewResult.canAdjust) {
+          // Return the failure result directly
+          return {
+            canAdjust: false as const,
+            previewGeneratedAt: previewResult.previewGeneratedAt,
+            reason: previewResult.reason,
+          }
+        }
+
+        // Fetch payment method details if available
+        let paymentMethodDetails:
+          | {
+              id: string
+              type: string
+              last4?: string
+              brand?: string
+            }
+          | undefined
+
+        if (previewResult.paymentMethodId) {
+          const paymentMethodResult = await selectPaymentMethodById(
+            previewResult.paymentMethodId,
+            transaction
+          )
+          if (Result.isOk(paymentMethodResult)) {
+            const pm = paymentMethodResult.value
+            // Extract last4 and brand from paymentMethodData if available (for card payments)
+            const pmData = pm.paymentMethodData as Record<
+              string,
+              unknown
+            >
+            paymentMethodDetails = {
+              id: pm.id,
+              type: pm.type,
+              last4:
+                typeof pmData?.last4 === 'string'
+                  ? pmData.last4
+                  : undefined,
+              brand:
+                typeof pmData?.brand === 'string'
+                  ? pmData.brand
+                  : undefined,
+            }
+          }
+        }
+
+        // Transform subscription items to preview format
+        const currentSubscriptionItems =
+          previewResult.currentSubscriptionItems.map((item) => ({
+            name: item.name ?? '',
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            priceId: item.priceId ?? '',
+          }))
+
+        const newSubscriptionItems =
+          previewResult.resolvedNewSubscriptionItems.map((item) => ({
+            name: item.name ?? '',
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            priceId: item.priceId ?? '',
+          }))
+
+        return {
+          canAdjust: true as const,
+          previewGeneratedAt: previewResult.previewGeneratedAt,
+          prorationAmount: previewResult.prorationAmount,
+          currentPlanTotal: previewResult.currentPlanTotal,
+          newPlanTotal: previewResult.newPlanTotal,
+          resolvedTiming: previewResult.resolvedTiming,
+          effectiveDate: previewResult.effectiveDate,
+          isUpgrade: previewResult.isUpgrade,
+          percentThroughBillingPeriod:
+            previewResult.percentThroughBillingPeriod,
+          billingPeriodEnd: previewResult.billingPeriodEnd,
+          paymentMethod: paymentMethodDetails,
+          currentSubscriptionItems,
+          newSubscriptionItems,
+        }
+      },
+      { apiKey: ctx.apiKey }
+    )
+  })
 
 const adjustSubscriptionProcedure = protectedProcedure
   .meta({
@@ -971,6 +1094,7 @@ const listDistinctSubscriptionProductNamesProcedure =
 
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
+  previewAdjust: previewAdjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
   uncancel: uncancelSubscriptionProcedure,
   list: listSubscriptionsProcedure,
