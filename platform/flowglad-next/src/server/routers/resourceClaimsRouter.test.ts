@@ -56,8 +56,6 @@ const createCaller = (
     path: '',
     user: null,
     session: null,
-    clientIp: 'test-ip',
-    userAgent: 'test-agent',
   } as TRPCApiContext)
 }
 

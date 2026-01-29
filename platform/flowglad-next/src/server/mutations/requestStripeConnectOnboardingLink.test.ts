@@ -81,8 +81,6 @@ const createAuthedContext = async (params: {
     organization,
     isApi: false,
     apiKey: undefined,
-    clientIp: 'test-ip',
-    userAgent: 'test-agent',
   }
 
   return { ctx, user }

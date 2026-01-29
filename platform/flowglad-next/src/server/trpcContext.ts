@@ -12,72 +12,6 @@ import { selectUsers } from '@/db/tableMethods/userMethods'
 import type { ApiEnvironment } from '@/types'
 import { getSession } from '@/utils/auth'
 
-/**
- * Get a header value from the request.
- * Handles both Node.js IncomingMessage and Fetch API Request objects.
- */
-function getHeader(
-  req: trpcNext.CreateNextContextOptions['req'],
-  name: string
-): string | null {
-  const headers = req.headers as
-    | Record<string, string | string[] | undefined>
-    | Headers
-
-  // Check if it's a Fetch API Headers object (has get method)
-  if (headers && typeof (headers as Headers).get === 'function') {
-    return (headers as Headers).get(name)
-  }
-
-  // Node.js IncomingHttpHeaders - record-style access
-  const value = (
-    headers as Record<string, string | string[] | undefined>
-  )?.[name]
-  if (value) {
-    return Array.isArray(value) ? value[0] : value
-  }
-
-  return null
-}
-
-/**
- * Extract IP address from request headers.
- * Checks common headers used by reverse proxies and CDNs.
- */
-function getClientIp(
-  req: trpcNext.CreateNextContextOptions['req']
-): string {
-  // Check common headers in order of preference
-  const forwardedFor = getHeader(req, 'x-forwarded-for')
-  if (forwardedFor) {
-    // x-forwarded-for can contain multiple IPs; take the first one
-    const ips = forwardedFor.split(',')
-    return ips[0].trim()
-  }
-
-  const realIp = getHeader(req, 'x-real-ip')
-  if (realIp) {
-    return realIp.trim()
-  }
-
-  // Fallback to unknown
-  return 'unknown'
-}
-
-/**
- * Extract user agent from request headers.
- */
-function getUserAgent(
-  req: trpcNext.CreateNextContextOptions['req']
-): string {
-  const userAgent = getHeader(req, 'user-agent')
-  if (userAgent) {
-    return userAgent
-  }
-
-  return 'unknown'
-}
-
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
 ) => {
@@ -130,10 +64,6 @@ export const createContext = async (
     Sentry.setUser(null)
   }
 
-  // Extract client IP and user agent for rate limiting
-  const clientIp = getClientIp(opts.req)
-  const userAgent = getUserAgent(opts.req)
-
   return {
     user,
     path: opts.req.url,
@@ -143,8 +73,6 @@ export const createContext = async (
     organization,
     isApi: false,
     apiKey: undefined,
-    clientIp,
-    userAgent,
   }
 }
 
@@ -170,10 +98,6 @@ export const createApiContext = ({
       }
     )
 
-    // Extract client IP and user agent for rate limiting
-    const clientIp = getClientIp(opts.req)
-    const userAgent = getUserAgent(opts.req)
-
     return {
       apiKey,
       isApi: true,
@@ -182,8 +106,6 @@ export const createApiContext = ({
       organization,
       environment,
       livemode: environment === 'live',
-      clientIp,
-      userAgent,
     }
   }
 }
