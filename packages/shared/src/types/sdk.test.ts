@@ -50,6 +50,7 @@ describe('Route type classification', () => {
       FlowgladActionKey.UncancelSubscription,
       FlowgladActionKey.AdjustSubscription,
       FlowgladActionKey.CreateSubscription,
+      FlowgladActionKey.GetSubscriptions,
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
       FlowgladActionKey.GetResourceUsages,
