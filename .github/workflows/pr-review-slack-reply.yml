@@ -1,0 +1,73 @@
+name: PR Review Slack Reply
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  notify:
+    if: github.event.review.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PULL_REQUEST_URL }}
+          STATE: ${{ github.event.review.state }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not set; skipping Slack notification."
+            exit 0
+          fi
+
+          case "$STATE" in
+            approved)
+              EMOJI="🟢"
+              ;;
+            changes_requested|commented)
+              EMOJI="🔴"
+              ;;
+            *)
+              EMOJI="🔴"
+              ;;
+          esac
+
+          PAYLOAD=$(jq -n --arg emoji "$EMOJI" --arg title "$TITLE" --arg url "$URL" --arg author "$AUTHOR" '{
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: ($emoji + " <" + $url + "|" + $title + "> - " + $author)
+                }
+              },
+              { type: "divider" }
+            ]
+          }')
+          curl -sS -f -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            || echo "Slack notification failed (non-blocking)"
+
+      - name: Remove needs-review label on approval
+        if: github.event.review.state == 'approved'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: 'needs-review'
+              });
+              console.log('Removed needs-review label');
+            } catch (e) {
+              // Label might not exist on this PR, that's fine
+              console.log('Label removal skipped:', e.message);
+            }
