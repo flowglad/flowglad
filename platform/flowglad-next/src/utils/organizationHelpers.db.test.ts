@@ -444,7 +444,7 @@ describe('createOrganizationTransaction', () => {
     })
 
     await expect(promise).rejects.toThrow(
-      /Stripe Connect contract type .* is not supported/
+      /The selected payment configuration is not available in .+\. See supported countries/
     )
   })
 
