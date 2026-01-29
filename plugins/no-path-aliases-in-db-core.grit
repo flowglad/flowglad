@@ -10,8 +10,12 @@ language js
 // Good: import { foo } from './utils'
 // Good: import { foo } from './enums'
 
-// Match import declarations where the source starts with @ (path alias)
+// Match import declarations where the source uses path aliases (@/ or @db-core/)
+// but NOT scoped npm packages like @types/node
 `import $imports from $source` where {
-  $source <: r"['\"]@.*",
+  $source <: or {
+    r"['\"]@/.*",
+    r"['\"]@db-core/.*"
+  },
   register_diagnostic(span=$source, message="db-core must use relative imports only. Path aliases like @/ or @db-core/ break subtree portability.", severity="error")
 }
