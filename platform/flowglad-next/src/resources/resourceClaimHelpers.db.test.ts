@@ -105,12 +105,14 @@ describe('resourceClaimHelpers', () => {
       intervalCount: 1,
     })
 
-    subscriptionItem = await setupSubscriptionItem({
-      subscriptionId: subscription.id,
-      name: 'Resource Subscription Item',
-      quantity: 1,
-      unitPrice: 1000,
-    })
+    subscriptionItem = (
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Resource Subscription Item',
+        quantity: 1,
+        unitPrice: 1000,
+      })
+    ).unwrap()
 
     // Create a Resource feature
     const resourceFeature = (
@@ -1460,12 +1462,14 @@ describe('expired_at functionality', () => {
       intervalCount: 1,
     })
 
-    subscriptionItem = await setupSubscriptionItem({
-      subscriptionId: subscription.id,
-      name: 'Resource Subscription Item',
-      quantity: 1,
-      unitPrice: 1000,
-    })
+    subscriptionItem = (
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Resource Subscription Item',
+        quantity: 1,
+        unitPrice: 1000,
+      })
+    ).unwrap()
 
     // Create a Resource feature with capacity of 5
     const resourceFeature = (
