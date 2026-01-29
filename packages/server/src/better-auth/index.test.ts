@@ -324,6 +324,7 @@ describe('flowgladPlugin', () => {
       'uncancelSubscription',
       'adjustSubscription',
       'createSubscription',
+      'getSubscriptions',
       'updateCustomer',
       'createUsageEvent',
       'getResources',
