@@ -29,7 +29,6 @@ import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
-  selectCustomers,
   selectCustomersCursorPaginatedWithTableRowData,
   selectCustomersPaginated,
   updateCustomer as updateCustomerDb,
@@ -328,9 +327,9 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customers = await authenticatedTransaction(
+    const customer = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCustomers(
+        return selectCustomerByExternalIdAndOrganizationId(
           { externalId: input.externalId, organizationId },
           transaction
         )
@@ -340,21 +339,14 @@ export const getCustomer = protectedProcedure
       }
     )
 
-    if (!customers.length) {
-      if ('id' in input) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Customer with id ${input.id} not found`,
-        })
-      } else {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Customer with externalId ${input.externalId} not found`,
-        })
-      }
+    if (!customer) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Customer with externalId ${input.externalId} not found`,
+      })
     }
 
-    return { customer: customers[0] }
+    return { customer }
   })
 
 export const getCustomerBilling = protectedProcedure

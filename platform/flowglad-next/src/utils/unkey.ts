@@ -194,7 +194,9 @@ export const secretApiKeyInputToUnkeyInput = (
   const secretMeta = secretApiKeyMetadataSchema.parse(unparsedMeta)
 
   return {
-    apiId: core.envVariable('UNKEY_API_ID'),
+    apiId: core.IS_TEST
+      ? 'test_api_id'
+      : core.envVariable('UNKEY_API_ID'),
     name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
     expires: params.expiresAt
       ? new Date(params.expiresAt).getTime()

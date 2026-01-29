@@ -89,12 +89,25 @@ export const insertOrDoNothingOrganizationByExternalId = async (
     transaction
   )
   if (!result || result.length === 0 || result[0] === null) {
+    // INSERT was a no-op (likely externalId conflict), try to find existing org
     const [organization] = await selectOrganizations(
       {
         externalId: insert.externalId,
       },
       transaction
     )
+    if (!organization) {
+      // This is unexpected: INSERT didn't return anything AND SELECT found nothing
+      // Log for debugging - this could indicate a constraint conflict on a different column
+      console.error(
+        '[insertOrDoNothingOrganizationByExternalId] INSERT returned empty and SELECT found no matching org',
+        {
+          externalId: insert.externalId,
+          insertResultLength: result?.length ?? 'null',
+          insertResultFirstItem: result?.[0] ?? 'undefined',
+        }
+      )
+    }
     return organization
   }
   return result[0]

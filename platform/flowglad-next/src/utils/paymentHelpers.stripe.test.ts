@@ -1,7 +1,14 @@
-import type { Mock } from 'bun:test'
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
+import {
+  mockConfirmPaymentIntent,
+  mockGetPaymentIntent,
+  mockGetStripeCharge,
+  mockListRefundsForCharge,
+  mockRefundPayment,
+  mockReverseStripeTaxTransaction,
+} from '@/../bun.stripe.mocks'
 import {
   setupCustomer,
   setupInvoice,
@@ -13,6 +20,7 @@ import type { Customer } from '@/db/schema/customers'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
+import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import { NotFoundError, ValidationError } from '@/errors'
 import {
   PaymentMethodType,
@@ -20,36 +28,11 @@ import {
   StripeConnectContractType,
 } from '@/types'
 import { nanoid } from '@/utils/core'
-
-// Import actual stripe module functions we want to keep
-import * as actualStripe from './stripe'
-
-// Create mocks for specific functions
-const mockRefundPayment = mock<typeof actualStripe.refundPayment>()
-const mockGetPaymentIntent =
-  mock<typeof actualStripe.getPaymentIntent>()
-const mockGetStripeCharge =
-  mock<typeof actualStripe.getStripeCharge>()
-const mockListRefundsForCharge =
-  mock<typeof actualStripe.listRefundsForCharge>()
-const mockReverseStripeTaxTransaction =
-  mock<typeof actualStripe.reverseStripeTaxTransaction>()
-
-// Mock the stripe utils
-mock.module('./stripe', () => ({
-  ...actualStripe,
-  refundPayment: mockRefundPayment,
-  getPaymentIntent: mockGetPaymentIntent,
-  getStripeCharge: mockGetStripeCharge,
-  listRefundsForCharge: mockListRefundsForCharge,
-  reverseStripeTaxTransaction: mockReverseStripeTaxTransaction,
-}))
-
 import {
   refundPaymentTransaction,
+  retryPaymentTransaction,
   sumNetTotalSettledPaymentsForPaymentSet,
 } from './paymentHelpers'
-import * as stripeUtils from './stripe'
 
 const makeStripeRefundResponse = ({
   amount,
@@ -289,7 +272,7 @@ describe('refundPaymentTransaction', () => {
         expect(typeof updatedPayment.refundedAt).toBe('number')
       })
 
-      expect(stripeUtils.refundPayment).toHaveBeenCalledWith(
+      expect(mockRefundPayment).toHaveBeenCalledWith(
         payment.stripePaymentIntentId,
         partialRefundAmount,
         payment.livemode
@@ -601,9 +584,7 @@ describe('refundPaymentTransaction', () => {
         )
       })
 
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).toHaveBeenCalledWith(
+      expect(mockReverseStripeTaxTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           stripeTaxTransactionId:
             morPaymentWithTax.stripeTaxTransactionId,
@@ -636,9 +617,7 @@ describe('refundPaymentTransaction', () => {
         )
       })
 
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).toHaveBeenCalledWith(
+      expect(mockReverseStripeTaxTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           stripeTaxTransactionId:
             morPaymentWithTax.stripeTaxTransactionId,
@@ -713,9 +692,7 @@ describe('refundPaymentTransaction', () => {
         )
       })
 
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).not.toHaveBeenCalled()
+      expect(mockReverseStripeTaxTransaction).not.toHaveBeenCalled()
     })
   })
 
@@ -756,9 +733,123 @@ describe('refundPaymentTransaction', () => {
       })
 
       // Should NOT be called because the org is Platform, not MOR
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).not.toHaveBeenCalled()
+      expect(mockReverseStripeTaxTransaction).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('retryPaymentTransaction', () => {
+  let organization: Organization.Record
+  let customer: Customer.Record
+  let invoice: Invoice.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: orgData.price.id,
+    })
+  })
+
+  it('propagates Stripe Tax fields to the new payment record', async () => {
+    const stripePaymentIntentId = `pi_test_${nanoid()}`
+    const stripeChargeId = `ch_test_${nanoid()}`
+    const newStripeChargeId = `ch_retry_${nanoid()}`
+
+    // Create a "failed" payment record
+    const failedPayment = await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Failed,
+      amount: 1000,
+      livemode: true,
+      organizationId: organization.id,
+      customerId: customer.id,
+      invoiceId: invoice.id,
+      stripePaymentIntentId,
+    })
+
+    // Update with tax fields that should be propagated
+    const updatedFailedPayment = await adminTransaction(
+      async ({ transaction }) => {
+        return updatePayment(
+          {
+            id: failedPayment.id,
+            subtotal: 800,
+            taxAmount: 123,
+            stripeTaxCalculationId: 'txcalc_test_retry',
+            stripeTaxTransactionId: 'tax_txn_test_retry',
+          },
+          transaction
+        )
+      }
+    )
+
+    // Mock getPaymentIntent to return a payment intent with a charge
+    mockGetPaymentIntent.mockResolvedValue({
+      id: stripePaymentIntentId,
+      object: 'payment_intent',
+      status: 'requires_confirmation',
+      latest_charge: stripeChargeId,
+      amount: 1000,
+      currency: 'usd',
+      livemode: true,
+    } as any)
+
+    // Mock confirmPaymentIntent to return success
+    mockConfirmPaymentIntent.mockResolvedValue({
+      id: stripePaymentIntentId,
+      object: 'payment_intent',
+      status: 'succeeded',
+      latest_charge: newStripeChargeId,
+      amount: 1000,
+      currency: 'usd',
+      livemode: true,
+    } as any)
+
+    // Mock getStripeCharge to return a succeeded charge
+    mockGetStripeCharge.mockResolvedValue({
+      id: newStripeChargeId,
+      object: 'charge',
+      status: 'succeeded',
+      amount: 1000,
+      currency: 'usd',
+      livemode: true,
+      paid: true,
+    } as any)
+
+    // Retry the payment
+    const retriedPayment = (
+      await adminTransaction(async ({ transaction }) => {
+        return retryPaymentTransaction(
+          { id: updatedFailedPayment.id },
+          transaction
+        )
+      })
+    ).unwrap()
+
+    // Verify tax fields are propagated to the new payment
+    expect(retriedPayment.id).not.toBe(updatedFailedPayment.id)
+    expect(retriedPayment.subtotal).toBe(
+      updatedFailedPayment.subtotal
+    )
+    expect(retriedPayment.taxAmount).toBe(
+      updatedFailedPayment.taxAmount
+    )
+    expect(retriedPayment.stripeTaxCalculationId).toBe(
+      updatedFailedPayment.stripeTaxCalculationId
+    )
+    expect(retriedPayment.stripeTaxTransactionId).toBe(
+      updatedFailedPayment.stripeTaxTransactionId
+    )
+
+    // Verify the new charge ID is used
+    expect(retriedPayment.stripeChargeId).toBe(newStripeChargeId)
   })
 })

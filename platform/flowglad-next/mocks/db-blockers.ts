@@ -9,10 +9,12 @@
  *
  * Services blocked:
  * - Redis (@upstash/redis) - Use mocked @/utils/redis functions instead
- * - Stripe (stripe) - Mock at the function level if needed
  * - Unkey (@unkey/api) - Use mocked @/utils/unkey functions instead
  * - Svix (svix) - Use mocked @/utils/svix functions instead
  * - Resend (resend) - Mock at the function level if needed
+ *
+ * NOT blocked (handled by stripe-mock):
+ * - Stripe (stripe) - SDK calls go to stripe-mock container (localhost:12111)
  *
  * If a test legitimately needs these services, use *.integration.test.ts instead.
  */
@@ -67,18 +69,9 @@ mock.module('@upstash/redis', () => {
   }
 })
 
-/**
- * Block stripe - Stripe SDK
- */
-mock.module('stripe', () => {
-  const StripeBlocked = function () {
-    throw createBlockedServiceError('Stripe')
-  }
-  return {
-    default: StripeBlocked,
-    Stripe: StripeBlocked,
-  }
-})
+// NOTE: Stripe SDK is NOT blocked - calls go to stripe-mock container
+// The Stripe SDK is configured in src/utils/stripe.ts to point to stripe-mock
+// when running in test mode (localhost:12111)
 
 /**
  * Block @unkey/api - Unkey SDK

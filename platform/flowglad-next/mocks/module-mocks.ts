@@ -93,3 +93,41 @@ mock.module(
       mockOrgAdjustedNotification,
   })
 )
+
+// Mock payment notification modules
+const mockPaymentNotification = mock<() => Promise<undefined>>()
+mockPaymentNotification.mockResolvedValue(undefined)
+
+mock.module(
+  '@/trigger/notifications/send-organization-payment-succeeded-notification',
+  () => ({
+    sendOrganizationPaymentSucceededNotificationIdempotently:
+      mockPaymentNotification,
+  })
+)
+
+mock.module(
+  '@/trigger/notifications/send-organization-payment-failed-notification',
+  () => ({
+    idempotentSendOrganizationPaymentFailedNotification:
+      mockPaymentNotification,
+    runSendOrganizationPaymentFailedNotification:
+      mockPaymentNotification,
+  })
+)
+
+mock.module(
+  '@/trigger/notifications/send-customer-payment-succeeded-notification',
+  () => ({
+    sendCustomerPaymentSucceededNotificationIdempotently:
+      mockPaymentNotification,
+  })
+)
+
+mock.module(
+  '@/trigger/notifications/send-customer-payment-failed-notification',
+  () => ({
+    sendCustomerPaymentFailedNotificationIdempotently:
+      mockPaymentNotification,
+  })
+)

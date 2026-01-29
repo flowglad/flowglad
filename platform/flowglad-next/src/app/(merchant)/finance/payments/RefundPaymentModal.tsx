@@ -24,7 +24,7 @@ const RefundPaymentModal = ({
       setIsOpen={setIsOpen}
       onSubmit={refundPayment.mutateAsync}
       formSchema={refundPaymentInputSchema}
-      defaultValues={{ id: payment.id }}
+      defaultValues={() => ({ id: payment.id })}
       title="Refund Payment"
     >
       <div className="flex flex-col gap-4">

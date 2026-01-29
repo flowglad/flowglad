@@ -31,12 +31,13 @@ const CancelSubscriptionModal: React.FC<
     }
   }
 
-  const defaultValues: ScheduleSubscriptionCancellationParams = {
-    id: subscriptionId,
-    cancellation: {
-      timing: SubscriptionCancellationArrangement.Immediately,
-    },
-  }
+  const getDefaultValues =
+    (): ScheduleSubscriptionCancellationParams => ({
+      id: subscriptionId,
+      cancellation: {
+        timing: SubscriptionCancellationArrangement.Immediately,
+      },
+    })
 
   return (
     <FormModal
@@ -44,7 +45,7 @@ const CancelSubscriptionModal: React.FC<
       setIsOpen={setIsOpen}
       title="Cancel Subscription"
       formSchema={scheduleSubscriptionCancellationSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={onSubmit}
       submitButtonText="Cancel Subscription"
       cancelButtonText="Go Back"
