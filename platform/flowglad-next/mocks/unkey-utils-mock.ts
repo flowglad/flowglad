@@ -18,10 +18,12 @@ const mockCreateSecretApiKey =
       organization: { id: string }
       userId: string
       type: 'secret'
+      pricingModelId: string
       expiresAt?: Date | number
     }) => Promise<{
       apiKeyInsert: {
         organizationId: string
+        pricingModelId: string
         name: string
         token: string
         livemode: boolean
@@ -40,6 +42,7 @@ mockCreateSecretApiKey.mockImplementation(async (params) => {
   return {
     apiKeyInsert: {
       organizationId: params.organization.id,
+      pricingModelId: params.pricingModelId,
       name: params.name,
       token: livemode ? `sk_live_...${mockKey.slice(-4)}` : mockKey,
       livemode,
@@ -90,11 +93,13 @@ const mockReplaceSecretApiKey =
         livemode: boolean
         type: string
         expiresAt?: number | null
+        pricingModelId: string
       }
       userId: string
     }) => Promise<{
       apiKeyInsert: {
         organizationId: string
+        pricingModelId: string
         name: string
         token: string
         livemode: boolean
@@ -113,6 +118,7 @@ mockReplaceSecretApiKey.mockImplementation(async (params) => {
   return {
     apiKeyInsert: {
       organizationId: params.organization.id,
+      pricingModelId: params.oldApiKey.pricingModelId,
       name: params.oldApiKey.name,
       token: params.oldApiKey.livemode
         ? `sk_live_...${mockKey.slice(-4)}`
@@ -156,16 +162,21 @@ export const unkeyUtilsMockExports = {
     organization: { id: string }
     userId: string
     type: 'secret'
+    pricingModelId: string
     expiresAt?: Date | number
   }) => ({
     apiId: 'mock_api_id',
-    name: `${params.organization.id} / ${params.apiEnvironment} / ${params.name}`,
+    name: `${params.organization.id} / ${params.apiEnvironment} / ${params.pricingModelId} / ${params.name}`,
     expires: params.expiresAt
       ? new Date(params.expiresAt).getTime()
       : undefined,
     externalId: params.organization.id,
-    prefix: `sk_${params.apiEnvironment}`,
-    meta: { userId: params.userId, type: 'secret' },
+    prefix: `sk_${params.apiEnvironment}_${params.pricingModelId.replace('pricing_model_', '').slice(0, 4)}`,
+    meta: {
+      userId: params.userId,
+      type: 'secret',
+      pricingModelId: params.pricingModelId,
+    },
   }),
   parseUnkeyMeta: (rawUnkeyMeta?: object) => {
     if (!rawUnkeyMeta) {

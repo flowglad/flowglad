@@ -310,6 +310,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -334,6 +335,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const apiCtx = {
         organizationId,
@@ -406,6 +408,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -537,6 +540,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -571,6 +575,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -581,22 +586,9 @@ describe('pricesRouter - Default Price Constraints', () => {
         path: '',
       }
 
-      // First, create a new product without any prices in the same organization
+      // First, create a new product without any prices in the same pricing model
+      // (use the same pricingModelId as the API key to ensure RLS access)
       const newProduct = await adminTransaction(async (ctx) => {
-        const pricingModel = await createPricingModelBookkeeping(
-          {
-            pricingModel: {
-              name: 'Test Pricing Model 2',
-              isDefault: false,
-            },
-          },
-          {
-            ...ctx,
-            organizationId,
-            livemode,
-          }
-        )
-
         const product = await insertProduct(
           {
             name: 'New Product',
@@ -607,7 +599,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             singularQuantityLabel: null,
             pluralQuantityLabel: null,
             externalId: null,
-            pricingModelId: pricingModel.unwrap().pricingModel.id,
+            pricingModelId, // Use the describe block's PM to match API key scope
             organizationId,
             livemode,
             active: true,
@@ -676,6 +668,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -699,6 +692,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -969,6 +963,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1015,6 +1010,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1062,6 +1058,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1176,6 +1173,7 @@ describe('pricesRouter - API Contract Updates', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1211,6 +1209,7 @@ describe('pricesRouter - API Contract Updates', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1249,6 +1248,7 @@ describe('pricesRouter - API Contract Updates', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1287,6 +1287,7 @@ describe('pricesRouter - API Contract Updates', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1445,6 +1446,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1496,6 +1498,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1533,6 +1536,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1568,6 +1572,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1605,6 +1610,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
     const { apiKey, user } = await setupUserAndApiKey({
       organizationId,
       livemode,
+      pricingModelId,
     })
     const ctx = {
       organizationId,
@@ -1792,6 +1798,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1827,6 +1834,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1861,6 +1869,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1894,6 +1903,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1930,6 +1940,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -1967,6 +1978,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2007,6 +2019,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2038,6 +2051,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2065,6 +2079,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2197,6 +2212,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2226,6 +2242,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2255,6 +2272,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2282,6 +2300,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2328,6 +2347,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2358,6 +2378,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
@@ -2381,6 +2402,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
+        pricingModelId,
       })
       const ctx = {
         organizationId,
