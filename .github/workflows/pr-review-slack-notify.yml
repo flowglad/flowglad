@@ -12,7 +12,6 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PULL_REQUEST_URL }}
           TITLE: ${{ github.event.pull_request.title }}
-          AUTHOR: ${{ github.event.pull_request.user.login }}
           URL: ${{ github.event.pull_request.html_url }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
@@ -20,8 +19,15 @@ jobs:
             exit 0
           fi
 
-          TEXT="📋 *$TITLE*\n_$AUTHOR_ • <$URL|View PR>"
-          PAYLOAD=$(jq -n --arg text "$TEXT" '{text: $text}')
+          PAYLOAD=$(jq -n --arg title "$TITLE" --arg url "$URL" '{
+            blocks: [{
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: ("🟡 <" + $url + "|" + $title + ">")
+              }
+            }]
+          }')
 
           curl -sS -f -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
