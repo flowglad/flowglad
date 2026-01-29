@@ -21,6 +21,8 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
+  type GetSubscriptionsParams,
+  type GetSubscriptionsResponse,
   type GetUsageMeterBalancesParams,
   type GetUsageMeterBalancesResponse,
   type ListResourceClaimsParams,
@@ -116,6 +118,37 @@ export class FlowgladServer {
         rawBilling.pricingModel,
         rawBilling.purchases
       ),
+    }
+  }
+
+  /**
+   * Get subscriptions for the authenticated customer.
+   *
+   * By default, returns only current (active) subscriptions.
+   * Set includeHistorical to true to include all subscriptions.
+   *
+   * @param params - Optional parameters for fetching subscriptions
+   * @param params.includeHistorical - Optional. Include non-current subscriptions.
+   *
+   * @returns A promise that resolves to an object containing subscriptions
+   *
+   * @throws {Error} If the customer is not authenticated
+   */
+  public getSubscriptions = async (
+    params?: GetSubscriptionsParams
+  ): Promise<GetSubscriptionsResponse> => {
+    const billing = await this.getBilling()
+    const allSubscriptions = billing.subscriptions ?? []
+    const currentSubscriptions = billing.currentSubscriptions ?? []
+
+    const subscriptions = params?.includeHistorical
+      ? allSubscriptions
+      : currentSubscriptions
+
+    return {
+      subscriptions,
+      currentSubscriptions,
+      currentSubscription: currentSubscriptions[0] ?? null,
     }
   }
 
