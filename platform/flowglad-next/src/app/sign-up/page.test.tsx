@@ -7,8 +7,8 @@
  * NOTE: Full end-to-end testing of the page with all UI components requires
  * integration testing due to complex dependencies (Radix UI, shadcn, etc).
  */
-import { describe, expect, it } from 'vitest'
-import { PASSWORD_MIN_LENGTH, signupSchema } from '@/lib/authSchema'
+import { describe, expect, it } from 'bun:test'
+import { PASSWORD_MIN_LENGTH, signupSchema } from '@/lib/schemas'
 
 describe('SignUp Page - Form Validation', () => {
   const validData = {

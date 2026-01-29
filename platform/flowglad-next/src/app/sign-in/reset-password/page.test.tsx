@@ -12,11 +12,8 @@
  * 2. Form state - shows password reset form
  * 3. Success state - shows success message and redirects
  */
-import { describe, expect, it } from 'vitest'
-import {
-  newPasswordSchema,
-  PASSWORD_MIN_LENGTH,
-} from '@/lib/authSchema'
+import { describe, expect, it } from 'bun:test'
+import { newPasswordSchema, PASSWORD_MIN_LENGTH } from '@/lib/schemas'
 
 describe('Reset Password Page - Form Validation', () => {
   const validData = {
