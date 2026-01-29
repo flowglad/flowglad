@@ -5,9 +5,9 @@ import {
   IntervalUnit,
   PriceType,
 } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
 import {
   selectFeaturesByProductFeatureWhere,
   updateProductFeature,

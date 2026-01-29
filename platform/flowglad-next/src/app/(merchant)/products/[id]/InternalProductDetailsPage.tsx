@@ -3,6 +3,10 @@ import {
   FeatureType,
   FeatureUsageGrantFrequency,
 } from '@db-core/enums'
+import type { Feature } from '@db-core/schema/features'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
 import { Check, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -16,10 +20,6 @@ import PageContainer from '@/components/PageContainer'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import type { Feature } from '@/db/schema/features'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 import { PricesDataTable } from './prices/data-table'
 
 export type InternalProductDetailsPageProps = {

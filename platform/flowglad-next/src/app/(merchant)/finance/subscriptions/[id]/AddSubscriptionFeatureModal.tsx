@@ -1,12 +1,12 @@
 'use client'
 
+import type { subscriptionItemFeaturesClientSelectSchema } from '@db-core/schema/subscriptionItemFeatures'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
 import FormModal, {
   type ModalInterfaceProps,
 } from '@/components/forms/FormModal'
-import type { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 import type { RichSubscription } from '@/subscriptions/schemas'
 import { AddSubscriptionFeatureItemFormFields } from './AddSubscriptionFeatureItemFormFields'
 import {

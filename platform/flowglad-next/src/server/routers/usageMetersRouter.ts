@@ -1,4 +1,12 @@
 import {
+  createUsageMeterSchema,
+  editUsageMeterSchema,
+  usageMeterPaginatedListSchema,
+  usageMeterPaginatedSelectSchema,
+  usageMetersClientSelectSchema,
+  usageMetersTableRowDataSchema,
+} from '@db-core/schema/usageMeters'
+import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
@@ -10,14 +18,6 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createUsageMeterSchema,
-  editUsageMeterSchema,
-  usageMeterPaginatedListSchema,
-  usageMeterPaginatedSelectSchema,
-  usageMetersClientSelectSchema,
-  usageMetersTableRowDataSchema,
-} from '@/db/schema/usageMeters'
 import {
   selectUsageMeterById,
   selectUsageMetersCursorPaginated,

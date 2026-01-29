@@ -1,8 +1,8 @@
 import type {
   Membership,
   NotificationPreferences,
-} from '@/db/schema/memberships'
-import type { User } from '@/db/schema/users'
+} from '@db-core/schema/memberships'
+import type { User } from '@db-core/schema/users'
 import { getMembershipNotificationPreferences } from '@/db/tableMethods/membershipMethods'
 
 /**

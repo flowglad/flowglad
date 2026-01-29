@@ -1,6 +1,6 @@
+import { editCheckoutSessionInputSchema } from '@db-core/schema/checkoutSessions'
 import { Result } from 'better-result'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import { editCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import { publicProcedure } from '@/server/trpc'
 import { editCheckoutSession as editCheckoutSessionFn } from '@/utils/bookkeeping/checkoutSessions'
 

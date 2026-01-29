@@ -30,8 +30,8 @@
  * adjustSubscription.test.ts which can properly mock the trigger tasks.
  */
 
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import { expect } from 'vitest'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { SubscriptionAdjustmentTiming } from '@/types'
 import { teardownOrg } from '../../../../seedDatabase'
 import { authenticateUserBehavior } from '../behaviors/authBehaviors'

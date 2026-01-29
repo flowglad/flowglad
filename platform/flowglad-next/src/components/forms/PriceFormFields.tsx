@@ -1,5 +1,11 @@
 'use client'
 import { IntervalUnit, PriceType } from '@db-core/enums'
+import {
+  type CreateProductSchema,
+  singlePaymentPriceDefaultColumns,
+  subscriptionPriceDefaultColumns,
+  usagePriceDefaultColumns,
+} from '@db-core/schema/prices'
 import React from 'react'
 import { useFormContext } from 'react-hook-form'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
@@ -23,12 +29,6 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  type CreateProductSchema,
-  singlePaymentPriceDefaultColumns,
-  subscriptionPriceDefaultColumns,
-  usagePriceDefaultColumns,
-} from '@/db/schema/prices'
 import { currencyCharacter } from '@/registry/lib/currency'
 import core from '@/utils/core'
 import { getPriceConstraints } from '@/utils/priceConstraints'

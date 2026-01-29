@@ -9,6 +9,7 @@ import {
   mock,
 } from 'bun:test'
 import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
+import type { CreateDiscountFormSchema } from '@db-core/schema/discounts'
 import {
   fireEvent,
   render,
@@ -20,7 +21,6 @@ import {
   useAuthContext,
   useAuthenticatedContext,
 } from '@/contexts/authContext'
-import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
 import DiscountFormFields from './DiscountFormFields'
 
 // Mock the auth context

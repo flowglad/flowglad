@@ -7,7 +7,7 @@ import {
 import {
   type Price,
   pricesClientInsertSchema,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
 
 /**
  * Tests for EditUsagePriceModal schema validation.

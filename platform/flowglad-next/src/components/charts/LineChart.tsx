@@ -3,6 +3,7 @@
 
 'use client'
 
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import React from 'react'
 import { mergeRefs } from 'react-merge-refs'
 import {
@@ -19,9 +20,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { AxisDomain } from 'recharts/types/util/types'
-
 import { cn } from '@/lib/utils'
-import { RevenueChartIntervalUnit } from '@/types'
 import {
   AvailableChartColors,
   type AvailableChartColorsKeys,

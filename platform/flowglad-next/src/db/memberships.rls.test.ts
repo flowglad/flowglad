@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import type { ApiKey } from '@/db/schema/apiKeys'
+import type { ApiKey } from '@db-core/schema/apiKeys'
 import type {
   Membership,
   NotificationPreferences,
-} from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
+} from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
+import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   getMembershipNotificationPreferences,
   selectMembershipById,

@@ -1,10 +1,10 @@
-import { logger, task } from '@trigger.dev/sdk'
-import { Result } from 'better-result'
-import type { z } from 'zod'
 import {
   type Customer,
   customersSelectSchema,
-} from '@/db/schema/customers'
+} from '@db-core/schema/customers'
+import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
+import type { z } from 'zod'
 import { supabaseInsertPayloadSchema } from '@/db/supabase'
 import { ValidationError } from '@/errors'
 import type { SupabaseInsertPayload } from '@/types'

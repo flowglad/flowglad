@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Customer, customers } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
 import {
   setupCustomer,
   setupOrg,
@@ -6,9 +9,6 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { Customer, customers } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
 import { ArchivedCustomerError } from '@/errors'
 import core from '@/utils/core'
 import {

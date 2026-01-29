@@ -1,9 +1,9 @@
 import { PaymentMethodType } from '@db-core/enums'
-import type Stripe from 'stripe'
 import {
   type PaymentMethod,
   paymentMethodsInsertSchema,
-} from '@/db/schema/paymentMethods'
+} from '@db-core/schema/paymentMethods'
+import type Stripe from 'stripe'
 import {
   safelyInsertPaymentMethod,
   selectPaymentMethods,

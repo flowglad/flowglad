@@ -22,7 +22,7 @@
  */
 
 import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
-import type { Discount } from '@/db/schema/discounts'
+import type { Discount } from '@db-core/schema/discounts'
 import { Dependency } from '../index'
 
 /**

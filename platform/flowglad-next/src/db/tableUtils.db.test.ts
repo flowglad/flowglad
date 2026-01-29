@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  type Customer,
+  customers,
+  customersInsertSchema,
+  customersSelectSchema,
+  customersUpdateSchema,
+} from '@db-core/schema/customers'
+import { pricingModels } from '@db-core/schema/pricingModels'
+import {
   buildWhereClauses,
   createCursorPaginatedSelectFunction,
   decodeCursor,
@@ -13,14 +21,6 @@ import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { setupCustomer, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
-import {
-  type Customer,
-  customers,
-  customersInsertSchema,
-  customersSelectSchema,
-  customersUpdateSchema,
-} from './schema/customers'
-import { pricingModels } from './schema/pricingModels'
 import {
   selectCustomersCursorPaginatedWithTableRowData,
   selectCustomersPaginated,

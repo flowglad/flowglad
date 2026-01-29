@@ -1,8 +1,8 @@
+import type { Event } from '@db-core/schema/events'
 import type { CacheDependencyKey } from '@/utils/cache'
 import { invalidateDependencies } from '@/utils/cache.internal'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
-import type { Event } from './schema/events'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import type { DbTransaction, TransactionEffects } from './types'
 

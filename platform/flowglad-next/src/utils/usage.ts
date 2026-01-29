@@ -1,6 +1,6 @@
 import { IntervalUnit, PriceType } from '@db-core/enums'
-import type { Price } from '@/db/schema/prices'
-import type { UsageMeter } from '@/db/schema/usageMeters'
+import type { Price } from '@db-core/schema/prices'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'

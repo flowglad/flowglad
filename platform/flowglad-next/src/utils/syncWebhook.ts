@@ -1,6 +1,6 @@
 import { EventNoun, FlowgladEventType } from '@db-core/enums'
+import type { Event } from '@db-core/schema/events'
 import { z } from 'zod'
-import type { Event } from '@/db/schema/events'
 import { constructSyncEventsAvailableEventHash } from '@/utils/eventHelpers'
 
 /**

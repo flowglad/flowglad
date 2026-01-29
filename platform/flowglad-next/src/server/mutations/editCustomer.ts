@@ -1,9 +1,9 @@
-import { TRPCError } from '@trpc/server'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   editCustomerInputSchema,
   editCustomerOutputSchema,
-} from '@/db/schema/customers'
+} from '@db-core/schema/customers'
+import { TRPCError } from '@trpc/server'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   updateCustomer,

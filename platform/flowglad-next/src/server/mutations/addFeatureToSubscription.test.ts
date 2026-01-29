@@ -6,7 +6,18 @@ import {
   IntervalUnit,
   LedgerTransactionType,
   PriceType,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+  UsageCreditType,
 } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Feature } from '@db-core/schema/features'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { ProductFeature } from '@db-core/schema/productFeatures'
+import type { Product } from '@db-core/schema/products'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -21,14 +32,6 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Feature } from '@/db/schema/features'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { ProductFeature } from '@/db/schema/productFeatures'
-import type { Product } from '@/db/schema/products'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
@@ -39,11 +42,6 @@ import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
-import {
-  UsageCreditSourceReferenceType,
-  UsageCreditStatus,
-  UsageCreditType,
-} from '@/types'
 import { core } from '@/utils/core'
 
 // Local helper to create features and productFeatures for tests

@@ -1,8 +1,8 @@
 import type { PriceType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import { Result } from 'better-result'
 import * as R from 'ramda'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import { ValidationError } from '@/errors'
 
 /**

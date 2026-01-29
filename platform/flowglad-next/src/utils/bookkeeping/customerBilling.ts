@@ -1,10 +1,10 @@
 import { CheckoutSessionType } from '@db-core/enums'
+import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
 import { TRPCError } from '@trpc/server'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectCustomerFacingInvoicesWithLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import {

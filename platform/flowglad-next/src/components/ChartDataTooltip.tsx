@@ -1,10 +1,10 @@
 'use client'
 
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { isValid } from 'date-fns'
 import type { TooltipProps } from '@/components/charts'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { cn } from '@/lib/utils'
-import { RevenueChartIntervalUnit } from '@/types'
 import {
   calculateActualPeriodBoundary,
   MONTH_NAMES_SHORT,

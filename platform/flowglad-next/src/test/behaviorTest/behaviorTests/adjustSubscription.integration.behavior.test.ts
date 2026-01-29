@@ -21,6 +21,7 @@
  */
 
 import { PriceType, SubscriptionStatus } from '@db-core/enums'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
@@ -32,7 +33,6 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   type AdjustSubscriptionResult,
   adjustSubscription,

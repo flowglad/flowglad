@@ -10,14 +10,23 @@
  */
 
 import type { SubscriptionStatus } from '@db-core/enums'
-import { type SelectConditions } from '@db-core/tableUtils'
-import { eq, inArray } from 'drizzle-orm'
-import { z } from 'zod'
+import {
+  type Price,
+  prices,
+  pricesClientSelectSchema,
+} from '@db-core/schema/prices'
 import {
   type SubscriptionItem,
   subscriptionItems,
   subscriptionItemsSelectSchema,
-} from '@/db/schema/subscriptionItems'
+} from '@db-core/schema/subscriptionItems'
+import {
+  type Subscription,
+  subscriptions,
+} from '@db-core/schema/subscriptions'
+import { type SelectConditions } from '@db-core/tableUtils'
+import { eq, inArray } from 'drizzle-orm'
+import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import {
   type RichSubscription,
@@ -31,15 +40,6 @@ import {
 import { cachedRecomputable } from '@/utils/cache-recomputable'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
-import {
-  type Price,
-  prices,
-  pricesClientSelectSchema,
-} from '../schema/prices'
-import {
-  type Subscription,
-  subscriptions,
-} from '../schema/subscriptions'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItems,

@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { SubscriptionStatus } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   setupCustomer,
   setupOrg,
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import * as actualEmail from '@/utils/email'
 import { runSendCustomerSubscriptionCanceledNotification } from './send-customer-subscription-canceled-notification'

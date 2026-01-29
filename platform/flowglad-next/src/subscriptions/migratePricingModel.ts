@@ -1,8 +1,8 @@
+import type { Customer } from '@db-core/schema/customers'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   updateCustomer as updateCustomerDb,

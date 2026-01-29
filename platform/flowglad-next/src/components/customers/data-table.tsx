@@ -1,5 +1,6 @@
 'use client'
 
+import type { CustomerTableRowData } from '@db-core/schema/customers'
 import {
   type ColumnSizingState,
   flexRender,
@@ -29,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { CustomerTableRowData } from '@/db/schema/customers'
 import { columns } from './columns'
 
 export interface CustomersTableFilters {

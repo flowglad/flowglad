@@ -3,7 +3,7 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@db-core/enums'
-import type { Purchase } from '@/db/schema/purchases'
+import type { Purchase } from '@db-core/schema/purchases'
 
 export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchaseRecord =
   {

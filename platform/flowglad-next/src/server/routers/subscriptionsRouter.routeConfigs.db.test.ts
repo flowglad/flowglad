@@ -510,6 +510,9 @@ describe('subscriptionsRouteConfigs', () => {
 
       // Check that custom routes exist
       expect(routeKeys).toContain('POST /subscriptions/:id/adjust') // custom adjust
+      expect(routeKeys).toContain(
+        'POST /subscriptions/:id/preview-adjust'
+      ) // custom preview-adjust
       expect(routeKeys).toContain('POST /subscriptions/:id/cancel') // custom cancel
       expect(routeKeys).toContain('POST /subscriptions/:id/uncancel') // custom uncancel
       expect(routeKeys).toContain(

@@ -1,11 +1,11 @@
-import { idInputSchema } from '@db-core/tableUtils'
-import { z } from 'zod'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   paymentMethodClientSelectSchema,
   paymentMethodsPaginatedListSchema,
   paymentMethodsPaginatedSelectSchema,
-} from '@/db/schema/paymentMethods'
+} from '@db-core/schema/paymentMethods'
+import { idInputSchema } from '@db-core/tableUtils'
+import { z } from 'zod'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectPaymentMethodById,
   selectPaymentMethodsPaginated,

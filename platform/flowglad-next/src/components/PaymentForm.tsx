@@ -1,9 +1,12 @@
 'use client'
 import {
+  CheckoutSessionStatus,
   type CurrencyCode,
   type PaymentMethodType,
   PriceType,
 } from '@db-core/enums'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import { billingAddressSchema } from '@db-core/schema/organizations'
 import {
   AddressElement,
   LinkAuthenticationElement,
@@ -25,10 +28,8 @@ import {
   type SubscriptionCheckoutDetails,
   useCheckoutPageContext,
 } from '@/contexts/checkoutPageContext'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import { billingAddressSchema } from '@/db/schema/organizations'
 import { cn } from '@/lib/utils'
-import { CheckoutFlowType, CheckoutSessionStatus } from '@/types'
+import { CheckoutFlowType } from '@/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'

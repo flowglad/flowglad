@@ -1,11 +1,15 @@
-import { CheckoutSessionType, PriceType } from '@db-core/enums'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PriceType,
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import { Price } from '@db-core/schema/prices'
+import type { Purchase } from '@db-core/schema/purchases'
 import { idInputSchema } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Price } from '@/db/schema/prices'
-import type { Purchase } from '@/db/schema/purchases'
 import {
   insertCheckoutSession,
   selectCheckoutSessions,
@@ -16,7 +20,6 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import type { DbTransaction } from '@/db/types'
 import { ValidationError } from '@/errors'
-import { CheckoutSessionStatus } from '@/types'
 import {
   createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,

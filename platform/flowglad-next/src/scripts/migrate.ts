@@ -26,7 +26,7 @@ const db = drizzle(client)
 export const migrateDb = async () => {
   // eslint-disable-next-line no-console
   console.info('Applying migrations...')
-  await migrate(db, { migrationsFolder: 'drizzle-migrations' })
+  await migrate(db, { migrationsFolder: 'db-core/migrations' })
   //   if (core.IS_TEST) {
   //     console.log(
   //       '[testmode only] Granting permissions to authenticated user...'

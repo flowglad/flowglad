@@ -1,5 +1,6 @@
 'use client'
 
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import {
   type ColumnSizingState,
   flexRender,
@@ -22,7 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { PricingModel } from '@/db/schema/pricingModels'
 import { columns } from './columns'
 
 export interface PricingModelsTableFilters {

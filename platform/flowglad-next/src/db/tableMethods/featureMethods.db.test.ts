@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { FeatureType, SubscriptionItemType } from '@db-core/enums'
+import type { Feature } from '@db-core/schema/features'
+import {
+  resourceFeatureInsertSchema,
+  resourceFeatureSelectSchema,
+} from '@db-core/schema/features'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Resource } from '@db-core/schema/resources'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -17,14 +25,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { Feature } from '@/db/schema/features'
-import {
-  resourceFeatureInsertSchema,
-  resourceFeatureSelectSchema,
-} from '@/db/schema/features'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Resource } from '@/db/schema/resources'
 import {
   createSubscriptionFeatureItems,
   subscriptionItemFeatureInsertFromSubscriptionItemAndFeature,

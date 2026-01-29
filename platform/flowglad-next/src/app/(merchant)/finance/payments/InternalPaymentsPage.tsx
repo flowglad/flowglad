@@ -1,9 +1,9 @@
 'use client'
 
+import { PaymentStatus } from '@db-core/enums'
 import { useState } from 'react'
 import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
-import { PaymentStatus } from '@/types'
 import { PaymentsDataTable } from './data-table'
 
 const filterOptions = [

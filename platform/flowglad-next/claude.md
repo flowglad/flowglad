@@ -58,6 +58,51 @@ Whenever you complete a task, confirm that everything lints and typechecks as ex
 bun run check
 ```
 
+## Database Migrations
+
+This project uses Drizzle ORM for migrations. Migration files and config now live in `db-core/`:
+
+- **Schema files**: `db-core/schema/`
+- **Migration files**: `db-core/migrations/`
+- **Drizzle config**: `db-core/drizzle.config.ts`
+
+### Schema Migrations (Auto-Generated)
+
+For changes to database structure (adding/removing tables, columns, indexes, constraints):
+
+1. Modify the schema definition files in `db-core/schema/`
+2. Run `bun run migrations:generate` from `platform/flowglad-next` to auto-generate the migration SQL
+
+**NEVER manually write schema migration files.** Drizzle Kit analyzes your schema changes and generates the appropriate migration files automatically.
+
+### Data Migrations (Custom)
+
+For operations that don't change the schema but modify data:
+- Backfilling values for new columns
+- Transforming or migrating existing data
+- Populating lookup tables
+- Data cleanup or normalization
+
+Use the custom migration script to generate an empty, properly-tracked migration file:
+
+```bash
+cd platform/flowglad-next
+bun run migrations:generate-custom -- --name descriptive-migration-name
+```
+
+Then edit the generated SQL file with your data migration logic.
+
+**Examples of when to use `migrations:generate-custom`:**
+- "Backfill the `status` column with default values" → `bun run migrations:generate-custom -- --name backfill-status-defaults`
+- "Migrate data from old table to new table" → `bun run migrations:generate-custom -- --name migrate-users-to-accounts`
+- "Normalize email addresses to lowercase" → `bun run migrations:generate-custom -- --name normalize-emails`
+
+### Important Rules
+
+- **NEVER run `bun run migrations:push`** - applying migrations to the database should only be done by the user, not by agents
+- **NEVER manually create migration files** - always use `migrations:generate` for schema changes or `migrations:generate-custom` for data migrations
+- Data migrations should be idempotent when possible (safe to run multiple times)
+
 ## Running Tests
 If you are trying to run tests to see whether they pass, you must use `bun run test`. `bun run test:watch` will run the test suite in watch mode and leave you waiting for timeouts.
 

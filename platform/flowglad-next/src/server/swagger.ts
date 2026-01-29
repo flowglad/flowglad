@@ -136,5 +136,26 @@ export const createFlowgladOpenApiDocument = () => {
     )
   }
 
+  // Add conditional validation for PreviewAdjustSubscriptionOutput:
+  // When canAdjust is false, reason is required.
+  // Note: JSON Schema if/then keywords are from draft-07+ and not part of OpenAPI 3.0 types,
+  // but most modern validators (e.g., ajv) support them.
+  const schemas: Record<string, any> | undefined =
+    rawDocument.components?.schemas
+  if (schemas) {
+    const previewAdjustSchema: Record<string, any> | undefined =
+      schemas.PreviewAdjustSubscriptionOutput
+    if (previewAdjustSchema) {
+      // Assign draft-07 keywords to the mutable schema object
+      previewAdjustSchema.if = {
+        required: ['canAdjust'],
+        properties: { canAdjust: { const: false } },
+      }
+      previewAdjustSchema.then = {
+        required: ['reason'],
+      }
+    }
+  }
+
   return rawDocument
 }

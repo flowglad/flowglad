@@ -1,5 +1,12 @@
 import { SubscriptionMeterPeriodCalculationStatus } from '@db-core/enums'
 import {
+  SubscriptionMeterPeriodCalculation,
+  subscriptionMeterPeriodCalculationInsertSchema,
+  subscriptionMeterPeriodCalculationSelectSchema,
+  subscriptionMeterPeriodCalculations,
+  subscriptionMeterPeriodCalculationUpdateSchema,
+} from '@db-core/schema/subscriptionMeterPeriodCalculations'
+import {
   createInsertFunction,
   createSelectById,
   createSelectFunction,
@@ -8,13 +15,6 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import { sql } from 'drizzle-orm'
-import {
-  SubscriptionMeterPeriodCalculation,
-  subscriptionMeterPeriodCalculationInsertSchema,
-  subscriptionMeterPeriodCalculationSelectSchema,
-  subscriptionMeterPeriodCalculations,
-  subscriptionMeterPeriodCalculationUpdateSchema,
-} from '@/db/schema/subscriptionMeterPeriodCalculations'
 import type { DbTransaction } from '../types'
 import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 

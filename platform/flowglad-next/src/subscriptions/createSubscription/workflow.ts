@@ -5,9 +5,9 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { Event } from '@db-core/schema/events'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
-import type { Event } from '@/db/schema/events'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'

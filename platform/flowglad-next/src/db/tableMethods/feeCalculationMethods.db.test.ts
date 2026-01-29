@@ -1,12 +1,22 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   BillingPeriodStatus,
+  CheckoutSessionStatus,
   CheckoutSessionType,
   CountryCode,
   CurrencyCode,
+  FeeCalculationType,
   PaymentMethodType,
   PriceType,
 } from '@db-core/enums'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   setupBillingPeriod,
   setupCheckoutSession,
@@ -16,15 +26,6 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { Subscription } from '@/db/schema/subscriptions'
-import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 import { core } from '@/utils/core'
 import {
   derivePricingModelIdForFeeCalculation,

@@ -1,5 +1,7 @@
 'use client'
 
+// Other imports
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { CopyIcon, CopyPlus, Pencil } from 'lucide-react'
@@ -14,8 +16,6 @@ import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-// Other imports
-import type { PricingModel } from '@/db/schema/pricingModels'
 
 function PricingModelActionsMenu({
   pricingModel,

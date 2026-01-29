@@ -1,84 +1,28 @@
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-
-export type { PgTable, PgTransaction } from 'drizzle-orm/pg-core'
-
-import type { ColumnBaseConfig, SQLWrapper } from 'drizzle-orm'
-import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
+import type { Event } from '@db-core/schema/events'
 import type {
   CacheDependencyKey,
   CacheRecomputationContext,
 } from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
-import type { Event } from './schema/events'
 
-export type { SQLWrapper } from 'drizzle-orm'
+// Re-export pure types from db-core for backwards compatibility
+export type {
+  DbTransaction,
+  PgNumberColumn,
+  PgSerialColumn,
+  PgStringColumn,
+  PgTable,
+  PgTableWithCreatedAtAndId,
+  PgTableWithId,
+  PgTableWithIdAndPricingModelId,
+  PgTableWithPosition,
+  PgTimestampColumn,
+  PgTransaction,
+  SQLWrapper,
+} from '@db-core/schemaTypes'
 
-export type DbTransaction = Parameters<
-  Parameters<
-    PostgresJsDatabase<Record<string, never>>['transaction']
-  >[0]
->[0]
-
-export type PgNumberColumn = PgColumn<
-  ColumnBaseConfig<'number', 'number'>,
-  {},
-  {}
->
-
-export type PgSerialColumn = PgColumn<
-  ColumnBaseConfig<'number', 'serial'>,
-  {},
-  {}
->
-
-export type PgStringColumn = PgColumn<
-  ColumnBaseConfig<'string', 'string'>,
-  {},
-  {}
->
-
-// For timestampWithTimezoneColumn() columns only - stores ms as numbers, timezone-aware
-export type PgTimestampColumn = PgColumn<
-  {
-    name: string
-    tableName: string
-    dataType: 'custom'
-    columnType: 'PgCustomColumn'
-    data: number
-    driverParam: string | Date
-    notNull: boolean
-    hasDefault: boolean
-    isPrimaryKey: boolean
-    isAutoincrement: boolean
-    hasRuntimeDefault: boolean
-    enumValues: undefined
-    baseColumn: never
-    identity: undefined
-    generated: undefined
-  },
-  {},
-  {}
->
-
-export type PgTableWithId = PgTable & {
-  id: SQLWrapper
-}
-
-export type PgTableWithCreatedAtAndId = PgTable & {
-  createdAt: SQLWrapper
-  id: SQLWrapper
-}
-
-export type PgTableWithPosition = PgTable & {
-  position: SQLWrapper
-  createdAt: SQLWrapper
-  id: SQLWrapper
-}
-
-export type PgTableWithIdAndPricingModelId = PgTable & {
-  id: SQLWrapper
-  pricingModelId: SQLWrapper
-}
+// Import DbTransaction for use in this file's type definitions
+import type { DbTransaction } from '@db-core/schemaTypes'
 
 /**
  * Accumulated side effects collected during a transaction.

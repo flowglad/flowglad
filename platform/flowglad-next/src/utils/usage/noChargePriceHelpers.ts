@@ -3,9 +3,9 @@ import {
   IntervalUnit,
   PriceType,
 } from '@db-core/enums'
-import type { Price } from '@/db/schema/prices'
-import { RESERVED_USAGE_PRICE_SLUG_SUFFIX } from '@/db/schema/prices'
-import type { UsageMeter } from '@/db/schema/usageMeters'
+import type { Price } from '@db-core/schema/prices'
+import { RESERVED_USAGE_PRICE_SLUG_SUFFIX } from '@db-core/schema/prices'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 
 /**
  * Generates the reserved no-charge price slug for a usage meter.

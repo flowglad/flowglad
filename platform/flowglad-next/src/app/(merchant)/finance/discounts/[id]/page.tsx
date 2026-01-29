@@ -1,8 +1,8 @@
+import { discountRedemptions } from '@db-core/schema/discountRedemptions'
 import { Result } from 'better-result'
 import { count, eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import InnerDiscountDetailsPage from './InnerDiscountDetailsPage'
 

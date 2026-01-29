@@ -1,5 +1,5 @@
+import { InvoiceStatus } from '@db-core/enums'
 import type { InvoiceTemplateProps } from '@/pdf-generation/invoices'
-import { InvoiceStatus } from '@/types'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CustomerFacingInvoicePage } from './CustomerFacingInvoicePage'

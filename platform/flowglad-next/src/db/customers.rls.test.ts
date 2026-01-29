@@ -1,12 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   CurrencyCode,
   IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
   PaymentMethodType,
+  PaymentStatus,
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { ApiKey } from '@db-core/schema/apiKeys'
+import type { Customer } from '@db-core/schema/customers'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Payment } from '@db-core/schema/payments'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import type { User } from '@db-core/schema/users'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import {
@@ -24,17 +39,6 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import db from '@/db/client'
-import type { ApiKey } from '@/db/schema/apiKeys'
-import type { Customer } from '@/db/schema/customers'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Payment } from '@/db/schema/payments'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { Subscription } from '@/db/schema/subscriptions'
-import type { User } from '@/db/schema/users'
 import {
   insertCheckoutSession,
   safelyUpdateCheckoutSessionStatus,
@@ -69,12 +73,6 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import type { DbTransaction } from '@/db/types'
-import {
-  CheckoutSessionStatus,
-  InvoiceStatus,
-  InvoiceType,
-  PaymentStatus,
-} from '@/types'
 import core from '@/utils/core'
 
 /**

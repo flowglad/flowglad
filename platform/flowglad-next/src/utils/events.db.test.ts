@@ -5,6 +5,7 @@ import {
   FlowgladEventType,
   IntervalUnit,
   PaymentMethodType,
+  PaymentStatus,
   PriceType,
 } from '@db-core/enums'
 import {
@@ -20,7 +21,6 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
-import { PaymentStatus } from '@/types'
 import core from './core'
 import {
   commitCustomerCreatedEvent,

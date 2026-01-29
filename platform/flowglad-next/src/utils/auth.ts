@@ -1,3 +1,9 @@
+import {
+  account,
+  session,
+  user,
+  verification,
+} from '@db-core/schema/betterAuthSchema'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import {
@@ -9,12 +15,6 @@ import {
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { db } from '@/db/client'
-import {
-  account,
-  session,
-  user,
-  verification,
-} from '@/db/schema/betterAuthSchema'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { betterAuthUserToApplicationUser } from './authHelpers'

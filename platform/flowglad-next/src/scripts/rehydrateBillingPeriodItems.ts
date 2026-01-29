@@ -4,9 +4,9 @@ NODE_ENV=production bunx tsx src/scripts/rehydrateBillingPeriodItems.ts billing_
 */
 
 import { PriceType, SubscriptionItemType } from '@db-core/enums'
+import type { BillingPeriodItem } from '@db-core/schema/billingPeriodItems'
+import { subscriptionItems } from '@db-core/schema/subscriptionItems'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, expect, it } from 'bun:test'
 import {
   CurrencyCode,
   IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@db-core/enums'
@@ -11,7 +13,6 @@ import {
   generateTestKeyPrefix,
   getRedisTestClient,
 } from '@/test/redisIntegrationHelpers'
-import { InvoiceStatus, InvoiceType } from '@/types'
 import type { SyncEvent, SyncEventInsert } from '@/types/sync'
 import {
   appendSyncEvent,

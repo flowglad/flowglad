@@ -1,13 +1,13 @@
 'use client'
 
 import { FeatureType } from '@db-core/enums'
-import { trpc } from '@/app/_trpc/client'
-import FormModal from '@/components/forms/FormModal'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
   type CreateFeatureInput,
   createFeatureSchema,
-} from '@/db/schema/features'
+} from '@db-core/schema/features'
+import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import FeatureFormFields from './FeatureFormFields' // Adjusted import
 
 interface CreateFeatureModalProps {

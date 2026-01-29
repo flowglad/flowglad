@@ -1,6 +1,9 @@
 'use client'
 
-import { CurrencyCode } from '@db-core/enums'
+import {
+  CurrencyCode,
+  RevenueChartIntervalUnit,
+} from '@db-core/enums'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { ChartDataTooltip } from '@/components/ChartDataTooltip'
@@ -14,7 +17,6 @@ import {
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
 import { cn } from '@/lib/utils'
-import { RevenueChartIntervalUnit } from '@/types'
 import { formatDateUTC } from '@/utils/chart/dateFormatting'
 import { createChartTooltipMetadata } from '@/utils/chart/types'
 import {

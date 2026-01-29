@@ -2,14 +2,14 @@ import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-import * as Sentry from '@sentry/nextjs'
-import { headers } from 'next/headers'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
   type Organization,
   organizationsClientSelectSchema,
-} from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
+} from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
+import * as Sentry from '@sentry/nextjs'
+import { headers } from 'next/headers'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertUser,
