@@ -4,7 +4,6 @@
 # CI uses GitHub Actions services (defined in workflow files) instead.
 # Keep service versions in sync with .github/workflows/flowglad-next-sharded-unit-tests.yml
 #
-version: '3.8'
 services:
   postgres:
     image: postgres:15
@@ -27,7 +26,22 @@ services:
       - '12112:12112'
     healthcheck:
       # Use a test API key directly - this is not a real secret, just satisfies stripe-mock's format requirement
-      test: ['CMD-SHELL', 'curl -fsS -H "Authorization: Bearer sk_test_healthcheck" http://localhost:12111/v1/customers > /dev/null'] # gitleaks:allow
+      # Note: stripe-mock image doesn't have curl, but does have wget
+      test: ['CMD-SHELL', 'wget -q -O /dev/null --header="Authorization: Bearer sk_test_healthcheck" http://localhost:12111/v1/customers'] # gitleaks:allow
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  flowglad-mock-server:
+    build:
+      context: ../../packages/mock-server
+      dockerfile: Dockerfile
+    ports:
+      - '9001:9001'  # Svix
+      - '9002:9002'  # Unkey
+      - '9003:9003'  # Trigger
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:9001/health > /dev/null']
       interval: 2s
       timeout: 5s
       retries: 5

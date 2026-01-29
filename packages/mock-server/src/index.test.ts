@@ -7,12 +7,16 @@ const TEST_PORTS = {
   svix: 19001,
   unkey: 19002,
   trigger: 19003,
+  routeHandler: 19004,
 }
 
 interface ServerConfig {
   port: number
   serviceName: string
-  routeHandler?: (req: Request, pathname: string) => Response | null
+  routeHandler?: (
+    req: Request,
+    pathname: string
+  ) => Response | Promise<Response> | null
 }
 
 // Import the health handler to create test servers
@@ -177,5 +181,83 @@ describe('mock server HTTP interface', () => {
       )
       expect(response.status).toBe(404)
     })
+  })
+})
+
+describe('routeHandler integration', () => {
+  let server: ReturnType<typeof Bun.serve>
+
+  const mockRouteHandler = (
+    req: Request,
+    pathname: string
+  ): Response | null => {
+    if (req.method === 'GET' && pathname === '/api/test') {
+      return new Response(
+        JSON.stringify({ message: 'route handler response' }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+    if (req.method === 'POST' && pathname === '/api/create') {
+      return new Response(JSON.stringify({ created: true }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return null
+  }
+
+  beforeAll(() => {
+    server = createTestServer({
+      port: TEST_PORTS.routeHandler,
+      serviceName: 'test-service',
+      routeHandler: mockRouteHandler,
+    })
+  })
+
+  afterAll(() => {
+    server.stop()
+  })
+
+  it('routes matching requests to the routeHandler and returns its response', async () => {
+    const response = await fetch(
+      `http://localhost:${TEST_PORTS.routeHandler}/api/test`
+    )
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.message).toBe('route handler response')
+  })
+
+  it('supports different HTTP methods through the routeHandler', async () => {
+    const response = await fetch(
+      `http://localhost:${TEST_PORTS.routeHandler}/api/create`,
+      { method: 'POST' }
+    )
+    expect(response.status).toBe(201)
+    const body = await response.json()
+    expect(body.created).toBe(true)
+  })
+
+  it('falls back to 404 when routeHandler returns null', async () => {
+    const response = await fetch(
+      `http://localhost:${TEST_PORTS.routeHandler}/unhandled-route`
+    )
+    expect(response.status).toBe(404)
+    const body = await response.json()
+    expect(body.error).toBe('Not Found')
+    expect(body.message).toContain('/unhandled-route')
+    expect(body.message).toContain('test-service')
+  })
+
+  it('still serves the health endpoint regardless of routeHandler', async () => {
+    const response = await fetch(
+      `http://localhost:${TEST_PORTS.routeHandler}/health`
+    )
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.status).toBe('ok')
+    expect(body.service).toBe('test-service')
   })
 })

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'bun:test'
 import {
   generateId,
   generateSvixAppId,
+  generateSvixEndpointId,
   generateSvixMessageId,
+  generateSvixWebhookSecret,
   generateTriggerRunId,
   generateUnkeyKeyId,
 } from './ids'
@@ -67,5 +69,21 @@ describe('generateTriggerRunId', () => {
     const id = generateTriggerRunId()
     expect(id.startsWith('run_')).toBe(true)
     expect(id.length).toBe(21 + 4)
+  })
+})
+
+describe('generateSvixEndpointId', () => {
+  it('generates an ID with "ep_mock_" prefix and default length', () => {
+    const id = generateSvixEndpointId()
+    expect(id.startsWith('ep_mock_')).toBe(true)
+    expect(id.length).toBe(21 + 8) // 21 random + 8 char prefix
+  })
+})
+
+describe('generateSvixWebhookSecret', () => {
+  it('generates an ID with "whsec_mock_" prefix and default length', () => {
+    const id = generateSvixWebhookSecret()
+    expect(id.startsWith('whsec_mock_')).toBe(true)
+    expect(id.length).toBe(21 + 11) // 21 random + 11 char prefix
   })
 })
