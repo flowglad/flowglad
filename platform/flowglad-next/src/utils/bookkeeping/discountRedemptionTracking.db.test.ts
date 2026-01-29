@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  DiscountAmountType,
+  DiscountDuration,
+  PaymentMethodType,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupDiscount,
   setupInvoice,
@@ -23,12 +28,7 @@ import {
   insertDiscountRedemption,
   selectDiscountRedemptions,
 } from '@/db/tableMethods/discountRedemptionMethods'
-import {
-  DiscountAmountType,
-  DiscountDuration,
-  PaymentMethodType,
-  PaymentStatus,
-} from '@/types'
+import { PaymentStatus } from '@/types'
 import {
   incrementNumberOfPaymentsForDiscountRedemption,
   safelyIncrementDiscountRedemptionSubscriptionPayment,

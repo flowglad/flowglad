@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import {
   setupCustomer,
   setupDiscount,
@@ -9,7 +10,6 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import {
   enrichDiscountsWithRedemptionCounts,
   insertDiscount,

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FeatureType, SubscriptionItemType } from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -28,7 +29,6 @@ import {
   createSubscriptionFeatureItems,
   subscriptionItemFeatureInsertFromSubscriptionItemAndFeature,
 } from '@/subscriptions/subscriptionItemFeatureHelpers'
-import { FeatureType, SubscriptionItemType } from '@/types'
 import {
   insertFeature,
   selectFeatureById,

@@ -1,4 +1,5 @@
 'use client'
+import { FlowgladApiKeyType } from '@db-core/enums'
 import { Copy } from 'lucide-react'
 import { useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
@@ -7,7 +8,6 @@ import ApiKeyFormFields from '@/components/forms/ApiKeyFormFields'
 import FormModal from '@/components/forms/FormModal'
 import { Input } from '@/components/ui/input'
 import { createApiKeyInputSchema } from '@/db/schema/apiKeys'
-import { FlowgladApiKeyType } from '@/types'
 
 interface CreateApiKeyModalProps {
   isOpen: boolean
@@ -37,12 +37,13 @@ const CreateApiKeyModal = ({
       }}
       title="Create API Key"
       formSchema={createApiKeyInputSchema}
-      defaultValues={{
+      defaultValues={() => ({
         apiKey: {
           name: '',
-          type: FlowgladApiKeyType.Secret,
+          type: FlowgladApiKeyType.Secret as const,
+          pricingModelId: '',
         },
-      }}
+      })}
       onSubmit={async (data) => {
         const result = await createApiKey.mutateAsync(data)
         setRawApiKey(result.shownOnlyOnceKey)

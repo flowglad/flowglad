@@ -1,4 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  FeatureType,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import {
   setupCustomer,
@@ -26,13 +33,6 @@ import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { resourceClaimsRouter } from '@/server/routers/resourceClaimsRouter'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import {
-  FeatureType,
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 
 const createCaller = (
   organization: Organization.Record,

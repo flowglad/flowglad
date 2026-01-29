@@ -1,3 +1,4 @@
+import { NormalBalanceType } from '@db-core/enums'
 import {
   type LedgerAccount,
   ledgerAccounts,
@@ -14,7 +15,6 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { NormalBalanceType } from '@/types'
 import type { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
 import {

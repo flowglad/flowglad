@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  BillingPeriodStatus,
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { addDays, addMonths, subMonths } from 'date-fns'
 import {
@@ -13,14 +21,6 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { DbTransaction } from '@/db/types'
-import {
-  BillingPeriodStatus,
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import core from '@/utils/core'
 import type { BillingPeriod } from '../schema/billingPeriods'
 import type { Customer } from '../schema/customers'

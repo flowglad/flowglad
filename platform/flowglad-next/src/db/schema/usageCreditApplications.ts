@@ -1,3 +1,4 @@
+import { UsageCreditApplicationStatus } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { boolean, integer, pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
@@ -19,7 +20,6 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { UsageCreditApplicationStatus } from '@/types'
 import core from '@/utils/core'
 import { usageEvents } from './usageEvents'
 

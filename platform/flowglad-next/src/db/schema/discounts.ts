@@ -1,3 +1,4 @@
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
@@ -22,7 +23,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'discounts'

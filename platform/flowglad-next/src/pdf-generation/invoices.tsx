@@ -1,3 +1,4 @@
+import type { CurrencyCode } from '@db-core/enums'
 import {
   Body,
   Column,
@@ -22,7 +23,6 @@ import type {
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Payment } from '@/db/schema/payments'
 import type { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
-import type { CurrencyCode } from '@/types'
 import { formatDate, titleCase } from '@/utils/core'
 import {
   calculateDiscountAmountSafe,

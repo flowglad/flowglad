@@ -1,3 +1,4 @@
+import { StripeConnectContractType } from '@db-core/enums'
 import { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { Payment } from '@/db/schema/payments'
@@ -10,7 +11,7 @@ import {
 } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { PaymentStatus, StripeConnectContractType } from '@/types'
+import { PaymentStatus } from '@/types'
 import { logger } from '@/utils/logger'
 import {
   getPaymentIntent,

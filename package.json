@@ -42,6 +42,7 @@
     "@types/react-dom": "19.0.0",
     "bun-types": "^1.3.6",
     "conventional-changelog-cli": "^5.0.0",
+    "esbuild-fix-imports-plugin": "^1.0.23",
     "husky": "^9.1.7",
     "react": "19.2.1",
     "react-dom": "19.2.1",

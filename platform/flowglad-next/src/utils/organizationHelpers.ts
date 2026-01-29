@@ -1,3 +1,10 @@
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  FlowgladApiKeyType,
+  MembershipRole,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import { customAlphabet, nanoid } from 'nanoid'
 import {
   type CreateOrganizationInput,
@@ -18,19 +25,15 @@ import {
   createTransactionEffectsContext,
   type DbTransaction,
 } from '@/db/types'
-import {
-  BusinessOnboardingStatus,
-  CurrencyCode,
-  type FeatureFlag,
-  FlowgladApiKeyType,
-  MembershipRole,
-  StripeConnectContractType,
-} from '@/types'
+import { type FeatureFlag } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
-import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
+import {
+  countryNameByCountryCode,
+  getEligibleFundsFlowsForCountry,
+} from '@/utils/countries'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
 
 const generateSubdomainSlug = (name: string) => {
@@ -91,12 +94,12 @@ export const createOrganizationTransaction = async (
    * to deduplicate them.
    */
   const subdomainSlug = generateSubdomainSlug(organization.name)
-  const existingOrganization = await selectOrganizations(
+  const existingOrganizations = await selectOrganizations(
     { subdomainSlug },
     transaction
   )
   let finalSubdomainSlug = subdomainSlug
-  if (existingOrganization) {
+  if (existingOrganizations.length > 0) {
     const suffix = mininanoid()
     finalSubdomainSlug = `${subdomainSlug}-${suffix}`
   }
@@ -104,10 +107,14 @@ export const createOrganizationTransaction = async (
   const country = (
     await selectCountryById(organization.countryId, transaction)
   ).unwrap()
+  const countryName =
+    countryNameByCountryCode[
+      country.code as keyof typeof countryNameByCountryCode
+    ] ?? country.code
   const eligibleFlows = getEligibleFundsFlowsForCountry(country.code)
   if (eligibleFlows.length === 0) {
     throw new Error(
-      `Country ${country.code} is not eligible for payments`
+      `${countryName} is not currently supported for payments. See supported countries: https://docs.flowglad.com/countries`
     )
   }
 
@@ -130,7 +137,7 @@ export const createOrganizationTransaction = async (
     !eligibleFlows.includes(StripeConnectContractType.Platform)
   ) {
     throw new Error(
-      `Country ${country.code} is not yet supported in production. Only countries eligible for Platform funds flow are currently supported.`
+      `${countryName} is not yet supported. We're working on expanding to more countries soon. See supported countries: https://docs.flowglad.com/countries`
     )
   }
 
@@ -141,7 +148,7 @@ export const createOrganizationTransaction = async (
 
   if (!eligibleFlows.includes(stripeConnectContractType)) {
     throw new Error(
-      `Stripe Connect contract type ${stripeConnectContractType} is not supported for country ${country.code}`
+      `The selected payment configuration is not available in ${countryName}. See supported countries: https://docs.flowglad.com/countries`
     )
   }
 
@@ -175,6 +182,22 @@ export const createOrganizationTransaction = async (
       },
       transaction
     )
+
+  if (!organizationRecord) {
+    console.error(
+      '[createOrganizationTransaction] insertOrDoNothingOrganizationByExternalId returned undefined',
+      {
+        userId: user.id,
+        organizationName: organization.name,
+        externalId: `${user.id}-${organization.name}-${currentEpochHour}`,
+        subdomainSlug: finalSubdomainSlug,
+      }
+    )
+    throw new Error(
+      'Failed to create or find organization. Please try again.'
+    )
+  }
+
   const organizationId = organizationRecord.id
   await unfocusMembershipsForUser(user.id, transaction)
   await insertMembership(
@@ -231,6 +254,7 @@ export const createOrganizationTransaction = async (
       apiKey: {
         name: 'Secret Testmode Key',
         type: FlowgladApiKeyType.Secret,
+        pricingModelId: defaultTestmodePricingModel.id,
       },
     },
     {

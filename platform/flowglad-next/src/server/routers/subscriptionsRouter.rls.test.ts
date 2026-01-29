@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  BillingPeriodStatus,
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import {
   setupBillingPeriod,
@@ -17,13 +24,6 @@ import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import {
-  BillingPeriodStatus,
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   subscriptionsRouter,
   validateAndResolveCustomerForSubscription,

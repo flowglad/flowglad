@@ -1,3 +1,4 @@
+import { FeatureType } from '@db-core/enums'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
@@ -19,7 +20,6 @@ import { productsClientInsertSchema } from '@/db/schema/products'
 import { resourcesClientInsertSchema } from '@/db/schema/resources'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
 import { NotFoundError, ValidationError } from '@/errors'
-import { FeatureType } from '@/types'
 import core, { safeZodSanitizedString } from '../core'
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { SubscriptionStatus } from '@/types'
+import { SubscriptionStatus } from '@db-core/enums'
 import { determineSubscriptionNotifications } from './helpers'
 
 /**

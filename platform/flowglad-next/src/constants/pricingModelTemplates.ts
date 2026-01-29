@@ -1,4 +1,10 @@
 import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
+import {
   Activity,
   Clock,
   Coins,
@@ -20,12 +26,6 @@ import {
   Zap,
 } from 'lucide-react'
 import { UsageLimitIcon } from '@/components/icons/UsageLimitIcon'
-import {
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  IntervalUnit,
-  PriceType,
-} from '@/types'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 
 /**

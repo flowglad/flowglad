@@ -1,4 +1,5 @@
 'use client'
+import { type CurrencyCode } from '@db-core/enums'
 import debounce from 'debounce'
 import { useRouter } from 'next/navigation'
 import { createContext, useContext } from 'react'
@@ -11,11 +12,7 @@ import {
   type CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import {
-  CheckoutFlowType,
-  type CurrencyCode,
-  type Nullish,
-} from '@/types'
+import { CheckoutFlowType, type Nullish } from '@/types'
 import core from '@/utils/core'
 
 export type SubscriptionCheckoutDetails = Pick<

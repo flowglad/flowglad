@@ -1,3 +1,4 @@
+import { LedgerTransactionType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
@@ -13,7 +14,6 @@ import {
   pgEnumColumn,
   tableBase,
 } from '@/db/tableUtils'
-import { LedgerTransactionType } from '@/types'
 import core from '@/utils/core'
 import { pricingModels } from './pricingModels'
 import { subscriptions } from './subscriptions'

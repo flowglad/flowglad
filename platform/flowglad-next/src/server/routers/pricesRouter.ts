@@ -1,3 +1,4 @@
+import { PriceType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
@@ -30,7 +31,6 @@ import {
   NotFoundError,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { PriceType } from '@/types'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createPriceTransaction } from '@/utils/pricingModel'

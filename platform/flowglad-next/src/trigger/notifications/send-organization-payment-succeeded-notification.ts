@@ -1,9 +1,9 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import type { CurrencyCode } from '@/types'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,

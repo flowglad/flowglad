@@ -1,6 +1,7 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import { useEffect, useRef } from 'react'
 import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
-import { CheckoutFlowType, CheckoutSessionType } from '@/types'
+import { CheckoutFlowType } from '@/types'
 import { trpc } from '../_trpc/client'
 
 export const useSetCheckoutSessionCookieEffect = (

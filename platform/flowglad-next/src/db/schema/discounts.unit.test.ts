@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { DiscountAmountType, DiscountDuration } from '@/types'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import {
   createDiscountFormSchema,
   editDiscountFormSchema,

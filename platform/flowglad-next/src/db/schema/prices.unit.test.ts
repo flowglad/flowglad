@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test'
+import { PriceType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import {
   singlePaymentDummyPrice,
   subscriptionDummyPrice,
   usageDummyPrice,
 } from '@/stubs/priceStubs'
-import { PriceType } from '@/types'
 import {
   isReservedPriceSlug,
   type Price,

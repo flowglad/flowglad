@@ -1,5 +1,6 @@
 'use client'
 
+import { PriceType } from '@db-core/enums'
 import { useFormContext } from 'react-hook-form'
 import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
@@ -35,7 +36,6 @@ import {
   type Price,
 } from '@/db/schema/prices'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { PriceType } from '@/types'
 import {
   countableCurrencyAmountToRawStringAmount,
   isCurrencyZeroDecimal,
@@ -364,9 +364,9 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Usage Price"
       formSchema={editUsagePriceFormSchema}
-      defaultValues={{
+      defaultValues={() => ({
         price: {
-          type: PriceType.Usage,
+          type: PriceType.Usage as const,
           id: price.id,
           isDefault: price.isDefault,
           active: price.active,
@@ -380,7 +380,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
           price.unitPrice
         ),
         usageEventsPerUnit: price.usageEventsPerUnit ?? 1,
-      }}
+      })}
       onSubmit={async (input) => {
         const newUnitPrice = rawStringAmountToCountableCurrencyAmount(
           organization.defaultCurrency,

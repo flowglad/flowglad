@@ -1,3 +1,4 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
@@ -14,7 +15,7 @@ import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMeth
 import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import {

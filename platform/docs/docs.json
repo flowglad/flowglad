@@ -57,6 +57,7 @@
               "features/prices",
               "features/discounts",
               "features/subscriptions",
+              "features/customers",
               "features/checkout-sessions",
               "features/invoices",
               "features/usage",

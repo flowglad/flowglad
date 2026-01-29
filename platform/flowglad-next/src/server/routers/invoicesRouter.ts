@@ -1,3 +1,4 @@
+import { SubscriptionItemType } from '@db-core/enums'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -38,7 +39,7 @@ import {
   idInputSchema,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { InvoiceStatus, SubscriptionItemType } from '@/types'
+import { InvoiceStatus } from '@/types'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 import {

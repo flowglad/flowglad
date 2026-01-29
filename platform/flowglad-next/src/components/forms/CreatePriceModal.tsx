@@ -1,10 +1,10 @@
 'use client'
 
+import { PriceType } from '@db-core/enums'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { createPriceFormSchema, Price } from '@/db/schema/prices'
-import { PriceType } from '@/types'
 import {
   countableCurrencyAmountToRawStringAmount,
   rawStringAmountToCountableCurrencyAmount,
@@ -96,14 +96,13 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
   const productQuery = trpc.products.get.useQuery({ id: productId })
   const isDefaultProduct = productQuery.data?.default === true
   const pricingModelId = productQuery.data?.pricingModelId
-  const defaultValues = getDefaultValues(previousPrice)
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="New Price"
       formSchema={createPriceFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={() => getDefaultValues(previousPrice)}
       onSubmit={async (input) => {
         await createPrice.mutateAsync({
           ...input,

@@ -1,3 +1,4 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutPage from '@/components/CheckoutPage'
@@ -10,7 +11,6 @@ import {
   checkoutInfoSchema,
   selectPurchaseCheckoutParametersById,
 } from '@/db/tableMethods/purchaseMethods'
-import { CheckoutSessionType } from '@/types'
 import { findOrCreateCheckoutSession } from '@/utils/checkoutSessionState'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'

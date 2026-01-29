@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import {
   setupCustomer,
   setupOrg,
@@ -25,7 +26,6 @@ import {
   selectResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { insertResource } from '@/db/tableMethods/resourceMethods'
-import { IntervalUnit, PriceType } from '@/types'
 
 /**
  * These tests verify that the merchant role has proper permissions to insert

@@ -24,7 +24,8 @@
 /// <reference lib="dom" />
 /// <reference types="@testing-library/jest-dom" />
 
-// Import standard mocks (after DOM registration)
+// IMPORTANT: Import mocks first (after DOM registration)
+// This also sets test environment variable defaults (UNKEY_*, BETTER_AUTH_URL)
 import './bun.mocks'
 
 import {
@@ -48,11 +49,6 @@ import { server } from './mocks/server'
 
 // Extend bun:test expect with jest-dom matchers
 expect.extend(matchers)
-
-// Set test environment variables
-process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
-process.env.UNKEY_ROOT_KEY =
-  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
 
 // Polyfill crypto if missing (use Object.defineProperty for safer global mutation)
 if (!globalThis.crypto) {

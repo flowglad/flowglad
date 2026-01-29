@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CurrencyCode,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupOrg,
   setupPrice,
   setupPurchase,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { CurrencyCode, PriceType, PurchaseStatus } from '@/types'
 import { core } from '@/utils/core'
 import type { Customer } from '../schema/customers'
 import type { Organization } from '../schema/organizations'

@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { inArray } from 'drizzle-orm'
 import {
   setupCustomer,
@@ -18,7 +23,6 @@ import {
   subscriptions,
 } from '@/db/schema/subscriptions'
 import { SubscriptionTerminalStateError } from '@/errors'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import { core } from '@/utils/core'
 import {
   assertSubscriptionNotTerminal,

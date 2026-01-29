@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  CurrencyCode,
+  EventNoun,
+  FlowgladEventType,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupInvoice,
   setupOrg,
@@ -12,15 +20,7 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
-import {
-  CurrencyCode,
-  EventNoun,
-  FlowgladEventType,
-  IntervalUnit,
-  PaymentMethodType,
-  PaymentStatus,
-  PriceType,
-} from '@/types'
+import { PaymentStatus } from '@/types'
 import core from './core'
 import {
   commitCustomerCreatedEvent,

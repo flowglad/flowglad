@@ -1,3 +1,4 @@
+import { BillingRunStatus } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -24,7 +25,6 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { BillingRunStatus } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { paymentMethods } from './paymentMethods'

@@ -1,4 +1,4 @@
-import { SubscriptionStatus } from '@/types'
+import { SubscriptionStatus } from '@db-core/enums'
 
 /**
  * Represents date information for a subscription based on its lifecycle state

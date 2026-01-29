@@ -1,3 +1,7 @@
+import {
+  CheckoutSessionType,
+  PaymentMethodType,
+} from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -26,11 +30,7 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import core from '@/utils/core'
 import { zodEpochMs } from '../timestampMs'
 import { customers } from './customers'

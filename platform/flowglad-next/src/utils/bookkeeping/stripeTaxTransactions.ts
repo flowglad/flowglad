@@ -1,3 +1,4 @@
+import { StripeConnectContractType } from '@db-core/enums'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
@@ -8,7 +9,6 @@ import {
 } from '@/db/tableMethods/feeCalculationMethods'
 import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
-import { StripeConnectContractType } from '@/types'
 import { logger } from '@/utils/logger'
 import { createStripeTaxTransactionFromCalculation } from '@/utils/stripe'
 

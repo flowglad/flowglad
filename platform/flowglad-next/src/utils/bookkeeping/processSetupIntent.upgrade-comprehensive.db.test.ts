@@ -1,4 +1,14 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CheckoutSessionType,
+  CurrencyCode,
+  FlowgladEventType,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupBillingPeriod,
@@ -40,18 +50,7 @@ import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
-import {
-  CancellationReason,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  FlowgladEventType,
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  PurchaseStatus,
-  SubscriptionStatus,
-} from '@/types'
+import { CancellationReason, CheckoutSessionStatus } from '@/types'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import {
   type CoreSripeSetupIntent,

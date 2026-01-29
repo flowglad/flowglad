@@ -1,3 +1,4 @@
+import type { SubscriptionStatus } from '@db-core/enums'
 import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import {
   customerClientSelectSchema,
@@ -30,7 +31,6 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import type { SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'

@@ -1,3 +1,4 @@
+import { LedgerTransactionType } from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   type AdminCreditAdjustedLedgerCommand,
@@ -27,7 +28,6 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
   LedgerTransactionInitiatingSourceType,
-  LedgerTransactionType,
 } from '@/types'
 import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
 import { processBillingPeriodTransitionLedgerCommand } from './billingPeriodTransitionLedgerCommand'

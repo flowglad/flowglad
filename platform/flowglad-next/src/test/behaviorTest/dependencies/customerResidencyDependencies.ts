@@ -28,8 +28,8 @@
  * - No region-specific bugs in checkout flow
  */
 
+import { CountryCode } from '@db-core/enums'
 import type { BillingAddress } from '@/db/schema/organizations'
-import { CountryCode } from '@/types'
 import { Dependency } from '../index'
 
 /**

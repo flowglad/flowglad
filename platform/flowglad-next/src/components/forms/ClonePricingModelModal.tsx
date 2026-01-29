@@ -1,3 +1,4 @@
+import { DestinationEnvironment } from '@db-core/enums'
 import { sentenceCase } from 'change-case'
 import type React from 'react'
 import { useCallback, useState } from 'react'
@@ -10,7 +11,6 @@ import {
   clonePricingModelInputSchema,
   type PricingModel,
 } from '@/db/schema/pricingModels'
-import { DestinationEnvironment } from '@/types'
 
 interface ClonePricingModelModalProps {
   isOpen: boolean
@@ -62,10 +62,10 @@ const ClonePricingModelModal: React.FC<
       setIsOpen={setIsOpen}
       title="Clone Pricing Model"
       formSchema={clonePricingModelInputSchema}
-      defaultValues={{
+      defaultValues={() => ({
         id: pricingModel.id,
         name: `${pricingModel.name} (Copy)`,
-      }}
+      })}
       onSubmit={clonePricingModelMutation.mutateAsync}
       submitButtonText="Clone Pricing Model"
       submitDisabled={showLivemodeWarning}

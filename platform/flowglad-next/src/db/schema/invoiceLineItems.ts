@@ -1,3 +1,4 @@
+import { SubscriptionItemType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { integer, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
@@ -18,7 +19,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { billingRuns } from './billingRuns'

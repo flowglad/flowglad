@@ -38,9 +38,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   nested,
   form,
 }) => {
-  const defaultValues = {
+  const getDefaultValues = () => ({
     id,
-  }
+  })
   const ModalComponent = nested ? NestedFormModal : FormModal
   return (
     <ModalComponent
@@ -49,7 +49,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       setIsOpen={setIsOpen}
       onSubmit={() => mutation({ id })}
       formSchema={idInputSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       form={form ?? undefined}
     >
       <div className="text-muted-foreground gap-4">

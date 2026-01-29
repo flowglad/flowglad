@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FlowgladApiKeyType, MembershipRole } from '@db-core/enums'
 import {
   setupCustomer,
   setupOrg,
@@ -33,7 +34,6 @@ import {
 } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType, MembershipRole } from '@/types'
 import { deleteSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
@@ -42,6 +42,10 @@ describe('API Key RLS', () => {
   // Test state
   let orgA: Organization.Record
   let orgB: Organization.Record
+  let orgAPricingModelIdLive: string
+  let orgAPricingModelIdTest: string
+  let orgBPricingModelIdLive: string
+  let orgBPricingModelIdTest: string
   let userA: User.Record
   let apiKeyOrgA: ApiKey.Record & { token: string }
   let apiKeyOrgB: ApiKey.Record & { token: string }
@@ -56,6 +60,8 @@ describe('API Key RLS', () => {
     // Setup two organizations
     const orgASetup = await setupOrg()
     orgA = orgASetup.organization
+    orgAPricingModelIdLive = orgASetup.pricingModel.id
+    orgAPricingModelIdTest = orgASetup.testmodePricingModel.id
     // Create testmode products for testing with testmode API keys
     productInOrgA = await setupProduct({
       organizationId: orgA.id,
@@ -67,6 +73,8 @@ describe('API Key RLS', () => {
 
     const orgBSetup = await setupOrg()
     orgB = orgBSetup.organization
+    orgBPricingModelIdLive = orgBSetup.pricingModel.id
+    orgBPricingModelIdTest = orgBSetup.testmodePricingModel.id
     productInOrgB = await setupProduct({
       organizationId: orgB.id,
       name: 'Test Product B',
@@ -434,6 +442,7 @@ describe('API Key RLS', () => {
           const key = await insertApiKey(
             {
               organizationId: orgA.id,
+              pricingModelId: orgAPricingModelIdLive,
               name: 'Livemode Auth API Key',
               token: livemodeToken,
               type: FlowgladApiKeyType.Secret,
@@ -453,6 +462,7 @@ describe('API Key RLS', () => {
           return insertApiKey(
             {
               organizationId: orgA.id,
+              pricingModelId: orgAPricingModelIdLive,
               name: 'API Key To Delete',
               token: `live_sk_delete_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
@@ -492,6 +502,7 @@ describe('API Key RLS', () => {
           return insertApiKey(
             {
               organizationId: orgB.id,
+              pricingModelId: orgBPricingModelIdLive,
               name: 'OrgB API Key To Delete',
               token: `live_sk_orgb_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
@@ -532,6 +543,7 @@ describe('API Key RLS', () => {
           return insertApiKey(
             {
               organizationId: orgA.id,
+              pricingModelId: orgAPricingModelIdTest,
               name: 'Testmode API Key',
               token: `test_sk_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
@@ -602,6 +614,7 @@ describe('API Key RLS', () => {
           return insertApiKey(
             {
               organizationId: orgB.id,
+              pricingModelId: orgBPricingModelIdTest,
               name: 'OrgB Secret Key',
               token: `test_sk_orgb_secret_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,

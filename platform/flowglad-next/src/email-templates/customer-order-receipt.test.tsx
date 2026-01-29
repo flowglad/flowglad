@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
+import { CurrencyCode } from '@db-core/enums'
 import { render } from '@testing-library/react'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
-import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { OrderReceiptEmail } from './customer-order-receipt'
 

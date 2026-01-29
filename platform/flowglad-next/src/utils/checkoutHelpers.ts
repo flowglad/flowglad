@@ -1,3 +1,4 @@
+import { CheckoutSessionType, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -25,11 +26,7 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
-import {
-  CheckoutFlowType,
-  CheckoutSessionType,
-  PriceType,
-} from '@/types'
+import { CheckoutFlowType } from '@/types'
 import { findOrCreateCheckoutSession } from './checkoutSessionState'
 import core from './core'
 import {

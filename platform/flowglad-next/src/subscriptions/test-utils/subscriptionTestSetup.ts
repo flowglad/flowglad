@@ -1,3 +1,7 @@
+import {
+  BillingPeriodStatus,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { addDays, subDays } from 'date-fns'
 import {
   setupBillingPeriod,
@@ -18,11 +22,7 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
-import {
-  BillingPeriodStatus,
-  InvoiceStatus,
-  SubscriptionStatus,
-} from '@/types'
+import { InvoiceStatus } from '@/types'
 
 export interface SubscriptionTestData {
   organization: Organization.Record

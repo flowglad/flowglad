@@ -40,9 +40,9 @@
  * behavior when you just need an onboarded organization for subsequent tests.
  */
 
+import { BusinessOnboardingStatus } from '@db-core/enums'
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { BusinessOnboardingStatus } from '@/types'
 import core from '@/utils/core'
 import { defineBehavior } from '../index'
 import type { CreateOrganizationResult } from './orgSetupBehaviors'

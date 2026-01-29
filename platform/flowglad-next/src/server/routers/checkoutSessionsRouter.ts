@@ -1,3 +1,7 @@
+import {
+  CheckoutSessionType,
+  PaymentMethodType,
+} from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -34,11 +38,7 @@ import {
   publicProcedure,
   router,
 } from '@/server/trpc'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import core from '@/utils/core'

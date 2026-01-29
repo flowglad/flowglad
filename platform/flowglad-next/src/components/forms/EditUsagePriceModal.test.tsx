@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  type CurrencyCode,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
+import {
   type Price,
   pricesClientInsertSchema,
 } from '@/db/schema/prices'
-import { type CurrencyCode, IntervalUnit, PriceType } from '@/types'
 
 /**
  * Tests for EditUsagePriceModal schema validation.

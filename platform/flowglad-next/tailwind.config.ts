@@ -44,7 +44,10 @@ const config: Config = {
       },
       colors: {
         border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
+        input: {
+          DEFAULT: 'hsl(var(--input))',
+          bg: 'hsl(var(--input-bg))',
+        },
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -76,7 +79,7 @@ const config: Config = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
-          muted: 'hsl(var(--muted-card))',
+          muted: 'hsl(var(--card-muted))',
         },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar))',

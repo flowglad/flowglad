@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { PriceType, SubscriptionStatus } from '@/types'
+import { PriceType, SubscriptionStatus } from '@db-core/enums'
 import { shouldBlockCheckout } from './guard'
 
 describe('shouldBlockCheckout', () => {

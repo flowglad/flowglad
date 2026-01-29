@@ -1,3 +1,4 @@
+import { CurrencyCode, RefundStatus } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -28,7 +29,6 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { CurrencyCode, RefundStatus } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'refunds'

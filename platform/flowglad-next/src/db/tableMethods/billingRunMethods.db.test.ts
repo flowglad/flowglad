@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { BillingRunStatus, SubscriptionStatus } from '@db-core/enums'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -17,7 +18,6 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { ValidationError } from '@/errors'
-import { BillingRunStatus, SubscriptionStatus } from '@/types'
 import { core } from '@/utils/core'
 import {
   safelyInsertBillingRun,

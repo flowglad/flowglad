@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CheckoutSessionType,
+  DiscountAmountType,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCheckoutSession,
@@ -15,13 +21,7 @@ import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  DiscountAmountType,
-  PriceType,
-  PurchaseStatus,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNonPaymentCheckoutSession'
 import core from '@/utils/core'

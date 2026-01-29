@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   setupCustomer,
@@ -27,7 +28,6 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import type { DbTransaction } from '@/db/types'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 
 /**

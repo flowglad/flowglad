@@ -1,3 +1,4 @@
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { sql } from 'drizzle-orm'
 import {
@@ -36,7 +37,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 import { currencyCodeSchema } from '../commonZodSchema'
 import { featuresClientSelectSchema } from './features'
@@ -715,7 +715,9 @@ export const createProductPriceInputSchema = z
   })
 
 export const createProductSchema = z.object({
-  product: productsClientInsertSchema,
+  product: productsClientInsertSchema.safeExtend({
+    name: z.string().min(1, 'Name is required'),
+  }),
   price: createProductPriceInputSchema,
   featureIds: z.array(z.string()).optional(),
 })

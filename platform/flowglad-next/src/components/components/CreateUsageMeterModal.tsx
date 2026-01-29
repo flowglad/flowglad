@@ -1,5 +1,6 @@
 'use client'
 
+import { PriceType, UsageMeterAggregationType } from '@db-core/enums'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
@@ -7,7 +8,6 @@ import PriceFormFields from '@/components/forms/PriceFormFields'
 import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { createUsageMeterFormSchema } from '@/db/schema/usageMeters'
-import { PriceType, UsageMeterAggregationType } from '@/types'
 import {
   isCurrencyZeroDecimal,
   rawStringAmountToCountableCurrencyAmount,
@@ -51,7 +51,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
       setIsOpen={setIsOpen}
       title="Create Usage Meter"
       formSchema={createUsageMeterFormSchema}
-      defaultValues={{
+      defaultValues={() => ({
         usageMeter: {
           name: '',
           slug: '',
@@ -63,7 +63,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
           usageEventsPerUnit: 1,
         },
         __rawPriceString: zeroDecimal ? '0' : '0.00',
-      }}
+      })}
       onSubmit={async (input) => {
         await createUsageMeter.mutateAsync({
           usageMeter: input.usageMeter,

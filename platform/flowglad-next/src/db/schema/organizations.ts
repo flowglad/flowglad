@@ -1,3 +1,8 @@
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -25,11 +30,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import {
-  BusinessOnboardingStatus,
-  CurrencyCode,
-  StripeConnectContractType,
-} from '@/types'
 import { generateRandomBytes } from '@/utils/backendCore'
 import core, { zodOptionalNullableString } from '@/utils/core'
 

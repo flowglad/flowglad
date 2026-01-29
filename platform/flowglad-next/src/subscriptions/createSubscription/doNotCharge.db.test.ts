@@ -7,6 +7,12 @@ import {
   spyOn,
 } from 'bun:test'
 import {
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
@@ -28,13 +34,7 @@ import {
 } from '@/test-utils/transactionCallbacks'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
-import {
-  CancellationReason,
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
+import { CancellationReason } from '@/types'
 import { core } from '@/utils/core'
 import type { CreateSubscriptionParams } from './types'
 import { createSubscriptionWorkflow } from './workflow'

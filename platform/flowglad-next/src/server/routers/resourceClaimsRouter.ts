@@ -1,3 +1,4 @@
+import { FeatureType } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
@@ -27,7 +28,6 @@ import {
   releaseResourceTransaction,
 } from '@/resources/resourceClaimHelpers'
 import { protectedProcedure, router } from '@/server/trpc'
-import { FeatureType } from '@/types'
 import { trpcToRest } from '@/utils/openapi'
 
 export const resourceClaimsRouteConfigs = [

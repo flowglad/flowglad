@@ -1,6 +1,6 @@
+import { type CurrencyCode, IntervalUnit } from '@db-core/enums'
 import { Link } from '@react-email/components'
 import type * as React from 'react'
-import { type CurrencyCode, IntervalUnit } from '@/types'
 import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from './components/EmailButton'

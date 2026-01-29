@@ -1,4 +1,4 @@
-import { PriceType, SubscriptionStatus } from '@/types'
+import { PriceType, SubscriptionStatus } from '@db-core/enums'
 
 type MinimalSub = {
   status: SubscriptionStatus

@@ -1,3 +1,4 @@
+import { SubscriptionStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -14,7 +15,6 @@ import {
   type TrialInfo,
 } from '@/email-templates/customer-subscription-created'
 import { PaymentError, ValidationError } from '@/errors'
-import { SubscriptionStatus } from '@/types'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,

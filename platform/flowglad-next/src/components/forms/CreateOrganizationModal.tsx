@@ -23,12 +23,12 @@ const CreateOrganizationModal: React.FC<
   const router = useRouter()
   const trpcContext = trpc.useContext()
 
-  const defaultValues: CreateOrganizationInput = {
+  const getDefaultValues = (): CreateOrganizationInput => ({
     organization: {
       name: '',
       countryId: '',
     },
-  }
+  })
 
   return (
     <FormModal
@@ -36,7 +36,7 @@ const CreateOrganizationModal: React.FC<
       setIsOpen={setIsOpen}
       title="Create Organization"
       formSchema={createOrganizationSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (data) => {
         const { organization } =
           await createOrganization.mutateAsync(data)

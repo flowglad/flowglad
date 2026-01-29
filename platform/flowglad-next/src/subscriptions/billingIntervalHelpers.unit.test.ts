@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { IntervalUnit } from '@/types'
+import { IntervalUnit } from '@db-core/enums'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
 
 describe('generateNextBillingPeriod', () => {

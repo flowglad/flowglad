@@ -6,6 +6,12 @@ import {
   expect,
   it,
 } from 'bun:test'
+import {
+  CheckoutSessionType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -25,13 +31,7 @@ import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { core } from '@/utils/core'
 import {
   checkoutSessionInsertFromInput,

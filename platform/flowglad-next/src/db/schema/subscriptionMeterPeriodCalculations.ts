@@ -1,3 +1,4 @@
+import { SubscriptionMeterPeriodCalculationStatus } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   foreignKey,
@@ -28,7 +29,6 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
 import core from '@/utils/core'
 import { billingRuns } from './billingRuns'
 import { invoices } from './invoices'

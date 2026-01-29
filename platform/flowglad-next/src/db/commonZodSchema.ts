@@ -1,4 +1,4 @@
-import { CountryCode, CurrencyCode } from '@/types'
+import { CountryCode, CurrencyCode } from '@db-core/enums'
 import core from '@/utils/core'
 
 export const currencyCodeSchema = core

@@ -1,3 +1,9 @@
+import {
+  BillingPeriodStatus,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { runs } from '@trigger.dev/sdk/v3'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
@@ -77,13 +83,7 @@ import {
   scheduleSubscriptionCancellationSchema,
   uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
-import {
-  BillingPeriodStatus,
-  IntervalUnit,
-  PriceType,
-  SubscriptionAdjustmentTiming,
-  SubscriptionStatus,
-} from '@/types'
+import { SubscriptionAdjustmentTiming } from '@/types'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'

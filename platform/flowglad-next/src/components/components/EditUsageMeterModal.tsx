@@ -43,10 +43,10 @@ const EditUsageMeterModal: React.FC<EditUsageMeterModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Usage Meter"
       formSchema={editUsageMeterSchema}
-      defaultValues={{
+      defaultValues={() => ({
         id: usageMeter.id,
         usageMeter: editableFields,
-      }}
+      })}
       onSubmit={editUsageMeter.mutateAsync}
     >
       <UsageMeterFormFields edit={true} />

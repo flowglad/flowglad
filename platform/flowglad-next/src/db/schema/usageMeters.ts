@@ -1,3 +1,4 @@
+import { PriceType, UsageMeterAggregationType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
@@ -23,7 +24,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { PriceType, UsageMeterAggregationType } from '@/types'
 import core, { safeZodSanitizedString } from '@/utils/core'
 
 const TABLE_NAME = 'usage_meters'

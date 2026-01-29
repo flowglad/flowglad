@@ -1,4 +1,12 @@
 import { afterEach, describe, expect, it } from 'bun:test'
+import {
+  BusinessOnboardingStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  PaymentMethodType,
+  PriceType,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -15,16 +23,7 @@ import {
   describeIfStripeKey,
   getStripeTestClient,
 } from '@/test/stripeIntegrationHelpers'
-import {
-  BusinessOnboardingStatus,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  FeeCalculationType,
-  PaymentMethodType,
-  PriceType,
-  StripeConnectContractType,
-} from '@/types'
+import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 import core from '@/utils/core'
 import {
   calculatePlatformApplicationFee,

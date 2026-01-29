@@ -1,3 +1,4 @@
+import { DestinationEnvironment } from '@db-core/enums'
 import { sentenceCase } from 'change-case'
 import { AlertTriangle } from 'lucide-react'
 import type React from 'react'
@@ -19,7 +20,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { ClonePricingModelInput } from '@/db/schema/pricingModels'
-import { DestinationEnvironment } from '@/types'
 
 interface ClonePricingModelFormFieldsProps {
   hasLivemodePricingModel?: boolean

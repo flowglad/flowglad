@@ -1,3 +1,4 @@
+import { SubscriptionMeterPeriodCalculationStatus } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   SubscriptionMeterPeriodCalculation,
@@ -14,7 +15,6 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
 import type { DbTransaction } from '../types'
 import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 

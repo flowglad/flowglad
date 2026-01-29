@@ -1,6 +1,6 @@
+import { CurrencyCode } from '@db-core/enums'
 import { format } from 'date-fns'
 import type { CustomerTableRowData } from '@/db/schema/customers'
-import { CurrencyCode } from '@/types'
 import { titleCase } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 

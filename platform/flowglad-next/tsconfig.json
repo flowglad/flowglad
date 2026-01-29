@@ -21,6 +21,7 @@
       }
     ],
     "paths": {
+      "@db-core/*": ["./db-core/*"],
       "@/*": ["./src/*"]
     },
     "target": "ES2017"

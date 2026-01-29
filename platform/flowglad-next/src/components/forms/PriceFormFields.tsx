@@ -1,4 +1,5 @@
 'use client'
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import React from 'react'
 import { useFormContext } from 'react-hook-form'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
@@ -29,7 +30,6 @@ import {
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 import { getPriceConstraints } from '@/utils/priceConstraints'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'

@@ -1,3 +1,4 @@
+import { BillingPeriodStatus } from '@db-core/enums'
 import {
   and,
   eq,
@@ -28,7 +29,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { BillingPeriodStatus, CancellationReason } from '@/types'
+import { CancellationReason } from '@/types'
 import { customers, customersSelectSchema } from '../schema/customers'
 import { invoices, invoicesSelectSchema } from '../schema/invoices'
 import {
