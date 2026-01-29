@@ -1,4 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  BillingPeriodStatus,
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { addDays, subDays } from 'date-fns'
 import {
   setupBillingPeriod,
@@ -20,14 +27,7 @@ import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { calculateAdjustmentPreview } from '@/subscriptions/adjustSubscription'
-import {
-  BillingPeriodStatus,
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-  SubscriptionAdjustmentTiming,
-  SubscriptionStatus,
-} from '@/types'
+import { SubscriptionAdjustmentTiming } from '@/types'
 
 describe('previewAdjustSubscription', () => {
   let organization: Organization.Record
