@@ -447,7 +447,7 @@ export const calculateAdjustmentPreview = async (
     return {
       canAdjust: false,
       previewGeneratedAt,
-      reason: 'Non-renewing subscriptions cannot be adjusted.',
+      reason: `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`,
     }
   }
 
