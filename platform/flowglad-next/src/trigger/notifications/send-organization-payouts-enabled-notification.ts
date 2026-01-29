@@ -1,10 +1,10 @@
+import type { Membership } from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
+import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Membership } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
-import { NotFoundError } from '@/db/tableUtils'
 import { ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,

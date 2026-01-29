@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { CurrencyCode } from '@db-core/enums'
 import { render } from '@testing-library/react'
-import { CurrencyCode } from '@/types'
 import { OrganizationSubscriptionAdjustedEmail } from './organization-subscription-adjusted'
 
 describe('OrganizationSubscriptionAdjustedEmail', () => {

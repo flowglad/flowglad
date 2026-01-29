@@ -1,14 +1,14 @@
-import type Stripe from 'stripe'
+import { PaymentMethodType } from '@db-core/enums'
 import {
   type PaymentMethod,
   paymentMethodsInsertSchema,
-} from '@/db/schema/paymentMethods'
+} from '@db-core/schema/paymentMethods'
+import type Stripe from 'stripe'
 import {
   safelyInsertPaymentMethod,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
 import type { TransactionEffectsContext } from '@/db/types'
-import { PaymentMethodType } from '@/types'
 import { titleCase } from '@/utils/core'
 import { getStripePaymentMethod } from '@/utils/stripe'
 

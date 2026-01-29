@@ -3,7 +3,7 @@ import {
   CheckoutSessionStatus,
   PriceType,
   SubscriptionStatus,
-} from '@/types'
+} from '@db-core/enums'
 
 // Mock next/navigation redirect
 const redirect = mock()

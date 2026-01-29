@@ -1,5 +1,7 @@
 'use client'
 
+import { PurchaseStatus } from '@db-core/enums'
+import type { Purchase } from '@db-core/schema/purchases'
 import {
   type ColumnSizingState,
   flexRender,
@@ -22,8 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Purchase } from '@/db/schema/purchases'
-import { PurchaseStatus } from '@/types'
 import { columns } from './columns'
 
 export interface PurchasesTableFilters {

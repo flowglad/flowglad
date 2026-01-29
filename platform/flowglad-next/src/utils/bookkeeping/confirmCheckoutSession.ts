@@ -1,7 +1,11 @@
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+} from '@db-core/enums'
+import { feeReadyCheckoutSessionSelectSchema } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
 import { Result } from 'better-result'
-import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import {
   selectCheckoutSessionById,
   updateCheckoutSession,
@@ -14,7 +18,6 @@ import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMeth
 import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import {

@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { TRPCError } from '@trpc/server'
-import {
-  singlePaymentDummyPrice,
-  subscriptionDummyPrice,
-  usageDummyPrice,
-} from '@/stubs/priceStubs'
-import { PriceType } from '@/types'
+import { PriceType } from '@db-core/enums'
 import {
   isReservedPriceSlug,
   type Price,
@@ -14,7 +8,12 @@ import {
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
   validateUsagePriceSlug,
-} from './prices'
+} from '@db-core/schema/prices'
+import {
+  singlePaymentDummyPrice,
+  subscriptionDummyPrice,
+  usageDummyPrice,
+} from '@/stubs/priceStubs'
 
 const testStartingPriceToDestinationPrice = (
   startingPrice: Price.Record,
@@ -144,15 +143,13 @@ describe('isReservedPriceSlug', () => {
 })
 
 describe('validateUsagePriceSlug', () => {
-  it('throws TRPCError with BAD_REQUEST when usage price has slug ending in _no_charge', () => {
+  it('throws Error when usage price has slug ending in _no_charge', () => {
     const usagePrice = {
       type: PriceType.Usage,
       slug: 'api_requests_no_charge',
     }
 
-    expect(() => validateUsagePriceSlug(usagePrice)).toThrow(
-      TRPCError
-    )
+    expect(() => validateUsagePriceSlug(usagePrice)).toThrow(Error)
     expect(() => validateUsagePriceSlug(usagePrice)).toThrow(
       '_no_charge'
     )
@@ -160,10 +157,9 @@ describe('validateUsagePriceSlug', () => {
     try {
       validateUsagePriceSlug(usagePrice)
     } catch (error) {
-      expect(error).toBeInstanceOf(TRPCError)
-      expect((error as TRPCError).code).toBe('BAD_REQUEST')
-      expect((error as TRPCError).message).toContain('_no_charge')
-      expect((error as TRPCError).message).toContain('reserved')
+      expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toContain('_no_charge')
+      expect((error as Error).message).toContain('reserved')
     }
   })
 

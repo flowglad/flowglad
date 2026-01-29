@@ -4,10 +4,10 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/createNextBillingPeriodForSubscription.ts subscription_id=sub_...
 */
 
+import { SubscriptionStatus } from '@db-core/enums'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { attemptToCreateFutureBillingPeriodForSubscription } from '@/subscriptions/billingPeriodHelpers'
-import { SubscriptionStatus } from '@/types'
 import runScript from './scriptRunner'
 
 async function createNextBillingPeriodForSubscription(

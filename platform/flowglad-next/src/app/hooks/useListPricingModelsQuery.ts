@@ -1,5 +1,5 @@
+import { encodeCursor } from '@db-core/tableUtils'
 import { useAuthContext } from '@/contexts/authContext'
-import { encodeCursor } from '@/db/tableUtils'
 import { trpc } from '../_trpc/client'
 
 export const useListPricingModelsQuery = () => {

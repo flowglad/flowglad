@@ -1,13 +1,19 @@
-import { Result } from 'better-result'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PriceType,
+} from '@db-core/enums'
 import type {
   CheckoutSession,
   CreateCheckoutSessionInput,
   CreateCheckoutSessionObject,
-} from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
+} from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import { NotFoundError } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import {
   insertCheckoutSession,
   updateCheckoutSession,
@@ -21,14 +27,8 @@ import {
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { NotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { ValidationError } from '@/errors'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PriceType,
-} from '@/types'
 import core from '@/utils/core'
 import {
   createPaymentIntentForCheckoutSession,

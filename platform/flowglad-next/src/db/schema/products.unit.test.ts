@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { productsClientInsertSchema } from './products'
+import { productsClientInsertSchema } from '@db-core/schema/products'
 
 describe('Products Schema Validation', () => {
   describe('productsClientInsertSchema - Slug validation', () => {

@@ -3,10 +3,11 @@
 Run the script using the following command:
 NODE_ENV=production bunx tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...
 */
+
+import { Customer } from '@db-core/schema/customers'
+import { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import type Stripe from 'stripe'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'

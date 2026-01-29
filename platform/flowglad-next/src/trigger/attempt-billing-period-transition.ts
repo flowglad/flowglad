@@ -1,6 +1,6 @@
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
 import { logger, task } from '@trigger.dev/sdk'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'

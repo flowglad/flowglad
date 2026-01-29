@@ -1,4 +1,6 @@
 'use client'
+import { FlowgladApiKeyType } from '@db-core/enums'
+import { createApiKeyInputSchema } from '@db-core/schema/apiKeys'
 import { Copy } from 'lucide-react'
 import { useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
@@ -6,8 +8,6 @@ import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import ApiKeyFormFields from '@/components/forms/ApiKeyFormFields'
 import FormModal from '@/components/forms/FormModal'
 import { Input } from '@/components/ui/input'
-import { createApiKeyInputSchema } from '@/db/schema/apiKeys'
-import { FlowgladApiKeyType } from '@/types'
 
 interface CreateApiKeyModalProps {
   isOpen: boolean

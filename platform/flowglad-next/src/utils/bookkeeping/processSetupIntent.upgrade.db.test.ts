@@ -1,5 +1,21 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import {
   setupCheckoutSession,
   setupCustomer,
   setupFeeCalculation,
@@ -14,12 +30,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import {
   selectSubscriptionById,
@@ -30,16 +40,6 @@ import {
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  PurchaseStatus,
-  SubscriptionStatus,
-} from '@/types'
 import {
   type CoreSripeSetupIntent,
   processSetupIntentSucceeded,

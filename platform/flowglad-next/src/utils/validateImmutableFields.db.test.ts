@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test'
+import { IntervalUnit, PriceType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
 import { TRPCError } from '@trpc/server'
-import type { Price } from '@/db/schema/prices'
 import {
   singlePaymentDummyPrice,
   subscriptionDummyPrice,
   usageDummyPrice,
 } from '@/stubs/priceStubs'
-import { IntervalUnit, PriceType } from '@/types'
 import { validatePriceImmutableFields } from './validateImmutableFields'
 
 describe('validatePriceImmutableFields', () => {

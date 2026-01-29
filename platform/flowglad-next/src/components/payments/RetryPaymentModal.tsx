@@ -1,9 +1,9 @@
 'use client'
 
+import type { Payment } from '@db-core/schema/payments'
+import { retryBillingRunInputSchema } from '@db-core/schema/subscriptions'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
-import type { Payment } from '@/db/schema/payments'
-import { retryBillingRunInputSchema } from '@/db/schema/subscriptions'
 
 interface RetryPaymentModalProps {
   isOpen: boolean

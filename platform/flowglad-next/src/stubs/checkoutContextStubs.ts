@@ -1,5 +1,12 @@
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { dummyOrganization } from '@/stubs/organizationStubs'
 import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import { dummyProduct } from '@/stubs/productStubs'
@@ -7,14 +14,7 @@ import {
   subscriptionWithoutTrialDummyPurchase,
   subscriptionWithTrialDummyPurchase,
 } from '@/stubs/purchaseStubs'
-import {
-  CheckoutFlowType,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-} from '@/types'
+import { CheckoutFlowType } from '@/types'
 
 const subscriptionDetails = {
   trialPeriodDays: 30,

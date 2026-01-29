@@ -1,17 +1,15 @@
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { payments } from '@/db/schema/payments'
+import { PaymentStatus } from '@db-core/enums'
+import { payments } from '@db-core/schema/payments'
 import {
   Price,
   prices,
   pricesClientSelectSchema,
   productsTableRowDataSchema,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
 import {
   type PricingModel,
   pricingModelsClientSelectSchema,
-} from '@/db/schema/pricingModels'
+} from '@db-core/schema/pricingModels'
 import {
   type Product,
   products,
@@ -19,9 +17,9 @@ import {
   productsInsertSchema,
   productsSelectSchema,
   productsUpdateSchema,
-} from '@/db/schema/products'
-import { purchases } from '@/db/schema/purchases'
-import { subscriptions } from '@/db/schema/subscriptions'
+} from '@db-core/schema/products'
+import { purchases } from '@db-core/schema/purchases'
+import { subscriptions } from '@db-core/schema/subscriptions'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -34,8 +32,10 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import { PaymentStatus } from '@/types'
+} from '@db-core/tableUtils'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import * as R from 'ramda'
+import { z } from 'zod'
 import { CacheDependency, cached } from '@/utils/cache'
 import { groupBy } from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'

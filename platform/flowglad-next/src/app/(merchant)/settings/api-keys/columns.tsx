@@ -1,5 +1,7 @@
 'use client'
 
+import { FlowgladApiKeyType } from '@db-core/enums'
+import type { ApiKey } from '@db-core/schema/apiKeys'
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Trash2 } from 'lucide-react'
@@ -11,8 +13,6 @@ import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import type { ApiKey } from '@/db/schema/apiKeys'
-import { FlowgladApiKeyType } from '@/types'
 // Other imports
 import core from '@/utils/core'
 

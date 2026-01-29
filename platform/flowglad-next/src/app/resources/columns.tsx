@@ -1,5 +1,6 @@
 'use client'
 
+import type { Resource } from '@db-core/schema/resources'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
 import * as React from 'react'
@@ -11,7 +12,6 @@ import {
   ActiveStatusTag,
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
-import type { Resource } from '@/db/schema/resources'
 
 export type ResourceTableRowData = {
   resource: Resource.ClientRecord

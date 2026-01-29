@@ -10,6 +10,27 @@
  */
 import { afterEach, beforeEach, expect, it } from 'bun:test'
 import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { BillingRun } from '@db-core/schema/billingRuns'
+import type { Customer } from '@db-core/schema/customers'
+import type { Feature } from '@db-core/schema/features'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Resource } from '@db-core/schema/resources'
+import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import {
   setupBillingPeriod,
   setupBillingPeriodItem,
   setupBillingRun,
@@ -26,19 +47,6 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { BillingRun } from '@/db/schema/billingRuns'
-import type { Customer } from '@/db/schema/customers'
-import type { Feature } from '@/db/schema/features'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
@@ -50,14 +58,6 @@ import {
   createTestStripeCustomer,
   describeIfStripeKey,
 } from '@/test/stripeIntegrationHelpers'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import { executeBillingRun } from './billingRunHelpers'
 
 describeIfStripeKey(

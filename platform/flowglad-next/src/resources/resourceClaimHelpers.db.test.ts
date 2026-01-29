@@ -1,5 +1,18 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Resource } from '@db-core/schema/resources'
+import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
@@ -12,25 +25,12 @@ import {
   setupSubscriptionItem,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import {
   countActiveResourceClaims,
   selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
-import {
-  FeatureType,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   claimResourceTransaction,
   getResourceUsage,

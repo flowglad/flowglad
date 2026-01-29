@@ -4,7 +4,7 @@ import {
   usageCreditApplicationsInsertSchema,
   usageCreditApplicationsSelectSchema,
   usageCreditApplicationsUpdateSchema,
-} from '@/db/schema/usageCreditApplications'
+} from '@db-core/schema/usageCreditApplications'
 import {
   createBulkInsertFunction,
   createInsertFunction,
@@ -12,7 +12,7 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import {
   derivePricingModelIdFromUsageCredit,

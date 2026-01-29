@@ -1,5 +1,6 @@
 'use client'
 
+import type { Resource } from '@db-core/schema/resources'
 import {
   type ColumnFiltersState,
   type ColumnSizingState,
@@ -25,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Resource } from '@/db/schema/resources'
 import { createColumns, type ResourceTableRowData } from './columns'
 
 export interface ResourcesTableFilters {

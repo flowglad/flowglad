@@ -1,10 +1,10 @@
-import { z } from 'zod'
-import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   paymentsClientSelectSchema,
   refundPaymentInputSchema,
-} from '@/db/schema/payments'
+} from '@db-core/schema/payments'
+import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { protectedProcedure } from '@/server/trpc'
 import { createPostOpenApiMetaWithIdParam } from '@/utils/openapi'

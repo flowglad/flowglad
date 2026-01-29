@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import type { User } from '@/db/schema/users'
+import type { User } from '@db-core/schema/users'
 import { NotFoundError, ValidationError } from '@/errors'
 import { validateUserForNewsletter } from './member-inserted'
 

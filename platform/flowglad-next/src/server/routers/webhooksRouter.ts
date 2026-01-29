@@ -1,11 +1,16 @@
-import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
   createWebhookInputSchema,
   editWebhookInputSchema,
   webhookClientSelectSchema,
   webhooksTableRowDataSchema,
-} from '@/db/schema/webhooks'
+} from '@db-core/schema/webhooks'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
+import { z } from 'zod'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   selectWebhookAndOrganizationByWebhookId,
@@ -13,11 +18,6 @@ import {
   selectWebhooksTableRowData,
   updateWebhook as updateWebhookDB,
 } from '@/db/tableMethods/webhookMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {

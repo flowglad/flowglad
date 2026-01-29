@@ -1,5 +1,15 @@
 'use client'
 
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
+import {
+  type CreateFeatureInput,
+  resourceFeatureDefaultColumns,
+  toggleFeatureDefaultColumns,
+  usageCreditGrantFeatureDefaultColumns,
+} from '@db-core/schema/features'
 import { Controller, useFormContext } from 'react-hook-form'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import {
@@ -20,13 +30,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import {
-  type CreateFeatureInput,
-  resourceFeatureDefaultColumns,
-  toggleFeatureDefaultColumns,
-  usageCreditGrantFeatureDefaultColumns,
-} from '@/db/schema/features'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import core, { titleCase } from '@/utils/core'
 import ResourcesSelect from './ResourcesSelect'
 import UsageMetersSelect from './UsageMetersSelect'

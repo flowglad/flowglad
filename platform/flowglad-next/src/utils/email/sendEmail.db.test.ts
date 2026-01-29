@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
-import { CurrencyCode } from '@/types'
+import { CurrencyCode } from '@db-core/enums'
 import actualCore from '@/utils/core'
 
 // Import actual modules before mocking

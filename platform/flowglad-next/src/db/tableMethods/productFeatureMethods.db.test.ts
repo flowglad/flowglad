@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+} from '@db-core/enums'
+import type { Feature } from '@db-core/schema/features'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Product } from '@db-core/schema/products'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -14,15 +22,7 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { Feature } from '@/db/schema/features'
-import type { Organization } from '@/db/schema/organizations'
-import type { Product } from '@/db/schema/products'
 import { createCapturingEffectsContext } from '@/test-utils/transactionCallbacks'
-import {
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-} from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
 import {

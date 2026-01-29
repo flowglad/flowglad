@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { RevenueChartIntervalUnit } from '@/types'
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { formatDateUTC } from './dateFormatting'
 
 describe('formatDateUTC', () => {

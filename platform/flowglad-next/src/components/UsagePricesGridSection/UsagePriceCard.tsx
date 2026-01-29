@@ -1,8 +1,8 @@
 'use client'
 
+import type { Price } from '@db-core/schema/prices'
 import { cva, type VariantProps } from 'class-variance-authority'
 import * as React from 'react'
-import type { Price } from '@/db/schema/prices'
 import { cn } from '@/lib/utils'
 import { getCurrencyParts } from '@/utils/stripe'
 

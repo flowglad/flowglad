@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import {
   findDefaultProduct,
   hasProtectedFieldChanges,

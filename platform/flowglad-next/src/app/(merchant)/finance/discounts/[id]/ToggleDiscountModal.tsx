@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  Discount,
+  editDiscountInputSchema,
+} from '@db-core/schema/discounts'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
@@ -11,10 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Discount,
-  editDiscountInputSchema,
-} from '@/db/schema/discounts'
 
 interface ToggleDiscountModalProps {
   isOpen: boolean

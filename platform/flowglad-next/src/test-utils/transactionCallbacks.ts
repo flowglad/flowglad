@@ -1,5 +1,5 @@
+import type { Event } from '@db-core/schema/events'
 import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import type { Event } from '@/db/schema/events'
 import type {
   ComprehensiveAdminTransactionParams,
   ComprehensiveAuthenticatedTransactionParams,

@@ -4,16 +4,16 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/verifyMetadataUpgrades.ts
 */
 
+import { checkoutSessions } from '@db-core/schema/checkoutSessions'
+import { billingAddressSchema } from '@db-core/schema/organizations'
+import { paymentMethods } from '@db-core/schema/paymentMethods'
+import { purchases } from '@db-core/schema/purchases'
+import { subscriptionItems } from '@db-core/schema/subscriptionItems'
+import { usageCredits } from '@db-core/schema/usageCredits'
+import { metadataSchema } from '@db-core/tableUtils'
 import { isNotNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
-import { checkoutSessions } from '@/db/schema/checkoutSessions'
-import { billingAddressSchema } from '@/db/schema/organizations'
-import { paymentMethods } from '@/db/schema/paymentMethods'
-import { purchases } from '@/db/schema/purchases'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
-import { usageCredits } from '@/db/schema/usageCredits'
-import { metadataSchema } from '@/db/tableUtils'
 import runScript from './scriptRunner'
 
 async function verifyMetadataUpgrades(db: PostgresJsDatabase) {

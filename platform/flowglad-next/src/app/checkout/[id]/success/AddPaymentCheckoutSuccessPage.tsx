@@ -1,6 +1,6 @@
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import SubscriptionCheckoutSuccessPage from './SubscriptionCheckoutSuccessPage'

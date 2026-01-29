@@ -17,16 +17,19 @@ mock.module('next/headers', () => ({
   })),
 }))
 
+import {
+  CountryCode,
+  StripeConnectContractType,
+} from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
 // Now import everything else (including mocked modules)
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import * as databaseAuthentication from '@/db/databaseAuthentication'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { organizationsRouter } from '@/server/routers/organizationsRouter'
 import type { TRPCContext } from '@/server/trpcContext'
-import { CountryCode, StripeConnectContractType } from '@/types'
 
 const createAuthedContext = async (params: {
   organization: Organization.Record

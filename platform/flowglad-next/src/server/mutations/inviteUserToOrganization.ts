@@ -1,10 +1,11 @@
-import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { MembershipRole } from '@db-core/enums'
 import {
   inviteUserToOrganizationSchema,
   type Membership,
-} from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
+} from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertMembership,
   selectFocusedMembershipAndOrganization,
@@ -17,7 +18,6 @@ import {
   selectUsers,
 } from '@/db/tableMethods/userMethods'
 import { protectedProcedure } from '@/server/trpc'
-import { MembershipRole } from '@/types'
 import core from '@/utils/core'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 

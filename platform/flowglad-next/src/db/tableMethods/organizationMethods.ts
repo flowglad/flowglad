@@ -1,13 +1,12 @@
-import { asc, eq } from 'drizzle-orm'
-import { memberships } from '@/db/schema/memberships'
+import { memberships } from '@db-core/schema/memberships'
 import {
   type Organization,
   organizations,
   organizationsInsertSchema,
   organizationsSelectSchema,
   organizationsUpdateSchema,
-} from '@/db/schema/organizations'
-import { users, usersSelectSchema } from '@/db/schema/users'
+} from '@db-core/schema/organizations'
+import { users, usersSelectSchema } from '@db-core/schema/users'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -16,7 +15,8 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { asc, eq } from 'drizzle-orm'
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<

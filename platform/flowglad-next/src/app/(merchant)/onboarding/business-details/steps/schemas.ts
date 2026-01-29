@@ -1,5 +1,5 @@
+import { StripeConnectContractType } from '@db-core/enums'
 import { z } from 'zod'
-import { StripeConnectContractType } from '@/types'
 import { referralOptionEnum } from '@/utils/referrals'
 
 export const organizationNameStepSchema = z.object({

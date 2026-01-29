@@ -1,7 +1,8 @@
+import { FlowgladApiKeyType } from '@db-core/enums'
 import type {
   CreateApiKeyInput,
   RotateApiKeyInput,
-} from '@/db/schema/apiKeys'
+} from '@db-core/schema/apiKeys'
 import {
   deleteApiKey as deleteApiKeyMethod,
   insertApiKey,
@@ -12,7 +13,6 @@ import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/member
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
-import { FlowgladApiKeyType } from '@/types'
 import {
   createSecretApiKey,
   deleteApiKey as deleteApiKeyFromUnkey,

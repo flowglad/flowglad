@@ -23,7 +23,7 @@
  * - No interval-specific bugs slip through
  */
 
-import { IntervalUnit } from '@/types'
+import { IntervalUnit } from '@db-core/enums'
 import { Dependency } from '../index'
 
 /**

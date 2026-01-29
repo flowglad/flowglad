@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -9,16 +17,8 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import {
-  CancellationReason,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
+import { CancellationReason } from '@/types'
 import { core } from '@/utils/core'
 import { verifyCanCreateSubscription } from './helpers'
 import type { CreateSubscriptionParams } from './types'

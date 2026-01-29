@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { BusinessOnboardingStatus } from '@db-core/enums'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { BusinessOnboardingStatus } from '@/types'
 import type { NavUserProps } from './NavUser'
 
 // Types for mock components

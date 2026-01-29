@@ -1,4 +1,12 @@
 import { afterEach, beforeEach, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import { subscriptionItemFeatures } from '@db-core/schema/subscriptionItemFeatures'
 import { Result } from 'better-result'
 import { inArray } from 'drizzle-orm'
 import { z } from 'zod'
@@ -17,7 +25,6 @@ import {
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import db from '@/db/client'
-import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
 import {
   insertSubscriptionItemFeature,
   selectSubscriptionItemFeaturesWithFeatureSlug,
@@ -32,13 +39,6 @@ import {
   waitForCacheInvalidation,
   waitForCachePopulation,
 } from '@/test/redisIntegrationHelpers'
-import {
-  CurrencyCode,
-  FeatureType,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   CacheDependency,
   type CacheRecomputeMetadata,

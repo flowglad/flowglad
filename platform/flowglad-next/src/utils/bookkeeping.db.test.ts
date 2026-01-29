@@ -1,4 +1,25 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  FlowgladEventType,
+  IntervalUnit,
+  InvoiceStatus,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+  StripeConnectContractType,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Event } from '@db-core/schema/events'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Payment } from '@db-core/schema/payments'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
+import { UsageMeter } from '@db-core/schema/usageMeters'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -15,16 +36,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
-import type { Payment } from '@/db/schema/payments'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { Purchase } from '@/db/schema/purchases'
-import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
@@ -40,17 +51,6 @@ import {
   withAdminCacheContext,
   withDiscardingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
-import {
-  BusinessOnboardingStatus,
-  CurrencyCode,
-  FlowgladEventType,
-  IntervalUnit,
-  InvoiceStatus,
-  PaymentStatus,
-  PriceType,
-  PurchaseStatus,
-  StripeConnectContractType,
-} from '@/types'
 import core from '@/utils/core'
 import {
   createCustomerBookkeeping,

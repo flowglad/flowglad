@@ -1,4 +1,6 @@
 'use client'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Resource } from '@db-core/schema/resources'
 import {
   Check,
   CopyPlus,
@@ -38,8 +40,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { UsageMetersDataTable } from '@/components/usage-meters/data-table'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Resource } from '@/db/schema/resources'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord

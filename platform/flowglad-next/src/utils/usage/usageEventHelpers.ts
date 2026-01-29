@@ -1,11 +1,16 @@
-import { Result } from 'better-result'
-import { z } from 'zod'
-import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  LedgerTransactionType,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
 import {
   type CreateUsageEventInput,
   type UsageEvent,
   usageEventsClientInsertSchema,
-} from '@/db/schema/usageEvents'
+} from '@db-core/schema/usageEvents'
+import { Result } from 'better-result'
+import { z } from 'zod'
+import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   selectBillingPeriodsForSubscriptions,
   selectCurrentBillingPeriodForSubscription,
@@ -44,11 +49,6 @@ import {
   panic,
   ValidationError,
 } from '@/errors'
-import {
-  LedgerTransactionType,
-  PriceType,
-  UsageMeterAggregationType,
-} from '@/types'
 import core from '@/utils/core'
 
 /**

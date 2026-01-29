@@ -1,5 +1,10 @@
 'use client'
 
+import { CurrencyCode } from '@db-core/enums'
+import type {
+  Customer,
+  CustomerTableRowData,
+} from '@db-core/schema/customers'
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import {
@@ -21,11 +26,6 @@ import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import type {
-  Customer,
-  CustomerTableRowData,
-} from '@/db/schema/customers'
-import { CurrencyCode } from '@/types'
 // Other imports
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'

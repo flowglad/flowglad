@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { CurrencyCode, IntervalUnit } from '@/types'
+import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import {
   CustomerBillingPortalMagicLinkSchema,
   CustomerBillingPortalOTPSchema,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { billingAddressSchema } from './organizations'
+import { billingAddressSchema } from '@db-core/schema/organizations'
 
 describe('billing address schema parser', () => {
   it('should parse nested billing address input', () => {

@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { Result } from 'better-result'
-import { setupMemberships, setupOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type Membership,
   type NotificationPreferences,
   notificationPreferencesSchema,
-} from '@/db/schema/memberships'
+} from '@db-core/schema/memberships'
+import { Result } from 'better-result'
+import { setupMemberships, setupOrg } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   getMembershipNotificationPreferences,
   selectMembershipById,

@@ -1,5 +1,6 @@
 'use client'
 
+import { editFeatureSchema, Feature } from '@db-core/schema/features'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
@@ -11,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { editFeatureSchema, Feature } from '@/db/schema/features'
 
 interface ToggleFeatureModalProps {
   isOpen: boolean

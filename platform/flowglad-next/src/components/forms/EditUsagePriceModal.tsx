@@ -1,5 +1,10 @@
 'use client'
 
+import { PriceType } from '@db-core/enums'
+import {
+  editUsagePriceFormSchema as baseEditUsagePriceFormSchema,
+  type Price,
+} from '@db-core/schema/prices'
 import { useFormContext } from 'react-hook-form'
 import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
@@ -30,12 +35,7 @@ import {
 } from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  editUsagePriceFormSchema as baseEditUsagePriceFormSchema,
-  type Price,
-} from '@/db/schema/prices'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { PriceType } from '@/types'
 import {
   countableCurrencyAmountToRawStringAmount,
   isCurrencyZeroDecimal,

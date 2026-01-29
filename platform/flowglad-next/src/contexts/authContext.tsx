@@ -1,9 +1,9 @@
 'use client'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
 import { usePathname } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
 import { useSession } from '@/utils/authClient'
 
 export type AuthContextValues = Partial<{

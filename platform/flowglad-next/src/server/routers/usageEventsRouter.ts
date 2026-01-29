@@ -1,9 +1,3 @@
-import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
 import {
   bulkInsertUsageEventsSchema,
   usageEventPaginatedListSchema,
@@ -11,13 +5,19 @@ import {
   usageEventsClientSelectSchema,
   usageEventsPaginatedTableRowInputSchema,
   usageEventsPaginatedTableRowOutputSchema,
-} from '@/db/schema/usageEvents'
+} from '@db-core/schema/usageEvents'
+import { idInputSchema } from '@db-core/tableUtils'
+import { z } from 'zod'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   selectUsageEventById,
   selectUsageEventsPaginated,
   selectUsageEventsTableRowData,
 } from '@/db/tableMethods/usageEventMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import {
   generateOpenApiMetas,

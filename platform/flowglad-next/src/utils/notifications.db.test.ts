@@ -2,8 +2,8 @@ import { describe, expect, it } from 'bun:test'
 import {
   type Membership,
   type NotificationPreferences,
-} from '@/db/schema/memberships'
-import type { User } from '@/db/schema/users'
+} from '@db-core/schema/memberships'
+import type { User } from '@db-core/schema/users'
 import { filterEligibleRecipients } from './notifications'
 
 // Helper to create a mock user

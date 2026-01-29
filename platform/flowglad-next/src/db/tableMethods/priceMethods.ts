@@ -1,12 +1,14 @@
+import { FeatureType, PriceType } from '@db-core/enums'
 import {
-  and,
-  asc,
-  desc,
-  eq,
-  inArray,
-  type SQLWrapper,
-} from 'drizzle-orm'
-import { z } from 'zod'
+  type Feature,
+  features,
+  featuresSelectSchema,
+  resourceFeatureSelectSchema,
+} from '@db-core/schema/features'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
 import {
   Price,
   type ProductWithPrices,
@@ -16,7 +18,20 @@ import {
   pricesSelectSchema,
   pricesTableRowDataSchema,
   pricesUpdateSchema,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
+import {
+  pricingModels,
+  pricingModelsSelectSchema,
+} from '@db-core/schema/pricingModels'
+import {
+  productFeatures,
+  productFeaturesSelectSchema,
+} from '@db-core/schema/productFeatures'
+import {
+  type Product,
+  products,
+  productsSelectSchema,
+} from '@db-core/schema/products'
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
@@ -31,38 +46,23 @@ import {
   type ORMMethodCreatorConfig,
   type SelectConditions,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  type SQLWrapper,
+} from 'drizzle-orm'
+import { z } from 'zod'
 import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { FeatureType, PriceType } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
-import {
-  type Feature,
-  features,
-  featuresSelectSchema,
-  resourceFeatureSelectSchema,
-} from '../schema/features'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import {
-  pricingModels,
-  pricingModelsSelectSchema,
-} from '../schema/pricingModels'
-import {
-  productFeatures,
-  productFeaturesSelectSchema,
-} from '../schema/productFeatures'
-import {
-  type Product,
-  products,
-  productsSelectSchema,
-} from '../schema/products'
 import { selectCustomerById } from './customerMethods'
 import {
   selectPricingModelForCustomer,

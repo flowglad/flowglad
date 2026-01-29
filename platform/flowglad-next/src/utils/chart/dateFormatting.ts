@@ -1,4 +1,4 @@
-import { RevenueChartIntervalUnit } from '@/types'
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 
 //#region Period Boundary Calculations
 /**

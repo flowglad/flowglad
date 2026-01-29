@@ -1,5 +1,6 @@
 'use client'
 
+import type { PriceType } from '@db-core/enums'
 import {
   type ColumnFiltersState,
   type ColumnSizingState,
@@ -26,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { PriceType } from '@/types'
 import { columns, type PriceTableRowData } from './columns'
 
 export interface PricesTableFilters {

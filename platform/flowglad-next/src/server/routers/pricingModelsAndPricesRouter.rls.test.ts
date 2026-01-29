@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  DestinationEnvironment,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -10,11 +15,6 @@ import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import { pricesRouter } from '@/server/routers/pricesRouter'
 import { pricingModelsRouter } from '@/server/routers/pricingModelsRouter'
-import {
-  DestinationEnvironment,
-  IntervalUnit,
-  PriceType,
-} from '@/types'
 
 describe('beforeEach setup', () => {
   let organizationId: string

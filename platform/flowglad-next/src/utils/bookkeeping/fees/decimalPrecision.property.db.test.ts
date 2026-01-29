@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test'
+import { CurrencyCode, PaymentMethodType } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
 import BigNumber from 'bignumber.js'
 import fc from 'fast-check'
-import type { Organization } from '@/db/schema/organizations'
-import { CurrencyCode, PaymentMethodType } from '@/types'
 import { calculatePlatformApplicationFee } from '@/utils/stripe'
 import {
   calculatePaymentMethodFeeAmount,

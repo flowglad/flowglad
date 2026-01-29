@@ -1,5 +1,9 @@
-import type { Purchase } from '@/db/schema/purchases'
-import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
+import {
+  IntervalUnit,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
+import type { Purchase } from '@db-core/schema/purchases'
 
 export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchaseRecord =
   {

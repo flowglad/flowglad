@@ -1,24 +1,5 @@
 import { describe, expect, it } from 'bun:test'
 import {
-  setupCustomer,
-  setupInvoice,
-  setupOrg,
-  setupPayment,
-} from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import type { Country } from '@/db/schema/countries'
-import type { Discount } from '@/db/schema/discounts'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type {
-  BillingAddress,
-  Organization,
-} from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Purchase } from '@/db/schema/purchases'
-import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { insertPayment } from '@/db/tableMethods/paymentMethods'
-import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
-import {
   CountryCode,
   CurrencyCode,
   DiscountAmountType,
@@ -27,7 +8,26 @@ import {
   PaymentStatus,
   PriceType,
   StripeConnectContractType,
-} from '@/types'
+} from '@db-core/enums'
+import type { Country } from '@db-core/schema/countries'
+import type { Discount } from '@db-core/schema/discounts'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type {
+  BillingAddress,
+  Organization,
+} from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Purchase } from '@db-core/schema/purchases'
+import {
+  setupCustomer,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { insertPayment } from '@/db/tableMethods/paymentMethods'
+import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
 import core from '@/utils/core'
 import {
   calculateDiscountAmount,

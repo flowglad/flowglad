@@ -1,5 +1,7 @@
 'use client'
 
+import { SubscriptionStatus } from '@db-core/enums'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import type { ColumnDef } from '@tanstack/react-table'
 import { X } from 'lucide-react'
 import * as React from 'react'
@@ -10,8 +12,6 @@ import {
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import { SubscriptionStatusTag } from '@/components/ui/status-tag'
-import type { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionStatus } from '@/types'
 import { formatDate } from '@/utils/core'
 
 function SubscriptionActionsMenu({

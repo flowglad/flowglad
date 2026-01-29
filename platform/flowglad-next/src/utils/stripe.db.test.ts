@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
 import {
   buildFeeMetadata,
   reverseStripeTaxTransaction,

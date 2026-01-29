@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  InvoiceStatus,
+  InvoiceType,
+  SubscriptionItemType,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupInvoice,
   setupOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  InvoiceStatus,
-  InvoiceType,
-  SubscriptionItemType,
-} from '@/types'
 import { core } from '@/utils/core'
 import { updateInvoiceTransaction } from './invoiceHelpers'
 

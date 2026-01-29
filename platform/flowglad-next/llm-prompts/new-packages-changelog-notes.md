@@ -1,5 +1,7 @@
 You are creating a new changelog announcement. These changelog notes will be used to also generate a github release as well. Please generate a new changelog file in the following format.
 
+**CRITICAL - Do not modify the frontmatter:** Preserve the existing package declarations in the changeset frontmatter exactly as they are. We release all Flowglad packages in lockstep (same version number across all packages), so even if a package has no code changes in this release, it must still be included in the frontmatter. Only write the release notes content below the frontmatter—never add or remove packages from the YAML block.
+
 Use the git log to determine what changes in packages/* have happened since the last changelog (search the git log for the last time we had a commit "chore: version packages"). Group the notes thematically into sections. They may be grouped around new features, improvements, bug fixes, etc.
 
 **To get the full context of package changes, run this git command:**

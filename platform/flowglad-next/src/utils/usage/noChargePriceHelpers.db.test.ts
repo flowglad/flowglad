@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test'
-import { RESERVED_USAGE_PRICE_SLUG_SUFFIX } from '@/db/schema/prices'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
   CurrencyCode,
   IntervalUnit,
   PriceType,
   UsageMeterAggregationType,
-} from '@/types'
+} from '@db-core/enums'
+import { RESERVED_USAGE_PRICE_SLUG_SUFFIX } from '@db-core/schema/prices'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import {
   createNoChargePriceInsert,
   getNoChargeSlugForMeter,

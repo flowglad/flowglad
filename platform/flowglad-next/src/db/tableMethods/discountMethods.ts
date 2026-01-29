@@ -1,14 +1,12 @@
-import { count, eq, inArray } from 'drizzle-orm'
-import type { z } from 'zod'
-import { discountRedemptions } from '@/db/schema/discountRedemptions'
+import { discountRedemptions } from '@db-core/schema/discountRedemptions'
 import {
   discounts,
   discountsInsertSchema,
   discountsSelectSchema,
   discountsTableRowDataSchema,
   discountsUpdateSchema,
-} from '@/db/schema/discounts'
-import { pricingModels } from '@/db/schema/pricingModels'
+} from '@db-core/schema/discounts'
+import { pricingModels } from '@db-core/schema/pricingModels'
 import {
   createCursorPaginatedSelectFunction,
   createDeleteFunction,
@@ -18,7 +16,9 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { count, eq, inArray } from 'drizzle-orm'
+import type { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<

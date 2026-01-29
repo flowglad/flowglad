@@ -1,5 +1,11 @@
 'use client'
 
+import {
+  type CurrencyCode,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
+import type { subscriptionItemFeaturesClientSelectSchema } from '@db-core/schema/subscriptionItemFeatures'
 import { Info } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
@@ -23,13 +29,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import type { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 import type { RichSubscription } from '@/subscriptions/schemas'
-import {
-  type CurrencyCode,
-  FeatureType,
-  FeatureUsageGrantFrequency,
-} from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import type { AddSubscriptionFeatureFormValues } from './addSubscriptionFeatureFormSchema'
 

@@ -1,5 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
-import uniqBy from 'ramda/src/uniqBy'
+import { InvoiceStatus } from '@db-core/enums'
 import {
   type InvoiceLineItem,
   type InvoiceWithLineItems,
@@ -8,7 +7,13 @@ import {
   invoiceLineItemsSelectSchema,
   invoiceLineItemsUpdateSchema,
   invoiceWithLineItemsSchema,
-} from '@/db/schema/invoiceLineItems'
+} from '@db-core/schema/invoiceLineItems'
+import {
+  type Invoice,
+  invoices,
+  invoicesSelectSchema,
+} from '@db-core/schema/invoices'
+import { prices } from '@db-core/schema/prices'
 import {
   createBulkUpsertFunction,
   createInsertFunction,
@@ -19,18 +24,13 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { eq, inArray } from 'drizzle-orm'
+import uniqBy from 'ramda/src/uniqBy'
 import type { DbTransaction } from '@/db/types'
-import { InvoiceStatus } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
-import {
-  type Invoice,
-  invoices,
-  invoicesSelectSchema,
-} from '../schema/invoices'
-import { prices } from '../schema/prices'
 import {
   derivePricingModelIdForInvoice,
   invoiceIsInTerminalState,

@@ -8,6 +8,7 @@ import {
   type Mock,
   mock,
 } from 'bun:test'
+import { PriceType } from '@db-core/enums'
 import {
   fireEvent,
   render,
@@ -17,10 +18,8 @@ import {
 import React from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { FormProvider, useForm } from 'react-hook-form'
-
 import { trpc } from '@/app/_trpc/client'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
-import { PriceType } from '@/types'
 import { CreateSubscriptionFormModal } from './CreateSubscriptionFormModal'
 
 // Mock tRPC

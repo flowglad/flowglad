@@ -8,6 +8,25 @@
  */
 import { afterEach, beforeEach, expect, it } from 'bun:test'
 import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { BillingPeriodItem } from '@db-core/schema/billingPeriodItems'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
+import {
   setupBillingPeriod,
   setupBillingPeriodItem,
   setupBillingRun,
@@ -20,17 +39,6 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { safelyUpdatePaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
@@ -41,14 +49,6 @@ import {
   createTestStripeCustomer,
   describeIfStripeKey,
 } from '@/test/stripeIntegrationHelpers'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import { executeBillingRun } from './billingRunHelpers'
 
 /**

@@ -1,6 +1,6 @@
+import { Price } from '@db-core/schema/prices'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { Price } from '@/db/schema/prices'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'

@@ -1,4 +1,4 @@
-import { CurrencyCode, IntervalUnit } from '@/types'
+import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import type { EmailType, EmailTypeMap } from '@/utils/email/registry'
 
 // ============================================================================

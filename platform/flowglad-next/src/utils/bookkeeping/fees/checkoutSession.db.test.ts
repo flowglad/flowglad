@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'bun:test'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Country } from '@/db/schema/countries'
-import type {
-  BillingAddress,
-  Organization,
-} from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
 import {
   CountryCode,
   CurrencyCode,
   PaymentMethodType,
   StripeConnectContractType,
-} from '@/types'
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Country } from '@db-core/schema/countries'
+import type {
+  BillingAddress,
+  Organization,
+} from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
 import { createCheckoutSessionFeeCalculationInsertForPrice } from '@/utils/bookkeeping/fees/checkoutSession'
 
 describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {

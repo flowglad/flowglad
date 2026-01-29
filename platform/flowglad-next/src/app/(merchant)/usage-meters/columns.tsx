@@ -1,5 +1,6 @@
 'use client'
 
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
 import * as React from 'react'
@@ -8,7 +9,6 @@ import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 
 type UsageMeterTableRowData = {
   usageMeter: UsageMeter.ClientRecord

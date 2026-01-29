@@ -1,5 +1,7 @@
 'use client'
 
+import { UsageMeterAggregationType } from '@db-core/enums'
+import type { CreateUsageMeterInput } from '@db-core/schema/usageMeters'
 import { sentenceCase } from 'change-case'
 import { Controller, useFormContext } from 'react-hook-form'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
@@ -18,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { CreateUsageMeterInput } from '@/db/schema/usageMeters'
-import { UsageMeterAggregationType } from '@/types'
 import core from '@/utils/core'
 import PricingModelSelect from './PricingModelSelect'
 

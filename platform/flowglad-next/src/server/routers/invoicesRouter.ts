@@ -1,20 +1,26 @@
-import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { InvoiceStatus, SubscriptionItemType } from '@db-core/enums'
 import {
   createInvoiceSchema,
   editInvoiceSchema,
   invoiceLineItemsClientSelectSchema,
   invoicesPaginatedTableRowDataSchema,
   invoiceWithLineItemsClientSchema,
-} from '@/db/schema/invoiceLineItems'
+} from '@db-core/schema/invoiceLineItems'
 import {
   invoicesClientSelectSchema,
   invoicesPaginatedListSchema,
   invoicesPaginatedSelectSchema,
-} from '@/db/schema/invoices'
+} from '@db-core/schema/invoices'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
+import { z } from 'zod'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   insertInvoiceLineItems,
@@ -32,13 +38,7 @@ import {
   selectOrganizationAndFirstMemberByOrganizationId,
   selectOrganizationById,
 } from '@/db/tableMethods/organizationMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { InvoiceStatus, SubscriptionItemType } from '@/types'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 import {

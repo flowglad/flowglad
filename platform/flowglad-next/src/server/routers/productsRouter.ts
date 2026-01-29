@@ -1,3 +1,18 @@
+import {
+  createProductSchema,
+  editProductSchema,
+  productsTableRowDataSchema,
+  productWithPricesSchema,
+} from '@db-core/schema/prices'
+import {
+  productsClientSelectSchema,
+  productsPaginatedListSchema,
+  productsPaginatedSelectSchema,
+} from '@db-core/schema/products'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import * as R from 'ramda'
@@ -8,17 +23,6 @@ import {
   authenticatedTransaction,
   comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createProductSchema,
-  editProductSchema,
-  productsTableRowDataSchema,
-  productWithPricesSchema,
-} from '@/db/schema/prices'
-import {
-  productsClientSelectSchema,
-  productsPaginatedListSchema,
-  productsPaginatedSelectSchema,
-} from '@/db/schema/products'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
 import {
@@ -26,10 +30,6 @@ import {
   selectProductsCursorPaginated,
   selectProductsPaginated,
 } from '@/db/tableMethods/productMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-} from '@/db/tableUtils'
 import { validateProductCreation } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import {

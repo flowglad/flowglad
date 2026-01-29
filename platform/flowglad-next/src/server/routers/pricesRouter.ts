@@ -1,10 +1,4 @@
-import { TRPCError } from '@trpc/server'
-import { Result } from 'better-result'
-import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { PriceType } from '@db-core/enums'
 import {
   createPriceSchema,
   editPriceSchema,
@@ -14,7 +8,20 @@ import {
   pricesPaginatedSelectSchema,
   pricesTableRowDataSchema,
   validateUsagePriceSlug,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+  NotFoundError,
+} from '@db-core/tableUtils'
+import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
+import { z } from 'zod'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   ensureUsageMeterHasDefaultPrice,
   safelyUpdatePrice,
@@ -23,14 +30,7 @@ import {
   selectPricesTableRowData,
 } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-  NotFoundError,
-} from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { PriceType } from '@/types'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createPriceTransaction } from '@/utils/pricingModel'
@@ -72,7 +72,15 @@ export const createPrice = protectedProcedure
       async (transactionCtx) => {
         const { price } = input
 
-        validateUsagePriceSlug(price)
+        try {
+          validateUsagePriceSlug(price)
+        } catch (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              error instanceof Error ? error.message : String(error),
+          })
+        }
 
         const newPrice = await createPriceTransaction(
           { price },
@@ -192,10 +200,20 @@ export const updatePrice = protectedProcedure
           price.slug !== undefined &&
           price.slug !== existingPrice.slug
         ) {
-          validateUsagePriceSlug({
-            type: existingPrice.type,
-            slug: price.slug,
-          })
+          try {
+            validateUsagePriceSlug({
+              type: existingPrice.type,
+              slug: price.slug,
+            })
+          } catch (error) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            })
+          }
         }
 
         // Validate immutable fields for ALL prices
@@ -421,7 +439,15 @@ export const replaceUsagePrice = protectedProcedure
           })
         }
 
-        validateUsagePriceSlug(input.newPrice)
+        try {
+          validateUsagePriceSlug(input.newPrice)
+        } catch (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              error instanceof Error ? error.message : String(error),
+          })
+        }
 
         // Create the new price
         const newPrice = await createPriceTransaction(
