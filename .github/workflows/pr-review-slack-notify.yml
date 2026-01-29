@@ -25,7 +25,7 @@ jobs:
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: ("🟡 <" + $url + "|" + $title + "> - " + $author)
+                text: ("🟡 <" + $url + "|" + $title + "> - " + $author + "\n\n")
               }
             }]
           }')
