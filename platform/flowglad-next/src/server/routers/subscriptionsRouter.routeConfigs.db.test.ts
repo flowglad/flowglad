@@ -519,8 +519,8 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/cancel-scheduled-adjustment'
       ) // custom cancel-scheduled-adjustment
 
-      // Check that we have exactly 9 routes (5 CRUD + 4 custom)
-      expect(routeKeys).toHaveLength(9)
+      // Check that we have exactly 10 routes (5 CRUD + 5 custom)
+      expect(routeKeys).toHaveLength(10)
     })
 
     it('should have consistent id parameter usage', () => {
