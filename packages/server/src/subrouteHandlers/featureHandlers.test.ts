@@ -82,7 +82,7 @@ describe('Feature subroute handlers', () => {
       assert405MethodNotAllowed(result)
     })
 
-    it('returns features via FlowgladServer', async () => {
+    it('returns features via FlowgladServer.getFeatureAccessItems', async () => {
       const { server, mocks } = createMockFlowgladServer()
       mocks.getFeatureAccessItems.mockResolvedValue({
         features: mockFeatureAccessItems,
@@ -100,31 +100,6 @@ describe('Feature subroute handlers', () => {
       assert200Success(result, {
         features: mockFeatureAccessItems,
       })
-    })
-
-    it('returns toggle features from FlowgladServer.getFeatureAccessItems', async () => {
-      const { server, mocks } = createMockFlowgladServer()
-      const toggleFeatures = [
-        {
-          id: 'feature_123',
-          livemode: true,
-          slug: 'advanced-analytics',
-          name: 'Advanced Analytics',
-        },
-      ]
-      mocks.getFeatureAccessItems.mockResolvedValue({
-        features: toggleFeatures,
-      })
-
-      const result = await getFeatureAccessItems(
-        {
-          method: HTTPMethod.POST,
-          data: {},
-        },
-        server
-      )
-
-      assert200Success(result, { features: toggleFeatures })
     })
 
     it('filters by subscriptionId', async () => {
