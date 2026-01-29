@@ -1,6 +1,13 @@
 'use client'
 
-import { Check, DollarSign, Loader2, Plus } from 'lucide-react'
+import {
+  Check,
+  CheckCircle2,
+  Circle,
+  DollarSign,
+  Loader2,
+  Plus,
+} from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -240,36 +247,47 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="w-64"
                   data-testid="nav-user-pricing-submenu"
                 >
-                  {pricingModels.map(({ pricingModel: pm }) => (
-                    <DropdownMenuItem
-                      key={pm.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                      data-testid={`nav-user-pm-${pm.id}`}
-                      onSelect={() => handleSwitchPricingModel(pm.id)}
-                    >
-                      <span className="truncate flex-1">
-                        {pm.name}
-                      </span>
-                      <span
+                  {pricingModels.map(({ pricingModel: pm }) => {
+                    const isSelected = currentPricingModelId === pm.id
+                    return (
+                      <DropdownMenuItem
+                        key={pm.id}
                         className={cn(
-                          'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold shrink-0',
-                          pm.livemode
-                            ? 'bg-jade-background text-jade-foreground border-jade-border'
-                            : 'bg-citrine-background text-citrine-foreground border-citrine-border'
+                          'group flex items-center gap-2 cursor-pointer',
+                          isSelected && 'bg-accent'
                         )}
+                        data-testid={`nav-user-pm-${pm.id}`}
+                        onSelect={() =>
+                          handleSwitchPricingModel(pm.id)
+                        }
                       >
-                        {pm.livemode ? 'Live' : 'Test'}
-                      </span>
-                      <Check
-                        className={cn(
-                          'h-4 w-4 ml-1',
-                          currentPricingModelId === pm.id
-                            ? 'opacity-100'
-                            : 'opacity-0'
+                        {pm.livemode ? (
+                          <CheckCircle2 className="h-5 w-5 shrink-0 text-jade-muted-foreground fill-jade-muted-foreground" />
+                        ) : (
+                          <Circle className="h-5 w-5 shrink-0 text-amber-400" />
                         )}
-                      />
-                    </DropdownMenuItem>
-                  ))}
+                        <span className="truncate flex-1">
+                          {pm.name}
+                        </span>
+                        {pm.livemode ? (
+                          <span className="inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 bg-jade-muted-foreground text-primary-foreground">
+                            Live
+                          </span>
+                        ) : (
+                          <span
+                            className={cn(
+                              'inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 border-[1.5px] border-amber-400 text-amber-500 bg-transparent transition-opacity',
+                              isSelected
+                                ? 'opacity-100'
+                                : 'opacity-0 group-hover:opacity-100'
+                            )}
+                          >
+                            Test
+                          </span>
+                        )}
+                      </DropdownMenuItem>
+                    )
+                  })}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="flex items-center gap-2 cursor-pointer"

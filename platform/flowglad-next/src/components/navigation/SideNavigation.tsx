@@ -118,7 +118,9 @@ export const SideNavigation = () => {
     },
     {
       title: 'Pricing',
-      url: '/pricing-models',
+      url: focusedMembership.data?.pricingModel?.id
+        ? `/pricing-models/${focusedMembership.data.pricingModel.id}`
+        : '/dashboard',
       icon: DollarSign,
       isActive: isActive('/pricing-models'),
     },

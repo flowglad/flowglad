@@ -81,12 +81,19 @@ const SidebarLayout = ({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div
+      className="flex min-h-screen flex-col"
+      style={
+        {
+          '--test-banner-height': isTestMode ? '40px' : '0px',
+        } as React.CSSProperties
+      }
+    >
       {/* Test mode banner - appears above sidebar and main content when in test mode */}
       {isTestMode && (
         <TestModeBanner pricingModelName={pricingModelName} />
       )}
-      <SidebarProvider defaultOpen={defaultOpen}>
+      <SidebarProvider defaultOpen={defaultOpen} className="flex-1">
         <Sidebar collapsible="icon" className="z-20">
           <SideNavigation />
         </Sidebar>
