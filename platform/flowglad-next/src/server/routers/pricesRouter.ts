@@ -72,7 +72,15 @@ export const createPrice = protectedProcedure
       async (transactionCtx) => {
         const { price } = input
 
-        validateUsagePriceSlug(price)
+        try {
+          validateUsagePriceSlug(price)
+        } catch (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              error instanceof Error ? error.message : String(error),
+          })
+        }
 
         const newPrice = await createPriceTransaction(
           { price },
@@ -192,10 +200,20 @@ export const updatePrice = protectedProcedure
           price.slug !== undefined &&
           price.slug !== existingPrice.slug
         ) {
-          validateUsagePriceSlug({
-            type: existingPrice.type,
-            slug: price.slug,
-          })
+          try {
+            validateUsagePriceSlug({
+              type: existingPrice.type,
+              slug: price.slug,
+            })
+          } catch (error) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            })
+          }
         }
 
         // Validate immutable fields for ALL prices
@@ -421,7 +439,15 @@ export const replaceUsagePrice = protectedProcedure
           })
         }
 
-        validateUsagePriceSlug(input.newPrice)
+        try {
+          validateUsagePriceSlug(input.newPrice)
+        } catch (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              error instanceof Error ? error.message : String(error),
+          })
+        }
 
         // Create the new price
         const newPrice = await createPriceTransaction(
