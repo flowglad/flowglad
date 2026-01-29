@@ -11,10 +11,12 @@ export const findRepoRoot = (
   startDir: string = process.cwd()
 ): string => {
   let dir = startDir
-  while (dir !== '/') {
+  let pastDir = ''
+  while (dir !== pastDir) {
     if (existsSync(resolve(dir, '.git'))) {
       return dir
     }
+    pastDir = dir
     dir = dirname(dir)
   }
   throw new Error(
