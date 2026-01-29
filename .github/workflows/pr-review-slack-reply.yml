@@ -18,6 +18,7 @@ jobs:
       - name: Post to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PULL_REQUEST_URL }}
+          SLACK_GITHUB_MAPPING: ${{ secrets.SLACK_GITHUB_MAPPING }}
           STATE: ${{ github.event.review.state }}
           TITLE: ${{ github.event.pull_request.title }}
           URL: ${{ github.event.pull_request.html_url }}
@@ -31,22 +32,37 @@ jobs:
           case "$STATE" in
             approved)
               EMOJI="🟢"
+              STATUS_LABEL="Approved:"
               ;;
             changes_requested|commented)
               EMOJI="🔴"
+              STATUS_LABEL="Needs Changes:"
               ;;
             *)
               EMOJI="🔴"
+              STATUS_LABEL="Needs Changes:"
               ;;
           esac
 
-          PAYLOAD=$(jq -n --arg emoji "$EMOJI" --arg title "$TITLE" --arg url "$URL" --arg author "$AUTHOR" '{
+          # Look up Slack ID for author (case-insensitive), fallback to GitHub username
+          AUTHOR_LOWER=$(echo "$AUTHOR" | tr '[:upper:]' '[:lower:]')
+          if [ -n "$SLACK_GITHUB_MAPPING" ]; then
+            SLACK_ID=$(echo "$SLACK_GITHUB_MAPPING" | jq -r --arg author "$AUTHOR_LOWER" 'to_entries | map(select(.key | ascii_downcase == $author)) | .[0].value // empty')
+          fi
+
+          if [ -n "$SLACK_ID" ]; then
+            MENTION="<@${SLACK_ID}>"
+          else
+            MENTION="$AUTHOR"
+          fi
+
+          PAYLOAD=$(jq -n --arg emoji "$EMOJI" --arg status "$STATUS_LABEL" --arg title "$TITLE" --arg url "$URL" --arg mention "$MENTION" '{
             blocks: [
               {
                 type: "section",
                 text: {
                   type: "mrkdwn",
-                  text: ($emoji + " <" + $url + "|" + $title + "> - " + $author)
+                  text: ($emoji + " " + $status + " <" + $url + "|" + $title + "> " + $mention)
                 }
               },
               { type: "divider" }
