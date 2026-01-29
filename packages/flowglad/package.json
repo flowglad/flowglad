@@ -1,6 +1,6 @@
 {
   "name": "flowglad",
-  "version": "0.18.0",
+  "version": "0.17.2",
   "description": "Flowglad CLI - Manage your Flowglad configuration from the command line",
   "license": "MIT",
   "bin": {
