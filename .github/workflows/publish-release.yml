@@ -33,10 +33,12 @@ jobs:
   publish:
     # Only run if:
     # - Manual dispatch (workflow_dispatch), OR
-    # - The PR was actually merged (not just closed) AND the PR title contains "chore: version packages" OR has "release" label
+    # - The PR was actually merged (not just closed) AND the PR title starts with "chore: version packages" OR has "release" label
     # This ensures we only publish when the version PR is merged, not other PRs
+    # Note: Using startsWith() instead of contains() to prevent triggering on revert PRs
+    # (e.g., 'Revert "chore: version packages (#1744)"' should NOT trigger)
     if: >
-      github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release')))
+      github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && (startsWith(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release')))
     runs-on: ubuntu-latest
     defaults:
       run:
