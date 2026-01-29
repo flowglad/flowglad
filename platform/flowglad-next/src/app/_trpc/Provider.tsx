@@ -38,26 +38,58 @@ export default function Provider({
     trpc.createClient({
       links: [
         /**
-         * Conditional link to use streaming or batching based on the path
-         * .streaming suffix on procedure name indicates a streaming response.
+         * First split: Route customerBillingPortal procedures to dedicated customer handler
          */
         splitLink({
-          // decide which link to use
           condition(op) {
-            return op.path.endsWith('.streaming')
+            return op.path.startsWith('customerBillingPortal.')
           },
-          // true branch -> stream responses
+          // true branch -> use customer endpoint
           true: [
-            httpBatchStreamLink({
-              url: `${core.envVariable('APP_URL')}/api/trpc`,
-              transformer: SuperJSON,
+            /**
+             * Nested split for streaming support on customer routes
+             */
+            splitLink({
+              condition(op) {
+                return op.path.endsWith('.streaming')
+              },
+              true: [
+                httpBatchStreamLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc/customer`,
+                  transformer: SuperJSON,
+                }),
+              ],
+              false: [
+                httpBatchLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc/customer`,
+                  transformer: SuperJSON,
+                }),
+              ],
             }),
           ],
-          // false branch -> normal batching
+          // false branch -> use default merchant endpoint
           false: [
-            httpBatchLink({
-              url: `${core.envVariable('APP_URL')}/api/trpc`,
-              transformer: SuperJSON,
+            /**
+             * Nested split for streaming support on merchant routes
+             */
+            splitLink({
+              condition(op) {
+                return op.path.endsWith('.streaming')
+              },
+              // true branch -> stream responses
+              true: [
+                httpBatchStreamLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc`,
+                  transformer: SuperJSON,
+                }),
+              ],
+              // false branch -> normal batching
+              false: [
+                httpBatchLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc`,
+                  transformer: SuperJSON,
+                }),
+              ],
             }),
           ],
         }),

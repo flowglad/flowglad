@@ -220,3 +220,40 @@ export const getSession = async () => {
 
   return session
 }
+
+/**
+ * Get merchant session - validates session has merchant scope.
+ * TODO: Once Patch 2 is complete, this will use the dedicated merchantAuth instance.
+ * For now, it uses the shared auth instance and validates scope.
+ */
+export const getMerchantSession = async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  // Validate session scope is merchant (or undefined for backward compatibility)
+  if (session?.session && session.session.contextOrganizationId) {
+    // If contextOrganizationId is set, this is a customer session
+    return null
+  }
+
+  return session
+}
+
+/**
+ * Get customer session - validates session has customer scope.
+ * TODO: Once Patch 2 is complete, this will use the dedicated customerAuth instance.
+ * For now, it uses the shared auth instance and validates scope.
+ */
+export const getCustomerSession = async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  // Validate session has contextOrganizationId (customer sessions only)
+  if (!session?.session?.contextOrganizationId) {
+    return null
+  }
+
+  return session
+}

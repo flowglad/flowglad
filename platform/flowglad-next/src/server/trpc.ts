@@ -19,7 +19,11 @@ import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingP
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { t } from './coreTrpcObject'
 import { createTracingMiddleware } from './tracingMiddleware'
-import type { TRPCApiContext, TRPCContext } from './trpcContext'
+import type {
+  TRPCApiContext,
+  TRPCContext,
+  TRPCCustomerContext,
+} from './trpcContext'
 
 // Create tracing middleware factory
 const tracingMiddlewareFactory = createTracingMiddleware()
@@ -105,15 +109,16 @@ export const publicProcedure = baseProcedure
  *
  * Supports two authentication modes:
  * 1. API key authentication: If `isApi` is true, allows API key access
- * 2. User authentication: Requires a logged-in user
+ * 2. User authentication: Requires a logged-in user with merchant scope
  *
  * Uses organization from context (set by middleware/auth from user's focused membership).
  *
  * @returns Context with user (or API auth), organization, and environment info
- * @throws {TRPCError} UNAUTHORIZED if no user and not API key request
+ * @throws {TRPCError} UNAUTHORIZED if no user, not API key request, or session scope is not merchant
  */
 const isAuthed = t.middleware(({ next, ctx }) => {
-  const { isApi, environment, apiKey } = ctx as TRPCApiContext
+  const { isApi, environment, apiKey, authScope } = ctx as TRPCApiContext &
+    TRPCContext
   const livemode = environment === 'live'
   if (isApi) {
     return next({
@@ -128,6 +133,15 @@ const isAuthed = t.middleware(({ next, ctx }) => {
       },
     })
   }
+
+  // Reject if authScope is customer (this is a merchant-only procedure)
+  if (authScope === 'customer') {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Customer sessions cannot access merchant procedures',
+    })
+  }
+
   const user = (ctx as TRPCContext).user
   if (!user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
@@ -152,36 +166,64 @@ const isAuthed = t.middleware(({ next, ctx }) => {
  * within the same organization.
  *
  * The middleware:
- * - Requires a logged-in user (no API key support)
- * - Gets the organization ID from the billing portal cookie state
+ * - Requires a logged-in user with customer scope (no API key support)
+ * - Gets the organization ID from the customer session's contextOrganizationId
  * - Requires `customerId` in the request input
+ * - Validates the session's contextOrganizationId matches the route's organizationId (if provided)
  * - Queries the database to find a matching customer for the user and organization
  * - Validates the user has access to that specific customer
  * - Adds the customer and organization to the context for use in procedures
  *
- * @param getRawInput - Used to extract required `customerId` from request input
+ * @param getRawInput - Used to extract required `customerId` and optional `organizationId` from request input
  * @returns Context with user, customer, organization, and environment info
- * @throws {TRPCError} UNAUTHORIZED if no user or user doesn't have access to customer
+ * @throws {TRPCError} UNAUTHORIZED if no user, not customer scope, or user doesn't have access to customer
+ * @throws {TRPCError} FORBIDDEN if session's contextOrganizationId doesn't match route's organizationId
  */
 const isCustomerAuthed = t.middleware(
   async ({ next, ctx, getRawInput }) => {
-    const { environment } = ctx as TRPCApiContext
-    const livemode = environment === 'live'
-    const user = (ctx as TRPCContext).user
+    // API keys are merchant-only
+    if ((ctx as TRPCApiContext).apiKey) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'API keys cannot access customer billing portal',
+      })
+    }
+
+    const { authScope, session } = ctx as TRPCCustomerContext
+    const environment = 'live'
+    const livemode = true
+
+    // Use customer session from context (avoid re-fetch)
+    if (!session?.user || authScope !== 'customer') {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Customer session required',
+      })
+    }
+
+    const user = (ctx as TRPCCustomerContext).user
     if (!user) {
       throw new TRPCError({ code: 'UNAUTHORIZED' })
     }
-    const organizationId =
-      await getCustomerBillingPortalOrganizationId()
 
-    // Extract customerId from raw input to populate ctx.customer and ctx.organization.
+    // Get organizationId from customer session's contextOrganizationId
+    const organizationId = session.session?.contextOrganizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Customer session missing organizationId context',
+      })
+    }
+
+    // Extract customerId and optional organizationId from raw input
     // Middleware runs before input validation, so we must use getRawInput() instead of validated input.
     const rawInput = await getRawInput()
-    const customerIdSchema = z.object({
+    const inputSchema = z.object({
       customerId: z.string(),
+      organizationId: z.string().optional(),
     })
 
-    const parsed = customerIdSchema.safeParse(rawInput)
+    const parsed = inputSchema.safeParse(rawInput)
     if (!parsed.success) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -189,7 +231,16 @@ const isCustomerAuthed = t.middleware(
       })
     }
 
-    const customerId = parsed.data.customerId
+    const { customerId, organizationId: routeOrganizationId } = parsed.data
+
+    // Validate route context matches session context
+    if (routeOrganizationId && routeOrganizationId !== organizationId) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message:
+          'Customer session does not match billing portal organization',
+      })
+    }
 
     const [customerAndOrganization] = await adminTransaction(
       async ({ transaction }) => {
@@ -213,10 +264,11 @@ const isCustomerAuthed = t.middleware(
         user,
         customer: customerAndOrganization.customer,
         organization: customerAndOrganization.organization,
-        path: (ctx as TRPCContext).path,
+        path: (ctx as TRPCCustomerContext).path,
         environment,
         organizationId,
         livemode,
+        authScope: 'customer' as const,
       },
     })
   }
