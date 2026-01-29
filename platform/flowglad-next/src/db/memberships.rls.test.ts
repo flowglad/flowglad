@@ -137,9 +137,11 @@ describe('memberships RLS - notificationPreferences', () => {
     org2Membership = org2Memberships[0]
 
     // Setup a second user in org1 for same-org isolation tests
-    org1User2Membership = await setupMemberships({
-      organizationId: org1.id,
-    })
+    org1User2Membership = (
+      await setupMemberships({
+        organizationId: org1.id,
+      })
+    ).unwrap()
 
     // Get the user for the second membership
     const user2Membership = (

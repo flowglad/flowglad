@@ -38,7 +38,9 @@ describe('getProductTableRows', () => {
     const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
 
-    const membership = await setupMemberships({ organizationId })
+    const membership = (
+      await setupMemberships({ organizationId })
+    ).unwrap()
     userId = membership.userId
 
     // Set up pricingModel
@@ -178,7 +180,9 @@ describe('getProductTableRows', () => {
         transaction
       )
     })
-    await setupMemberships({ organizationId: otherOrg.id })
+    ;(
+      await setupMemberships({ organizationId: otherOrg.id })
+    ).unwrap()
 
     // Create a product in the other organization
     const otherPricingModel = await setupPricingModel({

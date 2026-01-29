@@ -1613,10 +1613,12 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
     ).unwrap()
 
-    const discountRedemption = await setupDiscountRedemption({
-      discount,
-      purchaseId: purchase.id,
-    })
+    const discountRedemption = (
+      await setupDiscountRedemption({
+        discount,
+        purchaseId: purchase.id,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_discount_${core.nanoid()}`
@@ -1703,10 +1705,12 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             livemode: true,
           })
         ).unwrap()
-        return setupDiscountRedemption({
-          discount,
-          purchaseId: purchase.id,
-        })
+        return (
+          await setupDiscountRedemption({
+            discount,
+            purchaseId: purchase.id,
+          })
+        ).unwrap()
       })
     )
 

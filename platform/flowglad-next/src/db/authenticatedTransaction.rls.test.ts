@@ -632,7 +632,7 @@ describe('RLS for selectProducts', () => {
             organizationId: prodOrg2.id,
             livemode: true,
           })
-        ).apiKey.token,
+        ).unwrap().apiKey.token,
       }
     )
     expect(result).toHaveLength(0)
@@ -886,7 +886,7 @@ describe('RLS for selectPricingModels', () => {
         organizationId: catOrg2.id,
         livemode: true,
       })
-    ).apiKey
+    ).unwrap().apiKey
     const result = await authenticatedTransaction(
       async ({ transaction }) =>
         selectPricingModels(
@@ -910,7 +910,7 @@ describe('Second-order RLS defense in depth', () => {
         organizationId: o1.id,
         livemode: true,
       })
-    ).apiKey
+    ).unwrap().apiKey
     const prods = await authenticatedTransaction(
       async ({ transaction }) =>
         selectProducts({ id: p2.id }, transaction),
@@ -932,7 +932,7 @@ describe('Second-order RLS defense in depth', () => {
         organizationId: o1.id,
         livemode: true,
       })
-    ).apiKey
+    ).unwrap().apiKey
     const rows = await authenticatedTransaction(
       async ({ transaction, userId }) =>
         getProductTableRows(
@@ -957,7 +957,7 @@ describe('Second-order RLS defense in depth', () => {
         organizationId: o1.id,
         livemode: true,
       })
-    ).apiKey
+    ).unwrap().apiKey
     await expect(
       authenticatedTransaction(
         async (ctx) => {
@@ -979,7 +979,7 @@ describe('Second-order RLS defense in depth', () => {
         organizationId: organization.id,
         livemode: true,
       })
-    ).apiKey
+    ).unwrap().apiKey
     await expect(
       authenticatedTransaction(
         async ({ transaction }) => {
@@ -1006,7 +1006,7 @@ describe('Second-order RLS defense in depth', () => {
         organizationId: o2.organization.id,
         livemode: true,
       })
-    ).apiKey
+    ).unwrap().apiKey
     const prods = await authenticatedTransaction(
       async ({ transaction }) =>
         selectProducts({ organizationId: o1.id }, transaction),
@@ -1116,13 +1116,13 @@ describe('Edge cases and robustness for second-order RLS', () => {
         organizationId: organization.id,
         livemode: true,
       })
-    ).apiKey
+    ).unwrap().apiKey
     const testKey = (
       await setupUserAndApiKey({
         organizationId: organization.id,
         livemode: false,
       })
-    ).apiKey
+    ).unwrap().apiKey
     const live = await authenticatedTransaction(
       async ({ transaction }) => selectProducts({}, transaction),
       { apiKey: liveKey.token }

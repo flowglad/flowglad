@@ -41,9 +41,11 @@ describe('apiKeyHelpers', () => {
     ).unwrap()
 
     // Create a test membership
-    const membership = await setupMemberships({
-      organizationId: organization.id,
-    })
+    const membership = (
+      await setupMemberships({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     membershipId = membership.id
     userId = membership.userId
   })

@@ -37,13 +37,17 @@ describe('membership deactivation filtering', () => {
     org = orgData.organization
 
     // Create two memberships - one active, one to be deactivated
-    activeMembership = await setupMemberships({
-      organizationId: org.id,
-    })
+    activeMembership = (
+      await setupMemberships({
+        organizationId: org.id,
+      })
+    ).unwrap()
 
-    const membershipToDeactivate = await setupMemberships({
-      organizationId: org.id,
-    })
+    const membershipToDeactivate = (
+      await setupMemberships({
+        organizationId: org.id,
+      })
+    ).unwrap()
 
     // Deactivate one membership
     deactivatedMembership = await adminTransaction(

@@ -423,8 +423,12 @@ describe('buildNotificationContext', () => {
         })
       ).unwrap()
       // Create memberships for the organization
-      await setupMemberships({ organizationId: organization.id })
-      await setupMemberships({ organizationId: organization.id })
+      ;(
+        await setupMemberships({ organizationId: organization.id })
+      ).unwrap()
+      ;(
+        await setupMemberships({ organizationId: organization.id })
+      ).unwrap()
 
       const ctx = (
         await adminTransaction(async ({ transaction }) => {

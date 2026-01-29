@@ -15,10 +15,12 @@ describe('innerSetReferralSelectionHandler', () => {
   beforeEach(async () => {
     const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
-    await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    ;(
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   afterEach(async () => {

@@ -660,9 +660,11 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       organizationId: organization.id,
       invoiceId: invoice.id,
     })
-    await setupMemberships({
-      organizationId: organization.id,
-    })
+    ;(
+      await setupMemberships({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     await adminTransaction(async ({ transaction }) => {
       const { ctx, effects } =
         createCapturingEffectsContext(transaction)

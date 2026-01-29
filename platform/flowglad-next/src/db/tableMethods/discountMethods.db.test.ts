@@ -279,11 +279,13 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
     const purchases = purchaseResults.map((r) => r.unwrap())
 
     await Promise.all(
-      purchases.map((purchase) =>
-        setupDiscountRedemption({
-          discount,
-          purchaseId: purchase.id,
-        })
+      purchases.map(async (purchase) =>
+        (
+          await setupDiscountRedemption({
+            discount,
+            purchaseId: purchase.id,
+          })
+        ).unwrap()
       )
     )
 

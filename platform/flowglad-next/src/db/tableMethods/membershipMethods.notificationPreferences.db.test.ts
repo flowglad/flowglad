@@ -21,7 +21,7 @@ describe('memberships notificationPreferences', () => {
   beforeEach(async () => {
     const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
-    membership = await setupMemberships({ organizationId })
+    membership = (await setupMemberships({ organizationId })).unwrap()
   })
 
   describe('getMembershipNotificationPreferences', () => {
