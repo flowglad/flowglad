@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -84,6 +85,7 @@ describe('RLS Access Control with selectOrganizations', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -239,6 +241,7 @@ describe('RLS Access Control with selectMemberships', () => {
         )
         membershipA1 = { ...existingMembership, focused: true }
       }
+      return Result.ok(undefined)
     })
   })
 
@@ -272,20 +275,24 @@ describe('RLS Access Control with selectMemberships', () => {
 
       // expects:
       // - selectMemberships should return the membership because API key auth bypasses focused check
-      const testApiKey = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return insertApiKey(
-          {
-            organizationId: testOrg2.id,
-            name: 'Test API Key for unfocused membership',
-            token: `test_unfocused_${Date.now()}`,
-            type: FlowgladApiKeyType.Secret,
-            active: true,
-            livemode: true,
-          },
-          transaction
-        )
-      })
+      const testApiKey = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await insertApiKey(
+              {
+                organizationId: testOrg2.id,
+                name: 'Test API Key for unfocused membership',
+                token: `test_unfocused_${Date.now()}`,
+                type: FlowgladApiKeyType.Secret,
+                active: true,
+                livemode: true,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Determine which userId this API key will authenticate as, then force their membership to focused=false
       const apiUserId = await authenticatedTransaction(
@@ -303,6 +310,7 @@ describe('RLS Access Control with selectMemberships', () => {
           { id: membership.id, focused: false },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       const result = await authenticatedTransaction(
@@ -401,6 +409,7 @@ describe('RLS for selectProducts', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Create user B focused on org2 for negative-access scenarios
@@ -684,6 +693,7 @@ describe('RLS for selectPricingModels', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Create user B focused on org2 for negative-access scenarios
@@ -1086,6 +1096,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
           { id: mem.id, focused: false },
           transaction
         )
+      return Result.ok(undefined)
     })
 
     // API key is tied to o1, so it should still access o1's products

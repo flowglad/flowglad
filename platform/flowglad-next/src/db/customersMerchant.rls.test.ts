@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -66,6 +67,7 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     const ubOrg2 = (

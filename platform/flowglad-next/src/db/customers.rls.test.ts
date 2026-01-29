@@ -236,6 +236,7 @@ describe('Customer Role RLS Policies', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Setup customers for Org1
@@ -257,6 +258,7 @@ describe('Customer Role RLS Policies', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     customerB_Org1 = (
@@ -276,6 +278,7 @@ describe('Customer Role RLS Policies', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // CustomerC_Org1 without a userId - for testing NULL userId scenarios
@@ -308,6 +311,7 @@ describe('Customer Role RLS Policies', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     customerD_Org2 = (
@@ -327,6 +331,7 @@ describe('Customer Role RLS Policies', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Setup payment methods
@@ -668,12 +673,16 @@ describe('Customer Role RLS Policies', () => {
       expect(updateAttempt).toBeNull()
 
       // Verify customerB's name is unchanged using admin transaction
-      const verifyCustomerB = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return (
-          await selectCustomerById(customerB_Org1.id, transaction)
-        ).unwrap()
-      })
+      const verifyCustomerB = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            (
+              await selectCustomerById(customerB_Org1.id, transaction)
+            ).unwrap()
+          )
+        })
+      ).unwrap()
       expect(verifyCustomerB.name).toBe('Customer B Org1')
     })
 
@@ -703,17 +712,19 @@ describe('Customer Role RLS Policies', () => {
       expect(cancelAttempt).toBeNull()
 
       // Verify subscription is still active using admin transaction
-      const verifySubscription = await adminTransaction(
-        async (ctx) => {
+      const verifySubscription = (
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return (
-            await selectSubscriptionById(
-              subscriptionB_Org1.id,
-              transaction
-            )
-          ).unwrap()
-        }
-      )
+          return Result.ok(
+            (
+              await selectSubscriptionById(
+                subscriptionB_Org1.id,
+                transaction
+              )
+            ).unwrap()
+          )
+        })
+      ).unwrap()
       expect(verifySubscription.status).toBe(
         SubscriptionStatus.Active
       )
@@ -968,26 +979,28 @@ describe('Customer Role RLS Policies', () => {
       ).unwrap()
 
       // Create user for the empty customer
-      const emptyUser = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const user = await insertUser(
-          {
-            id: `usr_${core.nanoid()}`,
-            email: emptyCustomer.email,
-            name: 'Empty Customer',
-            betterAuthId: `bau_${core.nanoid()}`,
-          },
-          transaction
-        )
+      const emptyUser = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const user = await insertUser(
+            {
+              id: `usr_${core.nanoid()}`,
+              email: emptyCustomer.email,
+              name: 'Empty Customer',
+              betterAuthId: `bau_${core.nanoid()}`,
+            },
+            transaction
+          )
 
-        // Update customer with userId
-        await updateCustomer(
-          { id: emptyCustomer.id, userId: user.id },
-          transaction
-        )
+          // Update customer with userId
+          await updateCustomer(
+            { id: emptyCustomer.id, userId: user.id },
+            transaction
+          )
 
-        return user
-      })
+          return Result.ok(user)
+        })
+      ).unwrap()
 
       const result = await authenticatedCustomerTransaction(
         emptyCustomer,
@@ -1053,6 +1066,7 @@ describe('Customer Role RLS Policies', () => {
           { id: customerA_Org1.id, pricingModelId: pmA.id },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       const visibleProducts = await authenticatedCustomerTransaction(
@@ -1095,23 +1109,25 @@ describe('Customer Role RLS Policies', () => {
         })
       ).unwrap()
 
-      const differentPmUser = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const user = await insertUser(
-          {
-            id: `usr_${core.nanoid()}`,
-            email: customerWithDifferentPm.email,
-            name: 'Different PM User',
-            betterAuthId: `bau_${core.nanoid()}`,
-          },
-          transaction
-        )
-        await updateCustomer(
-          { id: customerWithDifferentPm.id, userId: user.id },
-          transaction
-        )
-        return user
-      })
+      const differentPmUser = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const user = await insertUser(
+            {
+              id: `usr_${core.nanoid()}`,
+              email: customerWithDifferentPm.email,
+              name: 'Different PM User',
+              betterAuthId: `bau_${core.nanoid()}`,
+            },
+            transaction
+          )
+          await updateCustomer(
+            { id: customerWithDifferentPm.id, userId: user.id },
+            transaction
+          )
+          return Result.ok(user)
+        })
+      ).unwrap()
 
       const visibleProducts = await authenticatedCustomerTransaction(
         customerWithDifferentPm,
@@ -1461,6 +1477,7 @@ describe('Customer Role RLS Policies', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Refresh the customer objects AFTER the admin transaction commits
@@ -1484,6 +1501,7 @@ describe('Customer Role RLS Policies', () => {
             'customerB_Org1 pricingModelId not set after refresh'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -1645,6 +1663,7 @@ describe('Customer Role RLS Policies', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
 
         let error: Error | null = null
@@ -1776,31 +1795,33 @@ describe('Customer Role RLS Policies', () => {
     describe('Product and price active status validation', () => {
       it('should prevent checkout with price from inactive product', async () => {
         // Create a price for the inactive product
-        const priceForInactiveProduct = await adminTransaction(
-          async (ctx) => {
+        const priceForInactiveProduct = (
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return await insertPrice(
-              {
-                productId: inactiveProduct.id,
-                name: 'Price for Inactive Product',
-                externalId: `price_${core.nanoid()}`,
-                slug: `price-inactive-product-${core.nanoid()}`,
-                type: PriceType.Subscription,
-                unitPrice: 7000,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                active: true, // Price is active but product is not
-                livemode: false,
-                isDefault: true,
-                trialPeriodDays: 0,
-                currency: CurrencyCode.USD,
-                usageEventsPerUnit: null,
-                usageMeterId: null,
-              },
-              ctx
+            return Result.ok(
+              await insertPrice(
+                {
+                  productId: inactiveProduct.id,
+                  name: 'Price for Inactive Product',
+                  externalId: `price_${core.nanoid()}`,
+                  slug: `price-inactive-product-${core.nanoid()}`,
+                  type: PriceType.Subscription,
+                  unitPrice: 7000,
+                  intervalUnit: IntervalUnit.Month,
+                  intervalCount: 1,
+                  active: true, // Price is active but product is not
+                  livemode: false,
+                  isDefault: true,
+                  trialPeriodDays: 0,
+                  currency: CurrencyCode.USD,
+                  usageEventsPerUnit: null,
+                  usageMeterId: null,
+                },
+                ctx
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
 
         let error: Error | null = null
 
@@ -1879,29 +1900,33 @@ describe('Customer Role RLS Policies', () => {
 
       it('should prevent checkout when both product and price are inactive', async () => {
         // Create an inactive price for inactive product
-        const bothInactive = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return await insertPrice(
-            {
-              productId: inactiveProduct.id,
-              name: 'Both Inactive',
-              externalId: `price_${core.nanoid()}`,
-              slug: `both-inactive-${core.nanoid()}`,
-              type: PriceType.Subscription,
-              unitPrice: 8000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              active: false, // Both product and price inactive
-              livemode: false,
-              isDefault: false,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              usageEventsPerUnit: null,
-              usageMeterId: null,
-            },
-            ctx
-          )
-        })
+        const bothInactive = (
+          await adminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await insertPrice(
+                {
+                  productId: inactiveProduct.id,
+                  name: 'Both Inactive',
+                  externalId: `price_${core.nanoid()}`,
+                  slug: `both-inactive-${core.nanoid()}`,
+                  type: PriceType.Subscription,
+                  unitPrice: 8000,
+                  intervalUnit: IntervalUnit.Month,
+                  intervalCount: 1,
+                  active: false, // Both product and price inactive
+                  livemode: false,
+                  isDefault: false,
+                  trialPeriodDays: 0,
+                  currency: CurrencyCode.USD,
+                  usageEventsPerUnit: null,
+                  usageMeterId: null,
+                },
+                ctx
+              )
+            )
+          })
+        ).unwrap()
 
         let error: Error | null = null
 
@@ -2040,6 +2065,7 @@ describe('Customer Role RLS Policies', () => {
           { id: customerA_Org1.id, archived: true },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // CustomerA should still only see own data when authenticated, even when archived
@@ -2080,6 +2106,7 @@ describe('Customer Role RLS Policies', () => {
           { id: customerA_Org1.id, archived: false },
           transaction
         )
+        return Result.ok(undefined)
       })
     })
 

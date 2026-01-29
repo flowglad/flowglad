@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -61,19 +62,23 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
     apiKey = userApiKey.apiKey
 
     // Create a resource using admin transaction (bypasses RLS for setup)
-    resource = await adminTransaction(async ({ transaction }) => {
-      return insertResource(
-        {
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          slug: 'test-seats',
-          name: 'Test Seats',
-          livemode: true,
-          active: true,
-        },
-        transaction
-      )
-    })
+    resource = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await insertResource(
+            {
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              slug: 'test-seats',
+              name: 'Test Seats',
+              livemode: true,
+              active: true,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Set up customer, payment method, product, price, subscription chain
     const customer = (

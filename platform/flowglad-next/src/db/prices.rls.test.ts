@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import {
   setupCustomer,
@@ -372,13 +373,17 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       expect(prices).toHaveLength(0)
 
       // Verify the price exists via admin transaction
-      const adminPrices = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectPrices(
-          { productId: org2Data.product.id },
-          transaction
-        )
-      })
+      const adminPrices = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectPrices(
+              { productId: org2Data.product.id },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       expect(adminPrices.length).toBeGreaterThan(0)
       expect(adminPrices.some((p) => p.id === org2Price.id)).toBe(
         true
@@ -421,13 +426,17 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       expect(prices).toHaveLength(0)
 
       // Verify the price exists via admin transaction
-      const adminPrices = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectPrices(
-          { usageMeterId: org2UsageMeter.id },
-          transaction
-        )
-      })
+      const adminPrices = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectPrices(
+              { usageMeterId: org2UsageMeter.id },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       expect(
         adminPrices.some((p) => p.id === org2UsagePrice.id)
       ).toBe(true)
@@ -626,17 +635,21 @@ describe('prices RLS - customer read access', () => {
     product = orgData.product
 
     // Create a user for the customer
-    customerUser = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return insertUser(
-        {
-          id: `usr_${core.nanoid()}`,
-          email: `customer_${core.nanoid()}@test.com`,
-          name: 'Test Customer User',
-        },
-        transaction
-      )
-    })
+    customerUser = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await insertUser(
+            {
+              id: `usr_${core.nanoid()}`,
+              email: `customer_${core.nanoid()}@test.com`,
+              name: 'Test Customer User',
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Create a customer
     customer = (

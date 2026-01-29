@@ -73,13 +73,15 @@ describeIfRedisKey(
         priceId: price.id,
       })
 
-      subscriptionItem = await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        name: 'Test Subscription Item',
-        quantity: 1,
-        unitPrice: 1000,
-        priceId: price.id,
-      })
+      subscriptionItem = (
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Test Subscription Item',
+          quantity: 1,
+          unitPrice: 1000,
+          priceId: price.id,
+        })
+      ).unwrap()
 
       // Track cache keys for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
@@ -281,21 +283,25 @@ describeIfRedisKey(
         priceId: price.id,
       })
 
-      subscriptionItem1 = await setupSubscriptionItem({
-        subscriptionId: subscription1.id,
-        name: 'Item for Subscription 1',
-        quantity: 1,
-        unitPrice: 1000,
-        priceId: price.id,
-      })
+      subscriptionItem1 = (
+        await setupSubscriptionItem({
+          subscriptionId: subscription1.id,
+          name: 'Item for Subscription 1',
+          quantity: 1,
+          unitPrice: 1000,
+          priceId: price.id,
+        })
+      ).unwrap()
 
-      subscriptionItem2 = await setupSubscriptionItem({
-        subscriptionId: subscription2.id,
-        name: 'Item for Subscription 2',
-        quantity: 2,
-        unitPrice: 2000,
-        priceId: price.id,
-      })
+      subscriptionItem2 = (
+        await setupSubscriptionItem({
+          subscriptionId: subscription2.id,
+          name: 'Item for Subscription 2',
+          quantity: 2,
+          unitPrice: 2000,
+          priceId: price.id,
+        })
+      ).unwrap()
 
       // Track cache keys for cleanup
       const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`

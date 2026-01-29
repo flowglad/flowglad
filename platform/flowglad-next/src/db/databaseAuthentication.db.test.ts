@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import type { User as BetterAuthUser } from 'better-auth'
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
   setupCustomer,
@@ -96,6 +97,7 @@ beforeEach(async () => {
     webMemA = mA as Membership.Record
     webMemB = mB as Membership.Record
     webMemC = mC as Membership.Record
+    return Result.ok(undefined)
   })
 
   // Secret API key user inside a dedicated org, with clerkId present
@@ -124,6 +126,7 @@ beforeEach(async () => {
       })
       .returning()
     secretMembership = m as Membership.Record
+    return Result.ok(undefined)
   })
 
   // Secret API key tokens for integration path using test-mode keyVerify
@@ -204,6 +207,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         .update(memberships)
         .set({ focused: false })
         .where(eq(memberships.id, webMemB.id))
+      return Result.ok(undefined)
     })
     const result = await databaseAuthenticationInfoForWebappRequest(
       mockBetterAuthUser
@@ -240,6 +244,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         })
         .returning()
       lonelyUserId = (lonelyUser as any).id
+      return Result.ok(undefined)
     })
     const mockBetterAuthUser = {
       id: lonelyBetterAuthId,
@@ -292,6 +297,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         .update(memberships)
         .set({ deactivatedAt: new Date() })
         .where(eq(memberships.id, membership.id))
+      return Result.ok(undefined)
     })
 
     const mockBetterAuthUser = {
@@ -338,6 +344,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         focused: true,
         livemode: true,
       })
+      return Result.ok(undefined)
     })
 
     const mockBetterAuthUser = {
@@ -385,6 +392,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         livemode: false,
         deactivatedAt: new Date(), // Deactivated at current time
       })
+      return Result.ok(undefined)
     })
 
     const mockBetterAuthUser = {
@@ -793,6 +801,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
           betterAuthId,
         } as User.Record
       }
+      return Result.ok(undefined)
     })
 
     // Create customer users
@@ -807,6 +816,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         })
         .returning()
       customerUser = user as User.Record
+      return Result.ok(undefined)
     })
 
     // Create customers
@@ -893,8 +903,8 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
     it('should fail when user has no customer record in the organization', async () => {
       // Create a user with no customer record
-      const userWithoutCustomer = await adminTransaction(
-        async ({ transaction }) => {
+      const userWithoutCustomer = (
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -904,9 +914,9 @@ describe('Customer Role vs Merchant Role Authentication', () => {
               betterAuthId: `bau_${core.nanoid()}`,
             })
             .returning()
-          return user as User.Record
-        }
-      )
+          return Result.ok(user as User.Record)
+        })
+      ).unwrap()
 
       await expect(
         dbInfoForCustomerBillingPortal({
@@ -919,8 +929,8 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
     it('should handle customer authentication across different organizations', async () => {
       // Create same user with customer in different org
-      const userWithMultipleCustomers = await adminTransaction(
-        async ({ transaction }) => {
+      const userWithMultipleCustomers = (
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -930,9 +940,9 @@ describe('Customer Role vs Merchant Role Authentication', () => {
               betterAuthId: `bau_${core.nanoid()}`,
             })
             .returning()
-          return user as User.Record
-        }
-      )
+          return Result.ok(user as User.Record)
+        })
+      ).unwrap()
 
       // Create customers in both orgs
       const customerOrg1 = (
@@ -994,8 +1004,8 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         })
       ).unwrap()
 
-      const testModeUser = await adminTransaction(
-        async ({ transaction }) => {
+      const testModeUser = (
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1011,9 +1021,9 @@ describe('Customer Role vs Merchant Role Authentication', () => {
             .set({ userId: user.id })
             .where(eq(customers.id, testModeCustomer.id))
 
-          return user as User.Record
-        }
-      )
+          return Result.ok(user as User.Record)
+        })
+      ).unwrap()
 
       await expect(
         dbInfoForCustomerBillingPortal({
@@ -1033,8 +1043,8 @@ describe('Customer Role vs Merchant Role Authentication', () => {
           livemode: true,
         })
       ).unwrap()
-      const liveModeUser = await adminTransaction(
-        async ({ transaction }) => {
+      const liveModeUser = (
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1048,9 +1058,9 @@ describe('Customer Role vs Merchant Role Authentication', () => {
             .update(customers)
             .set({ userId: (user as User.Record).id })
             .where(eq(customers.id, liveModeCustomer.id))
-          return user as User.Record
-        }
-      )
+          return Result.ok(user as User.Record)
+        })
+      ).unwrap()
 
       const testModeCustomer = (
         await setupCustomer({
@@ -1073,6 +1083,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
           .update(customers)
           .set({ userId: (user as User.Record).id })
           .where(eq(customers.id, testModeCustomer.id))
+        return Result.ok(undefined)
       })
 
       const livemodeResult = await dbInfoForCustomerBillingPortal({
@@ -1190,8 +1201,8 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       ).unwrap()
 
       // Create a user that doesn't match the customer
-      const unrelatedUser = await adminTransaction(
-        async ({ transaction }) => {
+      const unrelatedUser = (
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1201,9 +1212,9 @@ describe('Customer Role vs Merchant Role Authentication', () => {
               betterAuthId: `bau_${core.nanoid()}`,
             })
             .returning()
-          return user as User.Record
-        }
-      )
+          return Result.ok(user as User.Record)
+        })
+      ).unwrap()
 
       // Should fail to authenticate as the NULL userId customer
       await expect(
@@ -1264,6 +1275,7 @@ describe('Focused membership consistency between databaseAuthentication and trpc
           livemode: true,
         },
       ])
+      return Result.ok(undefined)
     })
 
     const mockBetterAuthUser = {
@@ -1279,14 +1291,16 @@ describe('Focused membership consistency between databaseAuthentication and trpc
       )
 
     // Simulate trpcContext.ts behavior (which uses .find())
-    const allMemberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMembershipAndOrganizationsByBetterAuthUserId(
-          testBetterAuthId,
-          transaction
+    const allMemberships = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectMembershipAndOrganizationsByBetterAuthUserId(
+            testBetterAuthId,
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     const trpcContextResult = allMemberships.find(
       (m) => m.membership.focused
     )
@@ -1343,6 +1357,7 @@ describe('Focused membership consistency between databaseAuthentication and trpc
           livemode: false,
         },
       ])
+      return Result.ok(undefined)
     })
 
     const mockBetterAuthUser = {
@@ -1358,14 +1373,16 @@ describe('Focused membership consistency between databaseAuthentication and trpc
       )
 
     // Simulate trpcContext.ts behavior
-    const allMemberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMembershipAndOrganizationsByBetterAuthUserId(
-          testBetterAuthId,
-          transaction
+    const allMemberships = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectMembershipAndOrganizationsByBetterAuthUserId(
+            testBetterAuthId,
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     const trpcContextResult = allMemberships.find(
       (m) => m.membership.focused
     )
