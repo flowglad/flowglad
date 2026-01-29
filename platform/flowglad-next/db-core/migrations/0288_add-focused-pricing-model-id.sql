@@ -23,11 +23,12 @@ EXCEPTION
 END $$;--> statement-breakpoint
 
 -- ============================================================================
--- PHASE 1c: Ensure default PMs exist for each membership's org+livemode
+-- PHASE 1c: Ensure default PMs exist for ALL orgs in BOTH livemodes
 -- ============================================================================
 
--- Create default pricing models for org+livemode combinations that have memberships but no default PM
--- This handles edge cases where an org has memberships but no pricing model for that livemode
+-- Create default pricing models for every organization in both livemode=true and livemode=false.
+-- This ensures inviteUserToOrganization (which always creates test mode memberships) will always
+-- find a default test PM, even for orgs that previously only had live mode memberships.
 DO $$
 DECLARE
   org_record RECORD;
@@ -35,14 +36,16 @@ DECLARE
   pm_name text;
   next_position bigint;
 BEGIN
-  -- Find all org+livemode combinations that have memberships but no default pricing model
+  -- Find all org+livemode combinations missing a default pricing model
+  -- CROSS JOIN generates one row per org per livemode (true and false)
   FOR org_record IN
-    SELECT DISTINCT m."organization_id", m."livemode"
-    FROM "memberships" m
+    SELECT o."id" as organization_id, lm.livemode
+    FROM "organizations" o
+    CROSS JOIN (VALUES (true), (false)) AS lm(livemode)
     WHERE NOT EXISTS (
       SELECT 1 FROM "pricing_models" pm
-      WHERE pm."organization_id" = m."organization_id"
-        AND pm."livemode" = m."livemode"
+      WHERE pm."organization_id" = o."id"
+        AND pm."livemode" = lm.livemode
         AND pm."is_default" = true
     )
   LOOP
