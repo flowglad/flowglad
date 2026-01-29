@@ -83,6 +83,28 @@ export default async function middleware(req: NextRequest) {
     requestHeaders.set('traceparent', traceparent)
   }
 
+  // Allow embedding the support chat widget in iframes on allowed domains
+  if (req.nextUrl.pathname.startsWith('/support-chat/embed')) {
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    })
+    // Include Framer domains (app, website, canvas) and cloudflare tunnels for testing
+    const frameAncestors = [
+      "'self'",
+      'https://flowglad.com',
+      'https://*.flowglad.com',
+      'https://*.framer.app',
+      'https://*.framer.website',
+      'https://*.framercanvas.com',
+      'https://*.trycloudflare.com',
+    ].join(' ')
+    response.headers.set(
+      'Content-Security-Policy',
+      `frame-ancestors ${frameAncestors}`
+    )
+    return response
+  }
+
   return NextResponse.next({
     request: {
       headers: requestHeaders,

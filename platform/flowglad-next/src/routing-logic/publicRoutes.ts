@@ -53,6 +53,7 @@ const publicRoutes = [
    */
   '/preview-ui(.*)',
   '/blog/(.*)',
+  '/support-chat/embed',
 ]
 
 if (core.IS_DEV) {

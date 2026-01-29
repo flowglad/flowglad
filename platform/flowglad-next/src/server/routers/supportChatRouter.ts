@@ -1,6 +1,10 @@
 import { openai } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 import { z } from 'zod'
+import {
+  RateLimiters,
+  rateLimitByFingerprint,
+} from '@/server/rateLimitMiddleware'
 import { publicProcedure, router } from '@/server/trpc'
 import { queryTurbopuffer } from '@/utils/turbopuffer'
 
@@ -55,6 +59,7 @@ const sendMessageOutputSchema = z.object({
 })
 
 export const sendMessage = publicProcedure
+  .use(rateLimitByFingerprint('supportChat', RateLimiters.ai()))
   .input(sendMessageInputSchema)
   .output(sendMessageOutputSchema)
   .mutation(

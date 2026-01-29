@@ -162,6 +162,7 @@ export enum RedisKeyNamespace {
   UsageMetersByPricingModel = 'usageMetersByPricingModel',
   CacheDependencyRegistry = 'cacheDeps',
   CacheRecomputeMetadata = 'cacheRecompute',
+  RateLimit = 'rateLimit',
 }
 
 const evictionPolicy: Record<
@@ -219,6 +220,10 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.CacheRecomputeMetadata]: {
     max: 500000, // One metadata entry per recomputable cache key
     ttl: 86400, // 24 hours - same as dependency registry
+  },
+  [RedisKeyNamespace.RateLimit]: {
+    max: 1000000, // Rate limit state entries - high volume for public endpoints
+    // TTL managed by @upstash/ratelimit internally based on window size
   },
 }
 
