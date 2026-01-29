@@ -8,13 +8,17 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { BillingPeriodStatus, CurrencyCode, PriceType } from '@/types'
 import { core } from '@/utils/core'
+import type { BillingPeriod } from '../schema/billingPeriods'
 import type { Customer } from '../schema/customers'
 import type { Organization } from '../schema/organizations'
 import type { Price } from '../schema/prices'
 import type { PricingModel } from '../schema/pricingModels'
 import type { Product } from '../schema/products'
 import type { Subscription } from '../schema/subscriptions'
-import { insertBillingPeriod } from './billingPeriodMethods'
+import {
+  insertBillingPeriod,
+  isBillingPeriodInTerminalState,
+} from './billingPeriodMethods'
 
 describe('Billing Period Methods', () => {
   let organization: Organization.Record
@@ -122,6 +126,52 @@ describe('Billing Period Methods', () => {
         // Verify the provided pricingModelId is used
         expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
       })
+    })
+  })
+
+  describe('isBillingPeriodInTerminalState', () => {
+    const createMockBillingPeriod = (
+      status: BillingPeriodStatus
+    ): BillingPeriod.Record => ({
+      id: 'bp_test',
+      subscriptionId: 'sub_test',
+      startDate: Date.now(),
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      status,
+      trialPeriod: false,
+      proratedPeriod: false,
+      livemode: true,
+      pricingModelId: 'pm_test',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    it('returns true for terminal statuses (Canceled, Completed)', () => {
+      const terminalStatuses = [
+        BillingPeriodStatus.Canceled,
+        BillingPeriodStatus.Completed,
+      ]
+      for (const status of terminalStatuses) {
+        const billingPeriod = createMockBillingPeriod(status)
+        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
+          true
+        )
+      }
+    })
+
+    it('returns false for non-terminal statuses (Active, Upcoming, ScheduledToCancel, PastDue)', () => {
+      const nonTerminalStatuses = [
+        BillingPeriodStatus.Active,
+        BillingPeriodStatus.Upcoming,
+        BillingPeriodStatus.ScheduledToCancel,
+        BillingPeriodStatus.PastDue,
+      ]
+      for (const status of nonTerminalStatuses) {
+        const billingPeriod = createMockBillingPeriod(status)
+        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
+          false
+        )
+      }
     })
   })
 })

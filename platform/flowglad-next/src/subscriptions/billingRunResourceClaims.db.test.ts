@@ -1,13 +1,4 @@
-import type { Mock } from 'bun:test'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-} from 'bun:test'
-import { Result } from 'better-result'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -16,7 +7,6 @@ import {
   setupOrg,
   setupPaymentMethod,
   setupPrice,
-  setupProduct,
   setupResource,
   setupResourceClaim,
   setupResourceFeature,
@@ -41,16 +31,11 @@ import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   claimResourceTransaction,
   getResourceUsage,
   releaseResourceTransaction,
 } from '@/resources/resourceClaimHelpers'
-import {
-  createMockConfirmationResult,
-  createMockPaymentIntentResponse,
-} from '@/test/helpers/stripeMocks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -59,29 +44,6 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-
-// Import actual stripe module before mocking
-import * as actualStripe from '@/utils/stripe'
-
-// Create mock functions
-const mockCreatePaymentIntentForBillingRun =
-  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
-const mockConfirmPaymentIntentForBillingRun =
-  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
-
-// Mock Stripe functions
-mock.module('@/utils/stripe', () => ({
-  ...actualStripe,
-  createPaymentIntentForBillingRun:
-    mockCreatePaymentIntentForBillingRun,
-  confirmPaymentIntentForBillingRun:
-    mockConfirmPaymentIntentForBillingRun,
-}))
-
-import {
-  confirmPaymentIntentForBillingRun,
-  createPaymentIntentForBillingRun,
-} from '@/utils/stripe'
 import { executeBillingRun } from './billingRunHelpers'
 
 describe('executeBillingRun with adjustment and resource claims', () => {
@@ -98,20 +60,13 @@ describe('executeBillingRun with adjustment and resource claims', () => {
   let billingRun: BillingRun.Record
   let resource: Resource.Record
   let resourceFeature: Feature.ResourceRecord
-  let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
-
-  const mockCreatePaymentIntent =
-    createPaymentIntentForBillingRun as Mock<any>
-  const mockConfirmPaymentIntent =
-    confirmPaymentIntentForBillingRun as Mock<any>
+  let subscriptionItemFeature: SubscriptionItemFeature.Record
 
   beforeEach(async () => {
-    // Reset mocks
-    mockCreatePaymentIntent.mockReset()
-    mockConfirmPaymentIntent.mockReset()
-
-    // Setup organization and pricing model
-    const orgData = await setupOrg()
+    // Setup organization with Stripe account for stripe-mock
+    const orgData = await setupOrg({
+      withStripeAccount: true,
+    })
     organization = orgData.organization
     pricingModel = orgData.pricingModel
     product = orgData.product
@@ -248,24 +203,8 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     )
     expect(initialClaims.length).toBe(3)
 
-    // Setup mock payment intent for successful payment
-    const mockPaymentIntentId = `pi_${Date.now()}`
-    const mockPaymentIntent = createMockPaymentIntentResponse({
-      id: mockPaymentIntentId,
-      amount: 1000,
-      status: 'requires_confirmation',
-    })
-    mockCreatePaymentIntent.mockResolvedValue(
-      Result.ok(mockPaymentIntent)
-    )
-
-    const mockConfirmationResult = createMockConfirmationResult(
-      mockPaymentIntentId,
-      { status: 'succeeded' }
-    )
-    mockConfirmPaymentIntent.mockResolvedValue(mockConfirmationResult)
-
     // Execute billing run with adjustment
+    // Stripe API calls go to stripe-mock which returns successful responses
     const newSubscriptionItems: SubscriptionItem.Insert[] = [
       {
         subscriptionId: subscription.id,
@@ -426,23 +365,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     expect(usage.claimed).toBe(2)
     expect(usage.available).toBe(3)
 
-    // Phase 2: Execute billing run (payment succeeds)
-    const mockPaymentIntentId = `pi_lifecycle_${Date.now()}`
-    const mockPaymentIntent = createMockPaymentIntentResponse({
-      id: mockPaymentIntentId,
-      amount: 500, // Proration amount
-      status: 'requires_confirmation',
-    })
-    mockCreatePaymentIntent.mockResolvedValue(
-      Result.ok(mockPaymentIntent)
-    )
-
-    const mockConfirmationResult = createMockConfirmationResult(
-      mockPaymentIntentId,
-      { status: 'succeeded' }
-    )
-    mockConfirmPaymentIntent.mockResolvedValue(mockConfirmationResult)
-
+    // Phase 2: Execute billing run (payment succeeds via stripe-mock)
     const newSubscriptionItems: SubscriptionItem.Insert[] = [
       {
         subscriptionId: subscription.id,
@@ -542,126 +465,6 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     expect(usage.claimed).toBe(4)
   })
 
-  it('does not modify claims when billing run fails due to payment decline', async () => {
-    // Setup: Create 3 active claims
-    for (let i = 0; i < 3; i++) {
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: `preserved-user-${i}`,
-      })
-    }
-
-    // Capture initial state
-    const initialSubscriptionItems = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCurrentlyActiveSubscriptionItems(
-          { subscriptionId: subscription.id },
-          new Date(),
-          transaction
-        )
-      }
-    )
-
-    // Setup mock payment intent for FAILED payment
-    const mockPaymentIntentId = `pi_failed_${Date.now()}`
-    const mockPaymentIntent = createMockPaymentIntentResponse({
-      id: mockPaymentIntentId,
-      amount: 1000,
-      status: 'requires_confirmation',
-    })
-    mockCreatePaymentIntent.mockResolvedValue(
-      Result.ok(mockPaymentIntent)
-    )
-
-    // Payment fails
-    const mockFailedResult = createMockConfirmationResult(
-      mockPaymentIntentId,
-      { status: 'requires_payment_method' } // This indicates payment failed
-    )
-    mockConfirmPaymentIntent.mockResolvedValue(mockFailedResult)
-
-    const newSubscriptionItems: SubscriptionItem.Insert[] = [
-      {
-        subscriptionId: subscription.id,
-        priceId: upgradedPrice.id,
-        name: upgradedPrice.name ?? 'Premium Plan',
-        quantity: 1,
-        unitPrice: upgradedPrice.unitPrice,
-        type: SubscriptionItemType.Static,
-        livemode: true,
-        metadata: null,
-        externalId: null,
-        addedDate: Date.now(),
-      },
-    ]
-
-    // Execute billing run - payment will fail
-    await executeBillingRun(billingRun.id, {
-      newSubscriptionItems,
-      adjustmentDate: new Date(),
-    })
-
-    // Assert: Billing run should be marked as failed
-    const updatedBillingRun = await adminTransaction(
-      async ({ transaction }) => {
-        return selectBillingRunById(billingRun.id, transaction).then(
-          (r) => r.unwrap()
-        )
-      }
-    )
-    expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-
-    // Assert: Subscription items NOT adjusted (processOutcomeForBillingRun early exits for failed adjustment)
-    const subscriptionItemsAfterFailure = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCurrentlyActiveSubscriptionItems(
-          { subscriptionId: subscription.id },
-          new Date(),
-          transaction
-        )
-      }
-    )
-    expect(subscriptionItemsAfterFailure.length).toBe(
-      initialSubscriptionItems.length
-    )
-    expect(subscriptionItemsAfterFailure[0].id).toBe(
-      initialSubscriptionItems[0].id
-    )
-
-    // Assert: All 3 claims still accessible
-    const claimsAfterFailure = await adminTransaction(
-      async ({ transaction }) => {
-        return selectActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: resource.id,
-          },
-          transaction
-        )
-      }
-    )
-    expect(claimsAfterFailure.length).toBe(3)
-    expect(
-      claimsAfterFailure.map((c) => c.externalId).sort()
-    ).toEqual([
-      'preserved-user-0',
-      'preserved-user-1',
-      'preserved-user-2',
-    ])
-
-    // Assert: Capacity unchanged (still from old features)
-    const usage = await adminTransaction(async ({ transaction }) => {
-      return getResourceUsage(
-        subscription.id,
-        resource.id,
-        transaction
-      )
-    })
-    expect(usage.capacity).toBe(5) // Original capacity
-    expect(usage.claimed).toBe(3)
-    expect(usage.available).toBe(2)
-  })
+  // NOTE: Payment failure test moved to billingRunResourceClaims.integration.test.ts
+  // because it requires real Stripe API calls with declining test cards.
 })

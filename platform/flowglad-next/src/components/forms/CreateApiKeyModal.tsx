@@ -37,12 +37,13 @@ const CreateApiKeyModal = ({
       }}
       title="Create API Key"
       formSchema={createApiKeyInputSchema}
-      defaultValues={{
+      defaultValues={() => ({
         apiKey: {
           name: '',
-          type: FlowgladApiKeyType.Secret,
+          type: FlowgladApiKeyType.Secret as const,
+          pricingModelId: '',
         },
-      }}
+      })}
       onSubmit={async (data) => {
         const result = await createApiKey.mutateAsync(data)
         setRawApiKey(result.shownOnlyOnceKey)

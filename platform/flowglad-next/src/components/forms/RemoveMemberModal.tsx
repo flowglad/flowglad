@@ -40,7 +40,7 @@ const RemoveMemberModal: React.FC<RemoveMemberModalProps> = ({
         await onConfirm(membershipId)
       }}
       formSchema={removeMemberFormSchema}
-      defaultValues={{ membershipId }}
+      defaultValues={() => ({ membershipId })}
       submitButtonText={isLeaving ? 'Leave' : 'Remove'}
     >
       <div className="text-muted-foreground gap-4">

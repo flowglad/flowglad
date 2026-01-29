@@ -20,13 +20,15 @@ describe('secretApiKeyInputToUnkeyInput', () => {
     userId: 'user_123',
     type: FlowgladApiKeyType.Secret,
     expiresAt: new Date('2024-01-01'),
+    pricingModelId: 'pricing_model_Ab3XyZ123',
   }
 
-  it('should set correct metadata', () => {
+  it('should set correct metadata including pricingModelId', () => {
     const result = secretApiKeyInputToUnkeyInput(mockParams)
     const expectedMeta: ApiKey.ApiKeyMetadata = {
       userId: 'user_123',
       type: FlowgladApiKeyType.Secret,
+      pricingModelId: 'pricing_model_Ab3XyZ123',
     }
     expect(result.meta).toEqual(expectedMeta)
   })
@@ -36,14 +38,18 @@ describe('secretApiKeyInputToUnkeyInput', () => {
     expect(result.externalId).toBe('org_123')
   })
 
-  it('should format name correctly', () => {
+  it('should format name correctly with pricingModelId', () => {
     const result = secretApiKeyInputToUnkeyInput(mockParams)
-    expect(result.name).toBe('org_123 / test / Test Key')
+    expect(result.name).toBe(
+      'org_123 / test / pricing_model_Ab3XyZ123 / Test Key'
+    )
   })
 
-  it('should set correct prefix with environment', () => {
+  it('should set correct prefix with environment and PM ID suffix', () => {
     const result = secretApiKeyInputToUnkeyInput(mockParams)
+    // In non-prod (test), prefix should be: stg_sk_test_Ab3X
     expect(result.prefix).toContain('test')
+    expect(result.prefix).toContain('Ab3X')
   })
 
   it('should set correct expiration', () => {
@@ -53,21 +59,12 @@ describe('secretApiKeyInputToUnkeyInput', () => {
 })
 
 describe('parseUnkeyMeta', () => {
-  it('should parse metadata with just userId and return it as secret type', () => {
-    const rawMeta = { userId: 'abcdefg' }
-    const result = parseUnkeyMeta(rawMeta)
-
-    expect(result).toEqual({
-      userId: 'abcdefg',
-      type: FlowgladApiKeyType.Secret,
-    })
-  })
-
-  it('should parse well-formed secret metadata', () => {
+  it('should parse well-formed secret metadata with pricingModelId', () => {
     const rawMeta = {
       type: FlowgladApiKeyType.Secret,
       userId: 'user_123',
       organizationId: 'org_456',
+      pricingModelId: 'pricing_model_abc123',
     }
     const result = parseUnkeyMeta(rawMeta)
 
@@ -75,7 +72,21 @@ describe('parseUnkeyMeta', () => {
       type: FlowgladApiKeyType.Secret,
       userId: 'user_123',
       organizationId: 'org_456',
+      pricingModelId: 'pricing_model_abc123',
     })
+  })
+
+  it('should throw error for metadata missing pricingModelId', () => {
+    const rawMeta = {
+      type: FlowgladApiKeyType.Secret,
+      userId: 'user_123',
+      organizationId: 'org_456',
+      // Missing pricingModelId
+    }
+
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      'Invalid unkey metadata'
+    )
   })
 
   it('should throw error for malformed secret metadata with missing userId', () => {
@@ -83,6 +94,7 @@ describe('parseUnkeyMeta', () => {
       type: FlowgladApiKeyType.Secret,
       // Missing userId
       organizationId: 'org_456',
+      pricingModelId: 'pricing_model_abc123',
     }
 
     expect(() => parseUnkeyMeta(rawMeta)).toThrow(
@@ -94,6 +106,7 @@ describe('parseUnkeyMeta', () => {
     const rawMeta = {
       type: 'invalid_type',
       userId: 'user_123',
+      pricingModelId: 'pricing_model_abc123',
     }
 
     expect(() => parseUnkeyMeta(rawMeta)).toThrow(
@@ -110,15 +123,14 @@ describe('parseUnkeyMeta', () => {
       'Invalid unkey metadata'
     )
   })
-  it('should succeed for metadata with only userId', () => {
+
+  it('should throw error for metadata with only userId (missing pricingModelId)', () => {
     const rawMeta = {
       userId: 'user______lE',
     }
 
-    expect(() => parseUnkeyMeta(rawMeta)).not.toThrow()
-    expect(parseUnkeyMeta(rawMeta)).toEqual({
-      type: FlowgladApiKeyType.Secret,
-      userId: rawMeta.userId,
-    })
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      'Invalid unkey metadata'
+    )
   })
 })

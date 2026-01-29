@@ -215,6 +215,11 @@ export function ApiKeysDataTable({
           entityName="API key"
         />
       </div>
+      <p className="text-xs text-muted-foreground px-4 pb-4">
+        API keys are now restricted to a single pricing model. If you
+        have multiple pricing models, you'll need separate API keys
+        for each.
+      </p>
     </div>
   )
 }

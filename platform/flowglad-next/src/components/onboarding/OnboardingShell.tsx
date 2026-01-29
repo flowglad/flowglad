@@ -58,8 +58,9 @@ export function OnboardingShell({
             'before:pointer-events-none'
           )}
         >
-          {/* Content area - vertically centered with padding */}
-          <div className="flex-1 flex flex-col justify-center py-8">
+          {/* Content area - Mobile: top-aligned, Desktop: vertically centered */}
+          {/* Mobile: pt-32 pb-8, Desktop: py-8 */}
+          <div className="flex-1 flex flex-col pt-32 pb-8 sm:justify-center sm:pt-8">
             {children}
           </div>
         </div>

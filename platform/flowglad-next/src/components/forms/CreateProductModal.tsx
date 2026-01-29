@@ -5,14 +5,12 @@ import FormModal from '@/components/forms/FormModal'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
-  type CreateProductSchema,
+  type CreateProductFormSchema,
   createProductFormSchema,
-  createProductSchema,
   type Price,
 } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { singlePaymentDummyPrice } from '@/stubs/priceStubs'
-import { PriceType } from '@/types'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 export const defaultPrice: Price.ClientSinglePaymentInsert = {
@@ -43,7 +41,7 @@ export const CreateProductModal = ({
 }: {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  defaultValues?: CreateProductSchema
+  defaultValues?: CreateProductFormSchema
   onSubmitStart?: () => void
   onSubmitSuccess?: () => void
   onSubmitError?: (error: Error) => void
@@ -55,7 +53,7 @@ export const CreateProductModal = ({
   if (!organization) {
     return <></>
   }
-  const finalDefaultValues = createProductFormSchema.parse(
+  const getDefaultValues = () =>
     defaultValues ?? {
       product: {
         ...defaultProduct,
@@ -67,12 +65,11 @@ export const CreateProductModal = ({
       },
       __rawPriceString: '0',
     }
-  )
   return (
     <FormModal
       title="Create Product"
       formSchema={createProductFormSchema}
-      defaultValues={finalDefaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (input) => {
         if (onSubmitStart) {
           onSubmitStart()

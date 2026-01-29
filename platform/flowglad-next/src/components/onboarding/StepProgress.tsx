@@ -73,9 +73,7 @@ export function StepProgress({
             key={index}
             className={cn(
               'w-1.5 h-3 rounded-full transition-colors duration-200',
-              index <= currentStepIndex
-                ? 'bg-foreground'
-                : 'bg-secondary'
+              index <= currentStepIndex ? 'bg-foreground' : 'bg-input'
             )}
             aria-label={`Step ${index + 1}${index === currentStepIndex ? ' (current)' : ''}`}
           />

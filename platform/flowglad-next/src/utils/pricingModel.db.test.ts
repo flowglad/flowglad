@@ -2131,7 +2131,8 @@ describe('createProductTransaction', () => {
 
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: organization.id,
-      livemode: true,
+      livemode: false,
+      pricingModelId: sourcePricingModel.id,
     })
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
@@ -2387,14 +2388,14 @@ describe('createProductTransaction', () => {
 
   it('should create a product with a usage price when there are no featureIds', async () => {
     // Setup: Create a usage meter for the usage price
-    // Must use livemode: true to match org1ApiKey.livemode, otherwise RLS
-    // livemode policy will filter out the usage meter during prices INSERT check
+    // Must use livemode: false to match org1ApiKey.livemode (which uses sourcePricingModel),
+    // otherwise RLS PM scoping policy will filter out the usage meter
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: sourcePricingModel.id,
       name: 'API Requests',
       slug: 'api-requests',
-      livemode: true,
+      livemode: false,
     })
 
     // Test: Create a usage price product without featureIds - should succeed
@@ -2473,18 +2474,18 @@ describe('createProductTransaction', () => {
   })
 
   it('should throw an error when creating a SinglePayment product with toggle features', async () => {
-    // Create toggle features with livemode: true to match the API key's livemode
-    // This ensures RLS allows the features to be visible during validation
+    // Create toggle features with livemode: false to match the API key's livemode
+    // and sourcePricingModel. This ensures RLS allows the features to be visible.
     const livemodeToggleFeatureA = await setupToggleFeature({
       name: 'Livemode Feature A',
       organizationId: organization.id,
-      livemode: true,
+      livemode: false,
       pricingModelId: sourcePricingModel.id,
     })
     const livemodeToggleFeatureB = await setupToggleFeature({
       name: 'Livemode Feature B',
       organizationId: organization.id,
-      livemode: true,
+      livemode: false,
       pricingModelId: sourcePricingModel.id,
     })
     const toggleFeatureIds = [

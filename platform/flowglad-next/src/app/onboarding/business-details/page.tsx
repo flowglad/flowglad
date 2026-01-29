@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
-import { ResponsiveBottomBarSpacer } from '@/components/onboarding/BottomBar'
 import {
   MultiStepForm,
   useMultiStepForm,
@@ -176,9 +175,7 @@ function BusinessDetailsContent() {
     >
       <OnboardingShell>
         <FormContent />
-        {/* Spacer for mobile fixed nav (only visible on mobile) */}
-        <ResponsiveBottomBarSpacer />
-        {/* Navigation bar - fixed on mobile, static on desktop */}
+        {/* Navigation bar - static, flows with content */}
         <NavigationBar hideBackOnFirstStep showProgress />
       </OnboardingShell>
     </MultiStepForm>

@@ -9,6 +9,11 @@ interface SecurityEvent {
     | 'suspicious_pattern'
   organizationId?: string
   apiKeyPrefix?: string
+  /**
+   * Pricing model ID for PM-scoped access tracking.
+   * Present when the API key has pricing model context.
+   */
+  pricingModelId?: string
   clientIp?: string
   details?: Record<string, any>
 }
@@ -29,6 +34,7 @@ export function trackSecurityEvent(event: SecurityEvent) {
     event_type: event.type,
     organization_id: event.organizationId,
     api_key_prefix: event.apiKeyPrefix,
+    pricing_model_id: event.pricingModelId,
     client_ip_hash: event.clientIp
       ? hashIp(event.clientIp)
       : undefined,
@@ -40,6 +46,7 @@ export function trackSecurityEvent(event: SecurityEvent) {
     span.addEvent(`security.${event.type}`, {
       'security.event_type': event.type,
       'security.organization_id': event.organizationId || 'unknown',
+      'security.pricing_model_id': event.pricingModelId || 'unknown',
       'security.details': JSON.stringify(event.details || {}),
     })
 

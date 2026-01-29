@@ -46,10 +46,10 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Resource"
       formSchema={editResourceSchema}
-      defaultValues={{
+      defaultValues={() => ({
         id: resource.id,
         resource: editableFields,
-      }}
+      })}
       onSubmit={async (input) => {
         await editResource.mutateAsync(input)
       }}

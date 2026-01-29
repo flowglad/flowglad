@@ -447,6 +447,8 @@ const requestMagicLinkProcedure = publicProcedure
       // Check if customers exist and handle user creation/linking in single transaction
       await adminTransaction(async ({ transaction }) => {
         // Find livemode customers by email and organizationId
+        // Note: Intentionally includes archived customers - they should still be able
+        // to access the billing portal to view historical invoices and billing data
         const customers = await selectCustomers(
           {
             email,
@@ -661,6 +663,8 @@ const getCustomersForUserAndOrganizationProcedure = protectedProcedure
       })
     }
 
+    // Note: Intentionally includes archived customers - they should still be able
+    // to access the billing portal to view historical invoices and billing data
     const customers = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectCustomers(
@@ -808,6 +812,8 @@ const sendOTPToCustomerProcedure = publicProcedure
         const email = customer.email!
 
         // Find livemode customers by email and organizationId
+        // Note: Intentionally includes archived customers - they should still be able
+        // to access the billing portal to view historical invoices and billing data
         const customers = await selectCustomers(
           {
             email,

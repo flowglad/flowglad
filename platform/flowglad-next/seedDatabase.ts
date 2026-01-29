@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { snakeCase } from 'change-case'
 import { sql } from 'drizzle-orm'
 import * as R from 'ramda'
@@ -22,6 +23,7 @@ import { type Membership, memberships } from '@/db/schema/memberships'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
 import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Purchase } from '@/db/schema/purchases'
 import type { Refund, refunds } from '@/db/schema/refunds'
@@ -58,7 +60,10 @@ import {
   insertLedgerEntry,
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
-import { insertMembership } from '@/db/tableMethods/membershipMethods'
+import {
+  insertMembership,
+  selectMembershipsAndUsersByMembershipWhere,
+} from '@/db/tableMethods/membershipMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
@@ -181,6 +186,8 @@ export const setupOrg = async (params?: {
   countryCode?: CountryCode
   /** Skip creating pricing models, products, and prices. Useful for tests that need to create their own. */
   skipPricingModel?: boolean
+  /** Set up a Stripe account for the organization. Required for tests that make Stripe API calls in livemode. */
+  withStripeAccount?: boolean
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -204,6 +211,10 @@ export const setupOrg = async (params?: {
         stripeConnectContractType:
           params?.stripeConnectContractType ??
           StripeConnectContractType.Platform,
+        stripeAccountId: params?.withStripeAccount
+          ? `acct_test_${core.nanoid()}`
+          : undefined,
+        payoutsEnabled: params?.withStripeAccount ? true : undefined,
         featureFlags: {},
         contactEmail: 'test@test.com',
         billingAddress: {
@@ -1243,18 +1254,24 @@ export const setupSubscriptionItem = async ({
   type = SubscriptionItemType.Static,
   usageMeterId,
   usageEventsPerUnit,
+  manuallyCreated = false,
 }: {
   subscriptionId: string
   name: string
   quantity: number
   unitPrice: number
-  priceId?: string
+  priceId?: string | null
   addedDate?: number
   removedDate?: number
   metadata?: Record<string, any>
   type?: SubscriptionItemType
   usageMeterId?: string
   usageEventsPerUnit?: number
+  /**
+   * If true, creates a manually created item (priceId will be null).
+   * Manual items are preserved during subscription adjustments.
+   */
+  manuallyCreated?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const subscription = (
@@ -1277,18 +1294,33 @@ export const setupSubscriptionItem = async ({
         'Usage events per unit is not allowed for static items'
       )
     }
+
+    // For manual items, the database constraint requires:
+    //   priceId = null, unitPrice = 0, quantity = 0
+    // For regular items, priceId defaults to subscription's priceId if not provided
+    const resolvedPriceId = manuallyCreated
+      ? null
+      : priceId === null
+        ? null
+        : (priceId ?? subscription.priceId!)
+
+    // Manual items must have unitPrice=0 and quantity=0 per database constraint
+    const resolvedUnitPrice = manuallyCreated ? 0 : unitPrice
+    const resolvedQuantity = manuallyCreated ? 0 : quantity
+
     const insert: SubscriptionItem.StaticInsert = {
       subscriptionId: subscription.id,
       name,
-      quantity,
-      unitPrice,
+      quantity: resolvedQuantity,
+      unitPrice: resolvedUnitPrice,
       livemode: subscription.livemode,
-      priceId: priceId ?? subscription.priceId!,
+      priceId: resolvedPriceId,
       addedDate: addedDate ?? Date.now(),
       expiredAt: null,
       metadata: metadata ?? {},
       externalId: null,
       type: SubscriptionItemType.Static,
+      manuallyCreated,
     }
     return insertSubscriptionItem(insert, transaction)
   })
@@ -1647,40 +1679,126 @@ export const setupUsageMeter = async ({
 export const setupUserAndApiKey = async ({
   organizationId,
   livemode,
+  forceNewUser = false,
+  pricingModelId,
 }: {
   organizationId: string
   livemode: boolean
+  /**
+   * When true, always creates a new user even if one exists for the organization.
+   * Use this for tests that need multiple distinct users in the same org
+   * (e.g., cross-user RLS isolation tests).
+   *
+   * WARNING: When forceNewUser is true, the API key's keyVerify may return
+   * a different user than expected due to non-deterministic membership ordering.
+   * Only use this when you need the user/membership for isolation testing,
+   * not for authenticated API operations.
+   */
+  forceNewUser?: boolean
+  /**
+   * Optional pricing model ID to scope the API key to.
+   * When provided, the API key will be scoped to this specific pricing model.
+   * When omitted, the API key will be scoped to the default pricing model for the org+livemode.
+   *
+   * Use this when your test creates data under a non-default pricing model and needs
+   * the API key to have access to that data via RLS policies.
+   */
+  pricingModelId?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const userInsertResult = await transaction
-      .insert(users)
-      .values({
-        id: `usr_test_${core.nanoid()}`,
-        email: `testuser-${core.nanoid()}@example.com`,
-        name: 'Test User',
-      })
-      .returning()
-      .then(R.head)
+    // Get the pricing model for the API key - use provided PM or fall back to default
+    let targetPricingModel: PricingModel.Record | null = null
 
-    if (!userInsertResult)
-      throw new Error('Failed to create user for API key setup')
-    const user = userInsertResult as typeof users.$inferSelect
+    if (pricingModelId) {
+      // Use the explicitly provided pricing model
+      const pmResult = await selectPricingModelById(
+        pricingModelId,
+        transaction
+      )
+      if (Result.isError(pmResult)) {
+        throw new Error(
+          `Pricing model not found: ${pricingModelId}. ` +
+            `Ensure the pricing model exists before calling setupUserAndApiKey.`
+        )
+      }
+      targetPricingModel = pmResult.value
+    } else {
+      // Fall back to default pricing model for this org+livemode
+      targetPricingModel = await selectDefaultPricingModel(
+        { organizationId, livemode },
+        transaction
+      )
+      if (!targetPricingModel) {
+        // Create a minimal default pricing model for test setup
+        targetPricingModel = await insertPricingModel(
+          {
+            name: `Test Pricing Model (${livemode ? 'live' : 'test'})`,
+            organizationId,
+            livemode,
+            isDefault: true,
+          },
+          transaction
+        )
+      }
+    }
 
-    const membershipInsertResult = await transaction
-      .insert(memberships)
-      .values({
-        id: `mem_${core.nanoid()}`,
-        userId: user.id,
-        organizationId,
-        focused: true,
-        livemode,
-      })
-      .returning()
-      .then(R.head)
+    // Check if there's already a membership for this organization.
+    // If so, reuse that user to ensure keyVerify returns the correct user
+    // (since keyVerify looks up the first membership by organizationId).
+    // Skip this check if forceNewUser is true (for isolation tests).
+    const existingMemberships = forceNewUser
+      ? []
+      : await selectMembershipsAndUsersByMembershipWhere(
+          { organizationId },
+          transaction
+        )
 
-    if (!membershipInsertResult)
-      throw new Error('Failed to create membership for user setup')
-    const membership = membershipInsertResult as Membership.Record
+    let user: typeof users.$inferSelect
+    let membership: Membership.Record
+
+    let betterAuthId: string | null = null
+
+    if (existingMemberships.length > 0) {
+      // Reuse existing user and membership
+      const existing = existingMemberships[0]
+      user = existing.user
+      membership = existing.membership
+      betterAuthId = user.betterAuthId ?? null
+    } else {
+      // Create new user and membership
+      // Generate betterAuthId for session-based authentication in tests
+      betterAuthId = `ba_test_${core.nanoid()}`
+      const userInsertResult = await transaction
+        .insert(users)
+        .values({
+          id: `usr_test_${core.nanoid()}`,
+          email: `testuser-${core.nanoid()}@example.com`,
+          name: 'Test User',
+          betterAuthId,
+        })
+        .returning()
+        .then(R.head)
+
+      if (!userInsertResult)
+        throw new Error('Failed to create user for API key setup')
+      user = userInsertResult as typeof users.$inferSelect
+
+      const membershipInsertResult = await transaction
+        .insert(memberships)
+        .values({
+          id: `mem_${core.nanoid()}`,
+          userId: user.id,
+          organizationId,
+          focused: true,
+          livemode,
+        })
+        .returning()
+        .then(R.head)
+
+      if (!membershipInsertResult)
+        throw new Error('Failed to create membership for user setup')
+      membership = membershipInsertResult as Membership.Record
+    }
 
     const apiKeyTokenValue = `test_sk_${core.nanoid()}`
     const apiKeyInsertResult = await transaction
@@ -1689,6 +1807,7 @@ export const setupUserAndApiKey = async ({
         id: `fk_test_${core.nanoid()}`,
         token: apiKeyTokenValue,
         organizationId,
+        pricingModelId: targetPricingModel.id,
         type: FlowgladApiKeyType.Secret,
         livemode: livemode,
         name: 'Test API Key',
@@ -1705,6 +1824,12 @@ export const setupUserAndApiKey = async ({
       user,
       membership,
       apiKey: { ...apiKey, token: apiKeyTokenValue },
+      /**
+       * The betterAuthId for this user, used for session-based authentication.
+       * Set this in globalThis.__mockedAuthSession to authenticate as this user
+       * without using API keys (useful for same-org different-user RLS tests).
+       */
+      betterAuthId,
     }
   })
 }

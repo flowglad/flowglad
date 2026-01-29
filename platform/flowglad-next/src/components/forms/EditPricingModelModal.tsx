@@ -26,13 +26,13 @@ const EditPricingModelModal: React.FC<EditPricingModelModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Pricing Model"
       formSchema={editPricingModelSchema}
-      defaultValues={{
+      defaultValues={() => ({
         id: pricingModel.id,
         pricingModel: {
           ...pricingModel,
           id: pricingModel.id,
         },
-      }}
+      })}
       onSubmit={editPricingModel.mutateAsync}
     >
       <PricingModelFormFields edit />

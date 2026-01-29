@@ -170,7 +170,7 @@ describe('checkoutHelpers', () => {
       expect(result.checkoutInfo.flowType).toBe(expected)
     })
     // Intentionally avoid asserting on Stripe client_secret here to
-    // keep tests aligned with msw stripeServer and real flows
+    // keep tests aligned with stripe-mock and real flows
   })
 
   describe('checkoutInfoForCheckoutSession', () => {

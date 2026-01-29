@@ -1,14 +1,14 @@
-import type { Mock } from 'bun:test'
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
+import {
+  mockCancelPaymentIntent,
+  mockCreateStripeCustomer,
+  mockGetPaymentIntent,
+  mockGetSetupIntent,
+  mockUpdatePaymentIntent,
+  mockUpdateSetupIntent,
+} from '@/../bun.stripe.mocks'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -53,28 +53,7 @@ import {
 } from '@/types'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import core from '@/utils/core'
-import {
-  cancelPaymentIntent,
-  createStripeCustomer,
-  getSetupIntent,
-  updatePaymentIntent,
-  updateSetupIntent,
-} from '@/utils/stripe'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
-
-// Mock Stripe functions
-mock.module('@/utils/stripe', () => ({
-  cancelPaymentIntent: mock(),
-  createStripeCustomer: mock(),
-  getPaymentIntent: mock(async () => ({
-    id: 'pi_test',
-    object: 'payment_intent',
-    customer: null,
-  })),
-  getSetupIntent: mock(),
-  updatePaymentIntent: mock(),
-  updateSetupIntent: mock(),
-}))
 
 describe('confirmCheckoutSessionTransaction', () => {
   // Common variables for all tests
@@ -333,9 +312,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
-        mockStripeCustomer
-      )
+      mockCreateStripeCustomer.mockResolvedValue(mockStripeCustomer)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -391,9 +368,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
-        mockStripeCustomer
-      )
+      mockCreateStripeCustomer.mockResolvedValue(mockStripeCustomer)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -485,9 +460,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
-        mockStripeCustomer
-      )
+      mockCreateStripeCustomer.mockResolvedValue(mockStripeCustomer)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -583,9 +556,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
-        mockStripeCustomer
-      )
+      mockCreateStripeCustomer.mockResolvedValue(mockStripeCustomer)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -607,7 +578,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer.email).toEqual('newcustomer@example.com')
 
       // Verify createStripeCustomer was called
-      expect(createStripeCustomer).toHaveBeenCalledWith(
+      expect(mockCreateStripeCustomer).toHaveBeenCalledWith(
         expect.objectContaining({
           email: 'newcustomer@example.com',
           name: 'Test Customer',
@@ -650,9 +621,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
-        mockStripeCustomer
-      )
+      mockCreateStripeCustomer.mockResolvedValue(mockStripeCustomer)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -730,7 +699,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         result.confirmResult.unwrap().customer?.stripeCustomerId
       ).toEqual(result.updatedCustomer.stripeCustomerId)
       // Verify that createStripeCustomer was not called
-      expect(createStripeCustomer).not.toHaveBeenCalled()
+      expect(mockCreateStripeCustomer).not.toHaveBeenCalled()
     })
 
     it('should create Stripe customer and update customer record when stripeCustomerId is missing', async () => {
@@ -748,9 +717,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
-        mockStripeCustomer
-      )
+      mockCreateStripeCustomer.mockResolvedValue(mockStripeCustomer)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -769,7 +736,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         mockStripeCustomer.id
       )
       // Verify that createStripeCustomer was called
-      expect(createStripeCustomer).toHaveBeenCalled()
+      expect(mockCreateStripeCustomer).toHaveBeenCalled()
     })
 
     it('should throw an error if stripeCustomerId is missing and no customerEmail exists', async () => {
@@ -804,6 +771,16 @@ describe('confirmCheckoutSessionTransaction', () => {
   })
 
   describe('Setup Intent Handling', () => {
+    beforeEach(() => {
+      // Mock updateSetupIntent to succeed
+      mockUpdateSetupIntent.mockResolvedValue({
+        id: 'seti_mock',
+        object: 'setup_intent',
+        customer: null,
+        status: 'requires_payment_method',
+      } as unknown as import('stripe').default.SetupIntent)
+    })
+
     it('should update setup intent when stripeSetupIntentId is set and fetched setup intent has no customer', async () => {
       // Update checkout session to have stripeSetupIntentId
       const updatedCheckoutSession =
@@ -856,9 +833,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           parent: 'pm_123',
         },
       } as Stripe.SetupIntent
-      ;(getSetupIntent as Mock<any>).mockResolvedValue(
-        mockSetupIntent
-      )
+      mockGetSetupIntent.mockResolvedValue(mockSetupIntent)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -874,7 +849,7 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was called
-      expect(updateSetupIntent).toHaveBeenCalledWith(
+      expect(mockUpdateSetupIntent).toHaveBeenCalledWith(
         updatedCheckoutSession.stripeSetupIntentId,
         { customer: customer.stripeCustomerId },
         updatedCheckoutSession.livemode
@@ -933,9 +908,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           parent: 'pm_123',
         },
       } as Stripe.SetupIntent
-      ;(getSetupIntent as Mock<any>).mockResolvedValue(
-        mockSetupIntent
-      )
+      mockGetSetupIntent.mockResolvedValue(mockSetupIntent)
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -951,11 +924,55 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was not called
-      expect(updateSetupIntent).not.toHaveBeenCalled()
+      expect(mockUpdateSetupIntent).not.toHaveBeenCalled()
     })
   })
 
   describe('Payment Intent Handling', () => {
+    beforeEach(() => {
+      // Mock getPaymentIntent to return a valid payment intent without a customer
+      mockGetPaymentIntent.mockResolvedValue({
+        id: 'pi_mock',
+        object: 'payment_intent',
+        amount: 1000,
+        currency: 'usd',
+        customer: null, // No customer yet - will be set by updatePaymentIntent
+        status: 'requires_payment_method',
+      } as unknown as import('stripe').default.PaymentIntent)
+
+      // Mock updatePaymentIntent to succeed
+      mockUpdatePaymentIntent.mockResolvedValue({
+        id: 'pi_mock',
+        object: 'payment_intent',
+        amount: 1000,
+        currency: 'usd',
+        status: 'requires_payment_method',
+        lastResponse: {
+          headers: {},
+          requestId: 'req_mock',
+          statusCode: 200,
+        },
+      } as unknown as import('stripe').default.Response<
+        import('stripe').default.PaymentIntent
+      >)
+
+      // Mock cancelPaymentIntent to succeed
+      mockCancelPaymentIntent.mockResolvedValue({
+        id: 'pi_mock',
+        object: 'payment_intent',
+        amount: 0,
+        currency: 'usd',
+        status: 'canceled',
+        lastResponse: {
+          headers: {},
+          requestId: 'req_mock',
+          statusCode: 200,
+        },
+      } as unknown as import('stripe').default.Response<
+        import('stripe').default.PaymentIntent
+      >)
+    })
+
     it('should update payment intent with customer ID, amount, and application fee when applicable', async () => {
       // Update checkout session to have stripePaymentIntentId
       const updatedCheckoutSession =
@@ -991,7 +1008,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
       // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
-      expect(updatePaymentIntent).toHaveBeenCalledWith(
+      expect(mockUpdatePaymentIntent).toHaveBeenCalledWith(
         updatedCheckoutSession.stripePaymentIntentId,
         {
           customer: customer.stripeCustomerId,
@@ -1037,7 +1054,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
       // Application fee includes payment method fee (59 cents) + Flowglad fee (0.65% of $10 = 7 cents) = 66 cents
-      expect(updatePaymentIntent).toHaveBeenCalledWith(
+      expect(mockUpdatePaymentIntent).toHaveBeenCalledWith(
         updatedCheckoutSession.stripePaymentIntentId,
         {
           customer: customer.stripeCustomerId,
@@ -1081,7 +1098,7 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was not called
-      expect(updatePaymentIntent).not.toHaveBeenCalled()
+      expect(mockUpdatePaymentIntent).not.toHaveBeenCalled()
     })
 
     it('should cancel payment intent and clear stripePaymentIntentId when total due is zero from 100% discount', async () => {
@@ -1140,11 +1157,11 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer.id).toEqual(customer.id)
 
       // Verify that cancelPaymentIntent was called instead of updatePaymentIntent
-      expect(cancelPaymentIntent).toHaveBeenCalledWith(
+      expect(mockCancelPaymentIntent).toHaveBeenCalledWith(
         paymentIntentId,
         updatedCheckoutSession.livemode
       )
-      expect(updatePaymentIntent).not.toHaveBeenCalled()
+      expect(mockUpdatePaymentIntent).not.toHaveBeenCalled()
 
       // Verify that stripePaymentIntentId was cleared from the checkout session
       const refetchedCheckoutSession =
@@ -1230,8 +1247,8 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent and updateSetupIntent were not called
-      expect(updatePaymentIntent).not.toHaveBeenCalled()
-      expect(updateSetupIntent).not.toHaveBeenCalled()
+      expect(mockUpdatePaymentIntent).not.toHaveBeenCalled()
+      expect(mockUpdateSetupIntent).not.toHaveBeenCalled()
     })
   })
 

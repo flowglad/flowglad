@@ -2,7 +2,8 @@
 #
 # Test categories:
 # - Unit tests (*.unit.test.ts) - Fast, no database, single job
-# - DB tests (*.db.test.ts) - Slower, requires postgres, sharded across 4 jobs
+# - DB tests (*.db.test.ts) - Slower, requires postgres + stripe-mock, sharded across 4 jobs
+# - Stripe tests (*.stripe.test.ts) - Tests with mocked Stripe functions, requires postgres only
 # - RLS tests (*.rls.test.ts) - Row Level Security tests, requires postgres, sharded across 2 jobs with serial execution
 # - Frontend tests (.test.tsx) - React components via vitest with jsdom
 #
@@ -65,6 +66,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
           --health-start-period 10s
+      stripe-mock:
+        image: stripe/stripe-mock:v0.197.0
+        ports:
+          - 12111:12111
+          - 12112:12112
 
     defaults:
       run:
@@ -90,6 +96,54 @@ jobs:
           NODE_ENV: test
       - name: Run sharded db tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: bun run test:db --shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        env:
+          NODE_ENV: test
+          CLAUDECODE: 1
+
+  # Stripe tests mock Stripe functions directly and don't need stripe-mock
+  flowglad-next-stripe-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+
+    defaults:
+      run:
+        working-directory: platform/flowglad-next
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        with:
+          node-version: '18'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.6'
+      - name: Install dependencies
+        run: bun run install-packages --no-progress
+      - name: Run database migrations
+        run: bun run migrations:push
+        env:
+          NODE_ENV: test
+      - name: Run stripe tests
+        run: bun run test:stripe
         env:
           NODE_ENV: test
           CLAUDECODE: 1
@@ -176,7 +230,7 @@ jobs:
   # Summary job that waits for all test jobs to complete
   test-summary:
     if: ${{ !cancelled() }}
-    needs: [flowglad-next-unit-tests, flowglad-next-db-tests, flowglad-next-rls-tests, flowglad-next-frontend-tests]
+    needs: [flowglad-next-unit-tests, flowglad-next-db-tests, flowglad-next-stripe-tests, flowglad-next-rls-tests, flowglad-next-frontend-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check test results
@@ -184,12 +238,14 @@ jobs:
           echo "All test jobs completed"
           echo "Unit tests: ${{ needs.flowglad-next-unit-tests.result }}"
           echo "DB tests: ${{ needs.flowglad-next-db-tests.result }}"
+          echo "Stripe tests: ${{ needs.flowglad-next-stripe-tests.result }}"
           echo "RLS tests: ${{ needs.flowglad-next-rls-tests.result }}"
           echo "Frontend tests: ${{ needs.flowglad-next-frontend-tests.result }}"
 
           # Fail if any job failed
           if [ "${{ needs.flowglad-next-unit-tests.result }}" = "failure" ] || \
              [ "${{ needs.flowglad-next-db-tests.result }}" = "failure" ] || \
+             [ "${{ needs.flowglad-next-stripe-tests.result }}" = "failure" ] || \
              [ "${{ needs.flowglad-next-rls-tests.result }}" = "failure" ] || \
              [ "${{ needs.flowglad-next-frontend-tests.result }}" = "failure" ]; then
             echo "One or more test jobs failed"

@@ -51,13 +51,21 @@ interface SyncEventBase {
   namespace: SyncNamespace
   /** Primary entity ID (e.g., customerId for customerSubscriptions) */
   entityId: string
-  /** Scope identifier from API key (currently organizationId, will become pricingModelId) */
+  /**
+   * Scope identifier derived from API key context.
+   * Different API keys exist for live vs test mode, so this already
+   * encodes the environment implicitly. Will transition from org-based
+   * to pricingModelId-based scoping.
+   */
   scopeId: string
   /** Redis Stream sequence number (e.g., "1706745600000-0") */
   sequence: string
   /** ISO timestamp when event was created */
   timestamp: string
-  /** Whether this is livemode data (derived from API key environment) */
+  /**
+   * Whether this is livemode data. Stored in event payload for client use,
+   * but NOT used for stream keying (scopeId already encodes environment).
+   */
   livemode: boolean
 }
 
@@ -80,8 +88,14 @@ interface SyncEventDelete extends SyncEventBase {
 }
 
 /**
- * A sync event represents a change to an entity that should be
- * streamed to connected clients via SSE.
+ * A sync event represents a change to an entity stored in a Redis Stream.
+ *
+ * Primary delivery pattern (serverless-first):
+ * 1. Webhook notification wakes SDK's serverless function
+ * 2. SDK reads from stream using lastSequence cursor to catch up
+ *
+ * Optional: SSE for persistent runtimes that can maintain connections.
+ *
  * Discriminated union based on eventType ensures data matches the event type.
  */
 export type SyncEvent = SyncEventUpdate | SyncEventDelete
@@ -130,7 +144,16 @@ export const syncEventSchema = z.discriminatedUnion('eventType', [
 interface SyncEventInsertBase {
   namespace: SyncNamespace
   entityId: string
+  /**
+   * Scope identifier derived from API key context.
+   * Different API keys exist for live vs test mode, so this already
+   * encodes the environment implicitly (used for stream keying).
+   */
   scopeId: string
+  /**
+   * Whether this is livemode data. Stored in event payload for client use,
+   * but NOT used for stream keying (scopeId already encodes environment).
+   */
   livemode: boolean
 }
 

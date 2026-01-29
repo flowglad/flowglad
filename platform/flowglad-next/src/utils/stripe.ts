@@ -403,33 +403,40 @@ export const rawStringAmountToCountableCurrencyAmount = (
   return Math.round(Number(amount) * 100)
 }
 
+/**
+ * Returns true if we're using stripe-mock instead of real Stripe API.
+ * This is determined by the presence of STRIPE_MOCK_HOST in the environment.
+ */
+export const isUsingStripeMock = () => !!process.env.STRIPE_MOCK_HOST
+
 const stripeApiKey = (livemode: boolean) => {
-  // Allow integration tests to use real Stripe API key
-  // This env var is only set when running integration tests
-  if (process.env.STRIPE_INTEGRATION_TEST_MODE === 'true') {
-    const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
-    if (!key) {
-      throw new Error(
-        'STRIPE_INTEGRATION_TEST_MODE is enabled but STRIPE_TEST_MODE_SECRET_KEY is not set. ' +
-          'Integration tests require a valid Stripe test mode secret key.'
-      )
-    }
-    return key
-  }
-  if (core.IS_TEST) {
-    return 'sk_test_fake_key_1234567890abcdef'
+  // When using stripe-mock, use a dummy key (stripe-mock accepts any sk_test_* format)
+  if (isUsingStripeMock()) {
+    return 'sk_test_mock'
   }
   return livemode
     ? core.envVariable('STRIPE_SECRET_KEY')
     : core.envVariable('STRIPE_TEST_MODE_SECRET_KEY') || ''
 }
 export const stripe = (livemode: boolean) => {
-  return new Stripe(stripeApiKey(livemode), {
+  const config: Stripe.StripeConfig = {
     apiVersion: '2024-09-30.acacia',
-    httpClient: core.IS_TEST
-      ? Stripe.createFetchHttpClient()
-      : undefined,
-  })
+  }
+
+  // Use stripe-mock when STRIPE_MOCK_HOST is configured (via .env.test)
+  // Integration tests use .env.integration which does NOT set STRIPE_MOCK_HOST
+  if (isUsingStripeMock()) {
+    config.host = process.env.STRIPE_MOCK_HOST
+    config.port = 12111
+    config.protocol = 'http'
+  }
+
+  // Bun requires fetch-based HTTP client in test environment
+  if (core.IS_TEST) {
+    config.httpClient = Stripe.createFetchHttpClient()
+  }
+
+  return new Stripe(stripeApiKey(livemode), config)
 }
 
 export const createConnectedAccount = async ({
@@ -919,14 +926,8 @@ export const createStripeTaxCalculationByPrice = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Skip Stripe Tax API in tests unless explicitly enabled.
-  // Use SKIP_STRIPE_TAX_CALCULATIONS to mock tax even when other Stripe APIs are real.
-  // This avoids hitting Stripe's 1000 req/24hr tax API rate limit in test mode.
-  if (
-    core.IS_TEST &&
-    (process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true' ||
-      process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true')
-  ) {
+  // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
+  if (isUsingStripeMock()) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -976,14 +977,8 @@ export const createStripeTaxCalculationByPurchase = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Skip Stripe Tax API in tests unless explicitly enabled.
-  // Use SKIP_STRIPE_TAX_CALCULATIONS to mock tax even when other Stripe APIs are real.
-  // This avoids hitting Stripe's 1000 req/24hr tax API rate limit in test mode.
-  if (
-    core.IS_TEST &&
-    (process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true' ||
-      process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true')
-  ) {
+  // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
+  if (isUsingStripeMock()) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,

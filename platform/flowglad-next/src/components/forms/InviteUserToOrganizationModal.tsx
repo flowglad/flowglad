@@ -21,10 +21,10 @@ const InviteUserToOrganizationModal: React.FC<
       setIsOpen={setIsOpen}
       title="Invite User to Organization"
       formSchema={inviteUserToOrganizationSchema}
-      defaultValues={{
+      defaultValues={() => ({
         email: '',
         name: '',
-      }}
+      })}
       onSubmit={inviteUserMutation.mutateAsync}
       onSuccess={() => {
         trpcContext.organizations.getMembers.invalidate()
