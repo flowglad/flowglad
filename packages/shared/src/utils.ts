@@ -37,23 +37,22 @@ export const constructCheckFeatureAccess = (
       return false
     }
 
-    const featureItems = subscription.featureItems
-      ?? subscription.experimental?.featureItems
-      ?? []
+    // Prefer top-level featureItems, fall back to experimental.featureItems
+    const featureItems: FeatureItem[] =
+      subscription.featureItems ??
+      (subscription.experimental?.featureItems as
+        | FeatureItem[]
+        | undefined) ??
+      []
 
-    const featureItemsBySlug =
-      featureItems.reduce(
-        (
-          acc: Record<string, FeatureItem>,
-          featureItem: FeatureItem
-        ) => {
-          if (featureItem.type === 'toggle') {
-            acc[featureItem.slug] = featureItem
-          }
-          return acc
-        },
-        {} as Record<string, FeatureItem>
-      )
+    const featureItemsBySlug = featureItems.reduce<
+      Record<string, FeatureItem>
+    >((acc, featureItem) => {
+      if (featureItem.type === 'toggle') {
+        acc[featureItem.slug] = featureItem
+      }
+      return acc
+    }, {})
     const featureItem = featureItemsBySlug[featureSlug]
     if (!featureItem) {
       return false
