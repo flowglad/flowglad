@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import { addDays, subDays } from 'date-fns'
 import {
   setupBillingPeriod,
@@ -12,7 +12,11 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { calculateAdjustmentPreview } from '@/subscriptions/adjustSubscription'
@@ -25,13 +29,23 @@ import {
   SubscriptionStatus,
 } from '@/types'
 
-describe('previewAdjustSubscription', async () => {
-  const { organization, price, product, pricingModel } =
-    await setupOrg()
+describe('previewAdjustSubscription', () => {
+  let organization: Organization.Record
+  let price: Price.Record
+  let product: Product.Record
+  let pricingModel: PricingModel.Record
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let subscription: Subscription.Record
+
+  beforeAll(async () => {
+    const result = await setupOrg()
+    organization = result.organization
+    price = result.price
+    product = result.product
+    pricingModel = result.pricingModel
+  })
 
   beforeEach(async () => {
     customer = await setupCustomer({
