@@ -1,4 +1,5 @@
 import { handleHealth } from './routes/health'
+import { handleUnkeyRoute } from './routes/unkey'
 
 const SVIX_PORT = 9001
 const UNKEY_PORT = 9002
@@ -7,10 +8,11 @@ const TRIGGER_PORT = 9003
 interface ServerConfig {
   port: number
   serviceName: string
+  routeHandler?: (req: Request, pathname: string) => Response | null
 }
 
 function createServer(config: ServerConfig): void {
-  const { port, serviceName } = config
+  const { port, serviceName, routeHandler } = config
 
   Bun.serve({
     port,
@@ -19,6 +21,14 @@ function createServer(config: ServerConfig): void {
 
       if (url.pathname === '/health') {
         return handleHealth(serviceName)
+      }
+
+      // Try service-specific route handler
+      if (routeHandler) {
+        const response = routeHandler(req, url.pathname)
+        if (response) {
+          return response
+        }
       }
 
       return new Response(
@@ -43,7 +53,11 @@ function createServer(config: ServerConfig): void {
 
 // Start all mock servers
 createServer({ port: SVIX_PORT, serviceName: 'svix' })
-createServer({ port: UNKEY_PORT, serviceName: 'unkey' })
+createServer({
+  port: UNKEY_PORT,
+  serviceName: 'unkey',
+  routeHandler: handleUnkeyRoute,
+})
 createServer({ port: TRIGGER_PORT, serviceName: 'trigger' })
 
 console.log('\nMock servers started:')
