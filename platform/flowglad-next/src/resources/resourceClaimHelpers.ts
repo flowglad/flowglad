@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { FeatureType } from '@db-core/enums'
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+=======
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import { metadataSchema } from '@db-core/tableUtils'
 import { sql } from 'drizzle-orm'
 import * as core from 'nanoid'

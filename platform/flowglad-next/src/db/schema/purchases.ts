@@ -1,11 +1,6 @@
 import { currencyCodeSchema } from '@db-core/commonZodSchema'
 import { buildSchemas } from '@db-core/createZodSchemas'
 import {
-  IntervalUnit,
-  PriceType,
-  PurchaseStatus,
-} from '@db-core/enums'
-import {
   constructIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
@@ -48,6 +43,7 @@ import {
 } from '@/db/schema/products'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
 import core from '@/utils/core'
 
 export const TABLE_NAME = 'purchases'

@@ -1,6 +1,5 @@
 import { currencyCodeSchema } from '@db-core/commonZodSchema'
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { CurrencyCode, PaymentMethodType } from '@db-core/enums'
 import {
   constructIndex,
   createSupabaseWebhookSchema,
@@ -37,7 +36,11 @@ import {
   organizations,
 } from '@/db/schema/organizations'
 import { purchases } from '@/db/schema/purchases'
-import { FeeCalculationType } from '@/types'
+import {
+  CurrencyCode,
+  FeeCalculationType,
+  PaymentMethodType,
+} from '@/types'
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
 import { billingPeriods } from './billingPeriods'
 import { prices } from './prices'

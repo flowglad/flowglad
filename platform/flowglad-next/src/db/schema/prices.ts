@@ -1,6 +1,5 @@
 import { currencyCodeSchema } from '@db-core/commonZodSchema'
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -38,6 +37,7 @@ import {
   productsClientSelectSchema,
   productsClientUpdateSchema,
 } from '@/db/schema/products'
+import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 import { featuresClientSelectSchema } from './features'
 import {

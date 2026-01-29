@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { MembershipRole } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -24,6 +23,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import { users, usersSelectSchema } from '@/db/schema/users'
+import { MembershipRole } from '@/types'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
 

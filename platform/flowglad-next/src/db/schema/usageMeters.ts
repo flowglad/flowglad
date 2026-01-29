@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { PriceType, UsageMeterAggregationType } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -24,6 +23,7 @@ import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import { pricesClientInsertSchema } from '@/db/schema/prices'
 import { pricingModels } from '@/db/schema/pricingModels'
+import { PriceType, UsageMeterAggregationType } from '@/types'
 import core, { safeZodSanitizedString } from '@/utils/core'
 
 const TABLE_NAME = 'usage_meters'

@@ -1,9 +1,5 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
 import {
-  CheckoutSessionType,
-  PaymentMethodType,
-} from '@db-core/enums'
-import {
   constructIndex,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -31,7 +27,11 @@ import {
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { billingAddressSchema } from '@/db/schema/organizations'
-import { CheckoutSessionStatus } from '@/types'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PaymentMethodType,
+} from '@/types'
 import core from '@/utils/core'
 import { customers } from './customers'
 import { discounts } from './discounts'

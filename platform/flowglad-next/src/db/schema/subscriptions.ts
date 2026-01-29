@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { IntervalUnit, SubscriptionStatus } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -36,6 +35,7 @@ import {
   customers,
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
+import { IntervalUnit, SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
 import { organizations } from './organizations'
 import { paymentMethods } from './paymentMethods'

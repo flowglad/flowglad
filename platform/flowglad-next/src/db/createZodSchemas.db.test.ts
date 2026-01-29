@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'bun:test'
 import { buildSchemas } from '@db-core/createZodSchemas'
+<<<<<<< HEAD
 import { TaxType } from '@db-core/enums'
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+=======
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import { pgEnumColumn, tableBase } from '@db-core/tableUtils'
 import { timestamptzMs } from '@db-core/timestampMs'
 import { pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+<<<<<<< HEAD
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import { buildSchemas } from '@/db/createZodSchemas'
+import { pgEnumColumn, tableBase } from '@/db/tableUtils'
+import { timestamptzMs } from '@/db/timestampMs'
+import { TaxType } from '@/types'
+=======
+import { TaxType } from '@/types'
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 
 /**
  * Test table: includes

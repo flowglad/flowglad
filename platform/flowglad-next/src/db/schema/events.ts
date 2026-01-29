@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { EventNoun, FlowgladEventType } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -16,6 +15,7 @@ import {
 import { sql } from 'drizzle-orm'
 import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+import { EventNoun, FlowgladEventType } from '@/types'
 import core from '@/utils/core'
 import { organizations } from './organizations'
 import { pricingModels } from './pricingModels'

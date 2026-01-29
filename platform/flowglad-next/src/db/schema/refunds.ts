@@ -1,6 +1,5 @@
 import { currencyCodeSchema } from '@db-core/commonZodSchema'
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { CurrencyCode, RefundStatus } from '@db-core/enums'
 import {
   constructIndex,
   enableCustomerReadPolicy,
@@ -29,6 +28,7 @@ import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
 import { pricingModels } from '@/db/schema/pricingModels'
 import { subscriptions } from '@/db/schema/subscriptions'
+import { CurrencyCode, RefundStatus } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'refunds'

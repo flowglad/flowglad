@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { SubscriptionItemType } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -20,6 +19,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
+import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
 import { pricingModels } from './pricingModels'
 import { usageMeters } from './usageMeters'

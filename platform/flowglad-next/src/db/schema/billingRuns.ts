@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { BillingRunStatus } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -26,6 +25,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { billingPeriods } from '@/db/schema/billingPeriods'
+import { BillingRunStatus } from '@/types'
 import core from '@/utils/core'
 import { paymentMethods } from './paymentMethods'
 import { pricingModels } from './pricingModels'

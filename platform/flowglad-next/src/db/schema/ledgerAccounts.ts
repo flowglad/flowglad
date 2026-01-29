@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { NormalBalanceType } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -26,6 +25,7 @@ import { organizations } from '@/db/schema/organizations'
 import { pricingModels } from '@/db/schema/pricingModels'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
+import { NormalBalanceType } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'ledger_accounts'

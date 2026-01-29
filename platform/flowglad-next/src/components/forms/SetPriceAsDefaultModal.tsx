@@ -1,6 +1,10 @@
 'use client'
 
+<<<<<<< HEAD
 import { PriceType } from '@db-core/enums'
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+=======
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import { idInputSchema } from '@db-core/tableUtils'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
@@ -18,6 +22,13 @@ import {
   editPriceSchema,
   type Price,
 } from '@/db/schema/prices'
+<<<<<<< HEAD
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import { idInputSchema } from '@/db/tableUtils'
+import { PriceType } from '@/types'
+=======
+import { PriceType } from '@/types'
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 
 interface SetPriceAsDefaultProps {
   trigger?: React.ReactNode

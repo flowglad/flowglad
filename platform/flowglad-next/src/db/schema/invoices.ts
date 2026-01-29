@@ -1,6 +1,5 @@
 import { currencyCodeSchema } from '@db-core/commonZodSchema'
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -32,7 +31,12 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
-import { InvoiceStatus, InvoiceType } from '@/types'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+} from '@/types'
 import core, { safeZodNullOrUndefined } from '@/utils/core'
 import { billingPeriods } from './billingPeriods'
 import { billingRuns } from './billingRuns'

@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { PaymentMethodType } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -20,6 +19,7 @@ import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { customers } from '@/db/schema/customers'
 import { pricingModels } from '@/db/schema/pricingModels'
+import { PaymentMethodType } from '@/types'
 import core, { zodOptionalNullableString } from '@/utils/core'
 import { billingAddressSchema } from './organizations'
 

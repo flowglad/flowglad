@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { SubscriptionItemType } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -29,6 +28,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { prices } from '@/db/schema/prices'
 import { subscriptions } from '@/db/schema/subscriptions'
+import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
 import { pricingModels } from './pricingModels'
 import { usageMeters } from './usageMeters'

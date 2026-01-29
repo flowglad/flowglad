@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { SubscriptionMeterPeriodCalculationStatus } from '@db-core/enums'
 import {
   constructIndex,
   enableCustomerReadPolicy,
@@ -29,6 +28,7 @@ import { organizations } from '@/db/schema/organizations'
 import { pricingModels } from '@/db/schema/pricingModels'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
+import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
 import core from '@/utils/core'
 import { billingRuns } from './billingRuns'
 import { invoices } from './invoices'

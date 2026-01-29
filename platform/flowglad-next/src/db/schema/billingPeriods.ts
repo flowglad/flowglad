@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { BillingPeriodStatus } from '@db-core/enums'
 import {
   constructIndex,
   hiddenColumnsForClientSchema,
@@ -15,6 +14,7 @@ import { sql } from 'drizzle-orm'
 import { boolean, pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { subscriptions } from '@/db/schema/subscriptions'
+import { BillingPeriodStatus } from '@/types'
 import core from '@/utils/core'
 import { pricingModels } from './pricingModels'
 

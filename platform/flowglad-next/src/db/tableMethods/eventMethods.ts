@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { EventNoun } from '@db-core/enums'
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+=======
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -20,6 +24,21 @@ import {
 import { payments } from '@/db/schema/payments'
 import { purchases } from '@/db/schema/purchases'
 import { subscriptions } from '@/db/schema/subscriptions'
+<<<<<<< HEAD
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import {
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import { EventNoun } from '@/types'
+=======
+import { EventNoun } from '@/types'
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<

@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { SubscriptionItemType } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -20,6 +19,7 @@ import { integer, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
+import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
 import { billingRuns } from './billingRuns'
 import { customerClientSelectSchema } from './customers'

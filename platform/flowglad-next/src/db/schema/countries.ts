@@ -1,6 +1,5 @@
 import { countryCodeSchema } from '@db-core/commonZodSchema'
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { CountryCode } from '@db-core/enums'
 import {
   constructUniqueIndex,
   customerRole,
@@ -16,6 +15,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
+import { CountryCode } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'countries'

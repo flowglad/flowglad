@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { FlowgladApiKeyType } from '@db-core/enums'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -22,6 +21,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import { pricingModels } from '@/db/schema/pricingModels'
+import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'api_keys'

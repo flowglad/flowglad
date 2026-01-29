@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { UsageCreditApplicationStatus } from '@db-core/enums'
 import {
   constructIndex,
   enableCustomerReadPolicy,
@@ -20,6 +19,7 @@ import { organizations } from '@/db/schema/organizations'
 import { pricingModels } from '@/db/schema/pricingModels'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageMeters } from '@/db/schema/usageMeters'
+import { UsageCreditApplicationStatus } from '@/types'
 import core from '@/utils/core'
 import { usageEvents } from './usageEvents'
 

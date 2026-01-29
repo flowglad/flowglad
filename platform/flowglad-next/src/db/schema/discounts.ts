@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -23,6 +22,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import { pricingModels } from '@/db/schema/pricingModels'
+import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'discounts'

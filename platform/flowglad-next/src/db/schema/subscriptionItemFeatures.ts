@@ -1,9 +1,5 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
 import {
-  FeatureType,
-  FeatureUsageGrantFrequency,
-} from '@db-core/enums'
-import {
   hiddenColumnsForClientSchema as baseHiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
   constructIndex,
@@ -37,6 +33,7 @@ import { productFeatures } from '@/db/schema/productFeatures'
 import { resources } from '@/db/schema/resources'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { usageMeters } from '@/db/schema/usageMeters'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import core, { zodOptionalNullableString } from '@/utils/core'
 
 const TABLE_NAME = 'subscription_item_features'

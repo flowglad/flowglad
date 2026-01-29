@@ -1,10 +1,5 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
 import {
-  BusinessOnboardingStatus,
-  CurrencyCode,
-  StripeConnectContractType,
-} from '@db-core/enums'
-import {
   clientWriteOmitsConstructor,
   constructIndex,
   constructUniqueIndex,
@@ -30,6 +25,11 @@ import { nanoid } from 'nanoid'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { countries } from '@/db/schema/countries'
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  StripeConnectContractType,
+} from '@/types'
 import { generateRandomBytes } from '@/utils/backendCore'
 import core, { zodOptionalNullableString } from '@/utils/core'
 

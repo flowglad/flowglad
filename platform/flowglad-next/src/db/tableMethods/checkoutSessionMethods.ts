@@ -1,4 +1,17 @@
+<<<<<<< HEAD
 import { CheckoutSessionType } from '@db-core/enums'
+||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import { Result } from 'better-result'
+import { and, eq, inArray, lt, not } from 'drizzle-orm'
+import {
+  type CheckoutSession,
+  checkoutSessions,
+  checkoutSessionsInsertSchema,
+  checkoutSessionsSelectSchema,
+  checkoutSessionsUpdateSchema,
+} from '@/db/schema/checkoutSessions'
+=======
+>>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import {
   createInsertFunction,
   createPaginatedSelectFunction,

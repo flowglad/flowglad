@@ -1,5 +1,4 @@
 import { buildSchemas } from '@db-core/createZodSchemas'
-import { DestinationEnvironment, IntervalUnit } from '@db-core/enums'
 import {
   constructIndex,
   createPaginatedListQuerySchema,
@@ -22,6 +21,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
+import { DestinationEnvironment, IntervalUnit } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'pricing_models'
