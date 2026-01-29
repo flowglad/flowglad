@@ -19576,9 +19576,9 @@
             "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
           },
           "canceledItemCount": {
-            "description": "The number of scheduled subscription items that were canceled",
+            "description": "The number of scheduled subscription items that were canceled (non-negative integer)",
             "type": "integer",
-            "minimum": -9007199254740991,
+            "minimum": 0,
             "maximum": 9007199254740991
           }
         },
