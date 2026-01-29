@@ -1,15 +1,27 @@
 import { BillingPeriodStatus } from '@db-core/enums'
 import {
-  createDerivePricingModelId,
-  createDerivePricingModelIds,
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  type ORMMethodCreatorConfig,
-  SelectConditions,
-  whereClauseFromObject,
-} from '@db-core/tableUtils'
+  type BillingPeriod,
+  billingPeriods,
+  billingPeriodsInsertSchema,
+  billingPeriodsSelectSchema,
+  billingPeriodsUpdateSchema,
+} from '@db-core/schema/billingPeriods'
+import {
+  customers,
+  customersSelectSchema,
+} from '@db-core/schema/customers'
+import {
+  invoices,
+  invoicesSelectSchema,
+} from '@db-core/schema/invoices'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import {
+  subscriptions,
+  subscriptionsSelectSchema,
+} from '@db-core/schema/subscriptions'
 import {
   createDerivePricingModelId,
   createDerivePricingModelIds,
@@ -32,25 +44,8 @@ import {
   ne,
   or,
 } from 'drizzle-orm'
-import {
-  type BillingPeriod,
-  billingPeriods,
-  billingPeriodsInsertSchema,
-  billingPeriodsSelectSchema,
-  billingPeriodsUpdateSchema,
-} from '@/db/schema/billingPeriods'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason } from '@/types'
-import { customers, customersSelectSchema } from '../schema/customers'
-import { invoices, invoicesSelectSchema } from '../schema/invoices'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import {
-  subscriptions,
-  subscriptionsSelectSchema,
-} from '../schema/subscriptions'
 import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<

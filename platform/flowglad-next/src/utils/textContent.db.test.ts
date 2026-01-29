@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
 import {
   selectOrganizationById,
   updateOrganization,

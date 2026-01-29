@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { FlowgladApiKeyType } from '@db-core/enums'
+import { type Customer, customers } from '@db-core/schema/customers'
+import {
+  type Membership,
+  memberships,
+} from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
+import { type User, users } from '@db-core/schema/users'
 import type { User as BetterAuthUser } from 'better-auth'
 import { eq } from 'drizzle-orm'
 import {
@@ -15,10 +22,6 @@ import {
   dbInfoForCustomerBillingPortal,
   getDatabaseAuthenticationInfo,
 } from '@/db/databaseAuthentication'
-import { type Customer, customers } from '@/db/schema/customers'
-import { type Membership, memberships } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
-import { type User, users } from '@/db/schema/users'
 import { selectMembershipAndOrganizationsByBetterAuthUserId } from '@/db/tableMethods/membershipMethods'
 import core from '@/utils/core'
 

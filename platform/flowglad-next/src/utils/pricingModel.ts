@@ -3,20 +3,20 @@ import {
   FeatureType,
   PriceType,
 } from '@db-core/enums'
-import { TRPCError } from '@trpc/server'
-import omit from 'ramda/src/omit'
-import type { Feature } from '@/db/schema/features'
+import type { Feature } from '@db-core/schema/features'
 import {
   type CreateProductPriceInput,
   Price,
   type ProductWithPrices,
   priceImmutableFields,
   pricesInsertSchema,
-} from '@/db/schema/prices'
-import type { ClonePricingModelInput } from '@/db/schema/pricingModels'
-import type { ProductFeature } from '@/db/schema/productFeatures'
-import type { Product } from '@/db/schema/products'
-import type { UsageMeter } from '@/db/schema/usageMeters'
+} from '@db-core/schema/prices'
+import type { ClonePricingModelInput } from '@db-core/schema/pricingModels'
+import type { ProductFeature } from '@db-core/schema/productFeatures'
+import type { Product } from '@db-core/schema/products'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { TRPCError } from '@trpc/server'
+import omit from 'ramda/src/omit'
 import {
   bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
   selectFeatures,

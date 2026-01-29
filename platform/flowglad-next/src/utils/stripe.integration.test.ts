@@ -1,21 +1,23 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import {
   BusinessOnboardingStatus,
+  CheckoutSessionStatus,
   CheckoutSessionType,
   CurrencyCode,
+  FeeCalculationType,
   PaymentMethodType,
   PriceType,
   StripeConnectContractType,
 } from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
 import Stripe from 'stripe'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import type { Purchase } from '@/db/schema/purchases'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,
@@ -23,7 +25,6 @@ import {
   describeIfStripeKey,
   getStripeTestClient,
 } from '@/test/stripeIntegrationHelpers'
-import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 import core from '@/utils/core'
 import {
   calculatePlatformApplicationFee,

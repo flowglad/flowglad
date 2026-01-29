@@ -1,5 +1,5 @@
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { differenceInDays, differenceInHours } from 'date-fns'
-import { RevenueChartIntervalUnit } from '@/types'
 
 /**
  * Two dots make a graph principle: this is the minimum range duration required

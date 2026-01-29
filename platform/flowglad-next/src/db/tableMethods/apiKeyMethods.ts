@@ -1,4 +1,11 @@
 import {
+  apiKeys,
+  apiKeysClientSelectSchema,
+  apiKeysInsertSchema,
+  apiKeysSelectSchema,
+  apiKeysUpdateSchema,
+} from '@db-core/schema/apiKeys'
+import {
   createCursorPaginatedSelectFunction,
   createDeleteFunction,
   createInsertFunction,
@@ -9,13 +16,6 @@ import {
 } from '@db-core/tableUtils'
 import { zodEpochMs } from '@db-core/timestampMs'
 import { z } from 'zod'
-import {
-  apiKeys,
-  apiKeysClientSelectSchema,
-  apiKeysInsertSchema,
-  apiKeysSelectSchema,
-  apiKeysUpdateSchema,
-} from '@/db/schema/apiKeys'
 import type { DbTransaction } from '@/db/types'
 import { selectOrganizations } from './organizationMethods'
 import { selectPricingModels } from './pricingModelMethods'

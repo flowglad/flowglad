@@ -1,4 +1,9 @@
 import {
+  createFeatureSchema,
+  editFeatureSchema,
+  featuresClientSelectSchema,
+} from '@db-core/schema/features'
+import {
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
   createPaginatedTableRowInputSchema,
@@ -12,11 +17,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createFeatureSchema,
-  editFeatureSchema,
-  featuresClientSelectSchema,
-} from '@/db/schema/features'
 import {
   featuresTableRowOutputSchema,
   insertFeature,

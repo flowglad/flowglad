@@ -1,4 +1,4 @@
-import type { Product } from '@/db/schema/products'
+import type { Product } from '@db-core/schema/products'
 
 export const dummyProduct: Product.Record = {
   id: '1',

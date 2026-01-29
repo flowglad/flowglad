@@ -1,5 +1,6 @@
 'use client'
 
+import { updateFocusedMembershipSchema } from '@db-core/schema/organizations'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -23,7 +24,6 @@ import {
   RadioGroupItem,
 } from '@/components/ui/radio-group'
 import { Skeleton } from '@/components/ui/skeleton'
-import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
 
 type FormValues = z.infer<typeof updateFocusedMembershipSchema>
 

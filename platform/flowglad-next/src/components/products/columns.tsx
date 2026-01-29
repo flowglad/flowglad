@@ -1,5 +1,8 @@
 'use client'
 
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import {
@@ -29,9 +32,6 @@ import {
   ActiveStatusTag,
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 
 export interface ProductRow {
   prices: Price.ClientRecord[]

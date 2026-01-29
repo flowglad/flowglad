@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { CheckoutSessionType } from '@db-core/enums'
+import { createCheckoutSessionInputSchema } from '@db-core/schema/checkoutSessions'
 import { z } from 'zod'
-import { createCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 
 const successUrl = 'https://example.com/success'
 const cancelUrl = 'https://example.com/cancel'

@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   IntervalUnit,
   PriceType,
 } from '@db-core/enums'
+import { checkoutSessions } from '@db-core/schema/checkoutSessions'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
@@ -15,8 +17,6 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { checkoutSessions } from '@/db/schema/checkoutSessions'
-import { CheckoutSessionStatus } from '@/types'
 import {
   deleteExpiredCheckoutSessionsAndFeeCalculations,
   selectCheckoutSessionById,

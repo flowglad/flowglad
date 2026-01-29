@@ -1,8 +1,10 @@
-<<<<<<< HEAD
 import { FeatureType, PriceType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import {
+  createProductFeatureInputSchema,
+  productFeatureClientSelectSchema,
+  productFeaturesPaginatedListSchema,
+  productFeaturesPaginatedSelectSchema,
+} from '@db-core/schema/productFeatures'
 import { idInputSchema } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
@@ -11,12 +13,6 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createProductFeatureInputSchema,
-  productFeatureClientSelectSchema,
-  productFeaturesPaginatedListSchema,
-  productFeaturesPaginatedSelectSchema,
-} from '@/db/schema/productFeatures'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import {

@@ -7,12 +7,18 @@ import {
   spyOn,
 } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   IntervalUnit,
   PaymentMethodType,
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { CreateCheckoutSessionInput } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Feature } from '@db-core/schema/features'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -22,11 +28,6 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Feature } from '@/db/schema/features'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
 import {
   selectCheckoutSessionById,
   updateCheckoutSessionBillingAddress,
@@ -38,7 +39,6 @@ import {
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
-import { CheckoutSessionStatus } from '@/types'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'

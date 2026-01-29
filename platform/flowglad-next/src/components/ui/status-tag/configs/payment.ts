@@ -1,3 +1,4 @@
+import { PaymentStatus } from '@db-core/enums'
 import {
   AlertCircle,
   AlertTriangle,
@@ -7,7 +8,6 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import { PaymentStatus } from '@/types'
 import type { StatusConfigItem } from '../types'
 
 export const paymentStatusConfig = {

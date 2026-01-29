@@ -5,6 +5,7 @@ import {
   DiscountAmountType,
   DiscountDuration,
 } from '@db-core/enums'
+import { Discount } from '@db-core/schema/discounts'
 import { Check, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -19,7 +20,6 @@ import {
 } from '@/components/ui/detail-section'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { Discount } from '@/db/schema/discounts'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import ToggleDiscountModal from './ToggleDiscountModal'
 

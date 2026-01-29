@@ -1,8 +1,14 @@
-<<<<<<< HEAD
 import { PriceType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import {
+  createPriceSchema,
+  editPriceSchema,
+  Price,
+  pricesClientSelectSchema,
+  pricesPaginatedListSchema,
+  pricesPaginatedSelectSchema,
+  pricesTableRowDataSchema,
+  validateUsagePriceSlug,
+} from '@db-core/schema/prices'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -16,16 +22,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createPriceSchema,
-  editPriceSchema,
-  Price,
-  pricesClientSelectSchema,
-  pricesPaginatedListSchema,
-  pricesPaginatedSelectSchema,
-  pricesTableRowDataSchema,
-  validateUsagePriceSlug,
-} from '@/db/schema/prices'
 import {
   ensureUsageMeterHasDefaultPrice,
   safelyUpdatePrice,

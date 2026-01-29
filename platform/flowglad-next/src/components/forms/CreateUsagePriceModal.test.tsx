@@ -3,7 +3,7 @@ import { IntervalUnit, PriceType } from '@db-core/enums'
 import {
   createPriceFormSchema,
   pricesClientInsertSchema,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
 
 /**
  * Tests for CreateUsagePriceModal form schema validation.

@@ -6,6 +6,11 @@ import {
   setDefaultTimeout,
 } from 'bun:test'
 import { SubscriptionStatus } from '@db-core/enums'
+import {
+  type Customer,
+  editCustomerInputSchema,
+} from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
 import { TRPCError } from '@trpc/server'
 import {
   setupCustomer,
@@ -14,11 +19,6 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  type Customer,
-  editCustomerInputSchema,
-} from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import { customersRouter } from './customersRouter'

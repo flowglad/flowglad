@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { IntervalUnit, PriceType } from '@db-core/enums'
+import type { ApiKey } from '@db-core/schema/apiKeys'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { ResourceClaim } from '@db-core/schema/resourceClaims'
+import type { Resource } from '@db-core/schema/resources'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   setupCustomer,
   setupOrg,
@@ -15,12 +21,6 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import type { ApiKey } from '@/db/schema/apiKeys'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { ResourceClaim } from '@/db/schema/resourceClaims'
-import type { Resource } from '@/db/schema/resources'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   insertResourceClaim,
   selectResourceClaims,

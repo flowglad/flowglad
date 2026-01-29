@@ -1,13 +1,13 @@
 'use client'
 
+import type { Customer } from '@db-core/schema/customers'
+import type { Price } from '@db-core/schema/prices'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import type { UsageEvent } from '@db-core/schema/usageEvents'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import type { ColumnDef } from '@tanstack/react-table'
 import * as React from 'react'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
-import type { Customer } from '@/db/schema/customers'
-import type { Price } from '@/db/schema/prices'
-import type { Subscription } from '@/db/schema/subscriptions'
-import type { UsageEvent } from '@/db/schema/usageEvents'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 import core from '@/utils/core'
 
 export type UsageEventTableRowData = {

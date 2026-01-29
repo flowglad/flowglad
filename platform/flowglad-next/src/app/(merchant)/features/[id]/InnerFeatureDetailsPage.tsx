@@ -4,6 +4,9 @@ import {
   FeatureType,
   FeatureUsageGrantFrequency,
 } from '@db-core/enums'
+import { Feature } from '@db-core/schema/features'
+import { PricingModel } from '@db-core/schema/pricingModels'
+import { UsageMeter } from '@db-core/schema/usageMeters'
 import { Check, DollarSign, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -18,9 +21,6 @@ import {
   SectionValue,
 } from '@/components/ui/detail-section'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
-import { Feature } from '@/db/schema/features'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { UsageMeter } from '@/db/schema/usageMeters'
 import ToggleFeatureModal from './ToggleFeatureModal'
 
 interface InnerFeatureDetailsPageProps {

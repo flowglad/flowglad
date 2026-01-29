@@ -1,8 +1,16 @@
-<<<<<<< HEAD
-import { SubscriptionItemType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import { InvoiceStatus, SubscriptionItemType } from '@db-core/enums'
+import {
+  createInvoiceSchema,
+  editInvoiceSchema,
+  invoiceLineItemsClientSelectSchema,
+  invoicesPaginatedTableRowDataSchema,
+  invoiceWithLineItemsClientSchema,
+} from '@db-core/schema/invoiceLineItems'
+import {
+  invoicesClientSelectSchema,
+  invoicesPaginatedListSchema,
+  invoicesPaginatedSelectSchema,
+} from '@db-core/schema/invoices'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -13,18 +21,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createInvoiceSchema,
-  editInvoiceSchema,
-  invoiceLineItemsClientSelectSchema,
-  invoicesPaginatedTableRowDataSchema,
-  invoiceWithLineItemsClientSchema,
-} from '@/db/schema/invoiceLineItems'
-import {
-  invoicesClientSelectSchema,
-  invoicesPaginatedListSchema,
-  invoicesPaginatedSelectSchema,
-} from '@/db/schema/invoices'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   insertInvoiceLineItems,
@@ -43,7 +39,6 @@ import {
   selectOrganizationById,
 } from '@/db/tableMethods/organizationMethods'
 import { protectedProcedure, router } from '@/server/trpc'
-import { InvoiceStatus } from '@/types'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 import {

@@ -1,4 +1,9 @@
 import {
+  createResourceSchema,
+  editResourceSchema,
+  resourcesClientSelectSchema,
+} from '@db-core/schema/resources'
+import {
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
   createPaginatedTableRowInputSchema,
@@ -11,11 +16,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createResourceSchema,
-  editResourceSchema,
-  resourcesClientSelectSchema,
-} from '@/db/schema/resources'
 import {
   insertResource,
   resourcesTableRowOutputSchema,

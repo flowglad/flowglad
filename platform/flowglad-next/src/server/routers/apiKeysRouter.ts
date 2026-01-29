@@ -1,8 +1,8 @@
-<<<<<<< HEAD
 import { FlowgladApiKeyType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import {
+  apiKeysClientSelectSchema,
+  createApiKeyInputSchema,
+} from '@db-core/schema/apiKeys'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -14,26 +14,10 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  apiKeysClientSelectSchema,
-  createApiKeyInputSchema,
-} from '@/db/schema/apiKeys'
-import {
   selectApiKeyById,
   selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
-<<<<<<< HEAD
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
-import { FlowgladApiKeyType } from '@/types'
-import {
-=======
-import { FlowgladApiKeyType } from '@/types'
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import {
   createSecretApiKeyTransaction,
   deleteSecretApiKeyTransaction,

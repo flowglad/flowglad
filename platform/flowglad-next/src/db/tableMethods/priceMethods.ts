@@ -1,19 +1,37 @@
 import { FeatureType, PriceType } from '@db-core/enums'
 import {
-  createBulkInsertFunction,
-  createBulkInsertOrDoNothingFunction,
-  createCursorPaginatedSelectFunction,
-  createDerivePricingModelId,
-  createDerivePricingModelIds,
-  createInsertFunction,
-  createPaginatedSelectFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  type ORMMethodCreatorConfig,
-  type SelectConditions,
-  whereClauseFromObject,
-} from '@db-core/tableUtils'
+  type Feature,
+  features,
+  featuresSelectSchema,
+  resourceFeatureSelectSchema,
+} from '@db-core/schema/features'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import {
+  Price,
+  type ProductWithPrices,
+  prices,
+  pricesClientSelectSchema,
+  pricesInsertSchema,
+  pricesSelectSchema,
+  pricesTableRowDataSchema,
+  pricesUpdateSchema,
+} from '@db-core/schema/prices'
+import {
+  pricingModels,
+  pricingModelsSelectSchema,
+} from '@db-core/schema/pricingModels'
+import {
+  productFeatures,
+  productFeaturesSelectSchema,
+} from '@db-core/schema/productFeatures'
+import {
+  type Product,
+  products,
+  productsSelectSchema,
+} from '@db-core/schema/products'
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
@@ -38,16 +56,6 @@ import {
   type SQLWrapper,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import {
-  Price,
-  type ProductWithPrices,
-  prices,
-  pricesClientSelectSchema,
-  pricesInsertSchema,
-  pricesSelectSchema,
-  pricesTableRowDataSchema,
-  pricesUpdateSchema,
-} from '@/db/schema/prices'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -55,29 +63,6 @@ import type {
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
-import {
-  type Feature,
-  features,
-  featuresSelectSchema,
-  resourceFeatureSelectSchema,
-} from '../schema/features'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import {
-  pricingModels,
-  pricingModelsSelectSchema,
-} from '../schema/pricingModels'
-import {
-  productFeatures,
-  productFeaturesSelectSchema,
-} from '../schema/productFeatures'
-import {
-  type Product,
-  products,
-  productsSelectSchema,
-} from '../schema/products'
 import { selectCustomerById } from './customerMethods'
 import {
   selectPricingModelForCustomer,

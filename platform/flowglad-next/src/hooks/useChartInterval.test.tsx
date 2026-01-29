@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test'
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { act, renderHook } from '@testing-library/react'
-import { RevenueChartIntervalUnit } from '@/types'
 import { useChartInterval } from './useChartInterval'
 
 describe('useChartInterval', () => {

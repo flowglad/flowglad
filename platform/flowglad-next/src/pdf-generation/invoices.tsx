@@ -1,4 +1,13 @@
 import type { CurrencyCode } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
+import type {
+  BillingAddress,
+  Organization,
+} from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Payment } from '@db-core/schema/payments'
 import {
   Body,
   Column,
@@ -13,15 +22,6 @@ import {
 } from '@react-email/components'
 import type React from 'react'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
-import type { Customer } from '@/db/schema/customers'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
-import type {
-  BillingAddress,
-  Organization,
-} from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Payment } from '@/db/schema/payments'
 import type { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
 import { formatDate, titleCase } from '@/utils/core'
 import {

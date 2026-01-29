@@ -1,18 +1,14 @@
-<<<<<<< HEAD
 import { SubscriptionStatus } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import {
   CustomerSubscriptionCreatedEmail,

@@ -1,8 +1,11 @@
-<<<<<<< HEAD
 import { SubscriptionMeterPeriodCalculationStatus } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import {
+  SubscriptionMeterPeriodCalculation,
+  subscriptionMeterPeriodCalculationInsertSchema,
+  subscriptionMeterPeriodCalculationSelectSchema,
+  subscriptionMeterPeriodCalculations,
+  subscriptionMeterPeriodCalculationUpdateSchema,
+} from '@db-core/schema/subscriptionMeterPeriodCalculations'
 import {
   createInsertFunction,
   createSelectById,
@@ -12,27 +15,6 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import { sql } from 'drizzle-orm'
-import {
-  SubscriptionMeterPeriodCalculation,
-  subscriptionMeterPeriodCalculationInsertSchema,
-  subscriptionMeterPeriodCalculationSelectSchema,
-  subscriptionMeterPeriodCalculations,
-  subscriptionMeterPeriodCalculationUpdateSchema,
-} from '@/db/schema/subscriptionMeterPeriodCalculations'
-<<<<<<< HEAD
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-import {
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  createUpsertFunction,
-  type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
-=======
-import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import type { DbTransaction } from '../types'
 import { derivePricingModelIdFromUsageMeter } from './usageMeterMethods'
 

@@ -1,10 +1,8 @@
 'use client'
 
-<<<<<<< HEAD
-import { PaymentMethodType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import { PaymentMethodType, PaymentStatus } from '@db-core/enums'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Payment } from '@db-core/schema/payments'
 import { encodeCursor } from '@db-core/tableUtils'
 import {
   ChevronRight,
@@ -29,16 +27,6 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/components/ui/alert'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Payment } from '@/db/schema/payments'
-<<<<<<< HEAD
-import { PaymentStatus } from '@/types'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-import { encodeCursor } from '@/db/tableUtils'
-import { PaymentMethodType, PaymentStatus } from '@/types'
-=======
-import { PaymentMethodType, PaymentStatus } from '@/types'
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import core from '@/utils/core'
 import { getCurrencyParts } from '@/utils/stripe'
 

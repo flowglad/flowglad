@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
   PriceType,
   PurchaseStatus,
 } from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import { Result } from 'better-result'
 import {
   setupCheckoutSession,
@@ -14,14 +20,8 @@ import {
   setupPrice,
 } from '@/../seedDatabase'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
-import { CheckoutSessionStatus } from '@/types'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNonPaymentCheckoutSession'
 import core from '@/utils/core'

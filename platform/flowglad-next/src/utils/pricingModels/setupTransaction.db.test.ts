@@ -6,10 +6,10 @@ import {
   IntervalUnit,
   PriceType,
 } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
 import { hashData } from '@/utils/backendCore'
 import type {
   SetupPricingModelInput,

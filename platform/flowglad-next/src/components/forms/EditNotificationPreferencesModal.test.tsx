@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import type { NotificationPreferences } from '@db-core/schema/memberships'
 import {
   fireEvent,
   render,
@@ -8,7 +9,6 @@ import {
 import type { ReactNode } from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
-import type { NotificationPreferences } from '@/db/schema/memberships'
 
 interface FormModalMockProps<T extends FieldValues> {
   children: ReactNode

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { productFeatures } from '@db-core/schema/productFeatures'
 import { createDateNotPassedFilter } from '@db-core/tableUtils'
 import { zodEpochMs } from '@db-core/timestampMs'
 import { and, eq } from 'drizzle-orm'
@@ -10,7 +11,6 @@ import {
   setupToggleFeature,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { productFeatures } from '@/db/schema/productFeatures'
 import { updateProductFeature } from '@/db/tableMethods/productFeatureMethods'
 
 describe('zodEpochMs', () => {

@@ -1,5 +1,6 @@
 'use client'
 
+import type { InvoiceStatus } from '@db-core/enums'
 import {
   type ColumnSizingState,
   flexRender,
@@ -21,7 +22,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { InvoiceStatus } from '@/types'
 import core from '@/utils/core'
 import { columns, type InvoiceTableRowData } from './columns'
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { endOfDay, startOfDay, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
 import { ChartDivider, ChartGrid } from '@/components/charts'
@@ -10,7 +11,6 @@ import { IntervalPicker } from '@/components/ui/interval-picker'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { ProductPicker } from '@/components/ui/product-picker'
 import { useAuthContext } from '@/contexts/authContext'
-import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalConfig } from '@/utils/chartIntervalUtils'
 
 export interface DashboardPageProps {

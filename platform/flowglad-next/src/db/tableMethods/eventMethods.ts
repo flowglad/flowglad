@@ -1,8 +1,15 @@
-<<<<<<< HEAD
 import { EventNoun } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import { customers } from '@db-core/schema/customers'
+import {
+  type Event,
+  events,
+  eventsInsertSchema,
+  eventsSelectSchema,
+  eventsUpdateSchema,
+} from '@db-core/schema/events'
+import { payments } from '@db-core/schema/payments'
+import { purchases } from '@db-core/schema/purchases'
+import { subscriptions } from '@db-core/schema/subscriptions'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -13,32 +20,6 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import { inArray } from 'drizzle-orm'
-import { customers } from '@/db/schema/customers'
-import {
-  type Event,
-  events,
-  eventsInsertSchema,
-  eventsSelectSchema,
-  eventsUpdateSchema,
-} from '@/db/schema/events'
-import { payments } from '@/db/schema/payments'
-import { purchases } from '@/db/schema/purchases'
-import { subscriptions } from '@/db/schema/subscriptions'
-<<<<<<< HEAD
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-import {
-  createBulkInsertOrDoNothingFunction,
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  createUpsertFunction,
-  type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import { EventNoun } from '@/types'
-=======
-import { EventNoun } from '@/types'
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<

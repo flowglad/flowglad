@@ -1,9 +1,9 @@
 'use client'
 
+import { InvoiceStatus } from '@db-core/enums'
 import { useState } from 'react'
 import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
-import { InvoiceStatus } from '@/types'
 import { InvoicesDataTable } from './data-table'
 
 const filterOptions = [

@@ -20,7 +20,9 @@
 
 import { expect } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CurrencyCode,
+  FeeCalculationType,
   PriceType,
   StripeConnectContractType,
 } from '@db-core/enums'
@@ -39,7 +41,6 @@ import { CountryDep } from '@/test/behaviorTest/dependencies/countryDependencies
 import { CustomerResidencyDep } from '@/test/behaviorTest/dependencies/customerResidencyDependencies'
 import { DiscountDep } from '@/test/behaviorTest/dependencies/discountDependencies'
 import { behaviorTest } from '@/test/behaviorTest/index'
-import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 
 // =============================================================================
 // Shared teardown function

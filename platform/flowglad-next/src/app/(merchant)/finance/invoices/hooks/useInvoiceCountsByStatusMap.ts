@@ -1,6 +1,6 @@
+import type { InvoiceStatus } from '@db-core/enums'
 import { useMemo } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import type { InvoiceStatus } from '@/types'
 
 export const useInvoiceCountsByStatusMap = () => {
   const { data, isLoading } =

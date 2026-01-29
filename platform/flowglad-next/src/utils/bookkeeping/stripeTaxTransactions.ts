@@ -1,8 +1,8 @@
 import { StripeConnectContractType } from '@db-core/enums'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
-import type { Payment } from '@/db/schema/payments'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Payment } from '@db-core/schema/payments'
 import {
   selectLatestFeeCalculation,
   updateFeeCalculation,

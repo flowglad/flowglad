@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-<<<<<<< HEAD
 import { MembershipRole } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import type { ApiKey } from '@db-core/schema/apiKeys'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
 import { NotFoundError } from '@db-core/tableUtils'
 import {
   setupCustomer,
@@ -12,22 +12,11 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import type { ApiKey } from '@/db/schema/apiKeys'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
 import {
   selectCustomers,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
-<<<<<<< HEAD
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-import { NotFoundError } from '@/db/tableUtils'
-import { MembershipRole } from '@/types'
-=======
-import { MembershipRole } from '@/types'
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 
 /**
  * Reference suite for merchant-facing RLS isolation using `authenticatedTransaction`.

@@ -1,15 +1,15 @@
 'use client'
 
+import {
+  createWebhookInputSchema,
+  type Webhook,
+} from '@db-core/schema/webhooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import FormModal from '@/components/forms/FormModal'
 import WebhookFormFields from '@/components/forms/WebhookFormFields'
-import {
-  createWebhookInputSchema,
-  type Webhook,
-} from '@/db/schema/webhooks'
 
 interface CreateWebhookModalProps {
   isOpen: boolean

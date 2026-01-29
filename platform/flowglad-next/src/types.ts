@@ -1,7 +1,9 @@
-import {
-  CheckoutSessionType,
-  SupabasePayloadType,
-} from '@db-core/enums'
+/**
+ * Application-specific types.
+ *
+ * NOTE: Database schema enums have been moved to db-core/enums.ts.
+ * Import those from '@db-core/enums' instead of this file.
+ */
 
 export type Nullish<T> = T | null | undefined
 
@@ -19,25 +21,6 @@ export type WithId<T> = T & IdNumberParam
 export enum ChargeType {
   Charge = 'charge',
   Refund = 'refund',
-}
-
-export enum RevenueChartIntervalUnit {
-  Year = 'year',
-  Month = 'month',
-  Week = 'week',
-  Day = 'day',
-  Hour = 'hour',
-}
-
-export enum InvoiceStatus {
-  Draft = 'draft',
-  Open = 'open',
-  Paid = 'paid',
-  Uncollectible = 'uncollectible',
-  Void = 'void',
-  FullyRefunded = 'refunded',
-  PartiallyRefunded = 'partially_refunded',
-  AwaitingPaymentConfirmation = 'awaiting_payment_confirmation',
 }
 
 export enum CheckoutFlowType {
@@ -74,6 +57,9 @@ export type KeysToSnakeCase<T> = {
  */
 export type SupabaseDatabaseRecord<T> = KeysToSnakeCase<T>
 
+// Import SupabasePayloadType from db-core for these interfaces
+import { SupabasePayloadType } from '@db-core/enums'
+
 export interface SupabaseInsertPayload<T = object> {
   type: SupabasePayloadType.INSERT
   table: string
@@ -101,40 +87,12 @@ export interface SupabaseDatabaseUpdatePayload<T = object> {
   old_record: SupabaseDatabaseRecord<T>
 }
 
-/**
- * Basically the Stripe payment intent statuses,
- * BUT omitting:
- * - requires_capture (because we don't do pre-auths)
- * - requires_confirmation (because we don't do pre-auths)
- * - requires_payment_method (because we map this to a past payment, which implies a payment method)
- * -
- * @see https://docs.stripe.com/payments/payment-intents/verifying-status#checking-status-retrieve
- */
-export enum PaymentStatus {
-  // FIXME: remove "canceled"
-  Canceled = 'canceled',
-  Failed = 'failed',
-  Refunded = 'refunded',
-  Processing = 'processing',
-  Succeeded = 'succeeded',
-  RequiresConfirmation = 'requires_confirmation',
-  RequiresAction = 'requires_action',
-}
-
 export enum CancellationReason {
   UpgradedToPaid = 'upgraded_to_paid',
   CustomerRequest = 'customer_request',
   NonPayment = 'non_payment',
   PricingModelMigration = 'pricing_model_migration',
   Other = 'other',
-}
-
-export enum CheckoutSessionStatus {
-  Open = 'open',
-  Pending = 'pending',
-  Succeeded = 'succeeded',
-  Failed = 'failed',
-  Expired = 'expired',
 }
 
 export enum FlowRunStatus {
@@ -228,17 +186,6 @@ export type LoggerData = LogData & {
   apiEnvironment?: ApiEnvironment
 }
 
-export enum FeeCalculationType {
-  SubscriptionPayment = 'subscription_payment',
-  CheckoutSessionPayment = 'checkout_session_payment',
-}
-
-export enum InvoiceType {
-  Subscription = 'subscription',
-  Purchase = 'purchase',
-  Standalone = 'standalone',
-}
-
 export enum SubscriptionCancellationArrangement {
   Immediately = 'immediately',
   AtEndOfCurrentBillingPeriod = 'at_end_of_current_billing_period',
@@ -258,46 +205,14 @@ export enum SubscriptionAdjustmentTiming {
   // AtFutureDate = 'at_future_date',
 }
 
+// Re-export CheckoutSessionType for SetupIntentableCheckoutSessionType
+import { CheckoutSessionType } from '@db-core/enums'
 export type SetupIntentableCheckoutSessionType = CheckoutSessionType
 
 export enum FeatureFlag {
   Usage = 'usage',
   ImmediateSubscriptionAdjustments = 'immediate_subscription_adjustments',
   SubscriptionWithUsage = 'subscription_with_usage',
-}
-
-export enum UsageCreditType {
-  /**
-   * Unlocked as a result of a subscription lifecycle event,
-   * such as on creation.
-   */
-  Grant = 'grant',
-  /**
-   * Unlocked as a result of a payment, including a subscription payment.
-   */
-  Payment = 'payment',
-}
-
-export enum UsageCreditStatus {
-  Pending = 'pending',
-  Posted = 'posted',
-}
-
-export enum UsageCreditSourceReferenceType {
-  InvoiceSettlement = 'invoice_settlement',
-  ManualAdjustment = 'manual_adjustment',
-  BillingPeriodTransition = 'billing_period_transition',
-  // FIXME: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
-}
-
-export enum LedgerEntryStatus {
-  Pending = 'pending',
-  Posted = 'posted',
-}
-
-export enum LedgerEntryDirection {
-  Debit = 'debit',
-  Credit = 'credit',
 }
 
 export enum LedgerTransactionInitiatingSourceType {
@@ -317,18 +232,8 @@ export enum PlanInterval {
   YEAR = 'year',
 }
 
-export enum LedgerEntryType {
-  UsageCost = 'usage_cost',
-  PaymentInitiated = 'payment_initiated',
-  PaymentFailed = 'payment_failed',
-  CreditGrantRecognized = 'credit_grant_recognized',
-  CreditBalanceAdjusted = 'credit_balance_adjusted',
-  CreditGrantExpired = 'credit_grant_expired',
-  PaymentRefunded = 'payment_refunded',
-  BillingAdjustment = 'billing_adjustment',
-  UsageCreditApplicationDebitFromCreditBalance = 'usage_credit_application_debit_from_credit_balance',
-  UsageCreditApplicationCreditTowardsUsageCost = 'usage_credit_application_credit_towards_usage_cost',
-}
+// Re-export LedgerEntryType for type definitions
+import { LedgerEntryType } from '@db-core/enums'
 
 type CreditableEntryType =
   | 'payment_initiated'

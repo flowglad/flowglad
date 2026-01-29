@@ -1,5 +1,7 @@
 'use client'
 
+import { PaymentStatus } from '@db-core/enums'
+import type { Payment } from '@db-core/schema/payments'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Copy, ExternalLink, Rewind, RotateCcw } from 'lucide-react'
 import * as React from 'react'
@@ -11,8 +13,6 @@ import {
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import { PaymentStatusTag } from '@/components/ui/status-tag'
-import type { Payment } from '@/db/schema/payments'
-import { PaymentStatus } from '@/types'
 import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import RefundPaymentModal from './RefundPaymentModal'

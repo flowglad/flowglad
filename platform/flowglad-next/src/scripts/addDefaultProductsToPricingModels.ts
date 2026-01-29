@@ -4,9 +4,9 @@ NODE_ENV=production bunx tsx src/scripts/addDefaultProductsToPricingModels.ts
 */
 
 import { IntervalUnit, PriceType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'

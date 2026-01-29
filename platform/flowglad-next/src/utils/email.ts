@@ -1,4 +1,6 @@
 import type { CurrencyCode } from '@db-core/enums'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
 import {
   type CreateEmailOptions,
   type CreateEmailRequestOptions,
@@ -6,8 +8,6 @@ import {
   Resend,
 } from 'resend'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 import { CustomerBillingPortalOTPEmail } from '@/email-templates/customer-billing-portal-otp'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'

@@ -5,6 +5,15 @@ import {
   IntervalUnit,
   PriceType,
 } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
+import {
+  nulledPriceColumns,
+  type Price,
+  usagePriceDefaultColumns,
+} from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -19,15 +28,6 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
-import type { Organization } from '../schema/organizations'
-import {
-  nulledPriceColumns,
-  type Price,
-  usagePriceDefaultColumns,
-} from '../schema/prices'
-import type { PricingModel } from '../schema/pricingModels'
-import type { Product } from '../schema/products'
-import type { UsageMeter } from '../schema/usageMeters'
 import { updateCustomer } from './customerMethods'
 import {
   bulkInsertPrices,

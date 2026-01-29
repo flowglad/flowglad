@@ -7,11 +7,18 @@ import {
   setSystemTime,
 } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentMethodType,
   PurchaseStatus,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import { Invoice } from '@db-core/schema/invoices'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import Stripe from 'stripe'
 import {
   setupBillingPeriod,
@@ -30,12 +37,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Purchase } from '@/db/schema/purchases'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyUpdateCheckoutSessionStatus,
@@ -55,7 +56,6 @@ import {
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
-import { CheckoutSessionStatus } from '@/types'
 import {
   type CoreSripeSetupIntent,
   calculateTrialEnd,

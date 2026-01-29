@@ -1,14 +1,27 @@
 import {
-<<<<<<< HEAD
   BillingPeriodStatus,
   IntervalUnit,
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import { Customer } from '@db-core/schema/customers'
+import { Organization } from '@db-core/schema/organizations'
 import {
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+  PRICE_ID_DESCRIPTION,
+  PRICE_SLUG_DESCRIPTION,
+  Price,
+} from '@db-core/schema/prices'
+import { Product } from '@db-core/schema/products'
+import { subscriptionItemClientSelectSchema } from '@db-core/schema/subscriptionItems'
+import {
+  retryBillingRunInputSchema,
+  subscriptionClientSelectSchema,
+  subscriptionsPaginatedListSchema,
+  subscriptionsPaginatedSelectSchema,
+  subscriptionsTableRowDataSchema,
+  updateSubscriptionPaymentMethodSchema,
+} from '@db-core/schema/subscriptions'
+import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
@@ -25,23 +38,6 @@ import {
   authenticatedTransaction,
   comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import { Customer } from '@/db/schema/customers'
-import { Organization } from '@/db/schema/organizations'
-import {
-  PRICE_ID_DESCRIPTION,
-  PRICE_SLUG_DESCRIPTION,
-  Price,
-} from '@/db/schema/prices'
-import { Product } from '@/db/schema/products'
-import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
-import {
-  retryBillingRunInputSchema,
-  subscriptionClientSelectSchema,
-  subscriptionsPaginatedListSchema,
-  subscriptionsPaginatedSelectSchema,
-  subscriptionsTableRowDataSchema,
-  updateSubscriptionPaymentMethodSchema,
-} from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
   assertCustomerNotArchived,

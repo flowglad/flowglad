@@ -1,4 +1,8 @@
 'use client'
+import type { Customer } from '@db-core/schema/customers'
+import type { Payment } from '@db-core/schema/payments'
+import type { Price } from '@db-core/schema/prices'
+import type { UsageEvent } from '@db-core/schema/usageEvents'
 import { Archive, Mail, Pencil, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -17,10 +21,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import type { Customer } from '@/db/schema/customers'
-import type { Payment } from '@/db/schema/payments'
-import type { Price } from '@/db/schema/prices'
-import type { UsageEvent } from '@/db/schema/usageEvents'
 import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 
 function InternalCustomerDetailsScreen({

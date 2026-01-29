@@ -7,7 +7,7 @@ import {
 import {
   type Price,
   pricesClientInsertSchema,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
 import { parseEditPriceDefaultValues } from './EditPriceModal'
 
 describe('parseEditPriceDefaultValues', () => {

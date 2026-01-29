@@ -1,4 +1,13 @@
 import {
+  type Feature,
+  features,
+  featuresClientSelectSchema,
+  featuresInsertSchema,
+  featuresSelectSchema,
+  featuresUpdateSchema,
+} from '@db-core/schema/features'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -12,21 +21,12 @@ import {
 } from '@db-core/tableUtils'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import {
-  type Feature,
-  features,
-  featuresClientSelectSchema,
-  featuresInsertSchema,
-  featuresSelectSchema,
-  featuresUpdateSchema,
-} from '@/db/schema/features'
 import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import type { PricingModel } from '../schema/pricingModels'
 import { selectPricingModels } from './pricingModelMethods'
 import {
   expireProductFeaturesByFeatureId,

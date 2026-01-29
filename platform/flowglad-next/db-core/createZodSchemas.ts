@@ -9,7 +9,7 @@ import {
 } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
-import type { PgTableWithId } from '@/db/types'
+import type { PgTableWithId } from './schemaTypes'
 import {
   clientWriteOmitsConstructor,
   hiddenColumnsForClientSchema,

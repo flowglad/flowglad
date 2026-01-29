@@ -1,23 +1,23 @@
-import { z } from 'zod'
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
   pricesClientSelectSchema,
-} from '@/db/schema/prices'
-import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+} from '@db-core/schema/prices'
+import { subscriptionItemFeaturesClientSelectSchema } from '@db-core/schema/subscriptionItemFeatures'
 import {
   staticSubscriptionItemClientSelectSchema,
   subscriptionItemClientInsertSchema,
   subscriptionItemClientSelectSchema,
   subscriptionItemsInsertSchema,
   subscriptionItemsSelectSchema,
-} from '@/db/schema/subscriptionItems'
+} from '@db-core/schema/subscriptionItems'
 import {
   nonRenewingSubscriptionClientSelectSchema,
   standardSubscriptionClientSelectSchema,
   subscriptionClientSelectSchema,
-} from '@/db/schema/subscriptions'
-import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
+} from '@db-core/schema/subscriptions'
+import { usageMeterBalanceClientSelectSchema } from '@db-core/schema/usageMeters'
+import { z } from 'zod'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,

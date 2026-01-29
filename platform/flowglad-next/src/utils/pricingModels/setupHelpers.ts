@@ -1,7 +1,7 @@
 import type { CurrencyCode } from '@db-core/enums'
 import { FeatureType, PriceType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
-import type { Price } from '@/db/schema/prices'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import {
   selectPrices,

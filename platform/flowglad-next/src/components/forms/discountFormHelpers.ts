@@ -6,7 +6,7 @@ import {
   type EditDiscountFormSchema,
   type EditDiscountInput,
   editDiscountInputSchema,
-} from '@/db/schema/discounts'
+} from '@db-core/schema/discounts'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 export function normalizeDiscountAmount(

@@ -1,16 +1,11 @@
-<<<<<<< HEAD
 import { NormalBalanceType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import {
   type LedgerAccount,
   ledgerAccounts,
   ledgerAccountsInsertSchema,
   ledgerAccountsSelectSchema,
   ledgerAccountsUpdateSchema,
-} from '@/db/schema/ledgerAccounts'
-import {
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+} from '@db-core/schema/ledgerAccounts'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -20,20 +15,6 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
-import {
-  type LedgerAccount,
-  ledgerAccounts,
-  ledgerAccountsInsertSchema,
-  ledgerAccountsSelectSchema,
-  ledgerAccountsUpdateSchema,
-} from '@/db/schema/ledgerAccounts'
-<<<<<<< HEAD
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-} from '@/db/tableUtils'
-import { NormalBalanceType } from '@/types'
-=======
-import { NormalBalanceType } from '@/types'
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
 import type { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
 import {

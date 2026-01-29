@@ -1,16 +1,12 @@
-<<<<<<< HEAD
 import { FeatureType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import type { ResourceClaim } from '@db-core/schema/resourceClaims'
+import { resourceClaims } from '@db-core/schema/resourceClaims'
+import type { Resource } from '@db-core/schema/resources'
+import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
 import { metadataSchema } from '@db-core/tableUtils'
 import { sql } from 'drizzle-orm'
 import * as core from 'nanoid'
 import { z } from 'zod'
-import type { ResourceClaim } from '@/db/schema/resourceClaims'
-import { resourceClaims } from '@/db/schema/resourceClaims'
-import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
   bulkReleaseResourceClaims,
   countActiveResourceClaims,

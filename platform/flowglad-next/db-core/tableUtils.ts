@@ -47,6 +47,8 @@ import {
 } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
+import { countryCodeSchema } from './commonZodSchema'
+import { CountryCode, SupabasePayloadType, TaxType } from './enums'
 import type {
   DbTransaction,
   PgStringColumn,
@@ -55,11 +57,9 @@ import type {
   PgTableWithIdAndPricingModelId,
   PgTableWithPosition,
   PgTimestampColumn,
-} from '@/db/types'
-import { CountryCode, SupabasePayloadType, TaxType } from '@/types'
-import core, { gitCommitId, IS_TEST } from '@/utils/core'
-import { countryCodeSchema } from './commonZodSchema'
+} from './schemaTypes'
 import { timestamptzMs } from './timestampMs'
+import core, { gitCommitId, IS_TEST } from './utils'
 
 /**
  * Custom error class for when a database record is not found.

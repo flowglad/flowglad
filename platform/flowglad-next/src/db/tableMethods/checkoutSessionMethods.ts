@@ -1,17 +1,15 @@
-<<<<<<< HEAD
-import { CheckoutSessionType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-import { Result } from 'better-result'
-import { and, eq, inArray, lt, not } from 'drizzle-orm'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+} from '@db-core/enums'
 import {
   type CheckoutSession,
   checkoutSessions,
   checkoutSessionsInsertSchema,
   checkoutSessionsSelectSchema,
   checkoutSessionsUpdateSchema,
-} from '@/db/schema/checkoutSessions'
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+} from '@db-core/schema/checkoutSessions'
+import { feeCalculations } from '@db-core/schema/feeCalculations'
 import {
   createInsertFunction,
   createPaginatedSelectFunction,
@@ -24,17 +22,8 @@ import {
 } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { and, eq, inArray, lt, not } from 'drizzle-orm'
-import {
-  type CheckoutSession,
-  checkoutSessions,
-  checkoutSessionsInsertSchema,
-  checkoutSessionsSelectSchema,
-  checkoutSessionsUpdateSchema,
-} from '@/db/schema/checkoutSessions'
 import type { DbTransaction } from '@/db/types'
 import { TerminalStateError, ValidationError } from '@/errors'
-import { CheckoutSessionStatus } from '@/types'
-import { feeCalculations } from '../schema/feeCalculations'
 import { selectCustomerById } from './customerMethods'
 import { selectInvoiceById } from './invoiceMethods'
 import { derivePricingModelIdFromPrice } from './priceMethods'

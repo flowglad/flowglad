@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 import { FeatureType, PriceType } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import type { CreateProductSchema } from '@db-core/schema/prices'
 import { encodeCursor } from '@db-core/tableUtils'
 import { useEffect, useMemo } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
@@ -10,7 +7,6 @@ import { trpc } from '@/app/_trpc/client'
 import MultipleSelector from '@/components/forms/MultiSelect'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { CreateProductSchema } from '@/db/schema/prices'
 import { cn } from '@/lib/utils'
 
 export const ProductFeatureMultiSelect = ({

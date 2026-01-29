@@ -1,6 +1,9 @@
 'use client'
 
 import { UsageMeterAggregationType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
+import { PricingModel } from '@db-core/schema/pricingModels'
+import { UsageMeter } from '@db-core/schema/usageMeters'
 import { sentenceCase } from 'change-case'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -13,9 +16,6 @@ import PageContainer from '@/components/PageContainer'
 import { UsagePricesGridSection } from '@/components/UsagePricesGridSection'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
-import type { Price } from '@/db/schema/prices'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { UsageMeter } from '@/db/schema/usageMeters'
 
 interface InnerUsageMeterDetailsPageProps {
   usageMeter: UsageMeter.ClientRecord

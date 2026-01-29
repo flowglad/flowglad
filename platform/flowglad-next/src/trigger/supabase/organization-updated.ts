@@ -1,5 +1,5 @@
+import type { Organization } from '@db-core/schema/organizations'
 import { logger, task } from '@trigger.dev/sdk'
-import type { Organization } from '@/db/schema/organizations'
 import { idempotentSendOrganizationPayoutsEnabledNotification } from '@/trigger/notifications/send-organization-payouts-enabled-notification'
 import type {
   SupabaseDatabaseRecord,

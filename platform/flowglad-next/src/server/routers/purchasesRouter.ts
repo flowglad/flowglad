@@ -1,8 +1,8 @@
-<<<<<<< HEAD
 import { PurchaseStatus } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import {
+  purchaseClientSelectSchema,
+  purchasesTableRowDataSchema,
+} from '@db-core/schema/purchases'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -13,10 +13,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  purchaseClientSelectSchema,
-  purchasesTableRowDataSchema,
-} from '@/db/schema/purchases'
 import {
   selectPurchaseById,
   selectPurchasesTableRowData,

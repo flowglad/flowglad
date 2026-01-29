@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { FlowgladApiKeyType } from '@db-core/enums'
-import type { ApiKey } from '@/db/schema/apiKeys'
-import type { Organization } from '@/db/schema/organizations'
+import type { ApiKey } from '@db-core/schema/apiKeys'
+import type { Organization } from '@db-core/schema/organizations'
 import {
   parseUnkeyMeta,
   type StandardCreateApiKeyParams,

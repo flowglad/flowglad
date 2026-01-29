@@ -4,7 +4,7 @@ import {
   type Price,
   singlePaymentPriceDefaultColumns,
   usagePriceDefaultColumns,
-} from '@/db/schema/prices'
+} from '@db-core/schema/prices'
 
 export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   id: '1',

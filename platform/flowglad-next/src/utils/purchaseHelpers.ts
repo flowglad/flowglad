@@ -1,11 +1,11 @@
 import { PriceType, PurchaseStatus } from '@db-core/enums'
-import Papa from 'papaparse'
-import type { Customer } from '@/db/schema/customers'
-import type { Price } from '@/db/schema/prices'
+import type { Customer } from '@db-core/schema/customers'
+import type { Price } from '@db-core/schema/prices'
 import {
   type Purchase,
   purchasesInsertSchema,
-} from '@/db/schema/purchases'
+} from '@db-core/schema/purchases'
+import Papa from 'papaparse'
 import core from './core'
 
 /**

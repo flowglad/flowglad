@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'bun:test'
 import { PriceType } from '@db-core/enums'
-import { TRPCError } from '@trpc/server'
-import {
-  singlePaymentDummyPrice,
-  subscriptionDummyPrice,
-  usageDummyPrice,
-} from '@/stubs/priceStubs'
 import {
   isReservedPriceSlug,
   type Price,
@@ -14,7 +8,13 @@ import {
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
   validateUsagePriceSlug,
-} from './prices'
+} from '@db-core/schema/prices'
+import { TRPCError } from '@trpc/server'
+import {
+  singlePaymentDummyPrice,
+  subscriptionDummyPrice,
+  usageDummyPrice,
+} from '@/stubs/priceStubs'
 
 const testStartingPriceToDestinationPrice = (
   startingPrice: Price.Record,

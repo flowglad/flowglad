@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
 import {
   adminTransactionUnwrap,
   comprehensiveAdminTransaction,
 } from './adminTransaction'
-import type { Organization } from './schema/organizations'
 import { selectOrganizations } from './tableMethods/organizationMethods'
 
 describe('comprehensiveAdminTransaction', () => {

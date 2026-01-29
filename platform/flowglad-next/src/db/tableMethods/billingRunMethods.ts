@@ -1,8 +1,11 @@
-<<<<<<< HEAD
 import { BillingRunStatus, SubscriptionStatus } from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
+import {
+  type BillingRun,
+  billingRuns,
+  billingRunsInsertSchema,
+  billingRunsSelectSchema,
+  billingRunsUpdateSchema,
+} from '@db-core/schema/billingRuns'
 import {
   createInsertFunction,
   createSelectById,
@@ -13,13 +16,6 @@ import {
 import { Result } from 'better-result'
 import { and, eq, lt } from 'drizzle-orm'
 import type { z } from 'zod'
-import {
-  type BillingRun,
-  billingRuns,
-  billingRunsInsertSchema,
-  billingRunsSelectSchema,
-  billingRunsUpdateSchema,
-} from '@/db/schema/billingRuns'
 import type { DbTransaction } from '@/db/types'
 import { ValidationError } from '@/errors'
 import { selectSubscriptionById } from './subscriptionMethods'

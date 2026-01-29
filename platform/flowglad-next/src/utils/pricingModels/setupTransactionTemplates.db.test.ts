@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import type { Organization } from '@db-core/schema/organizations'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
   AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE,
@@ -6,7 +7,6 @@ import {
   USAGE_LIMIT_SUBSCRIPTION_TEMPLATE,
 } from '@/constants/pricingModelTemplates'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
 
 let organization: Organization.Record

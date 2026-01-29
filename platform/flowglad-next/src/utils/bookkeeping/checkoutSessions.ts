@@ -1,29 +1,31 @@
 // checkoutSessions.ts
 
 import {
+  CheckoutSessionStatus,
+  FeeCalculationType,
   PriceType,
   PurchaseStatus,
   StripeConnectContractType,
 } from '@db-core/enums'
-import type Stripe from 'stripe'
 import {
   type CheckoutSession,
   CreateCheckoutSessionInput,
   CreateCheckoutSessionObject,
   type EditCheckoutSessionInput,
   feeReadyCheckoutSessionSelectSchema,
-} from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import type { Discount } from '@/db/schema/discounts'
-import type { Event } from '@/db/schema/events'
+} from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { DiscountRedemption } from '@db-core/schema/discountRedemptions'
+import type { Discount } from '@db-core/schema/discounts'
+import type { Event } from '@db-core/schema/events'
 import {
   checkoutSessionFeeCalculationParametersChanged,
   type FeeCalculation,
-} from '@/db/schema/feeCalculations'
-import type { Invoice } from '@/db/schema/invoices'
-import type { BillingAddress } from '@/db/schema/organizations'
-import type { Purchase } from '@/db/schema/purchases'
+} from '@db-core/schema/feeCalculations'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { BillingAddress } from '@db-core/schema/organizations'
+import type { Purchase } from '@db-core/schema/purchases'
+import type Stripe from 'stripe'
 import {
   insertCheckoutSession,
   selectCheckoutSessionById,
@@ -55,7 +57,6 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import {
   createCheckoutSessionFeeCalculation,

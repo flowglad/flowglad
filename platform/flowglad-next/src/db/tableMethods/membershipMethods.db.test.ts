@@ -3,7 +3,7 @@ import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type Membership,
   type NotificationPreferences,
-} from '@/db/schema/memberships'
+} from '@db-core/schema/memberships'
 import { getMembershipNotificationPreferences } from './membershipMethods'
 
 describe('getMembershipNotificationPreferences', () => {

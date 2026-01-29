@@ -1,25 +1,25 @@
 import {
   type CountryCode,
   type CurrencyCode,
+  FeeCalculationType,
   type PaymentMethodType,
   StripeConnectContractType,
 } from '@db-core/enums'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Country } from '@/db/schema/countries'
-import type { Discount } from '@/db/schema/discounts'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Country } from '@db-core/schema/countries'
+import type { Discount } from '@db-core/schema/discounts'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
 import type {
   BillingAddress,
   Organization,
-} from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Purchase } from '@/db/schema/purchases'
+} from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Purchase } from '@db-core/schema/purchases'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import type { DbTransaction } from '@/db/types'
-import { FeeCalculationType } from '@/types'
 import {
   calculateDiscountAmount,
   calculateFlowgladFeePercentage,

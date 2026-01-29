@@ -1,8 +1,8 @@
-<<<<<<< HEAD
 import {
   BillingPeriodStatus,
   BillingRunStatus,
   BusinessOnboardingStatus,
+  CheckoutSessionStatus,
   CheckoutSessionType,
   CurrencyCode,
   DiscountAmountType,
@@ -10,57 +10,51 @@ import {
   EventNoun,
   FeatureType,
   FeatureUsageGrantFrequency,
+  FeeCalculationType,
   FlowgladApiKeyType,
   FlowgladEventType,
   IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+  LedgerEntryDirection,
+  LedgerEntryStatus,
   NormalBalanceType,
   PaymentMethodType,
+  PaymentStatus,
   PriceType,
   PurchaseStatus,
   RefundStatus,
   StripeConnectContractType,
   SubscriptionMeterPeriodCalculationStatus,
   SubscriptionStatus,
-  UsageMeterAggregationType,
-} from '@db-core/enums'
-||||||| parent of b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-=======
->>>>>>> b097e5ae (Delete original src/db schema utils and update all imports to @db-core)
-import { testEnumColumn } from '@db-core/tableUtils'
-import { apiKeys } from '@/db/schema/apiKeys'
-import { billingPeriods } from '@/db/schema/billingPeriods'
-import { billingRuns } from '@/db/schema/billingRuns'
-import { checkoutSessions } from '@/db/schema/checkoutSessions'
-import { discountRedemptions } from '@/db/schema/discountRedemptions'
-import { discounts } from '@/db/schema/discounts'
-import { events } from '@/db/schema/events'
-import { features } from '@/db/schema/features'
-import { feeCalculations } from '@/db/schema/feeCalculations'
-import { invoices } from '@/db/schema/invoices'
-import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
-import { ledgerEntries } from '@/db/schema/ledgerEntries'
-import { organizations } from '@/db/schema/organizations'
-import { paymentMethods } from '@/db/schema/paymentMethods'
-import { payments } from '@/db/schema/payments'
-import { prices } from '@/db/schema/prices'
-import { purchases } from '@/db/schema/purchases'
-import { refunds } from '@/db/schema/refunds'
-import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
-import { subscriptions } from '@/db/schema/subscriptions'
-// Add new schema imports needed for the moved tests
-import { usageCredits } from '@/db/schema/usageCredits'
-import { usageMeters } from '@/db/schema/usageMeters'
-import {
-  CheckoutSessionStatus,
-  FeeCalculationType,
-  InvoiceStatus,
-  InvoiceType,
-  LedgerEntryDirection,
-  LedgerEntryStatus,
-  PaymentStatus,
   UsageCreditStatus,
   UsageCreditType,
-} from '@/types'
+  UsageMeterAggregationType,
+} from '@db-core/enums'
+import { apiKeys } from '@db-core/schema/apiKeys'
+import { billingPeriods } from '@db-core/schema/billingPeriods'
+import { billingRuns } from '@db-core/schema/billingRuns'
+import { checkoutSessions } from '@db-core/schema/checkoutSessions'
+import { discountRedemptions } from '@db-core/schema/discountRedemptions'
+import { discounts } from '@db-core/schema/discounts'
+import { events } from '@db-core/schema/events'
+import { features } from '@db-core/schema/features'
+import { feeCalculations } from '@db-core/schema/feeCalculations'
+import { invoices } from '@db-core/schema/invoices'
+import { ledgerAccounts } from '@db-core/schema/ledgerAccounts'
+import { ledgerEntries } from '@db-core/schema/ledgerEntries'
+import { organizations } from '@db-core/schema/organizations'
+import { paymentMethods } from '@db-core/schema/paymentMethods'
+import { payments } from '@db-core/schema/payments'
+import { prices } from '@db-core/schema/prices'
+import { purchases } from '@db-core/schema/purchases'
+import { refunds } from '@db-core/schema/refunds'
+import { subscriptionMeterPeriodCalculations } from '@db-core/schema/subscriptionMeterPeriodCalculations'
+import { subscriptions } from '@db-core/schema/subscriptions'
+// Add new schema imports needed for the moved tests
+import { usageCredits } from '@db-core/schema/usageCredits'
+import { usageMeters } from '@db-core/schema/usageMeters'
+import { testEnumColumn } from '@db-core/tableUtils'
 import type { DbTransaction } from './types'
 
 export const testDatabaseEnums = async (

@@ -1,18 +1,33 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   CountryCode,
   CurrencyCode,
   EventNoun,
   FeatureType,
   FeatureUsageGrantFrequency,
+  FeeCalculationType,
   FlowgladEventType,
   IntervalUnit,
+  InvoiceStatus,
   LedgerTransactionType,
   PaymentMethodType,
+  PaymentStatus,
   PriceType,
   PurchaseStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
 } from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Payment } from '@db-core/schema/payments'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type Stripe from 'stripe'
@@ -40,15 +55,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Payment } from '@/db/schema/payments'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import type { Purchase } from '@/db/schema/purchases'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
@@ -71,14 +77,6 @@ import {
   createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
 import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
-import {
-  CheckoutSessionStatus,
-  FeeCalculationType,
-  InvoiceStatus,
-  PaymentStatus,
-  UsageCreditSourceReferenceType,
-  UsageCreditStatus,
-} from '@/types'
 import {
   type CoreStripePaymentIntent,
   chargeStatusToPaymentStatus,
@@ -103,7 +101,7 @@ describe('ledgerCommandForPaymentSucceeded', () => {
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let subscription:
-    | import('@/db/schema/subscriptions').Subscription.Record
+    | import('@db-core/schema/subscriptions').Subscription.Record
     | null
   let invoice: Invoice.Record
   let payment: Payment.Record
@@ -2980,7 +2978,7 @@ describe('Process payment intent status updated', async () => {
     let singlePaymentPrice: Price.Record
     let customer: Customer.Record
     let paymentMethod: PaymentMethod.Record
-    let subscription: import('@/db/schema/subscriptions').Subscription.Record
+    let subscription: import('@db-core/schema/subscriptions').Subscription.Record
 
     beforeEach(async () => {
       const orgData = await setupOrg()

@@ -5,12 +5,12 @@ import {
   MembershipRole,
   StripeConnectContractType,
 } from '@db-core/enums'
-import { customAlphabet, nanoid } from 'nanoid'
 import {
   type CreateOrganizationInput,
   type Organization,
   organizationsClientSelectSchema,
-} from '@/db/schema/organizations'
+} from '@db-core/schema/organizations'
+import { customAlphabet, nanoid } from 'nanoid'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
   insertMembership,
