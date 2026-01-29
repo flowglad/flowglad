@@ -21,13 +21,16 @@ jobs:
           fi
 
           PAYLOAD=$(jq -n --arg title "$TITLE" --arg url "$URL" --arg author "$AUTHOR" '{
-            blocks: [{
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: ("🟡 <" + $url + "|" + $title + "> - " + $author + "\n\n")
-              }
-            }]
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: ("🟡 <" + $url + "|" + $title + "> - " + $author)
+                }
+              },
+              { type: "divider" }
+            ]
           }')
 
           curl -sS -f -X POST "$SLACK_WEBHOOK_URL" \
