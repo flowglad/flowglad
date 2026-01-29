@@ -188,6 +188,12 @@ export const auth = betterAuth({
   },
   session: {
     additionalFields: {
+      scope: {
+        type: 'string',
+        required: true,
+        defaultValue: 'merchant',
+        input: false, // don't allow user to set scope
+      },
       contextOrganizationId: {
         type: 'string',
         required: false,
