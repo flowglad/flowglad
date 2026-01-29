@@ -321,12 +321,14 @@ describe('subscriptionItemHelpers', () => {
           livemode: true,
         })
       ).unwrap()
-      product = await setupProduct({
-        organizationId: orgData.organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: orgData.pricingModel.id,
-      })
+      product = (
+        await setupProduct({
+          organizationId: orgData.organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: orgData.pricingModel.id,
+        })
+      ).unwrap()
       price = await setupPrice({
         productId: product.id,
         name: 'Test Price',

@@ -44,12 +44,14 @@ describe('Single Free Subscription Constraint', () => {
     ).unwrap()
 
     // Create free product and price
-    const freeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: orgData.pricingModel.id,
-      name: 'Free Plan',
-      livemode: true,
-    })
+    const freeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: orgData.pricingModel.id,
+        name: 'Free Plan',
+        livemode: true,
+      })
+    ).unwrap()
 
     freePrice = await setupPrice({
       productId: freeProduct.id,
@@ -63,12 +65,14 @@ describe('Single Free Subscription Constraint', () => {
     })
 
     // Create paid product and price
-    const paidProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: orgData.pricingModel.id,
-      name: 'Pro Plan',
-      livemode: true,
-    })
+    const paidProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: orgData.pricingModel.id,
+        name: 'Pro Plan',
+        livemode: true,
+      })
+    ).unwrap()
 
     paidPrice = await setupPrice({
       productId: paidProduct.id,

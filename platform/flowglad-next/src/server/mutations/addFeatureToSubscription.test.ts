@@ -168,12 +168,14 @@ describe('addFeatureToSubscription mutation', () => {
       })
     ).unwrap()
 
-    product = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: 'Test Product for Feature',
-      livemode: true,
-      pricingModelId: orgData.pricingModel.id,
-    })
+    product = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: 'Test Product for Feature',
+        livemode: true,
+        pricingModelId: orgData.pricingModel.id,
+      })
+    ).unwrap()
 
     price = await setupPrice({
       productId: product.id,
@@ -542,12 +544,14 @@ describe('addFeatureToSubscription mutation', () => {
     it('should throw error when feature belongs to different organization', async () => {
       // Create a second organization
       const otherOrgData = (await setupOrg()).unwrap()
-      const otherProduct = await setupProduct({
-        organizationId: otherOrgData.organization.id,
-        name: 'Other Org Product',
-        livemode: true,
-        pricingModelId: otherOrgData.pricingModel.id,
-      })
+      const otherProduct = (
+        await setupProduct({
+          organizationId: otherOrgData.organization.id,
+          name: 'Other Org Product',
+          livemode: true,
+          pricingModelId: otherOrgData.pricingModel.id,
+        })
+      ).unwrap()
 
       const [{ feature: otherOrgFeature }] =
         await setupTestFeaturesAndProductFeatures(
@@ -576,12 +580,14 @@ describe('addFeatureToSubscription mutation', () => {
     })
 
     it('should throw error when feature livemode does not match subscription livemode', async () => {
-      const testmodeProduct = await setupProduct({
-        organizationId: orgData.organization.id,
-        name: 'Testmode Product',
-        livemode: false,
-        pricingModelId: orgData.pricingModel.id,
-      })
+      const testmodeProduct = (
+        await setupProduct({
+          organizationId: orgData.organization.id,
+          name: 'Testmode Product',
+          livemode: false,
+          pricingModelId: orgData.pricingModel.id,
+        })
+      ).unwrap()
 
       const [{ feature: testmodeFeature }] =
         await setupTestFeaturesAndProductFeatures(

@@ -50,14 +50,16 @@ describe('createNonInvoiceCheckoutSession', () => {
     ).unwrap()
 
     // Create a non-default product for testing
-    const nonDefaultProduct = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      livemode: false,
-      pricingModelId: pricingModel.id,
-      active: true,
-      default: false,
-    })
+    const nonDefaultProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: false,
+        pricingModelId: pricingModel.id,
+        active: true,
+        default: false,
+      })
+    ).unwrap()
 
     singlePaymentPrice = await setupPrice({
       productId: nonDefaultProduct.id,

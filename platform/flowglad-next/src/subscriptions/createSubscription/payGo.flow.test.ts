@@ -92,11 +92,13 @@ describe('Pay as You Go Workflow E2E', () => {
       }
     )
 
-    const paidProduct = await setupProduct({
-      organizationId: organization.id,
-      name: 'Paid API Product',
-      pricingModelId: pricingModel.id,
-    })
+    const paidProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Paid API Product',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     await setupProductFeature({
       productId: freeProduct.id,

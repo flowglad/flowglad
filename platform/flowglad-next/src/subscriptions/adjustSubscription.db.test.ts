@@ -3723,11 +3723,13 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       // Create a basic product with basic price and basic feature
-      const basicProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Basic Product',
-        pricingModelId: pricingModel.id,
-      })
+      const basicProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Basic Product',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
 
       const basicPrice = await setupPrice({
         productId: basicProduct.id,
@@ -4029,11 +4031,13 @@ describe('adjustSubscription Integration Tests', async () => {
     describe('Path 1: Immediate upgrade with proration (billing run flow)', () => {
       it('creates billing run for prorated upgrade while preserving claim accessibility', async () => {
         // Setup: Create a resource and resource feature
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const resourceFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -4057,14 +4061,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 5,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 5,
+          })
+        ).unwrap()
 
         // Claim 3 resources before adjustment
         await adminTransaction(async (ctx) => {
@@ -4193,11 +4198,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
       it('validates capacity before creating billing run for upgrade', async () => {
         // Setup: Create a resource with current capacity
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const resourceFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -4221,14 +4228,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 5000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 10,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 10,
+          })
+        ).unwrap()
 
         // Claim 8 resources
         await adminTransaction(async (ctx) => {
@@ -4351,11 +4359,13 @@ describe('adjustSubscription Integration Tests', async () => {
     describe('Path 2: Downgrade/zero-charge (immediate adjustment)', () => {
       it('preserves existing claims after upgrade without proration', async () => {
         // Setup: Create a resource and resource feature
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const resourceFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -4381,14 +4391,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 5,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 5,
+          })
+        ).unwrap()
 
         // Claim 3 resources
         await adminTransaction(async (ctx) => {
@@ -4508,11 +4519,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
       it('preserves existing claims after downgrade when new capacity >= active claims', async () => {
         // Setup: Create a resource with high capacity
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const highCapacityFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -4548,14 +4561,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: highCapacityFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 10,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: highCapacityFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 10,
+          })
+        ).unwrap()
 
         // Claim 3 resources (less than new capacity)
         await adminTransaction(async (ctx) => {
@@ -4672,11 +4686,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
       it('rejects downgrade when new capacity would be less than active claims', async () => {
         // Setup: Create a resource with high capacity
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const highCapacityFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -4712,14 +4728,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: highCapacityFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 10,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: highCapacityFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 10,
+          })
+        ).unwrap()
 
         // Claim 5 resources
         await adminTransaction(async (ctx) => {
@@ -4852,11 +4869,13 @@ describe('adjustSubscription Integration Tests', async () => {
     describe('Path 3: End-of-period adjustment', () => {
       it('validates capacity at adjustment scheduling time, not when adjustment applies', async () => {
         // Setup: Create a resource with high capacity
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const highCapacityFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -4880,14 +4899,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: highCapacityFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 10,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: highCapacityFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 10,
+          })
+        ).unwrap()
 
         // Claim 5 resources
         await adminTransaction(async (ctx) => {
@@ -4907,12 +4927,14 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create a plan with capacity less than current claims
-        const tinyProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Tiny Product',
-          pricingModelId: pricingModel.id,
-          livemode: subscription.livemode,
-        })
+        const tinyProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Tiny Product',
+            pricingModelId: pricingModel.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
 
         const tinyPrice = await setupPrice({
           productId: tinyProduct.id,
@@ -5009,11 +5031,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
       it('preserves claims when scheduling valid end-of-period downgrade', async () => {
         // Setup: Create a resource
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const highCapacityFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -5037,14 +5061,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 2000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: highCapacityFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 10,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: highCapacityFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 10,
+          })
+        ).unwrap()
 
         // Claim 3 resources (less than new capacity)
         await adminTransaction(async (ctx) => {
@@ -5064,12 +5089,14 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create a plan with capacity >= current claims
-        const basicProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Basic Product',
-          pricingModelId: pricingModel.id,
-          livemode: subscription.livemode,
-        })
+        const basicProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Basic Product',
+            pricingModelId: pricingModel.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
 
         const basicPrice = await setupPrice({
           productId: basicProduct.id,
@@ -5185,11 +5212,13 @@ describe('adjustSubscription Integration Tests', async () => {
     describe('Multi-item capacity aggregation', () => {
       it('aggregates capacity across multiple subscription items when validating downgrade', async () => {
         // Setup: Create a resource
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         // Create base plan with 3 seat capacity
         const basePlanFeature = await setupResourceFeature({
@@ -5208,11 +5237,13 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create addon with 2 seat capacity
-        const addonProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Seat Addon',
-          pricingModelId: pricingModel.id,
-        })
+        const addonProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Seat Addon',
+            pricingModelId: pricingModel.id,
+          })
+        ).unwrap()
 
         const addonPrice = await setupPrice({
           productId: addonProduct.id,
@@ -5249,14 +5280,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: baseItem.id,
-          featureId: basePlanFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 3,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: baseItem.id,
+            featureId: basePlanFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 3,
+          })
+        ).unwrap()
 
         const addonItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5265,14 +5297,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 500,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: addonItem.id,
-          featureId: addonFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 2,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: addonItem.id,
+            featureId: addonFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 2,
+          })
+        ).unwrap()
 
         // Claim 4 resources (uses capacity from both items)
         await adminTransaction(async (ctx) => {
@@ -5361,11 +5394,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
       it('allows adjustment when aggregated capacity is sufficient', async () => {
         // Setup: Create a resource
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         // Create base plan with 3 seat capacity
         const basePlanFeature = await setupResourceFeature({
@@ -5384,11 +5419,13 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create addon with 2 seat capacity
-        const addonProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Seat Addon',
-          pricingModelId: pricingModel.id,
-        })
+        const addonProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Seat Addon',
+            pricingModelId: pricingModel.id,
+          })
+        ).unwrap()
 
         const addonPrice = await setupPrice({
           productId: addonProduct.id,
@@ -5425,14 +5462,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: baseItem.id,
-          featureId: basePlanFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 3,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: baseItem.id,
+            featureId: basePlanFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 3,
+          })
+        ).unwrap()
 
         const addonItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -5441,14 +5479,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 500,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: addonItem.id,
-          featureId: addonFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 2,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: addonItem.id,
+            featureId: addonFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 2,
+          })
+        ).unwrap()
 
         // Claim 2 resources (can be satisfied by base plan alone)
         await adminTransaction(async (ctx) => {
@@ -5547,11 +5586,13 @@ describe('adjustSubscription Integration Tests', async () => {
     describe('Post-adjustment operations', () => {
       it('allows claiming resources after adjustment with new subscription items', async () => {
         // Setup: Create a resource
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const resourceFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -5575,14 +5616,15 @@ describe('adjustSubscription Integration Tests', async () => {
           quantity: 1,
           unitPrice: 1000,
         })
-
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 5,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 5,
+          })
+        ).unwrap()
 
         // Claim 2 resources before adjustment
         await adminTransaction(async (ctx) => {
@@ -5721,11 +5763,13 @@ describe('adjustSubscription Integration Tests', async () => {
 
       it('allows releasing claims after adjustment', async () => {
         // Setup: Create a resource
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         const resourceFeature = await setupResourceFeature({
           organizationId: organization.id,
@@ -5750,13 +5794,15 @@ describe('adjustSubscription Integration Tests', async () => {
           unitPrice: 1000,
         })
 
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: resourceFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 5,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 5,
+          })
+        ).unwrap()
 
         // Claim 3 resources before adjustment
         await adminTransaction(async (ctx) => {
@@ -5893,11 +5939,13 @@ describe('adjustSubscription Integration Tests', async () => {
       it('after immediate downgrade to exact capacity matching claims, further claims fail with no available capacity', async () => {
         // Edge Case 1: Downgrade to exact capacity, then try to claim more
         // Setup: 3 seat capacity, claim 2, downgrade to 2 seats, try to claim 3rd
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         // Create initial plan with 3 seat capacity
         const initialFeature = await setupResourceFeature({
@@ -5923,13 +5971,15 @@ describe('adjustSubscription Integration Tests', async () => {
           unitPrice: 1000,
         })
 
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: initialFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 3,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: initialFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 3,
+          })
+        ).unwrap()
 
         // Step 2: Claim 2 seats
         await adminTransaction(async (ctx) => {
@@ -6078,11 +6128,13 @@ describe('adjustSubscription Integration Tests', async () => {
         // succeed against OLD capacity, potentially resulting in claims > capacity
         // after the transition
 
-        const resource = await setupResource({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Seats',
-        })
+        const resource = (
+          await setupResource({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Seats',
+          })
+        ).unwrap()
 
         // Create initial plan with 3 seat capacity
         const initialFeature = await setupResourceFeature({
@@ -6108,13 +6160,15 @@ describe('adjustSubscription Integration Tests', async () => {
           unitPrice: 1000,
         })
 
-        await setupResourceSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: initialFeature.id,
-          resourceId: resource.id,
-          pricingModelId: pricingModel.id,
-          amount: 3,
-        })
+        ;(
+          await setupResourceSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: initialFeature.id,
+            resourceId: resource.id,
+            pricingModelId: pricingModel.id,
+            amount: 3,
+          })
+        ).unwrap()
 
         // Step 2: Claim 2 seats initially
         await adminTransaction(async (ctx) => {

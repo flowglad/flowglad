@@ -218,14 +218,16 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create a default product for the custom pricing model
-      const customProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Custom Default Product',
-        pricingModelId: customPricingModel.id,
-        default: true,
-        active: true,
-        livemode: false,
-      })
+      const customProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Custom Default Product',
+          pricingModelId: customPricingModel.id,
+          default: true,
+          active: true,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create a default price for the custom product
       const customPrice = await setupPrice({
@@ -313,17 +315,17 @@ describe('createCustomerBookkeeping', () => {
         name: 'Empty Pricing Model',
         isDefault: false,
         livemode: false,
-      })
-
-      // Create a non-default product (so there's no default product)
-      await setupProduct({
-        organizationId: organization.id,
-        name: 'Non-Default Product',
-        pricingModelId: emptyPricingModel.id,
-        default: false, // Not default
-        active: true,
-        livemode: false,
-      })
+      })(
+        // Create a non-default product (so there's no default product)
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Non-Default Product',
+          pricingModelId: emptyPricingModel.id,
+          default: false, // Not default
+          active: true,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Capture emitted events
       const emittedEvents: Event.Insert[] = []
@@ -413,14 +415,16 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create a default product
-      const productWithoutDefaultPrice = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product Without Default Price',
-        pricingModelId: pricingModelNoDefaultPrice.id,
-        default: true,
-        active: true,
-        livemode: false,
-      })
+      const productWithoutDefaultPrice = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product Without Default Price',
+          pricingModelId: pricingModelNoDefaultPrice.id,
+          default: true,
+          active: true,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create a non-default price
       // const nonDefaultPrice = await setupPrice({

@@ -1056,16 +1056,20 @@ describe('Customer Role RLS Policies', () => {
         name: 'PM B',
       })
 
-      const productA = await setupProduct({
-        organizationId: org1.id,
-        name: 'Product A',
-        pricingModelId: pmA.id,
-      })
-      const productB = await setupProduct({
-        organizationId: org1.id,
-        name: 'Product B',
-        pricingModelId: pmB.id,
-      })
+      const productA = (
+        await setupProduct({
+          organizationId: org1.id,
+          name: 'Product A',
+          pricingModelId: pmA.id,
+        })
+      ).unwrap()
+      const productB = (
+        await setupProduct({
+          organizationId: org1.id,
+          name: 'Product B',
+          pricingModelId: pmB.id,
+        })
+      ).unwrap()
 
       // Associate customerA with PM A
       await adminTransaction(async (ctx) => {
@@ -2171,12 +2175,14 @@ describe('Customer Role RLS Policies', () => {
       defaultPricingModel = orgData.pricingModel
 
       // Create a product for the default pricing model
-      const defaultProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: defaultPricingModel.id,
-        name: 'Default Product',
-        active: true,
-      })
+      const defaultProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: defaultPricingModel.id,
+          name: 'Default Product',
+          active: true,
+        })
+      ).unwrap()
 
       // Create a price for the product
       await setupPrice({

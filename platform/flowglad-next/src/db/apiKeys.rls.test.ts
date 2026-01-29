@@ -58,23 +58,27 @@ describe('API Key RLS', () => {
     const orgASetup = (await setupOrg()).unwrap()
     orgA = orgASetup.organization
     // Create testmode products for testing with testmode API keys
-    productInOrgA = await setupProduct({
-      organizationId: orgA.id,
-      name: 'Test Product A',
-      livemode: false, // testmode to match API keys
-      pricingModelId: orgASetup.testmodePricingModel.id,
-      active: true,
-    })
+    productInOrgA = (
+      await setupProduct({
+        organizationId: orgA.id,
+        name: 'Test Product A',
+        livemode: false, // testmode to match API keys
+        pricingModelId: orgASetup.testmodePricingModel.id,
+        active: true,
+      })
+    ).unwrap()
 
     const orgBSetup = (await setupOrg()).unwrap()
     orgB = orgBSetup.organization
-    productInOrgB = await setupProduct({
-      organizationId: orgB.id,
-      name: 'Test Product B',
-      livemode: false, // testmode to match API keys
-      pricingModelId: orgBSetup.testmodePricingModel.id,
-      active: true,
-    })
+    productInOrgB = (
+      await setupProduct({
+        organizationId: orgB.id,
+        name: 'Test Product B',
+        livemode: false, // testmode to match API keys
+        pricingModelId: orgBSetup.testmodePricingModel.id,
+        active: true,
+      })
+    ).unwrap()
 
     // Setup user with API key in orgA
     const userApiKeyA = (

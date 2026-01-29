@@ -647,18 +647,22 @@ describe('selectRevenueDataForOrganization', () => {
       const revenueChartIntervalUnit = RevenueChartIntervalUnit.Day
 
       // Setup Products
-      const productA = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product A',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
-      const productB = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product B',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const productA = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product A',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
+      const productB = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product B',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Setup Prices for Products
       const priceA = await setupPrice({
@@ -871,20 +875,24 @@ describe('selectRevenueDataForOrganization', () => {
       const revenueChartIntervalUnit = RevenueChartIntervalUnit.Day
 
       // Product A (will be filtered for, but has no payments)
-      const productA = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product A - No Revenue',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const productA = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product A - No Revenue',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Product B (has payments, but we won't filter for it)
-      const productB = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product B - Has Revenue',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const productB = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product B - Has Revenue',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const priceB = await setupPrice({
         productId: productB.id,

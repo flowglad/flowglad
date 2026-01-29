@@ -78,23 +78,29 @@ describe('selectDistinctSubscriptionProductNames', () => {
 
   it('should return deduplicated, case-insensitively ordered products for the given organization', async () => {
     // Create multiple products with different names (including case variations)
-    const product1 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'zebra',
-    })
+    const product1 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'zebra',
+      })
+    ).unwrap()
 
-    const product2 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Apple',
-    })
+    const product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Apple',
+      })
+    ).unwrap()
 
-    const product3 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Banana',
-    })
+    const product3 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Banana',
+      })
+    ).unwrap()
 
     // Create multiple prices for the same product to test deduplication
     const price1 = await setupPrice({
@@ -193,17 +199,21 @@ describe('selectDistinctSubscriptionProductNames', () => {
   })
 
   it('should only return products for the given organization', async () => {
-    const product1 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product Org1',
-    })
+    const product1 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product Org1',
+      })
+    ).unwrap()
 
-    const product2 = await setupProduct({
-      organizationId: organization2.id,
-      pricingModelId: pricingModel2.id,
-      name: 'Product Org2',
-    })
+    const product2 = (
+      await setupProduct({
+        organizationId: organization2.id,
+        pricingModelId: pricingModel2.id,
+        name: 'Product Org2',
+      })
+    ).unwrap()
 
     const price1 = await setupPrice({
       productId: product1.id,
@@ -354,17 +364,21 @@ describe('selectSubscriptionsTableRowData', () => {
     ).unwrap()
 
     // Setup products for filter testing
-    product1 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Premium Plan',
-    })
+    product1 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Premium Plan',
+      })
+    ).unwrap()
 
-    product2 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Basic Plan',
-    })
+    product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Basic Plan',
+      })
+    ).unwrap()
 
     price1 = await setupPrice({
       productId: product1.id,
@@ -433,11 +447,13 @@ describe('selectSubscriptionsTableRowData', () => {
       })
     ).unwrap()
 
-    productOtherOrg = await setupProduct({
-      organizationId: organization2.id,
-      pricingModelId: pricingModel2.id,
-      name: 'Premium Plan', // Same name as product1 to test isolation
-    })
+    productOtherOrg = (
+      await setupProduct({
+        organizationId: organization2.id,
+        pricingModelId: pricingModel2.id,
+        name: 'Premium Plan', // Same name as product1 to test isolation
+      })
+    ).unwrap()
 
     priceOtherOrg = await setupPrice({
       productId: productOtherOrg.id,
@@ -1416,11 +1432,13 @@ describe('insertSubscription', () => {
       })
     ).unwrap()
 
-    product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-    })
+    product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+      })
+    ).unwrap()
 
     price = await setupPrice({
       productId: product.id,
@@ -1543,11 +1561,13 @@ describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
       })
     ).unwrap()
 
-    product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-    })
+    product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+      })
+    ).unwrap()
 
     price1 = await setupPrice({
       productId: product.id,
@@ -1682,11 +1702,13 @@ describe('derivePricingModelIdFromSubscription', () => {
       })
     ).unwrap()
 
-    product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-    })
+    product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+      })
+    ).unwrap()
 
     price = await setupPrice({
       productId: product.id,

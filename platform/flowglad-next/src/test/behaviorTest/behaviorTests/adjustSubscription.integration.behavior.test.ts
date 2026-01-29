@@ -482,7 +482,7 @@ describe('adjustSubscription resource capacity validation', () => {
     })
 
     // Create subscription item feature with capacity
-    const subscriptionItemFeature =
+    const subscriptionItemFeature = (
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature!.id,
@@ -490,6 +490,7 @@ describe('adjustSubscription resource capacity validation', () => {
         pricingModelId: setup.pricingModel.id,
         amount: 5, // Initial capacity
       })
+    ).unwrap()
 
     // Create resource claims that exceed what the downgraded plan would provide
     // The initial resource feature has amount=5, downgrade has 0.5x multiplier
@@ -497,13 +498,15 @@ describe('adjustSubscription resource capacity validation', () => {
     const claimsToCreate = 4 // This should exceed the downgraded capacity
 
     for (let i = 0; i < claimsToCreate; i++) {
-      await setupResourceClaim({
-        resourceId: resource!.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
-        organizationId: setup.organization.id,
-        subscriptionId: setup.subscription.id,
-        pricingModelId: setup.pricingModel.id,
-      })
+      ;(
+        await setupResourceClaim({
+          resourceId: resource!.id,
+          subscriptionItemFeatureId: subscriptionItemFeature.id,
+          organizationId: setup.organization.id,
+          subscriptionId: setup.subscription.id,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
     }
 
     // Attempt the downgrade - should fail due to capacity validation

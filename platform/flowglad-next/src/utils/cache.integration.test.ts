@@ -737,11 +737,13 @@ describeIfRedisKey(
           customerId: customer.id,
         })
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Cache Test Product',
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Cache Test Product',
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Cache Test Price',
@@ -857,11 +859,13 @@ describeIfRedisKey(
           customerId: customer.id,
         })
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Invalidation Test Product',
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Invalidation Test Product',
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Invalidation Test Price',
@@ -1739,11 +1743,13 @@ describeIfRedisKey(
           customerId: customer.id,
         })
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Subscription Items Recompute Test Product',
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Subscription Items Recompute Test Product',
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Subscription Items Recompute Test Price',

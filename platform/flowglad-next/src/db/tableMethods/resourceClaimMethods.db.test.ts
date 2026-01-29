@@ -39,12 +39,14 @@ describe('resourceClaimMethods', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
 
     const customer = (
       await setupCustomer({
@@ -62,12 +64,14 @@ describe('resourceClaimMethods', () => {
       })
     ).unwrap()
 
-    const product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const price = await setupPrice({
       productId: product.id,
@@ -232,12 +236,14 @@ describe('resourceClaimMethods', () => {
 
     it('only counts claims for the specified subscription and resource', async () => {
       // Create a second resource for the same org
-      const resource2 = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'projects',
-        name: 'Projects',
-      })
+      const resource2 = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          slug: 'projects',
+          name: 'Projects',
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         // Create claims for the first resource
@@ -532,18 +538,22 @@ describe('resourceClaimMethods', () => {
   describe('countActiveResourceClaimsBatch', () => {
     it('returns counts for multiple resources in a single query', async () => {
       // Create additional resources
-      const resource2 = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'projects',
-        name: 'Projects',
-      })
-      const resource3 = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'teams',
-        name: 'Teams',
-      })
+      const resource2 = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          slug: 'projects',
+          name: 'Projects',
+        })
+      ).unwrap()
+      const resource3 = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          slug: 'teams',
+          name: 'Teams',
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         // Create 2 claims for resource 1
@@ -624,12 +634,14 @@ describe('resourceClaimMethods', () => {
     })
 
     it('returns 0 for resources with no claims', async () => {
-      const resource2 = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'projects',
-        name: 'Projects',
-      })
+      const resource2 = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          slug: 'projects',
+          name: 'Projects',
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         // Create claims only for resource 1

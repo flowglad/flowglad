@@ -1269,11 +1269,13 @@ describe('calculateMRRByMonth with productId filter', () => {
     } = (await setupOrg()).unwrap()
 
     // Create a second product with its own price
-    const productB = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product B',
-      pricingModelId: pricingModel.id,
-    })
+    const productB = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product B',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
     const priceB = await setupPrice({
       productId: productB.id,
       name: 'Product B Price',
@@ -1434,11 +1436,13 @@ describe('calculateMRRByMonth with productId filter', () => {
     } = (await setupOrg()).unwrap()
 
     // Create a second product with no subscriptions
-    const productB = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product B - No Subscriptions',
-      pricingModelId: pricingModel.id,
-    })
+    const productB = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product B - No Subscriptions',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     const customer = (
       await setupCustomer({

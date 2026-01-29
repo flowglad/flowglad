@@ -132,12 +132,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     // Set up required dependencies for payment
-    const product = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: `Test Product ${core.nanoid()}`,
-      pricingModelId: orgData.pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: `Test Product ${core.nanoid()}`,
+        pricingModelId: orgData.pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price',
@@ -227,12 +229,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     // Set up required dependencies for payment
-    const product = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: `Test Product ${core.nanoid()}`,
-      pricingModelId: orgData.pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: `Test Product ${core.nanoid()}`,
+        pricingModelId: orgData.pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price',
@@ -322,12 +326,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     // Set up required dependencies for purchase (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
-    const product = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: `Test Product ${core.nanoid()}`,
-      pricingModelId: orgData.pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: `Test Product ${core.nanoid()}`,
+        pricingModelId: orgData.pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price',
@@ -388,12 +394,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     // Set up required dependencies for subscription
-    const product = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: `Test Product ${core.nanoid()}`,
-      pricingModelId: orgData.pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: `Test Product ${core.nanoid()}`,
+        pricingModelId: orgData.pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price',
@@ -460,12 +468,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     // Set up required dependencies for subscription
-    const product = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: `Test Product ${core.nanoid()}`,
-      pricingModelId: orgData.pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: `Test Product ${core.nanoid()}`,
+        pricingModelId: orgData.pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price',
@@ -532,12 +542,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     // Set up required dependencies for subscription
-    const product = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: `Test Product ${core.nanoid()}`,
-      pricingModelId: orgData.pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: `Test Product ${core.nanoid()}`,
+        pricingModelId: orgData.pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price',

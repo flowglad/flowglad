@@ -95,12 +95,14 @@ describe('Pricing Model Migration Test Suite', async () => {
     })
 
     // Setup products and prices on each pricing model
-    product1 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel1.id,
-      name: 'Product 1',
-      default: true,
-    })
+    product1 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        name: 'Product 1',
+        default: true,
+      })
+    ).unwrap()
 
     price1 = await setupPrice({
       name: 'Free Plan Price 1',
@@ -113,12 +115,14 @@ describe('Pricing Model Migration Test Suite', async () => {
       isDefault: true,
     })
 
-    product2 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel2.id,
-      name: 'Product 2',
-      default: true,
-    })
+    product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
+        name: 'Product 2',
+        default: true,
+      })
+    ).unwrap()
 
     price2 = await setupPrice({
       name: 'Free Plan Price 2',
@@ -217,12 +221,14 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Setup: Create a separate paid product and price on pricing model 1
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Paid Product',
-        default: false,
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Paid Product',
+          default: false,
+        })
+      ).unwrap()
 
       const paidPrice = await setupPrice({
         name: 'Paid Plan Price',
@@ -299,12 +305,14 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Setup: Create first paid product and price on pricing model 1
-      const paidProduct1 = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Paid Product 1',
-        default: false,
-      })
+      const paidProduct1 = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Paid Product 1',
+          default: false,
+        })
+      ).unwrap()
 
       const paidPrice1 = await setupPrice({
         name: 'Paid Plan Price 1',
@@ -325,12 +333,14 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Setup: Create second paid product and price on pricing model 1
-      const paidProduct2 = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Paid Product 2',
-        default: false,
-      })
+      const paidProduct2 = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Paid Product 2',
+          default: false,
+        })
+      ).unwrap()
 
       const paidPrice2 = await setupPrice({
         name: 'Paid Plan Price 2',
@@ -538,12 +548,14 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Setup: Add a paid subscription on pricing model 1
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Paid Product Before Migration',
-        default: false,
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Paid Product Before Migration',
+          default: false,
+        })
+      ).unwrap()
 
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
@@ -1098,12 +1110,14 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should expire all subscription items when migrating', async () => {
       // Setup: Create product with features
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Paid Product with Features',
-        default: false,
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Paid Product with Features',
+          default: false,
+        })
+      ).unwrap()
 
       const paidPrice = await setupPrice({
         productId: paidProduct.id,

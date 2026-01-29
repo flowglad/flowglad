@@ -744,12 +744,14 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
     })
 
     // Create a resource
-    resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'team-seats',
-      name: 'Team Seats',
-    })
+    resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'team-seats',
+        name: 'Team Seats',
+      })
+    ).unwrap()
 
     // Create a resource feature
     resourceFeature = await adminTransaction(async (ctx) => {

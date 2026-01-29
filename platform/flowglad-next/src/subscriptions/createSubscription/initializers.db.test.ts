@@ -45,12 +45,14 @@ describe('insertSubscriptionAndItems', () => {
 
   describe('routing logic', () => {
     it('should throw an error if the price is not a subscription type', async () => {
-      const nonDefaultProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: product.pricingModelId,
-        name: 'Non Default Product',
-        livemode: true,
-      })
+      const nonDefaultProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: product.pricingModelId,
+          name: 'Non Default Product',
+          livemode: true,
+        })
+      ).unwrap()
       // setup:
       // - Create a price with type PriceType.SinglePayment.
       const singlePaymentPrice = await setupPrice({
@@ -343,12 +345,14 @@ describe('insertSubscriptionAndItems', () => {
       // setup:
       // - Create a standard subscription price.
       // - Construct params with autoStart: false (or undefined) and no payment method or trial.
-      const nonDefaultProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: product.pricingModelId,
-        name: 'Non Default Product',
-        livemode: true,
-      })
+      const nonDefaultProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: product.pricingModelId,
+          name: 'Non Default Product',
+          livemode: true,
+        })
+      ).unwrap()
       const nonDefaultPrice = await setupPrice({
         productId: nonDefaultProduct.id,
         type: PriceType.Subscription,

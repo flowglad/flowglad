@@ -55,12 +55,14 @@ describe('resourceClaimHelpers', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
 
     customer = (
       await setupCustomer({
@@ -140,7 +142,7 @@ describe('resourceClaimHelpers', () => {
       })
     ).unwrap()
 
-    subscriptionItemFeature =
+    subscriptionItemFeature = (
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -148,6 +150,7 @@ describe('resourceClaimHelpers', () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
+    ).unwrap()
   })
 
   describe('claimResourceTransaction', () => {
@@ -191,13 +194,15 @@ describe('resourceClaimHelpers', () => {
     it('when capacity is exhausted, throws an error indicating no available capacity', async () => {
       // Create 5 claims to exhaust the capacity
       for (let i = 0; i < 5; i++) {
-        await setupResourceClaim({
-          organizationId: organization.id,
-          resourceId: resource.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-          externalId: `user-${i}`,
-        })
+        ;(
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: `user-${i}`,
+          })
+        ).unwrap()
       }
 
       await expect(
@@ -406,13 +411,15 @@ describe('resourceClaimHelpers', () => {
       it('when claiming multiple resources atomically, either all claims succeed or none do (no partial inserts)', async () => {
         // Pre-fill 4 of 5 capacity slots
         for (let i = 0; i < 4; i++) {
-          await setupResourceClaim({
-            organizationId: organization.id,
-            resourceId: resource.id,
-            subscriptionId: subscription.id,
-            pricingModelId: pricingModel.id,
-            externalId: `prefill-${i}`,
-          })
+          ;(
+            await setupResourceClaim({
+              organizationId: organization.id,
+              resourceId: resource.id,
+              subscriptionId: subscription.id,
+              pricingModelId: pricingModel.id,
+              externalId: `prefill-${i}`,
+            })
+          ).unwrap()
         }
 
         // Try to claim 2 resources when only 1 slot available
@@ -1412,12 +1419,14 @@ describe('expired_at functionality', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
 
     customer = (
       await setupCustomer({
@@ -1497,7 +1506,7 @@ describe('expired_at functionality', () => {
       })
     ).unwrap()
 
-    subscriptionItemFeature =
+    subscriptionItemFeature = (
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -1505,41 +1514,48 @@ describe('expired_at functionality', () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
+    ).unwrap()
   })
 
   describe('expired claims filtering', () => {
     it('selectActiveResourceClaims excludes claims with expiredAt in the past', async () => {
       // Create a claim that has already expired (1 hour ago)
       const oneHourAgo = Date.now() - 60 * 60 * 1000
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'expired-user',
-        expiredAt: oneHourAgo,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'expired-user',
+          expiredAt: oneHourAgo,
+        })
+      ).unwrap()
 
       // Create an active claim (no expiration)
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'active-user',
-        expiredAt: null,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'active-user',
+          expiredAt: null,
+        })
+      ).unwrap()
 
       // Create a claim that expires in the future
       const oneHourFromNow = Date.now() + 60 * 60 * 1000
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'future-expiry-user',
-        expiredAt: oneHourFromNow,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'future-expiry-user',
+          expiredAt: oneHourFromNow,
+        })
+      ).unwrap()
 
       const activeClaims = (
         await adminTransaction(async (ctx) => {
@@ -1566,33 +1582,39 @@ describe('expired_at functionality', () => {
     it('countActiveResourceClaims excludes claims with expiredAt in the past', async () => {
       // Create 2 expired claims
       const oneHourAgo = Date.now() - 60 * 60 * 1000
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'expired-1',
-        expiredAt: oneHourAgo,
-      })
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'expired-2',
-        expiredAt: oneHourAgo,
-      })
-
-      // Create 3 active claims
-      for (let i = 0; i < 3; i++) {
+      ;(
         await setupResourceClaim({
           organizationId: organization.id,
           resourceId: resource.id,
           subscriptionId: subscription.id,
           pricingModelId: pricingModel.id,
-          externalId: `active-${i}`,
-          expiredAt: null,
+          externalId: 'expired-1',
+          expiredAt: oneHourAgo,
         })
+      ).unwrap()
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'expired-2',
+          expiredAt: oneHourAgo,
+        })
+      ).unwrap()
+
+      // Create 3 active claims
+      for (let i = 0; i < 3; i++) {
+        ;(
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: `active-${i}`,
+            expiredAt: null,
+          })
+        ).unwrap()
       }
 
       const count = (
@@ -1617,40 +1639,48 @@ describe('expired_at functionality', () => {
     it('getResourceUsage excludes expired claims from claimed count', async () => {
       // Create 2 expired claims
       const oneHourAgo = Date.now() - 60 * 60 * 1000
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'expired-1',
-        expiredAt: oneHourAgo,
-      })
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'expired-2',
-        expiredAt: oneHourAgo,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'expired-1',
+          expiredAt: oneHourAgo,
+        })
+      ).unwrap()
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'expired-2',
+          expiredAt: oneHourAgo,
+        })
+      ).unwrap()
 
       // Create 2 active claims
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'active-1',
-        expiredAt: null,
-      })
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'active-2',
-        expiredAt: null,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'active-1',
+          expiredAt: null,
+        })
+      ).unwrap()
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'active-2',
+          expiredAt: null,
+        })
+      ).unwrap()
 
       const usage = (
         await adminTransaction(async (ctx) => {
@@ -1807,43 +1837,51 @@ describe('expired_at functionality', () => {
     it('releases claims that have expired and sets releaseReason to expired', async () => {
       // Create 2 expired claims
       const oneHourAgo = Date.now() - 60 * 60 * 1000
-      const expiredClaim1 = await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'expired-1',
-        expiredAt: oneHourAgo,
-      })
-      const expiredClaim2 = await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'expired-2',
-        expiredAt: oneHourAgo,
-      })
+      const expiredClaim1 = (
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'expired-1',
+          expiredAt: oneHourAgo,
+        })
+      ).unwrap()
+      const expiredClaim2 = (
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'expired-2',
+          expiredAt: oneHourAgo,
+        })
+      ).unwrap()
 
       // Create 1 active claim (no expiration)
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'active-1',
-        expiredAt: null,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'active-1',
+          expiredAt: null,
+        })
+      ).unwrap()
 
       // Create 1 claim that expires in the future
       const oneHourFromNow = Date.now() + 60 * 60 * 1000
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'future-expiry',
-        expiredAt: oneHourFromNow,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'future-expiry',
+          expiredAt: oneHourFromNow,
+        })
+      ).unwrap()
 
       // Release expired claims
       const result = (
@@ -1886,14 +1924,16 @@ describe('expired_at functionality', () => {
 
     it('returns releasedCount of 0 when there are no expired claims', async () => {
       // Create only active claims
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'active-1',
-        expiredAt: null,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'active-1',
+          expiredAt: null,
+        })
+      ).unwrap()
 
       const result = (
         await adminTransaction(async (ctx) => {

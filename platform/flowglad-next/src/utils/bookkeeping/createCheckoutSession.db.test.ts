@@ -386,14 +386,16 @@ describe('createCheckoutSessionTransaction', () => {
     ).unwrap()
 
     // Create a non-default product for testing
-    const nonDefaultProduct = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      livemode: true,
-      pricingModelId: pricingModel.id,
-      active: true,
-      default: false,
-    })
+    const nonDefaultProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+        active: true,
+        default: false,
+      })
+    ).unwrap()
 
     singlePaymentPrice = await setupPrice({
       productId: nonDefaultProduct.id,
@@ -1013,14 +1015,16 @@ describe('createCheckoutSessionTransaction', () => {
       ).unwrap()
 
       // Create a non-default product and price for testing
-      nonDefaultProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product',
-        livemode: false,
-        pricingModelId: testmodePricingModel.id,
-        active: true,
-        default: false,
-      })
+      nonDefaultProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product',
+          livemode: false,
+          pricingModelId: testmodePricingModel.id,
+          active: true,
+          default: false,
+        })
+      ).unwrap()
       subscriptionPrice = await setupPrice({
         productId: nonDefaultProduct.id,
         name: 'Test Subscription Price',

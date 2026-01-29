@@ -1194,11 +1194,13 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     } = (await setupOrg()).unwrap()
 
     // Create a second product with its own price
-    const productB = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product B',
-      pricingModelId: pricingModel.id,
-    })
+    const productB = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product B',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
     const priceB = await setupPrice({
       productId: productB.id,
       name: 'Product B Price',
@@ -1368,11 +1370,13 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     ).unwrap()
 
     // Create a second product with no subscriptions
-    const productB = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product B - No Subscriptions',
-      pricingModelId: pricingModel.id,
-    })
+    const productB = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product B - No Subscriptions',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -1492,11 +1496,13 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     } = (await setupOrg()).unwrap()
 
     // Create a second product
-    const productB = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product B',
-      pricingModelId: pricingModel.id,
-    })
+    const productB = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product B',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
     const priceB = await setupPrice({
       productId: productB.id,
       name: 'Product B Price',

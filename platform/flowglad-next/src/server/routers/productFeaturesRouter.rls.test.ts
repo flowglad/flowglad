@@ -59,12 +59,14 @@ describe('productFeaturesRouter.create - Toggle Feature Validation', () => {
     }
 
     // Create a subscription product
-    subscriptionProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Subscription Product',
-      livemode: true,
-    })
+    subscriptionProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Subscription Product',
+        livemode: true,
+      })
+    ).unwrap()
     await setupPrice({
       productId: subscriptionProduct.id,
       name: 'Monthly Subscription',
@@ -75,12 +77,14 @@ describe('productFeaturesRouter.create - Toggle Feature Validation', () => {
     })
 
     // Create a single payment product
-    singlePaymentProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Single Payment Product',
-      livemode: true,
-    })
+    singlePaymentProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Single Payment Product',
+        livemode: true,
+      })
+    ).unwrap()
     await setupPrice({
       productId: singlePaymentProduct.id,
       name: 'One-time Purchase',

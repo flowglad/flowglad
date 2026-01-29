@@ -595,12 +595,14 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       ).unwrap()
 
       // Create a product with both active and inactive prices
-      productWithMixedPrices = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Product with Mixed Prices',
-        active: true,
-      })
+      productWithMixedPrices = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Product with Mixed Prices',
+          active: true,
+        })
+      ).unwrap()
 
       // Create an inactive price
       inactivePrice = await setupPrice({
@@ -798,12 +800,14 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     it('should return pricing model with only active prices and products', async () => {
-      const productWithMixedPrices2 = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Product with Mixed Prices 2',
-        active: true,
-      })
+      const productWithMixedPrices2 = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Product with Mixed Prices 2',
+          active: true,
+        })
+      ).unwrap()
 
       const inactivePrice2 = await setupPrice({
         productId: productWithMixedPrices2.id,
@@ -845,12 +849,14 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         active: true,
       })
 
-      const productWithOnlyInactivePrices = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Product with Only Inactive Prices',
-        active: true,
-      })
+      const productWithOnlyInactivePrices = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Product with Only Inactive Prices',
+          active: true,
+        })
+      ).unwrap()
 
       const inactivePrice3 = await setupPrice({
         productId: productWithOnlyInactivePrices.id,

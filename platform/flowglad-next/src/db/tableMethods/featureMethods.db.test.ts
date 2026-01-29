@@ -694,12 +694,14 @@ describe('Resource Feature schema and methods', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
   })
 
   const createResourceFeatureInsert = (params?: {

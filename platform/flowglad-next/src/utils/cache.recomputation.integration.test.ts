@@ -82,11 +82,13 @@ describeIfRedisKey('cache recomputation integration', () => {
         customerId: customer.id,
       })
     ).unwrap()
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'E2E Recomputation Test Product',
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'E2E Recomputation Test Product',
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'E2E Recomputation Test Price',
@@ -223,11 +225,13 @@ describeIfRedisKey('cache recomputation integration', () => {
         livemode: false,
       })
     ).unwrap()
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Livemode Context Test Product',
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Livemode Context Test Product',
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Livemode Context Test Price',
@@ -341,11 +345,13 @@ describeIfRedisKey('cache recomputation integration', () => {
         customerId: customer.id,
       })
     ).unwrap()
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Fire and Forget Test Product',
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Fire and Forget Test Product',
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Fire and Forget Test Price',

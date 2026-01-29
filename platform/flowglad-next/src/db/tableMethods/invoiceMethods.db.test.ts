@@ -57,12 +57,14 @@ describe('selectInvoicesTableRowData', () => {
     org2Id = org2.id
 
     // Set up product
-    const product = await setupProduct({
-      organizationId: org1Id,
-      name: 'Test Product',
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: org1Id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     // Set up price
     const price = await setupPrice({
@@ -141,12 +143,14 @@ describe('selectInvoicesTableRowData', () => {
     invoice3Number = invoice3.invoiceNumber
 
     // Set up second organization with customer having same name for isolation testing
-    const productOtherOrg = await setupProduct({
-      organizationId: org2Id,
-      name: 'Test Product Other',
-      livemode: true,
-      pricingModelId: pricingModel2.id,
-    })
+    const productOtherOrg = (
+      await setupProduct({
+        organizationId: org2Id,
+        name: 'Test Product Other',
+        livemode: true,
+        pricingModelId: pricingModel2.id,
+      })
+    ).unwrap()
 
     const priceOtherOrg = await setupPrice({
       productId: productOtherOrg.id,
@@ -602,12 +606,14 @@ describe('selectInvoicesTableRowData', () => {
       ).unwrap()
       pricingModel = pm
 
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: pricingModel.id,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
 
       const price = await setupPrice({
         productId: product.id,

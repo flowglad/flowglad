@@ -97,12 +97,14 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
       })
     ).unwrap()
 
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+        livemode: true,
+      })
+    ).unwrap()
 
     const price = await setupPrice({
       productId: product.id,
@@ -150,14 +152,16 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
     })
 
     // Create subscription item feature to provide capacity for the resource
-    await setupResourceSubscriptionItemFeature({
-      subscriptionItemId: subscriptionItem.id,
-      featureId: feature.id,
-      resourceId: resource.id,
-      pricingModelId: pricingModel.id,
-      productFeatureId: productFeature.id,
-      livemode: true,
-    })
+    ;(
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: feature.id,
+        resourceId: resource.id,
+        pricingModelId: pricingModel.id,
+        productFeatureId: productFeature.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('insertResourceClaim via authenticatedTransaction (merchant role)', () => {

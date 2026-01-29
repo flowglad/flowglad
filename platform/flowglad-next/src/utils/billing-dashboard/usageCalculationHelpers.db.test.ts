@@ -674,11 +674,13 @@ describe('calculateUsageVolumeByInterval', () => {
       } = (await setupOrg()).unwrap()
 
       // Create second product with different pricing model
-      const product2 = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product 2',
-        pricingModelId: pm1.id,
-      })
+      const product2 = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product 2',
+          pricingModelId: pm1.id,
+        })
+      ).unwrap()
 
       const customer = (
         await setupCustomer({

@@ -80,13 +80,15 @@ describe('clonePricingModelTransaction', () => {
     })
 
     // Create testmode product and price for the source PM
-    product = await setupProduct({
-      name: 'Testmode Product',
-      organizationId: organization.id,
-      pricingModelId: sourcePricingModel.id,
-      livemode: false,
-      active: true,
-    })
+    product = (
+      await setupProduct({
+        name: 'Testmode Product',
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        livemode: false,
+        active: true,
+      })
+    ).unwrap()
 
     price = await setupPrice({
       productId: product.id,
@@ -239,13 +241,15 @@ describe('clonePricingModelTransaction', () => {
 
     it('should handle a pricing model with multiple products correctly', async () => {
       // Create additional products in source pricing model (testmode)
-      const product2 = await setupProduct({
-        name: 'Second Product',
-        organizationId: organization.id,
-        livemode: false, // Match sourcePricingModel livemode
-        pricingModelId: sourcePricingModel.id,
-        active: true,
-      })
+      const product2 = (
+        await setupProduct({
+          name: 'Second Product',
+          organizationId: organization.id,
+          livemode: false, // Match sourcePricingModel livemode
+          pricingModelId: sourcePricingModel.id,
+          active: true,
+        })
+      ).unwrap()
 
       await setupPrice({
         productId: product2.id,
@@ -1028,13 +1032,15 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // 3. Create additional product
-      const product2 = await setupProduct({
-        name: 'Pro Plan',
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        livemode: false,
-        active: true,
-      })
+      const product2 = (
+        await setupProduct({
+          name: 'Pro Plan',
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          livemode: false,
+          active: true,
+        })
+      ).unwrap()
 
       // Add price for the product
       await setupPrice({
@@ -1254,13 +1260,15 @@ describe('clonePricingModelTransaction', () => {
         livemode: true,
       })
 
-      const testProduct = await setupProduct({
-        name: 'Livemode Product',
-        organizationId: organization.id,
-        pricingModelId: livemodeSource.id,
-        livemode: true,
-        active: true,
-      })
+      const testProduct = (
+        await setupProduct({
+          name: 'Livemode Product',
+          organizationId: organization.id,
+          pricingModelId: livemodeSource.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
 
       await setupPrice({
         productId: testProduct.id,
@@ -1594,13 +1602,15 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Create product with prices and features
-      const sourceProduct = await setupProduct({
-        name: 'Source Product',
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        livemode: false,
-        active: true,
-      })
+      const sourceProduct = (
+        await setupProduct({
+          name: 'Source Product',
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          livemode: false,
+          active: true,
+        })
+      ).unwrap()
 
       const sourcePrice = await setupPrice({
         productId: sourceProduct.id,
@@ -1964,12 +1974,14 @@ describe('createPriceTransaction', () => {
   })
 
   it('creates a price for a non-default product', async () => {
-    const nonDefaultProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Additional Product',
-      livemode: true,
-    })
+    const nonDefaultProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Additional Product',
+        livemode: true,
+      })
+    ).unwrap()
 
     const createdPrice = await adminTransaction(async (ctx) => {
       return createPriceTransaction(
@@ -2025,12 +2037,14 @@ describe('createPriceTransaction', () => {
   })
 
   it('allows creating an additional price with the same type', async () => {
-    const nonDefaultProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Additional Product',
-      livemode: true,
-    })
+    const nonDefaultProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Additional Product',
+        livemode: true,
+      })
+    ).unwrap()
     const firstPrice = await adminTransaction(async (ctx) => {
       return createPriceTransaction(
         {
@@ -2086,12 +2100,14 @@ describe('createPriceTransaction', () => {
   })
 
   it('rejects creating an additional price with a different type', async () => {
-    const nonDefaultProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Additional Product',
-      livemode: true,
-    })
+    const nonDefaultProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Additional Product',
+        livemode: true,
+      })
+    ).unwrap()
 
     await adminTransaction(async (ctx) => {
       return createPriceTransaction(
@@ -2823,12 +2839,14 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should throw an error when adding toggle features to a SinglePayment product', async () => {
     // Setup: Create a SinglePayment product
-    const singlePaymentProduct = await setupProduct({
-      organizationId: organization.id,
-      livemode: true,
-      pricingModelId: product.pricingModelId,
-      name: 'Single Payment Product',
-    })
+    const singlePaymentProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+        name: 'Single Payment Product',
+      })
+    ).unwrap()
     await setupPrice({
       productId: singlePaymentProduct.id,
       name: 'One-time Price',
@@ -2861,12 +2879,14 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should allow adding usage credit grant features to a SinglePayment product', async () => {
     // Setup: Create a SinglePayment product
-    const singlePaymentProduct = await setupProduct({
-      organizationId: organization.id,
-      livemode: true,
-      pricingModelId: product.pricingModelId,
-      name: 'Single Payment Product with Credits',
-    })
+    const singlePaymentProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+        name: 'Single Payment Product with Credits',
+      })
+    ).unwrap()
     await setupPrice({
       productId: singlePaymentProduct.id,
       name: 'Credit Bundle Price',
@@ -2949,12 +2969,14 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Create a regular (non-default) product and price for testing
     const regularSetup = await adminTransaction(async (ctx) => {
-      const product = await setupProduct({
-        organizationId,
-        livemode,
-        pricingModelId,
-        name: 'Regular Product',
-      })
+      const product = (
+        await setupProduct({
+          organizationId,
+          livemode,
+          pricingModelId,
+          name: 'Regular Product',
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Regular Price',
@@ -3262,13 +3284,15 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     // Create a regular (non-default) product and price for testing
     const regularSetup = await adminTransaction(async (ctx) => {
-      const product = await setupProduct({
-        organizationId,
-        livemode,
-        pricingModelId,
-        name: 'Regular Product',
-        slug: 'old-product-slug',
-      })
+      const product = (
+        await setupProduct({
+          organizationId,
+          livemode,
+          pricingModelId,
+          name: 'Regular Product',
+          slug: 'old-product-slug',
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Regular Price',
@@ -3544,13 +3568,15 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should respect price slug uniqueness constraint', async () => {
       // Create another product in the same pricing model with a price that has a slug
       const otherProduct = await adminTransaction(async (ctx) => {
-        const product = await setupProduct({
-          organizationId,
-          livemode,
-          pricingModelId,
-          name: 'Other Product',
-          slug: 'other-product',
-        })
+        const product = (
+          await setupProduct({
+            organizationId,
+            livemode,
+            pricingModelId,
+            name: 'Other Product',
+            slug: 'other-product',
+          })
+        ).unwrap()
         const price = await setupPrice({
           productId: product.id,
           name: 'Other Price',
@@ -3651,13 +3677,15 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       // Create product with null slug
       const productWithNullSlug = await adminTransaction(
         async (ctx) => {
-          return await setupProduct({
-            organizationId,
-            livemode,
-            pricingModelId,
-            name: 'Product Without Slug',
-            slug: undefined,
-          })
+          return (
+            await setupProduct({
+              organizationId,
+              livemode,
+              pricingModelId,
+              name: 'Product Without Slug',
+              slug: undefined,
+            })
+          ).unwrap()
         }
       )
 

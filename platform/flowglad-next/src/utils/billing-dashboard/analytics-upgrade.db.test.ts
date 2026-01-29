@@ -68,12 +68,14 @@ describe('Analytics Upgrade Tracking', () => {
     pricingModel = orgData.pricingModel
 
     // Create a free product and price
-    freeProduct = await setupProduct({
-      organizationId: organization.id,
-      name: 'Free Plan',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    freeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Free Plan',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     freePrice = await setupPrice({
       productId: freeProduct.id,
@@ -2625,12 +2627,14 @@ describe('Analytics Upgrade Tracking', () => {
     it('should prevent multiple active free subscriptions per customer', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a second free product
-        const freeProduct2 = await setupProduct({
-          organizationId: organization.id,
-          name: 'Free Plan 2',
-          pricingModelId: pricingModel.id,
-          livemode: true,
-        })
+        const freeProduct2 = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Free Plan 2',
+            pricingModelId: pricingModel.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         const freePrice2 = await setupPrice({
           productId: freeProduct2.id,

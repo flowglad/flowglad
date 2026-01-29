@@ -1436,13 +1436,15 @@ describe('usageEventHelpers', () => {
         })
 
         // Create a product in the second pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          pricingModelId: secondPricingModel.id,
-          name: 'Second Product',
-          livemode: false,
-          active: true,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            pricingModelId: secondPricingModel.id,
+            name: 'Second Product',
+            livemode: false,
+            active: true,
+          })
+        ).unwrap()
 
         const secondUsageMeter = (
           await setupUsageMeter({

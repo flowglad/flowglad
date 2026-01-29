@@ -84,12 +84,14 @@ describe('doNotCharge subscription creation', () => {
     ).unwrap()
 
     // Create paid product and price
-    paidProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: orgData.pricingModel.id,
-      name: 'Pro Plan',
-      livemode: true,
-    })
+    paidProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: orgData.pricingModel.id,
+        name: 'Pro Plan',
+        livemode: true,
+      })
+    ).unwrap()
 
     paidPrice = await setupPrice({
       productId: paidProduct.id,
@@ -104,12 +106,14 @@ describe('doNotCharge subscription creation', () => {
     })
 
     // Create free product and price for testing free subscription cancellation
-    freeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: orgData.pricingModel.id,
-      name: 'Free Plan',
-      livemode: true,
-    })
+    freeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: orgData.pricingModel.id,
+        name: 'Free Plan',
+        livemode: true,
+      })
+    ).unwrap()
 
     freePrice = await setupPrice({
       productId: freeProduct.id,

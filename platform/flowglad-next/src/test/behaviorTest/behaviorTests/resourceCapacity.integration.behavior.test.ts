@@ -82,12 +82,14 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Create resource
     resourceSlug = `test-resource-${nanoid}`
-    const resource = await setupResource({
-      organizationId,
-      pricingModelId,
-      name: `Test Resource ${nanoid}`,
-      slug: resourceSlug,
-    })
+    const resource = (
+      await setupResource({
+        organizationId,
+        pricingModelId,
+        name: `Test Resource ${nanoid}`,
+        slug: resourceSlug,
+      })
+    ).unwrap()
     resourceId = resource.id
 
     // Create resource feature
@@ -184,7 +186,7 @@ describe('Resource Capacity Integration Tests', () => {
     const subscriptionItem = subscriptionItems[0]
 
     // Create subscription item feature
-    const subscriptionItemFeature =
+    const subscriptionItemFeature = (
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -192,6 +194,7 @@ describe('Resource Capacity Integration Tests', () => {
         pricingModelId,
         amount: 5,
       })
+    ).unwrap()
     subscriptionItemFeatureId = subscriptionItemFeature.id
   })
 
@@ -276,14 +279,16 @@ describe('Resource Capacity Integration Tests', () => {
   it('allows downgrade when claims exactly equal new capacity', async () => {
     // Create claims up to the capacity (5)
     for (let i = 0; i < 5; i++) {
-      await setupResourceClaim({
-        organizationId,
-        subscriptionItemFeatureId,
-        resourceId,
-        subscriptionId,
-        pricingModelId,
-        externalId: `boundary-claim-${i}`,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId,
+          subscriptionItemFeatureId,
+          resourceId,
+          subscriptionId,
+          pricingModelId,
+          externalId: `boundary-claim-${i}`,
+        })
+      ).unwrap()
     }
 
     // Verify we're at capacity
@@ -318,14 +323,16 @@ describe('Resource Capacity Integration Tests', () => {
   it('throws error when claiming more than available capacity', async () => {
     // Fill up capacity (5 claims)
     for (let i = 0; i < 5; i++) {
-      await setupResourceClaim({
-        organizationId,
-        subscriptionItemFeatureId,
-        resourceId,
-        subscriptionId,
-        pricingModelId,
-        externalId: `capacity-claim-${i}`,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId,
+          subscriptionItemFeatureId,
+          resourceId,
+          subscriptionId,
+          pricingModelId,
+          externalId: `capacity-claim-${i}`,
+        })
+      ).unwrap()
     }
 
     // Try to create one more claim
@@ -465,14 +472,16 @@ describe('Resource Capacity Integration Tests', () => {
 
   it('only counts active (non-released) claims against capacity', async () => {
     // Create and then manually release a claim by setting up a released claim
-    await setupResourceClaim({
-      organizationId,
-      subscriptionItemFeatureId,
-      resourceId,
-      subscriptionId,
-      pricingModelId,
-      externalId: 'will-be-released',
-    })
+    ;(
+      await setupResourceClaim({
+        organizationId,
+        subscriptionItemFeatureId,
+        resourceId,
+        subscriptionId,
+        pricingModelId,
+        externalId: 'will-be-released',
+      })
+    ).unwrap()
 
     // Count active claims
     const activeCount = (
@@ -493,14 +502,16 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Fill up remaining capacity (4 more claims to reach 5)
     for (let i = 0; i < 4; i++) {
-      await setupResourceClaim({
-        organizationId,
-        subscriptionItemFeatureId,
-        resourceId,
-        subscriptionId,
-        pricingModelId,
-        externalId: `fill-claim-${i}`,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId,
+          subscriptionItemFeatureId,
+          resourceId,
+          subscriptionId,
+          pricingModelId,
+          externalId: `fill-claim-${i}`,
+        })
+      ).unwrap()
     }
 
     // Now at capacity (5)

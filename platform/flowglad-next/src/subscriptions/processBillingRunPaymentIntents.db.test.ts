@@ -1009,12 +1009,14 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     ).unwrap()
 
     // Create a free price for this test
-    const freeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: product.pricingModelId,
-      name: 'Free Plan Product',
-      livemode: true,
-    })
+    const freeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Free Plan Product',
+        livemode: true,
+      })
+    ).unwrap()
     const freePrice = await setupPrice({
       productId: freeProduct.id,
       name: 'Free Plan',
@@ -1342,12 +1344,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
   it('should grant a "Once" usage credit after payment confirmation', async () => {
     // Create fresh product and price for this test to ensure isolation
-    const product = await setupProduct({
-      organizationId: orgForGrants.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product for Once Grant',
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgForGrants.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product for Once Grant',
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price for Once Grant',
@@ -1536,12 +1540,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
   it('should grant an "EveryBillingPeriod" usage credit after payment confirmation', async () => {
     // Create fresh product and price for this test to ensure isolation
-    const product = await setupProduct({
-      organizationId: orgForGrants.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product for Recurring Grant',
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgForGrants.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product for Recurring Grant',
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price for Recurring Grant',
@@ -1731,12 +1737,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
   })
 
   it('should grant usage credits on first successful payment and not revoke them if subsequent payments fail', async () => {
-    const product = await setupProduct({
-      organizationId: orgForGrants.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product for Idempotent Grant',
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: orgForGrants.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product for Idempotent Grant',
+        livemode: true,
+      })
+    ).unwrap()
     const price = await setupPrice({
       productId: product.id,
       name: 'Test Price for Idempotent Grant',

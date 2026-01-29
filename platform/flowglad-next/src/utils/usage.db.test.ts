@@ -192,13 +192,15 @@ describe('createUsageMeterTransaction', () => {
       const slug = 'shared-slug'
 
       // Create a product and price with the slug first
-      const existingProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Existing Product',
-        slug: 'other-product',
-        pricingModelId: pricingModel.id,
-        livemode: false,
-      })
+      const existingProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Existing Product',
+          slug: 'other-product',
+          pricingModelId: pricingModel.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       await setupPrice({
         productId: existingProduct.id,
@@ -265,13 +267,15 @@ describe('createUsageMeterTransaction', () => {
       const slug = 'unique-new-slug'
 
       // Create a product and price with a DIFFERENT slug
-      const existingProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Existing Product',
-        slug: 'different-product-slug',
-        pricingModelId: pricingModel.id,
-        livemode: false,
-      })
+      const existingProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Existing Product',
+          slug: 'different-product-slug',
+          pricingModelId: pricingModel.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       await setupPrice({
         productId: existingProduct.id,

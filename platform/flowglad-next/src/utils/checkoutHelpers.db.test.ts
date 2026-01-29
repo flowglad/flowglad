@@ -62,13 +62,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'P',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: opts?.productActive ?? true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'P',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: opts?.productActive ?? true,
+        })
+      ).unwrap()
       let usageMeterId: string | undefined
       if (type === PriceType.Usage) {
         const meter = (
@@ -186,13 +188,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Prod',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Prod',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
 
       // Build price params conditionally based on type
       // TypeScript needs explicit type narrowing for discriminated unions
@@ -444,13 +448,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Price',
@@ -492,13 +498,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Price',
@@ -541,13 +549,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price1 = await setupPrice({
         productId: product.id,
         name: 'Price 1',
@@ -611,13 +621,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Price',
@@ -662,13 +674,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Price',
@@ -700,13 +714,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Price',
@@ -735,13 +751,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price = await setupPrice({
         productId: product.id,
         name: 'Price',
@@ -784,13 +802,15 @@ describe('checkoutHelpers', () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+          active: true,
+        })
+      ).unwrap()
       const price1 = await setupPrice({
         productId: product.id,
         name: 'Price 1',

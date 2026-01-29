@@ -95,27 +95,33 @@ describe('resourceClaimsRouter', () => {
     apiKeyToken = userApiKeySetup.apiKey.token
 
     // Setup resources (shared across tests)
-    resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
 
-    resource2 = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'projects',
-      name: 'Projects',
-    })
+    resource2 = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'projects',
+        name: 'Projects',
+      })
+    ).unwrap()
 
     // Setup product and price (shared across tests)
-    product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     price = await setupPrice({
       productId: product.id,
@@ -258,40 +264,47 @@ describe('resourceClaimsRouter', () => {
     })
 
     // Set up subscription item features to provide capacity for the resources
-    await setupResourceSubscriptionItemFeature({
-      subscriptionItemId: subscriptionItem.id,
-      featureId: seatsFeature.id,
-      resourceId: resource.id,
-      pricingModelId: pricingModel.id,
-      amount: 10,
-    })
-
-    await setupResourceSubscriptionItemFeature({
-      subscriptionItemId: subscriptionItem.id,
-      featureId: projectsFeature.id,
-      resourceId: resource2.id,
-      pricingModelId: pricingModel.id,
-      amount: 5,
-    })
+    ;(
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: seatsFeature.id,
+        resourceId: resource.id,
+        pricingModelId: pricingModel.id,
+        amount: 10,
+      })
+    ).unwrap()
+    ;(
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: projectsFeature.id,
+        resourceId: resource2.id,
+        pricingModelId: pricingModel.id,
+        amount: 5,
+      })
+    ).unwrap()
   })
 
   describe('getUsage procedure', () => {
     it('returns usage data when resourceSlug is provided', async () => {
       // Create some claims first
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'user-1',
-      })
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'user-2',
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'user-1',
+        })
+      ).unwrap()
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'user-2',
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken)
 
@@ -316,13 +329,15 @@ describe('resourceClaimsRouter', () => {
 
     it('returns usage data when resourceId is provided', async () => {
       // Create a claim
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'user-1',
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'user-1',
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken)
 
@@ -376,12 +391,14 @@ describe('resourceClaimsRouter', () => {
         })
       ).unwrap()
 
-      const emptyProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Empty Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const emptyProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Empty Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const emptyPrice = await setupPrice({
         productId: emptyProduct.id,
@@ -420,12 +437,14 @@ describe('resourceClaimsRouter', () => {
 
     it('throws NOT_FOUND when the resource is not available on the subscription', async () => {
       // Create a resource that's not associated with the subscription
-      await setupResource({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        slug: 'unlinked-resource',
-        name: 'Unlinked Resource',
-      })
+      ;(
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          slug: 'unlinked-resource',
+          name: 'Unlinked Resource',
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken)
 
@@ -490,12 +509,14 @@ describe('resourceClaimsRouter', () => {
         })
       ).unwrap()
 
-      const emptyProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Empty List Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const emptyProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Empty List Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const emptyPrice = await setupPrice({
         productId: emptyProduct.id,
@@ -546,12 +567,14 @@ describe('resourceClaimsRouter', () => {
         })
       ).unwrap()
 
-      const noFeaturesProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'No Features Product',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const noFeaturesProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'No Features Product',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const noFeaturesPrice = await setupPrice({
         productId: noFeaturesProduct.id,
@@ -593,29 +616,35 @@ describe('resourceClaimsRouter', () => {
 
     it('returns usage for all resources with claims correctly grouped by resource', async () => {
       // Create claims for resource 1 (seats)
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'seat-user-1',
-      })
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'seat-user-2',
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'seat-user-1',
+        })
+      ).unwrap()
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'seat-user-2',
+        })
+      ).unwrap()
 
       // Create claims for resource 2 (projects)
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource2.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: 'project-1',
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource2.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: 'project-1',
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken)
 
@@ -679,20 +708,24 @@ describe('resourceClaimsRouter', () => {
     describe('filtering by resourceSlugs', () => {
       it('filters results to only include resources matching the provided slugs', async () => {
         // Create claims for both resources
-        await setupResourceClaim({
-          organizationId: organization.id,
-          resourceId: resource.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-          externalId: 'seat-user-1',
-        })
-        await setupResourceClaim({
-          organizationId: organization.id,
-          resourceId: resource2.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-          externalId: 'project-1',
-        })
+        ;(
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'seat-user-1',
+          })
+        ).unwrap()
+        ;(
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource2.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'project-1',
+          })
+        ).unwrap()
 
         const caller = createCaller(organization, apiKeyToken)
 
@@ -734,20 +767,24 @@ describe('resourceClaimsRouter', () => {
     describe('filtering by resourceIds', () => {
       it('filters results to only include resources matching the provided IDs', async () => {
         // Create claims for both resources
-        await setupResourceClaim({
-          organizationId: organization.id,
-          resourceId: resource.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-          externalId: 'seat-user-1',
-        })
-        await setupResourceClaim({
-          organizationId: organization.id,
-          resourceId: resource2.id,
-          subscriptionId: subscription.id,
-          pricingModelId: pricingModel.id,
-          externalId: 'project-1',
-        })
+        ;(
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'seat-user-1',
+          })
+        ).unwrap()
+        ;(
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource2.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'project-1',
+          })
+        ).unwrap()
 
         const caller = createCaller(organization, apiKeyToken)
 

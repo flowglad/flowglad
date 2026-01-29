@@ -61,12 +61,14 @@ describe('priceMethods.ts', () => {
     organization = setup.organization
 
     // Setup product
-    product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      livemode: true,
-      pricingModelId: setup.pricingModel.id,
-    })
+    product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: setup.pricingModel.id,
+      })
+    ).unwrap()
 
     // Setup price
     price = await setupPrice({
@@ -484,11 +486,13 @@ describe('priceMethods.ts', () => {
         // The first default price for the first product is created in beforeEach
 
         // Create a second product
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Test Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Test Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
 
         // Create a default price for the second product
         const defaultPriceForSecondProduct = await setupPrice({
@@ -527,11 +531,13 @@ describe('priceMethods.ts', () => {
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
-          const secondProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Second Product',
-            pricingModelId: product.pricingModelId,
-          })
+          const secondProduct = (
+            await setupProduct({
+              organizationId: organization.id,
+              name: 'Second Product',
+              pricingModelId: product.pricingModelId,
+            })
+          ).unwrap()
           // Insert first ACTIVE price with slug on the original product
           await insertPrice(
             {
@@ -583,11 +589,13 @@ describe('priceMethods.ts', () => {
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
-          const secondProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Second Product',
-            pricingModelId: product.pricingModelId,
-          })
+          const secondProduct = (
+            await setupProduct({
+              organizationId: organization.id,
+              name: 'Second Product',
+              pricingModelId: product.pricingModelId,
+            })
+          ).unwrap()
           // Insert first ACTIVE price with slug1 on the original product
           const firstPrice = await insertPrice(
             {
@@ -647,11 +655,13 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
         // Insert first ACTIVE price with slug1
         await insertPrice(
           {
@@ -702,11 +712,13 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
 
         // Insert two ACTIVE prices with unique slugs
         const price1 = await insertPrice(
@@ -772,11 +784,13 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
         // Insert first ACTIVE price with slug
         await insertPrice(
           {
@@ -827,11 +841,13 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
         // Insert first INACTIVE price with slug
         await insertPrice(
           {
@@ -882,11 +898,13 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
         // Insert first ACTIVE price with slug
         const firstPrice = await insertPrice(
           {
@@ -948,11 +966,13 @@ describe('priceMethods.ts', () => {
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
-          const secondProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Second Product',
-            pricingModelId: product.pricingModelId,
-          })
+          const secondProduct = (
+            await setupProduct({
+              organizationId: organization.id,
+              name: 'Second Product',
+              pricingModelId: product.pricingModelId,
+            })
+          ).unwrap()
           // Insert first ACTIVE price with slug
           await insertPrice(
             {
@@ -1011,11 +1031,13 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
         // Insert first INACTIVE price with slug
         const firstPrice = await insertPrice(
           {
@@ -1068,11 +1090,13 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          pricingModelId: product.pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
         // Insert first INACTIVE price with the target slug
         await insertPrice(
           {
@@ -1141,12 +1165,14 @@ describe('priceMethods.ts', () => {
       pricingModelId = setup.pricingModel.id
 
       // Setup product
-      product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: pricingModelId,
-      })
+      product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: pricingModelId,
+        })
+      ).unwrap()
 
       // Setup price with slug
       price = await setupPrice({
@@ -1240,12 +1266,14 @@ describe('priceMethods.ts', () => {
         })
 
         // Create a product and price in the custom pricing model
-        const customProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Custom Product',
-          livemode: true,
-          pricingModelId: customPricingModel.id,
-        })
+        const customProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Custom Product',
+            livemode: true,
+            pricingModelId: customPricingModel.id,
+          })
+        ).unwrap()
 
         const customPrice = await setupPrice({
           productId: customProduct.id,
@@ -1315,12 +1343,14 @@ describe('priceMethods.ts', () => {
         )
 
         // Create a second product
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          livemode: true,
-          pricingModelId: pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            livemode: true,
+            pricingModelId: pricingModelId,
+          })
+        ).unwrap()
 
         // Create an active price with the same slug on the second product
         // This is allowed because the original price is now inactive
@@ -1366,12 +1396,14 @@ describe('priceMethods.ts', () => {
       pricingModelId = setup.pricingModel.id
 
       // Setup product
-      product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: pricingModelId,
-      })
+      product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: pricingModelId,
+        })
+      ).unwrap()
 
       // Setup price with slug
       price = await setupPrice({
@@ -1496,12 +1528,14 @@ describe('priceMethods.ts', () => {
           })
 
           // Create a product in the non-default pricing model
-          const nonDefaultProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Non-Default Product',
-            livemode: true,
-            pricingModelId: nonDefaultPricingModel.id,
-          })
+          const nonDefaultProduct = (
+            await setupProduct({
+              organizationId: organization.id,
+              name: 'Non-Default Product',
+              livemode: true,
+              pricingModelId: nonDefaultPricingModel.id,
+            })
+          ).unwrap()
 
           const nonDefaultPrice = await setupPrice({
             productId: nonDefaultProduct.id,
@@ -1559,12 +1593,14 @@ describe('priceMethods.ts', () => {
         )
 
         // Create a second product
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          livemode: true,
-          pricingModelId: pricingModelId,
-        })
+        const secondProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            livemode: true,
+            pricingModelId: pricingModelId,
+          })
+        ).unwrap()
 
         // Create an active price with the same slug on the second product
         // This is allowed because the original price is now inactive
@@ -1831,12 +1867,14 @@ describe('priceMethods.ts', () => {
     let product2: Product.Record
 
     beforeEach(async () => {
-      product2 = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product 2',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      product2 = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product 2',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
     })
 
     it('should bulk insert prices and derive pricingModelId for each', async () => {
@@ -2249,12 +2287,14 @@ describe('priceMethods.ts', () => {
       })
 
       it('bulk insert derives pricingModelId from product for product prices and from usage meter for usage prices', async () => {
-        const testProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Test Product for Mixed Insert',
-          livemode: true,
-          pricingModelId: pricingModel.id,
-        })
+        const testProduct = (
+          await setupProduct({
+            organizationId: organization.id,
+            name: 'Test Product for Mixed Insert',
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -2313,12 +2353,14 @@ describe('priceMethods.ts', () => {
       const organization = setup.organization
 
       // Create a resource
-      const resource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: setup.pricingModel.id,
-        name: 'Seats',
-        slug: `seats-${core.nanoid()}`,
-      })
+      const resource = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: setup.pricingModel.id,
+          name: 'Seats',
+          slug: `seats-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       // Create a resource feature
       const resourceFeature = await setupResourceFeature({
@@ -2331,12 +2373,14 @@ describe('priceMethods.ts', () => {
       })
 
       // Create a product
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
       // Link the feature to the product
       await setupProductFeature({
@@ -2377,12 +2421,14 @@ describe('priceMethods.ts', () => {
     it('returns empty array when price has no resource features', async () => {
       const setup = (await setupOrg()).unwrap()
 
-      const product = await setupProduct({
-        organizationId: setup.organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: setup.organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
       const price = await setupPrice({
         productId: product.id,
@@ -2412,12 +2458,14 @@ describe('priceMethods.ts', () => {
       const setup = (await setupOrg()).unwrap()
       const organization = setup.organization
 
-      const resource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: setup.pricingModel.id,
-        name: 'Seats',
-        slug: `seats-${core.nanoid()}`,
-      })
+      const resource = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: setup.pricingModel.id,
+          name: 'Seats',
+          slug: `seats-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       const resourceFeature = await setupResourceFeature({
         organizationId: organization.id,
@@ -2428,12 +2476,14 @@ describe('priceMethods.ts', () => {
         slug: `seat-feature-${core.nanoid()}`,
       })
 
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
       // Link the feature to the product with an expired timestamp
       await setupProductFeature({
@@ -2472,19 +2522,23 @@ describe('priceMethods.ts', () => {
       const organization = setup.organization
 
       // Create two resources
-      const resource1 = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: setup.pricingModel.id,
-        name: 'Seats',
-        slug: `seats-${core.nanoid()}`,
-      })
+      const resource1 = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: setup.pricingModel.id,
+          name: 'Seats',
+          slug: `seats-${core.nanoid()}`,
+        })
+      ).unwrap()
 
-      const resource2 = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: setup.pricingModel.id,
-        name: 'API Keys',
-        slug: `api-keys-${core.nanoid()}`,
-      })
+      const resource2 = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: setup.pricingModel.id,
+          name: 'API Keys',
+          slug: `api-keys-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       // Create two resource features
       const resourceFeature1 = await setupResourceFeature({
@@ -2505,12 +2559,14 @@ describe('priceMethods.ts', () => {
         slug: `api-key-feature-${core.nanoid()}`,
       })
 
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Test Product',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Test Product',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
       // Link both features to the product
       await setupProductFeature({
@@ -2560,12 +2616,14 @@ describe('priceMethods.ts', () => {
       const organization = setup.organization
 
       // Create a resource
-      const resource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: setup.pricingModel.id,
-        name: 'Seats',
-        slug: `seats-${core.nanoid()}`,
-      })
+      const resource = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: setup.pricingModel.id,
+          name: 'Seats',
+          slug: `seats-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       // Create a resource feature
       const resourceFeature = await setupResourceFeature({
@@ -2578,19 +2636,23 @@ describe('priceMethods.ts', () => {
       })
 
       // Create two products
-      const product1 = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product 1',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product1 = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product 1',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
-      const product2 = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product 2',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product2 = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product 2',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
       // Link feature to product1 only
       await setupProductFeature({
@@ -2662,12 +2724,14 @@ describe('priceMethods.ts', () => {
       const setup = (await setupOrg()).unwrap()
       const organization = setup.organization
 
-      const resource = await setupResource({
-        organizationId: organization.id,
-        pricingModelId: setup.pricingModel.id,
-        name: 'Seats',
-        slug: `seats-${core.nanoid()}`,
-      })
+      const resource = (
+        await setupResource({
+          organizationId: organization.id,
+          pricingModelId: setup.pricingModel.id,
+          name: 'Seats',
+          slug: `seats-${core.nanoid()}`,
+        })
+      ).unwrap()
 
       const resourceFeature = await setupResourceFeature({
         organizationId: organization.id,
@@ -2678,12 +2742,14 @@ describe('priceMethods.ts', () => {
         slug: `seat-feature-${core.nanoid()}`,
       })
 
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'Product',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Product',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
       await setupProductFeature({
         productId: product.id,
@@ -2741,12 +2807,14 @@ describe('priceMethods.ts', () => {
     it('returns empty arrays for prices that do not exist', async () => {
       const setup = (await setupOrg()).unwrap()
 
-      const product = await setupProduct({
-        organizationId: setup.organization.id,
-        name: 'Product',
-        livemode: true,
-        pricingModelId: setup.pricingModel.id,
-      })
+      const product = (
+        await setupProduct({
+          organizationId: setup.organization.id,
+          name: 'Product',
+          livemode: true,
+          pricingModelId: setup.pricingModel.id,
+        })
+      ).unwrap()
 
       const price = await setupPrice({
         productId: product.id,

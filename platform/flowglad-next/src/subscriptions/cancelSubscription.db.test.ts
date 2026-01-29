@@ -151,11 +151,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           pricingModelId: pricingModel.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -218,11 +220,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           pricingModelId: pricingModel.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -292,11 +296,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           pricingModelId: pricingModel.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -399,11 +405,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -457,11 +465,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           pricingModelId: pricingModel.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -519,11 +529,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           pricingModelId: pricingModel.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -584,11 +596,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           customerId: customer.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -671,11 +685,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           customerId: customer.id,
         })
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Primary Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Primary Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Primary Paid Plan Price',
@@ -686,11 +702,13 @@ describe('Subscription Cancellation Test Suite', async () => {
         livemode: true,
         isDefault: true,
       })
-      const secondProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Secondary Paid Plan',
-      })
+      const secondProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Secondary Paid Plan',
+        })
+      ).unwrap()
       const secondPrice = await setupPrice({
         productId: secondProduct.id,
         name: 'Secondary Paid Plan Price',
@@ -2151,11 +2169,13 @@ describe('Subscription Cancellation Test Suite', async () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -2273,11 +2293,13 @@ describe('Subscription Cancellation Test Suite', async () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice1 = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price 1',
@@ -2529,11 +2551,13 @@ describe('Subscription Cancellation Test Suite', async () => {
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const paidProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Paid Plan',
-      })
+      const paidProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Paid Plan',
+        })
+      ).unwrap()
       const paidPrice = await setupPrice({
         productId: paidProduct.id,
         name: 'Paid Plan Price',
@@ -3900,12 +3924,14 @@ describe('cancelSubscription with resources', async () => {
       await setupOrg()
     ).unwrap()
 
-    const resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    const resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
 
     const customer = (
       await setupCustomer({
@@ -3923,12 +3949,14 @@ describe('cancelSubscription with resources', async () => {
       })
     ).unwrap()
 
-    const product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product with Resources',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product with Resources',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const resourcePrice = await setupPrice({
       productId: product.id,
@@ -3970,7 +3998,7 @@ describe('cancelSubscription with resources', async () => {
       livemode: true,
     })
 
-    const subscriptionItemFeature =
+    const subscriptionItemFeature = (
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -3978,48 +4006,59 @@ describe('cancelSubscription with resources', async () => {
         pricingModelId: pricingModel.id,
         amount: 10,
       })
+    ).unwrap()
 
     // Create 3 cattle claims (no externalId)
-    const cattleClaim1 = await setupResourceClaim({
-      organizationId: organization.id,
-      resourceId: resource.id,
-      subscriptionId: subscription.id,
-      pricingModelId: pricingModel.id,
-      externalId: null,
-    })
+    const cattleClaim1 = (
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: null,
+      })
+    ).unwrap()
 
-    const cattleClaim2 = await setupResourceClaim({
-      organizationId: organization.id,
-      resourceId: resource.id,
-      subscriptionId: subscription.id,
-      pricingModelId: pricingModel.id,
-      externalId: null,
-    })
+    const cattleClaim2 = (
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: null,
+      })
+    ).unwrap()
 
-    const cattleClaim3 = await setupResourceClaim({
-      organizationId: organization.id,
-      resourceId: resource.id,
-      subscriptionId: subscription.id,
-      pricingModelId: pricingModel.id,
-      externalId: null,
-    })
+    const cattleClaim3 = (
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: null,
+      })
+    ).unwrap()
 
     // Create 2 pet claims (with externalId)
-    const petClaim1 = await setupResourceClaim({
-      organizationId: organization.id,
-      resourceId: resource.id,
-      subscriptionId: subscription.id,
-      pricingModelId: pricingModel.id,
-      externalId: 'user_1',
-    })
+    const petClaim1 = (
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'user_1',
+      })
+    ).unwrap()
 
-    const petClaim2 = await setupResourceClaim({
-      organizationId: organization.id,
-      resourceId: resource.id,
-      subscriptionId: subscription.id,
-      pricingModelId: pricingModel.id,
-      externalId: 'user_2',
-    })
+    const petClaim2 = (
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'user_2',
+      })
+    ).unwrap()
 
     // Verify we have 5 active claims before cancellation
     const claimsBefore = await adminTransaction(async (ctx) => {
@@ -4085,12 +4124,14 @@ describe('cancelSubscription with resources', async () => {
       await setupOrg()
     ).unwrap()
 
-    const resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'api-keys',
-      name: 'API Keys',
-    })
+    const resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'api-keys',
+        name: 'API Keys',
+      })
+    ).unwrap()
 
     const customer = (
       await setupCustomer({
@@ -4108,12 +4149,14 @@ describe('cancelSubscription with resources', async () => {
       })
     ).unwrap()
 
-    const product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product with API Keys',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product with API Keys',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const resourcePrice = await setupPrice({
       productId: product.id,
@@ -4166,7 +4209,7 @@ describe('cancelSubscription with resources', async () => {
       livemode: true,
     })
 
-    const subscriptionItemFeature =
+    const subscriptionItemFeature = (
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -4174,16 +4217,19 @@ describe('cancelSubscription with resources', async () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
+    ).unwrap()
 
     // Create 5 claims
     for (let i = 0; i < 5; i++) {
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: i < 3 ? null : `api-key-${i}`, // 3 cattle, 2 pet
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: i < 3 ? null : `api-key-${i}`, // 3 cattle, 2 pet
+        })
+      ).unwrap()
     }
 
     // Verify we have 5 active claims before scheduling cancellation

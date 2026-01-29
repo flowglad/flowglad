@@ -511,12 +511,14 @@ describe('createSubscriptionWorkflow', async () => {
           customerId: singlePayCustomer.id,
         })
       ).unwrap()
-      const nonDefaultProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: product.pricingModelId,
-        name: 'Non Default Product',
-        livemode: true,
-      })
+      const nonDefaultProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: product.pricingModelId,
+          name: 'Non Default Product',
+          livemode: true,
+        })
+      ).unwrap()
       const singlePaymentPrice = await setupPrice({
         productId: nonDefaultProduct.id,
         type: PriceType.SinglePayment,
@@ -1848,13 +1850,15 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         }
       )
 
-      const defaultProduct = await setupProduct({
-        organizationId: organization.id,
-        name: 'Default Product',
-        pricingModelId: newPricingModel.id,
-        default: true,
-        livemode: false,
-      })
+      const defaultProduct = (
+        await setupProduct({
+          organizationId: organization.id,
+          name: 'Default Product',
+          pricingModelId: newPricingModel.id,
+          default: true,
+          livemode: false,
+        })
+      ).unwrap()
 
       const singlePaymentPrice = await setupPrice({
         productId: defaultProduct.id,
@@ -2161,12 +2165,14 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
     ).unwrap()
 
     // Create a free price on a separate product to avoid multiple active prices on the same product
-    const freeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: product.pricingModelId,
-      name: 'Free Plan Product',
-      livemode: true,
-    })
+    const freeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Free Plan Product',
+        livemode: true,
+      })
+    ).unwrap()
     const freePrice = await setupPrice({
       productId: freeProduct.id,
       name: 'Free Plan',
@@ -2294,12 +2300,14 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
     ).unwrap()
 
     // Create a free price on a separate product to avoid multiple active prices on the same product
-    const freeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: product.pricingModelId,
-      name: 'Free Plan Product',
-      livemode: true,
-    })
+    const freeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Free Plan Product',
+        livemode: true,
+      })
+    ).unwrap()
     const freePrice = await setupPrice({
       productId: freeProduct.id,
       name: 'Free Plan',

@@ -100,12 +100,14 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     })
 
     // Setup resource
-    resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
 
     // Setup resource feature with 5 capacity
     resourceFeature = await setupResourceFeature({
@@ -153,7 +155,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     })
 
     // Setup resource subscription item feature
-    subscriptionItemFeature =
+    subscriptionItemFeature = (
       await setupResourceSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: resourceFeature.id,
@@ -161,6 +163,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
         pricingModelId: pricingModel.id,
         amount: 5,
       })
+    ).unwrap()
 
     // Setup billing period
     billingPeriod = await setupBillingPeriod({
@@ -199,13 +202,15 @@ describe('executeBillingRun with adjustment and resource claims', () => {
   it('handleSubscriptionItemAdjustment creates new features without orphaning claims, and claims remain accessible via (subscriptionId, resourceId)', async () => {
     // Setup: Create 3 active claims
     for (let i = 0; i < 3; i++) {
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: `user-${i}`,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: `user-${i}`,
+        })
+      ).unwrap()
     }
 
     // Verify initial claims
@@ -303,13 +308,15 @@ describe('executeBillingRun with adjustment and resource claims', () => {
   it('claims remain accessible when billing run is created but not yet executed', async () => {
     // Setup: Create 3 active claims
     for (let i = 0; i < 3; i++) {
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: `claim-${i}`,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: `claim-${i}`,
+        })
+      ).unwrap()
     }
 
     // Billing run is created (in Scheduled status) but not executed yet
@@ -402,13 +409,15 @@ describe('executeBillingRun with adjustment and resource claims', () => {
   it('preserves claims through the full async adjustment lifecycle', async () => {
     // Setup: Create 2 claims
     for (let i = 0; i < 2; i++) {
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: `existing-user-${i}`,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: `existing-user-${i}`,
+        })
+      ).unwrap()
     }
 
     // Phase 1: Before adjustment - verify initial state
@@ -562,13 +571,15 @@ describe('executeBillingRun with adjustment and resource claims', () => {
   it('does not modify claims when billing run fails due to payment decline', async () => {
     // Setup: Create 3 active claims
     for (let i = 0; i < 3; i++) {
-      await setupResourceClaim({
-        organizationId: organization.id,
-        resourceId: resource.id,
-        subscriptionId: subscription.id,
-        pricingModelId: pricingModel.id,
-        externalId: `preserved-user-${i}`,
-      })
+      ;(
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: `preserved-user-${i}`,
+        })
+      ).unwrap()
     }
 
     // Capture initial state

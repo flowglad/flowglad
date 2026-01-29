@@ -233,11 +233,13 @@ describe('unexpireProductFeatures', () => {
       expiredAt: Date.now(),
     })
     // - Create a second, different product.
-    const otherProduct = await setupProduct({
-      organizationId: organization.id,
-      name: 'Other Product',
-      pricingModelId: product.pricingModelId,
-    })
+    const otherProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Other Product',
+        pricingModelId: product.pricingModelId,
+      })
+    ).unwrap()
 
     // - Call `unexpireProductFeatures` with the correct featureId but the `productId` of the second product.
     const result = await adminTransaction(async (ctx) => {
@@ -269,11 +271,13 @@ describe('unexpireProductFeatures', () => {
 describe('batchUnexpireProductFeatures', () => {
   it('unexpires multiple product features by their IDs across different products', async () => {
     // Create a second product for testing cross-product batch operations
-    const product2 = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product 2',
-      pricingModelId: product.pricingModelId,
-    })
+    const product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product 2',
+        pricingModelId: product.pricingModelId,
+      })
+    ).unwrap()
 
     // Create expired product features on different products
     const pf1 = await setupProductFeature({
@@ -530,11 +534,13 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('invalidates caches for multiple subscription items across different products when unexpiring product features', async () => {
     // Set up a second product
-    const product2 = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product 2',
-      pricingModelId: product.pricingModelId,
-    })
+    const product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product 2',
+        pricingModelId: product.pricingModelId,
+      })
+    ).unwrap()
 
     const customer = (
       await setupCustomer({
@@ -1227,12 +1233,14 @@ describe('bulkInsertProductFeatures', () => {
   let product2: Product.Record
 
   beforeEach(async () => {
-    product2 = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product 2',
-      pricingModelId: product.pricingModelId,
-      livemode: true,
-    })
+    product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product 2',
+        pricingModelId: product.pricingModelId,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should bulk insert product features and derive pricingModelId for each', async () => {
@@ -1322,12 +1330,14 @@ describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
   let product2: Product.Record
 
   beforeEach(async () => {
-    product2 = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product 2',
-      pricingModelId: product.pricingModelId,
-      livemode: true,
-    })
+    product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product 2',
+        pricingModelId: product.pricingModelId,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should bulk insert or do nothing for product features', async () => {

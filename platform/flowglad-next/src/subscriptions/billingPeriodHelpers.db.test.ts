@@ -2444,12 +2444,14 @@ describe('Resource claim expiration during billing period transition', async () 
     })
 
     // Create a resource for claims
-    const resource = await setupResource({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'seats',
-      name: 'Seats',
-    })
+    const resource = (
+      await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'seats',
+        name: 'Seats',
+      })
+    ).unwrap()
 
     // Create resource feature with capacity
     const resourceFeature = await setupResourceFeature({
@@ -2472,33 +2474,39 @@ describe('Resource claim expiration during billing period transition', async () 
     })
 
     // Link feature to subscription item
-    await setupResourceSubscriptionItemFeature({
-      subscriptionItemId: subscriptionItem.id,
-      featureId: resourceFeature.id,
-      resourceId: resource.id,
-      pricingModelId: pricingModel.id,
-      amount: 10,
-    })
+    ;(
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        resourceId: resource.id,
+        pricingModelId: pricingModel.id,
+        amount: 10,
+      })
+    ).unwrap()
 
     // Create two resource claims:
     // 1. A normal claim without expiration
     // 2. A claim with expiredAt set (simulating a claim made during interim period before a downgrade)
-    const normalClaim = await setupResourceClaim({
-      organizationId: organization.id,
-      resourceId: resource.id,
-      subscriptionId: subscription.id,
-      pricingModelId: pricingModel.id,
-      externalId: 'user_normal',
-    })
+    const normalClaim = (
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'user_normal',
+      })
+    ).unwrap()
 
-    const expiredClaim = await setupResourceClaim({
-      organizationId: organization.id,
-      resourceId: resource.id,
-      subscriptionId: subscription.id,
-      pricingModelId: pricingModel.id,
-      externalId: 'user_expired',
-      expiredAt: now - 60 * 1000, // Expired 1 minute ago
-    })
+    const expiredClaim = (
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'user_expired',
+        expiredAt: now - 60 * 1000, // Expired 1 minute ago
+      })
+    ).unwrap()
 
     // Verify initial state: both claims exist and are not released
     const claimsBefore = (

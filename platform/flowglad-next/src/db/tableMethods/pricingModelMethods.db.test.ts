@@ -510,17 +510,21 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
 
   it('should return pricing models with products and features correctly mapped', async () => {
     // Create products for the pricing model
-    const product1 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product 1',
-    })
+    const product1 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product 1',
+      })
+    ).unwrap()
 
-    const product2 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product 2',
-    })
+    const product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product 2',
+      })
+    ).unwrap()
 
     // Create prices for products
     await setupPrice({
@@ -636,11 +640,13 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
 
   it('should return products with empty features array when no features are assigned', async () => {
     // Create a product without any features
-    const productWithoutFeatures = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product Without Features',
-    })
+    const productWithoutFeatures = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product Without Features',
+      })
+    ).unwrap()
 
     // Create a price for the product
     await setupPrice({
@@ -703,35 +709,42 @@ describe('selectPricingModelForCustomer', () => {
     })
 
     // Create active product for both pricing models
-    activeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: specificPricingModel.id,
-      name: 'Active Product',
-      active: true,
-    })
+    activeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: specificPricingModel.id,
+        name: 'Active Product',
+        active: true,
+      })
+    ).unwrap()
 
     // Create inactive product for both pricing models
-    inactiveProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: specificPricingModel.id,
-      name: 'Inactive Product',
-      active: false,
-    })
-
-    // Add products to default pricing model too
-    await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: defaultPricingModel.id,
-      name: 'Default Active Product',
-      active: true,
-    })
-
-    await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: defaultPricingModel.id,
-      name: 'Default Inactive Product',
-      active: false,
-    })
+    inactiveProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: specificPricingModel.id,
+        name: 'Inactive Product',
+        active: false,
+      })
+    )
+      .unwrap()(
+        // Add products to default pricing model too
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: defaultPricingModel.id,
+          name: 'Default Active Product',
+          active: true,
+        })
+      )
+      .unwrap()(
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: defaultPricingModel.id,
+          name: 'Default Inactive Product',
+          active: false,
+        })
+      )
+      .unwrap()
 
     // Create prices for products (required for the query to work)
     await setupPrice({
@@ -940,11 +953,13 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     pricingModel = orgData.pricingModel
 
     // Create a product
-    product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-    })
+    product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+      })
+    ).unwrap()
 
     // Create a price for the product
     await setupPrice({
@@ -1147,11 +1162,13 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
 
   it('should handle mixed expiration scenarios across multiple products', async () => {
     // Create a second product
-    const product2 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Second Product',
-    })
+    const product2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Second Product',
+      })
+    ).unwrap()
 
     // Create a price for the second product
     await setupPrice({
@@ -1241,12 +1258,14 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
   })
 
   it('should filter out inactive prices while preserving all active prices', async () => {
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product with Mixed Prices',
-      active: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Mixed Prices',
+        active: true,
+      })
+    ).unwrap()
 
     const activePrice1 = await setupPrice({
       productId: product.id,
@@ -1320,12 +1339,14 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
   })
 
   it('should filter out products with only inactive prices', async () => {
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product with Only Inactive Prices',
-      active: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Only Inactive Prices',
+        active: true,
+      })
+    ).unwrap()
 
     const inactivePrice1 = await setupPrice({
       productId: product.id,
@@ -1406,12 +1427,14 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
   })
 
   it('should return the latest active price when product has no inactive prices', async () => {
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product with Only Active Prices',
-      active: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Only Active Prices',
+        active: true,
+      })
+    ).unwrap()
 
     const activePrice1 = await setupPrice({
       productId: product.id,
@@ -1490,12 +1513,14 @@ describe('selectPricingModelSlugResolutionData', () => {
   })
 
   it('should return only minimal price fields (id, slug, type, usageMeterId, active)', async () => {
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-      active: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+        active: true,
+      })
+    ).unwrap()
 
     const price = await setupPrice({
       productId: product.id,
@@ -1579,12 +1604,14 @@ describe('selectPricingModelSlugResolutionData', () => {
   })
 
   it('should NOT fetch products or features', async () => {
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-      active: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+        active: true,
+      })
+    ).unwrap()
 
     const feature = await setupToggleFeature({
       organizationId: organization.id,
@@ -1693,19 +1720,23 @@ describe('selectPricingModelSlugResolutionData', () => {
   })
 
   it('should only return prices from active products', async () => {
-    const activeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Active Product',
-      active: true,
-    })
+    const activeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Active Product',
+        active: true,
+      })
+    ).unwrap()
 
-    const inactiveProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Inactive Product',
-      active: false,
-    })
+    const inactiveProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Inactive Product',
+        active: false,
+      })
+    ).unwrap()
 
     const activePrice = await setupPrice({
       productId: activeProduct.id,
@@ -1756,12 +1787,14 @@ describe('selectPricingModelSlugResolutionData', () => {
   })
 
   it('should de-duplicate prices by price ID', async () => {
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-      active: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product',
+        active: true,
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: product.id,
@@ -1859,11 +1892,13 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
 
   it('countNonUsageProductsByPricingModelIds counts all products (usage prices no longer have products)', async () => {
     // Create subscription products
-    const subscriptionProduct1 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Subscription Product 1',
-    })
+    const subscriptionProduct1 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Subscription Product 1',
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: subscriptionProduct1.id,
@@ -1878,11 +1913,13 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
       trialPeriodDays: 0,
     })
 
-    const subscriptionProduct2 = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Subscription Product 2',
-    })
+    const subscriptionProduct2 = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Subscription Product 2',
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: subscriptionProduct2.id,
@@ -1936,11 +1973,13 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
 
   it('selectPricingModelsTableRows returns all product count (usage prices no longer have products)', async () => {
     // Create subscription product
-    const subscriptionProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Subscription Product',
-    })
+    const subscriptionProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Subscription Product',
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: subscriptionProduct.id,
@@ -2065,12 +2104,14 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
 
   it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes inactive products at the SQL level', async () => {
     // Create an active product with an active price
-    const activeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Active Product',
-      active: true,
-    })
+    const activeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Active Product',
+        active: true,
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: activeProduct.id,
@@ -2086,12 +2127,14 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
     })
 
     // Create an inactive product with an active price
-    const inactiveProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Inactive Product',
-      active: false,
-    })
+    const inactiveProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Inactive Product',
+        active: false,
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: inactiveProduct.id,
@@ -2135,12 +2178,14 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
 
   it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes inactive prices at the SQL level', async () => {
     // Create an active product
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product with Mixed Prices',
-      active: true,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Mixed Prices',
+        active: true,
+      })
+    ).unwrap()
 
     // Note: safelyInsertPrice (used by setupPrice) sets existing prices to inactive
     // when creating a new price for the same product. So:
@@ -2202,12 +2247,14 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
 
   it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes products with only inactive prices', async () => {
     // Create an active product with ONLY inactive prices
-    const productWithOnlyInactivePrices = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product with Only Inactive Prices',
-      active: true,
-    })
+    const productWithOnlyInactivePrices = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Only Inactive Prices',
+        active: true,
+      })
+    ).unwrap()
 
     const inactivePrice1 = await setupPrice({
       productId: productWithOnlyInactivePrices.id,

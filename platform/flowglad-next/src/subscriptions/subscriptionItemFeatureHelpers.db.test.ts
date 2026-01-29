@@ -181,12 +181,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
     ).unwrap()
 
     // Use a specific product and price for these tests to ensure clarity
-    productForFeatures = await setupProduct({
-      organizationId: orgData.organization.id,
-      name: 'Product For Feature Tests',
-      livemode: true,
-      pricingModelId: orgData.pricingModel.id,
-    })
+    productForFeatures = (
+      await setupProduct({
+        organizationId: orgData.organization.id,
+        name: 'Product For Feature Tests',
+        livemode: true,
+        pricingModelId: orgData.pricingModel.id,
+      })
+    ).unwrap()
 
     priceForFeatures = await setupPrice({
       productId: productForFeatures.id,

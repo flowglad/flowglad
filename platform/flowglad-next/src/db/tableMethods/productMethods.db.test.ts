@@ -49,18 +49,22 @@ describe('getProductTableRows', () => {
     pricingModelId = pricingModel.id
 
     // Set up products
-    const secondProduct = await setupProduct({
-      organizationId,
-      name: 'Product 1',
-      pricingModelId,
-    })
+    const secondProduct = (
+      await setupProduct({
+        organizationId,
+        name: 'Product 1',
+        pricingModelId,
+      })
+    ).unwrap()
     secondProductId = secondProduct.id
 
-    const thirdProduct = await setupProduct({
-      organizationId,
-      name: 'Product 2',
-      pricingModelId,
-    })
+    const thirdProduct = (
+      await setupProduct({
+        organizationId,
+        name: 'Product 2',
+        pricingModelId,
+      })
+    ).unwrap()
     thirdProductId = thirdProduct.id
 
     // Set up prices
@@ -181,11 +185,13 @@ describe('getProductTableRows', () => {
       organizationId: otherOrg.id,
       name: 'Other PricingModel',
     })
-    const otherProduct = await setupProduct({
-      organizationId: otherOrg.id,
-      name: 'Other Product',
-      pricingModelId: otherPricingModel.id,
-    })
+    const otherProduct = (
+      await setupProduct({
+        organizationId: otherOrg.id,
+        name: 'Other Product',
+        pricingModelId: otherPricingModel.id,
+      })
+    ).unwrap()
     await setupPrice({
       productId: otherProduct.id,
       name: 'Other Price',
@@ -227,11 +233,13 @@ describe('getProductTableRows', () => {
   it('should apply pagination correctly', async () => {
     // Create additional products to test pagination
     for (let i = 3; i <= 12; i++) {
-      const product = await setupProduct({
-        organizationId,
-        name: `Product ${i}`,
-        pricingModelId,
-      })
+      const product = (
+        await setupProduct({
+          organizationId,
+          name: `Product ${i}`,
+          pricingModelId,
+        })
+      ).unwrap()
       await setupPrice({
         productId: product.id,
         name: `Price ${i}`,
@@ -341,11 +349,13 @@ describe('getProductTableRows', () => {
 
   it('should sort products by creation date in descending order', async () => {
     // Create a new product that should appear first
-    const newProduct = await setupProduct({
-      organizationId,
-      name: 'New Product',
-      pricingModelId,
-    })
+    const newProduct = (
+      await setupProduct({
+        organizationId,
+        name: 'New Product',
+        pricingModelId,
+      })
+    ).unwrap()
     await setupPrice({
       productId: newProduct.id,
       name: 'New Price',
@@ -400,12 +410,14 @@ describe('Database Constraints', () => {
     const pricingModel = await setupPricingModel({ organizationId })
     pricingModelId = pricingModel.id
 
-    const defaultProduct = await setupProduct({
-      organizationId,
-      name: 'Default Product',
-      pricingModelId,
-      default: true,
-    })
+    const defaultProduct = (
+      await setupProduct({
+        organizationId,
+        name: 'Default Product',
+        pricingModelId,
+        default: true,
+      })
+    ).unwrap()
     defaultProductId = defaultProduct.id
   })
 
@@ -434,12 +446,14 @@ describe('Database Constraints', () => {
   })
 
   it('throws an error when updating a product to be default when another default product exists', async () => {
-    const nonDefaultProduct = await setupProduct({
-      organizationId,
-      name: 'Non-Default Product',
-      pricingModelId,
-      default: false,
-    })
+    const nonDefaultProduct = (
+      await setupProduct({
+        organizationId,
+        name: 'Non-Default Product',
+        pricingModelId,
+        default: false,
+      })
+    ).unwrap()
 
     await expect(
       adminTransaction(async (ctx) => {
@@ -628,11 +642,13 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
       organizationId: organization.id,
       name: 'Test PricingModel',
     })
-    const product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Product Without Features',
-      pricingModelId: pricingModel.id,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Product Without Features',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     // Set up a price
     await setupPrice({
@@ -676,11 +692,13 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
       organizationId: organization.id,
       name: 'Test PricingModel',
     })
-    const product = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product',
-      pricingModelId: pricingModel.id,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     // Set up prices
     await setupPrice({
@@ -738,12 +756,14 @@ describe('selectProductsCursorPaginated search', () => {
   it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
     const { organization, pricingModel } = (await setupOrg()).unwrap()
 
-    const product = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Premium Plan',
-      slug: `premium-slug-${core.nanoid()}`,
-    })
+    const product = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Premium Plan',
+        slug: `premium-slug-${core.nanoid()}`,
+      })
+    ).unwrap()
 
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -788,13 +808,15 @@ describe('selectProductsCursorPaginated search', () => {
   })
 
   it('should return all products when search query is empty or undefined', async () => {
-    const { organization, pricingModel } = (await setupOrg()).unwrap()
-
-    await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product',
-    })
+    const { organization, pricingModel } = (await setupOrg())
+      .unwrap()(
+        await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Test Product',
+        })
+      )
+      .unwrap()
 
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -834,11 +856,13 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
 
   it('excludes products with no prices and includes products with prices when excludeProductsWithNoPrices=true', async () => {
     // Create a subscription product WITH a price
-    const subscriptionProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product With Price',
-    })
+    const subscriptionProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product With Price',
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: subscriptionProduct.id,
@@ -851,16 +875,16 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
       livemode: true,
       isDefault: true,
       trialPeriodDays: 0,
-    })
-
-    // Create a product WITHOUT any prices (orphaned product)
-    // This simulates a hidden product that was created as a workaround for usage prices
-    // but now has no prices after the productId nullification migration
-    await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Orphaned Product Without Prices',
-    })
+    })(
+      // Create a product WITHOUT any prices (orphaned product)
+      // This simulates a hidden product that was created as a workaround for usage prices
+      // but now has no prices after the productId nullification migration
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Orphaned Product Without Prices',
+      })
+    ).unwrap()
 
     // Query with excludeProductsWithNoPrices=true
     // Should only include products that have at least one price
@@ -923,11 +947,13 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
 
   it('includes all products when excludeProductsWithNoPrices=false', async () => {
     // Create a subscription product WITH a price
-    const subscriptionProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Product With Price 2',
-    })
+    const subscriptionProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product With Price 2',
+      })
+    ).unwrap()
 
     await setupPrice({
       productId: subscriptionProduct.id,
@@ -940,14 +966,14 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
       livemode: true,
       isDefault: true,
       trialPeriodDays: 0,
-    })
-
-    // Create a product WITHOUT any prices
-    await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Orphaned Product 2',
-    })
+    })(
+      // Create a product WITHOUT any prices
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Orphaned Product 2',
+      })
+    ).unwrap()
 
     // Query with excludeProductsWithNoPrices=false (should include all)
     const result = await adminTransaction(async (ctx) => {
@@ -984,17 +1010,21 @@ describe('pricingModelIdsForProducts', () => {
     organization = orgData.organization.id
     pricingModel = orgData.pricingModel
 
-    product1 = await setupProduct({
-      organizationId: organization,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product 1',
-    })
+    product1 = (
+      await setupProduct({
+        organizationId: organization,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product 1',
+      })
+    ).unwrap()
 
-    product2 = await setupProduct({
-      organizationId: organization,
-      pricingModelId: pricingModel.id,
-      name: 'Test Product 2',
-    })
+    product2 = (
+      await setupProduct({
+        organizationId: organization,
+        pricingModelId: pricingModel.id,
+        name: 'Test Product 2',
+      })
+    ).unwrap()
   })
 
   it('should successfully return map of pricingModelIds for multiple products', async () => {

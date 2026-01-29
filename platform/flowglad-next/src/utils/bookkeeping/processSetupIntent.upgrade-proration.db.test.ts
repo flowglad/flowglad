@@ -125,12 +125,14 @@ describe('Subscription Upgrade with Proration', () => {
     ).unwrap()
 
     // Create free product and price
-    freeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Free Plan',
-      livemode: true,
-    })
+    freeProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Free Plan',
+        livemode: true,
+      })
+    ).unwrap()
 
     freePrice = await setupPrice({
       productId: freeProduct.id,
@@ -145,12 +147,14 @@ describe('Subscription Upgrade with Proration', () => {
     })
 
     // Create paid product and price
-    paidProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Pro Plan',
-      livemode: true,
-    })
+    paidProduct = (
+      await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Pro Plan',
+        livemode: true,
+      })
+    ).unwrap()
 
     paidPrice = await setupPrice({
       productId: paidProduct.id,
