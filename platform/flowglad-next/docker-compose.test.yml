@@ -32,3 +32,17 @@ services:
       timeout: 5s
       retries: 5
 
+  flowglad-mock-server:
+    build:
+      context: ../../packages/mock-server
+      dockerfile: Dockerfile
+    ports:
+      - '9001:9001'  # Svix
+      - '9002:9002'  # Unkey
+      - '9003:9003'  # Trigger
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:9001/health > /dev/null']
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
