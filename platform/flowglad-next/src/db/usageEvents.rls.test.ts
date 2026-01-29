@@ -104,16 +104,20 @@ describe('usage_events RLS policies', () => {
     ).unwrap()
 
     // Setup usage meters
-    usageMeter1 = await setupUsageMeter({
-      organizationId: org1Data.organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: org1Data.pricingModel.id,
-    })
-    usageMeter2 = await setupUsageMeter({
-      organizationId: org2Data.organization.id,
-      name: 'Test Usage Meter 2',
-      pricingModelId: org2Data.pricingModel.id,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: org1Data.organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
+    usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: org2Data.organization.id,
+        name: 'Test Usage Meter 2',
+        pricingModelId: org2Data.pricingModel.id,
+      })
+    ).unwrap()
 
     // Setup prices
     price1 = await setupPrice({

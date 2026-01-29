@@ -1317,11 +1317,13 @@ describe('selectSubscriptionsTableRowData', () => {
       const { organization: org, pricingModel: pm } = (
         await setupOrg()
       ).unwrap()
-      const usageMeter = await setupUsageMeter({
-        organizationId: org.id,
-        pricingModelId: pm.id,
-        name: 'API Calls Meter',
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: org.id,
+          pricingModelId: pm.id,
+          name: 'API Calls Meter',
+        })
+      ).unwrap()
 
       // Create usage price (usage prices have null productId)
       const usagePrice = await setupPrice({

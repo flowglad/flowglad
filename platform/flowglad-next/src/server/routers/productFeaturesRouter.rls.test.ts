@@ -99,13 +99,15 @@ describe('productFeaturesRouter.create - Toggle Feature Validation', () => {
     })
 
     // Create a usage meter and usage credit grant feature
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'API Calls',
-      slug: `api-calls-${core.nanoid()}`,
-      livemode: true,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'API Calls',
+        slug: `api-calls-${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     usageCreditGrantFeature = await setupUsageCreditGrantFeature({
       organizationId: organization.id,

@@ -160,13 +160,15 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Create purchase for paid product
-      const purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      const purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create checkout session for paid product
       const checkoutSession = (
@@ -183,12 +185,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       ).unwrap()
 
       // Create fee calculation for the checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create successful setup intent
       const setupIntent = mockSucceededSetupIntent({
@@ -268,13 +272,15 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Create purchase and checkout session
-      const purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      const purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
 
       const checkoutMetadata = { referrer: 'dashboard' }
       const checkoutSession = (
@@ -292,12 +298,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       ).unwrap()
 
       // Create fee calculation for the checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -363,13 +371,15 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       expect(existingSubscriptions).toHaveLength(0)
 
       // Create purchase and checkout session for paid product
-      const purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      const purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
 
       const checkoutSession = (
         await setupCheckoutSession({
@@ -385,12 +395,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       ).unwrap()
 
       // Create fee calculation for the checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -481,13 +493,15 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Create purchase and checkout for another paid product
-      const purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      const purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
 
       const checkoutSession = (
         await setupCheckoutSession({
@@ -503,12 +517,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       ).unwrap()
 
       // Create fee calculation for the checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,

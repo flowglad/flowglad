@@ -2396,13 +2396,15 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       })
     ).unwrap()
 
-    purchase = await setupPurchase({
-      customerId: customer.id,
-      organizationId: organization.id,
-      livemode: true,
-      priceId: price.id,
-      status: PurchaseStatus.Open,
-    })
+    purchase = (
+      await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        livemode: true,
+        priceId: price.id,
+        status: PurchaseStatus.Open,
+      })
+    ).unwrap()
 
     invoice = await setupInvoice({
       organizationId: organization.id,
@@ -2739,13 +2741,15 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
 
   it('should not update invoice when total payments are less than invoice total', async () => {
     // Add another line item to increase the invoice total
-    await setupInvoiceLineItem({
-      invoiceId: invoice.id,
-      priceId: price.id,
-      quantity: 1,
-      price: 2000, // Additional 2000
-      livemode: true,
-    })
+    ;(
+      await setupInvoiceLineItem({
+        invoiceId: invoice.id,
+        priceId: price.id,
+        quantity: 1,
+        price: 2000, // Additional 2000
+        livemode: true,
+      })
+    ).unwrap()
 
     // Payment amount is less than total (1000 + 2000 = 3000)
     const partialPayment = await setupPayment({
@@ -2790,13 +2794,15 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
 
   it('should update invoice to Paid when multiple payments cover the total', async () => {
     // Add another line item to increase the invoice total
-    await setupInvoiceLineItem({
-      invoiceId: invoice.id,
-      priceId: price.id,
-      quantity: 1,
-      price: 1000, // Additional 1000, total = 2000
-      livemode: true,
-    })
+    ;(
+      await setupInvoiceLineItem({
+        invoiceId: invoice.id,
+        priceId: price.id,
+        quantity: 1,
+        price: 1000, // Additional 1000, total = 2000
+        livemode: true,
+      })
+    ).unwrap()
 
     // First payment - partial
     await setupPayment({

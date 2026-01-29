@@ -40,12 +40,14 @@ describe('createNonInvoiceCheckoutSession', () => {
         stripeCustomerId: `cus_${core.nanoid()}`,
       })
     ).unwrap()
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: false,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     // Create a non-default product for testing
     const nonDefaultProduct = await setupProduct({
@@ -271,12 +273,14 @@ describe('createNonInvoiceCheckoutSession', () => {
 
   describe('Purchase checkout sessions', () => {
     it('should derive pricingModelId from price for SinglePayment purchase', async () => {
-      const purchase = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: singlePaymentPrice.id,
-        livemode: false,
-      })
+      const purchase = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: singlePaymentPrice.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
@@ -300,12 +304,14 @@ describe('createNonInvoiceCheckoutSession', () => {
     })
 
     it('should derive pricingModelId from price for Subscription purchase', async () => {
-      const purchase = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: subscriptionPrice.id,
-        livemode: false,
-      })
+      const purchase = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: subscriptionPrice.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
@@ -329,12 +335,14 @@ describe('createNonInvoiceCheckoutSession', () => {
     })
 
     it('should derive pricingModelId from price for Usage purchase', async () => {
-      const purchase = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: usagePrice.id,
-        livemode: false,
-      })
+      const purchase = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: usagePrice.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>

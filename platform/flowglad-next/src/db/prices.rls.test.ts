@@ -137,11 +137,13 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
     ).unwrap()
     apiKey = userApiKey.apiKey
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('INSERT operations', () => {
@@ -393,11 +395,13 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
     it('denies merchant from selecting usage prices from another organization usage meters', async () => {
       // Create another organization with a usage meter and price
       const org2Data = (await setupOrg()).unwrap()
-      const org2UsageMeter = await setupUsageMeter({
-        organizationId: org2Data.organization.id,
-        name: 'Org2 Usage Meter',
-        livemode: true,
-      })
+      const org2UsageMeter = (
+        await setupUsageMeter({
+          organizationId: org2Data.organization.id,
+          name: 'Org2 Usage Meter',
+          livemode: true,
+        })
+      ).unwrap()
       const org2UsagePrice = await setupPrice({
         usageMeterId: org2UsageMeter.id,
         name: 'Org2 Usage Price',
@@ -536,17 +540,21 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
     apiKey = userApiKey.apiKey
 
     // Create two usage meters in the same pricing model
-    usageMeter1 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Usage Meter 1',
-      livemode: true,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Usage Meter 1',
+        livemode: true,
+      })
+    ).unwrap()
 
-    usageMeter2 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Usage Meter 2',
-      livemode: true,
-    })
+    usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Usage Meter 2',
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a usage price for the first usage meter
     usagePrice = (await setupPrice({
@@ -592,12 +600,14 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
     })
 
     // Create a usage meter in the second pricing model
-    const usageMeterInPM2 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Usage Meter in PM2',
-      pricingModelId: pricingModel2.id,
-      livemode: false,
-    })
+    const usageMeterInPM2 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Usage Meter in PM2',
+        pricingModelId: pricingModel2.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     // The update should fail because the RLS policy requires the usage meter's
     // pricing_model_id to match the price's pricing_model_id
@@ -662,11 +672,13 @@ describe('prices RLS - customer read access', () => {
     ).unwrap()
 
     // Create a usage meter
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Customer Test Usage Meter',
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Customer Test Usage Meter',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('allows customer to read active subscription prices for visible products', async () => {

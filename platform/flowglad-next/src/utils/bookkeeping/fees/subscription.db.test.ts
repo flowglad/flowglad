@@ -90,11 +90,13 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       )
     organizationCountryRec = countries[0]!
 
-    usageMeterRec = await setupUsageMeter({
-      organizationId: orgData.organization.id,
-      name: 'Subscription Test Meter',
-      pricingModelId: orgData.pricingModel.id,
-    })
+    usageMeterRec = (
+      await setupUsageMeter({
+        organizationId: orgData.organization.id,
+        name: 'Subscription Test Meter',
+        pricingModelId: orgData.pricingModel.id,
+      })
+    ).unwrap()
     testDiscount = await setupDiscount({
       organizationId: orgData.organization.id,
       pricingModelId: orgData.pricingModel.id,
@@ -295,11 +297,13 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
         type: PaymentMethodType.Card,
       })
     ).unwrap()
-    const usageMeter = await setupUsageMeter({
-      organizationId: orgData.organization.id,
-      name: 'Test Usage Meter for Error Path',
-      pricingModelId: orgData.pricingModel.id,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: orgData.organization.id,
+        name: 'Test Usage Meter for Error Path',
+        pricingModelId: orgData.pricingModel.id,
+      })
+    ).unwrap()
 
     // Create a usage price (has usageMeterId but no productId)
     // Note: pricingModelId is derived automatically from usageMeterId for usage prices

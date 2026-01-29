@@ -188,14 +188,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
 
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: newBillingRun.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: newBillingRun.id,
+      })
+    ).unwrap()
 
     await setupPayment({
       stripeChargeId,
@@ -250,14 +252,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
 
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: billingRun.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: billingRun.id,
+      })
+    ).unwrap()
     await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,
@@ -343,14 +347,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
 
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: billingRun.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: billingRun.id,
+      })
+    ).unwrap()
     await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,
@@ -407,14 +413,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
 
-    const failedInvoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: failedBillingRun.id,
-    })
+    const failedInvoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: failedBillingRun.id,
+      })
+    ).unwrap()
     const payment = await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,
@@ -472,14 +480,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       organizationId: organization.id,
       customerId: customer.id,
     })
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: billingRun.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: billingRun.id,
+      })
+    ).unwrap()
     const stripeChargeId = `ch_${invoice.id}___failed`
     const payment = await setupPayment({
       stripeChargeId,
@@ -493,14 +503,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     await adminTransaction(async ({ transaction }) => {
       const { ctx, effects } =
         createCapturingEffectsContext(transaction)
-      const canceledInvoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        status: InvoiceStatus.Open,
-        priceId: price.id,
-        billingRunId: billingRun.id,
-      })
+      const canceledInvoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          status: InvoiceStatus.Open,
+          priceId: price.id,
+          billingRunId: billingRun.id,
+        })
+      ).unwrap()
 
       const event = createMockPaymentIntentEventResponse(
         'canceled',
@@ -556,14 +568,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       subscriptionId: subscription.id,
       livemode: true,
     })
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: billingRun.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: billingRun.id,
+      })
+    ).unwrap()
     const payment = await setupPayment({
       stripeChargeId: `ch_${billingRun.id}___processing`,
       status: PaymentStatus.Processing,
@@ -628,14 +642,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
       subscriptionId: subscription.id,
     })
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: billingRun.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: billingRun.id,
+      })
+    ).unwrap()
     const payment = await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,
@@ -650,14 +666,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     await adminTransaction(async ({ transaction }) => {
       const { ctx, effects } =
         createCapturingEffectsContext(transaction)
-      const requiresActionInvoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        status: InvoiceStatus.Open,
-        priceId: price.id,
-        billingRunId: billingRun.id,
-      })
+      const requiresActionInvoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          status: InvoiceStatus.Open,
+          priceId: price.id,
+          billingRunId: billingRun.id,
+        })
+      ).unwrap()
 
       const event = createMockPaymentIntentEventResponse(
         'requires_action',
@@ -752,14 +770,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
     await adminTransaction(async ({ transaction }) => {
-      await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        status: InvoiceStatus.Open,
-        priceId: price.id,
-        billingRunId: billingRun.id,
-      })
+      ;(
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          status: InvoiceStatus.Open,
+          priceId: price.id,
+          billingRunId: billingRun.id,
+        })
+      ).unwrap()
 
       const event = createMockPaymentIntentEventResponse(
         'succeeded',
@@ -881,14 +901,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       unitPrice: 100, // Non-zero amount
     })
 
-    const testInvoice = await setupInvoice({
-      billingPeriodId: testBillingPeriod.id,
-      customerId: testCustomer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: testBillingRun.id,
-    })
+    const testInvoice = (
+      await setupInvoice({
+        billingPeriodId: testBillingPeriod.id,
+        customerId: testCustomer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: testBillingRun.id,
+      })
+    ).unwrap()
 
     const stripePaymentIntentId = `pi_first_fail_${core.nanoid()}`
     const stripeChargeId = `ch_first_fail_${core.nanoid()}`
@@ -1036,14 +1058,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       unitPrice: 50, // Usage charges on free plan
     })
 
-    const testInvoice = await setupInvoice({
-      billingPeriodId: testBillingPeriod.id,
-      customerId: testCustomer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: freePrice.id,
-      billingRunId: testBillingRun.id,
-    })
+    const testInvoice = (
+      await setupInvoice({
+        billingPeriodId: testBillingPeriod.id,
+        customerId: testCustomer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: freePrice.id,
+        billingRunId: testBillingRun.id,
+      })
+    ).unwrap()
 
     const stripePaymentIntentId = `pi_free_first_fail_${core.nanoid()}`
     const stripeChargeId = `ch_free_first_fail_${core.nanoid()}`
@@ -1162,24 +1186,28 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
 
-    const adjustmentInvoice = await setupInvoice({
-      billingPeriodId: testBillingPeriod.id,
-      customerId: testCustomer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: adjustmentBillingRun.id,
-    })
+    const adjustmentInvoice = (
+      await setupInvoice({
+        billingPeriodId: testBillingPeriod.id,
+        customerId: testCustomer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: adjustmentBillingRun.id,
+      })
+    ).unwrap()
 
     // Create invoice line items for the adjustment (simulating what executeBillingRun would create)
-    await setupInvoiceLineItem({
-      invoiceId: adjustmentInvoice.id,
-      priceId: price.id,
-      quantity: 1,
-      price: 500, // Adjustment amount
-      billingRunId: adjustmentBillingRun.id, // Link to adjustment billing run
-      livemode: true,
-    })
+    ;(
+      await setupInvoiceLineItem({
+        invoiceId: adjustmentInvoice.id,
+        priceId: price.id,
+        quantity: 1,
+        price: 500, // Adjustment amount
+        billingRunId: adjustmentBillingRun.id, // Link to adjustment billing run
+        livemode: true,
+      })
+    ).unwrap()
 
     const stripePaymentIntentId = `pi_adjustment_fail_${core.nanoid()}`
     const stripeChargeId = `ch_adjustment_fail_${core.nanoid()}`
@@ -1345,11 +1373,13 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     ).unwrap()
     // Setup
     const grantAmount = 5000
-    const usageMeter = await setupUsageMeter({
-      organizationId: orgForGrants.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Meter for Once Grant',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: orgForGrants.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Meter for Once Grant',
+      })
+    ).unwrap()
     const feature = await setupUsageCreditGrantFeature({
       organizationId: orgForGrants.id,
       name: 'One-time Credits',
@@ -1415,14 +1445,16 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     )
 
     // Create invoice and payment
-    const testInvoice = await setupInvoice({
-      billingPeriodId: testBillingPeriod.id,
-      customerId: testCustomer.id,
-      organizationId: orgForGrants.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: testBillingRun.id,
-    })
+    const testInvoice = (
+      await setupInvoice({
+        billingPeriodId: testBillingPeriod.id,
+        customerId: testCustomer.id,
+        organizationId: orgForGrants.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: testBillingRun.id,
+      })
+    ).unwrap()
 
     const stripePaymentIntentId = `pi_once_grant_${core.nanoid()}`
     const stripeChargeId = `ch_once_grant_${core.nanoid()}`
@@ -1536,11 +1568,13 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // Setup
     const grantAmount = 3000
-    const usageMeter = await setupUsageMeter({
-      organizationId: orgForGrants.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Meter for Recurring Grant',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: orgForGrants.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Meter for Recurring Grant',
+      })
+    ).unwrap()
     const feature = await setupUsageCreditGrantFeature({
       organizationId: orgForGrants.id,
       name: 'Recurring Credits',
@@ -1606,14 +1640,16 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     )
 
     // Create invoice and payment
-    const testInvoice = await setupInvoice({
-      billingPeriodId: testBillingPeriod.id,
-      customerId: testCustomer.id,
-      organizationId: orgForGrants.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: testBillingRun.id,
-    })
+    const testInvoice = (
+      await setupInvoice({
+        billingPeriodId: testBillingPeriod.id,
+        customerId: testCustomer.id,
+        organizationId: orgForGrants.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: testBillingRun.id,
+      })
+    ).unwrap()
 
     const stripePaymentIntentId = `pi_recurring_grant_${core.nanoid()}`
     const stripeChargeId = `ch_recurring_grant_${core.nanoid()}`
@@ -1725,11 +1761,13 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     ).unwrap()
 
     const grantAmount = 5000
-    const usageMeter = await setupUsageMeter({
-      organizationId: orgForGrants.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Meter for Idempotent Grant',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: orgForGrants.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Meter for Idempotent Grant',
+      })
+    ).unwrap()
     const feature = await setupUsageCreditGrantFeature({
       organizationId: orgForGrants.id,
       name: 'One-time Credits',
@@ -1791,14 +1829,16 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     )
 
     // Create invoice and first payment
-    const testInvoice = await setupInvoice({
-      billingPeriodId: testBillingPeriod.id,
-      customerId: testCustomer.id,
-      organizationId: orgForGrants.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: testBillingRun.id,
-    })
+    const testInvoice = (
+      await setupInvoice({
+        billingPeriodId: testBillingPeriod.id,
+        customerId: testCustomer.id,
+        organizationId: orgForGrants.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: testBillingRun.id,
+      })
+    ).unwrap()
 
     const firstStripePaymentIntentId = `pi_first_${core.nanoid()}`
     const firstStripeChargeId = `ch_first_${core.nanoid()}`
@@ -1984,10 +2024,12 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
 
   it('calls enqueueLedgerCommand with SettleInvoiceUsageCostsLedgerCommand for usage-based billing', async () => {
     // Setup usage meter and price
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+      })
+    ).unwrap()
     const usagePrice = await setupPrice({
       name: 'Usage Price',
       type: PriceType.Usage,
@@ -2026,14 +2068,16 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
       livemode: true,
     })
 
-    const usageInvoice = await setupInvoice({
-      billingPeriodId: usageBillingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: usagePrice.id,
-      billingRunId: usageBillingRun.id,
-    })
+    const usageInvoice = (
+      await setupInvoice({
+        billingPeriodId: usageBillingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: usagePrice.id,
+        billingRunId: usageBillingRun.id,
+      })
+    ).unwrap()
 
     await setupPayment({
       stripeChargeId,
@@ -2142,14 +2186,16 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
       livemode: true,
     })
 
-    const testInvoice = await setupInvoice({
-      billingPeriodId: testBillingPeriod.id,
-      customerId: testCustomer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: failingBillingRun.id,
-    })
+    const testInvoice = (
+      await setupInvoice({
+        billingPeriodId: testBillingPeriod.id,
+        customerId: testCustomer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: failingBillingRun.id,
+      })
+    ).unwrap()
 
     await setupPayment({
       stripeChargeId,
@@ -2214,14 +2260,16 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
       livemode: true,
     })
 
-    const successInvoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      status: InvoiceStatus.Open,
-      priceId: price.id,
-      billingRunId: successBillingRun.id,
-    })
+    const successInvoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Open,
+        priceId: price.id,
+        billingRunId: successBillingRun.id,
+      })
+    ).unwrap()
     await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,

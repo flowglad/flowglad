@@ -132,16 +132,16 @@ describe('createUsageMeterTransaction', () => {
 
   describe('Usage meter slug collision', () => {
     it('fails and rolls back when usage meter slug already exists in pricing model', async () => {
-      const slug = 'duplicate-usage-meter-slug'
-
-      // Create a usage meter with the slug first
-      await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Existing Usage Meter',
-        slug,
-        pricingModelId: pricingModel.id,
-        livemode: false,
-      })
+      const slug = 'duplicate-usage-meter-slug'(
+        // Create a usage meter with the slug first
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Existing Usage Meter',
+          slug,
+          pricingModelId: pricingModel.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Attempt to create usage meter with the same slug
       await expect(
@@ -323,16 +323,16 @@ describe('createUsageMeterTransaction', () => {
 
   describe('Transaction rollback verification', () => {
     it('does not create any records when slug collision occurs', async () => {
-      const slug = 'collision-test-slug'
-
-      // Create a usage meter with the slug first
-      await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Blocking Usage Meter',
-        slug,
-        pricingModelId: pricingModel.id,
-        livemode: false,
-      })
+      const slug = 'collision-test-slug'(
+        // Create a usage meter with the slug first
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Blocking Usage Meter',
+          slug,
+          pricingModelId: pricingModel.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Count records before the failed transaction
       const beforeCounts = await adminTransaction(

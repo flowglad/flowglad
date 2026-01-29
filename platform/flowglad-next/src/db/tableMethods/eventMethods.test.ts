@@ -90,13 +90,15 @@ describe('pricingModelIdsForEventPayloads', () => {
       livemode: true,
     })
 
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      status: InvoiceStatus.Draft,
-      livemode: true,
-      priceId: price.id,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: InvoiceStatus.Draft,
+        livemode: true,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     payment = await setupPayment({
       organizationId: organization.id,
@@ -108,12 +110,14 @@ describe('pricingModelIdsForEventPayloads', () => {
       livemode: true,
     })
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('returns an empty map when given an empty payloads array', async () => {
@@ -313,13 +317,15 @@ describe('derivePricingModelIdFromEventPayload', () => {
       livemode: true,
     })
 
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      status: InvoiceStatus.Draft,
-      livemode: true,
-      priceId: price.id,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: InvoiceStatus.Draft,
+        livemode: true,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     payment = await setupPayment({
       organizationId: organization.id,
@@ -331,12 +337,14 @@ describe('derivePricingModelIdFromEventPayload', () => {
       livemode: true,
     })
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('returns pricingModelId for a customer payload', async () => {
@@ -465,13 +473,15 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
       livemode: true,
     })
 
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      status: InvoiceStatus.Draft,
-      livemode: true,
-      priceId: price.id,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: InvoiceStatus.Draft,
+        livemode: true,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     payment = await setupPayment({
       organizationId: organization.id,
@@ -483,12 +493,14 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
       livemode: true,
     })
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('inserts events with pricingModelId derived from customer payload', async () => {

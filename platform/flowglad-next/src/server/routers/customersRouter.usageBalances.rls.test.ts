@@ -86,12 +86,14 @@ describe('customers.getUsageBalances', () => {
     ).unwrap()
 
     // Setup usage meter
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      livemode: true,
-      pricingModelId,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+        pricingModelId,
+      })
+    ).unwrap()
 
     // Setup usage price for the usage meter
     price = await setupPrice({
@@ -152,48 +154,58 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup ledger accounts and entries for both subscriptions
-    const ledgerAccount1 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    const ledgerAccount1 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const ledgerAccount2 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription2.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    const ledgerAccount2 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription2.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create actual usage credits for subscription1
-    const usageCredit1 = await setupUsageCredit({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      usageMeterId: usageMeter.id,
-      creditType: UsageCreditType.Grant,
-      issuedAmount: 100,
-      billingPeriodId: billingPeriod1.id,
-      livemode: true,
-    })
+    const usageCredit1 = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 100,
+        billingPeriodId: billingPeriod1.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create actual usage credits for subscription2
-    const usageCredit2 = await setupUsageCredit({
-      organizationId: organization.id,
-      subscriptionId: subscription2.id,
-      usageMeterId: usageMeter.id,
-      creditType: UsageCreditType.Grant,
-      issuedAmount: 200,
-      billingPeriodId: billingPeriod2.id,
-      livemode: true,
-    })
+    const usageCredit2 = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription2.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 200,
+        billingPeriodId: billingPeriod2.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create credit entries (positive balance) for subscription1
-    const ledgerTransaction1 = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      type: LedgerTransactionType.AdminCreditAdjusted,
-    })
+    const ledgerTransaction1 = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+    ).unwrap()
 
     await setupLedgerEntries({
       organizationId: organization.id,
@@ -211,11 +223,13 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Create credit entries (positive balance) for subscription2
-    const ledgerTransaction2 = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: subscription2.id,
-      type: LedgerTransactionType.AdminCreditAdjusted,
-    })
+    const ledgerTransaction2 = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription2.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+    ).unwrap()
 
     await setupLedgerEntries({
       organizationId: organization.id,
@@ -276,49 +290,77 @@ describe('customers.getUsageBalances', () => {
       livemode: true,
     })
 
-    // Setup ledger accounts and entries for both subscriptions
-    const ledgerAccount1 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    const ledgerAccount1 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const ledgerAccount2 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription2.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    const ledgerAccount2 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription2.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
+
+    // Setup ledger accounts and entries for both subscriptions
+    const ledgerAccount1 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
+
+    const ledgerAccount2 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription2.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create actual usage credits for subscription1
-    const usageCredit1 = await setupUsageCredit({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      usageMeterId: usageMeter.id,
-      creditType: UsageCreditType.Grant,
-      issuedAmount: 100,
-      billingPeriodId: billingPeriod1.id,
-      livemode: true,
-    })
+    const usageCredit1 = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 100,
+        billingPeriodId: billingPeriod1.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create actual usage credits for subscription2
-    const usageCredit2 = await setupUsageCredit({
-      organizationId: organization.id,
-      subscriptionId: subscription2.id,
-      usageMeterId: usageMeter.id,
-      creditType: UsageCreditType.Grant,
-      issuedAmount: 200,
-      billingPeriodId: billingPeriod2.id,
-      livemode: true,
-    })
+    const usageCredit2 = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription2.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 200,
+        billingPeriodId: billingPeriod2.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create credit entries for subscription1
-    const ledgerTransaction1 = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      type: LedgerTransactionType.AdminCreditAdjusted,
-    })
+    const ledgerTransaction1 = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+    ).unwrap()
 
     await setupLedgerEntries({
       organizationId: organization.id,
@@ -336,11 +378,13 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Create credit entries for subscription2
-    const ledgerTransaction2 = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: subscription2.id,
-      type: LedgerTransactionType.AdminCreditAdjusted,
-    })
+    const ledgerTransaction2 = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription2.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+    ).unwrap()
 
     await setupLedgerEntries({
       organizationId: organization.id,
@@ -457,29 +501,35 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup ledger account for subscription1 (active)
-    const ledgerAccount1 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    const ledgerAccount1 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create actual usage credit for subscription1
-    const usageCredit1 = await setupUsageCredit({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      usageMeterId: usageMeter.id,
-      creditType: UsageCreditType.Grant,
-      issuedAmount: 100,
-      billingPeriodId: billingPeriod1.id,
-      livemode: true,
-    })
+    const usageCredit1 = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 100,
+        billingPeriodId: billingPeriod1.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const ledgerTransaction1 = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: subscription1.id,
-      type: LedgerTransactionType.AdminCreditAdjusted,
-    })
+    const ledgerTransaction1 = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription1.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+    ).unwrap()
 
     await setupLedgerEntries({
       organizationId: organization.id,
@@ -526,29 +576,35 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup ledger account for canceled subscription
-    const canceledLedgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: canceledSubscription.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    const canceledLedgerAccount = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: canceledSubscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create actual usage credit for canceled subscription
-    const canceledUsageCredit = await setupUsageCredit({
-      organizationId: organization.id,
-      subscriptionId: canceledSubscription.id,
-      usageMeterId: usageMeter.id,
-      creditType: UsageCreditType.Grant,
-      issuedAmount: 500,
-      billingPeriodId: canceledBillingPeriod.id,
-      livemode: true,
-    })
+    const canceledUsageCredit = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: canceledSubscription.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 500,
+        billingPeriodId: canceledBillingPeriod.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const canceledLedgerTransaction = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: canceledSubscription.id,
-      type: LedgerTransactionType.AdminCreditAdjusted,
-    })
+    const canceledLedgerTransaction = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: canceledSubscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+    ).unwrap()
 
     await setupLedgerEntries({
       organizationId: organization.id,
@@ -618,29 +674,35 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup ledger account for canceled subscription
-    const canceledLedgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: canceledSubscription.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    const canceledLedgerAccount = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: canceledSubscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create actual usage credit for canceled subscription
-    const canceledUsageCredit = await setupUsageCredit({
-      organizationId: organization.id,
-      subscriptionId: canceledSubscription.id,
-      usageMeterId: usageMeter.id,
-      creditType: UsageCreditType.Grant,
-      issuedAmount: 500,
-      billingPeriodId: canceledBillingPeriod.id,
-      livemode: true,
-    })
+    const canceledUsageCredit = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: canceledSubscription.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: 500,
+        billingPeriodId: canceledBillingPeriod.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const canceledLedgerTransaction = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: canceledSubscription.id,
-      type: LedgerTransactionType.AdminCreditAdjusted,
-    })
+    const canceledLedgerTransaction = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: canceledSubscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+    ).unwrap()
 
     await setupLedgerEntries({
       organizationId: organization.id,

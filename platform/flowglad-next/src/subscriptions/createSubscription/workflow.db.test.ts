@@ -336,11 +336,13 @@ describe('createSubscriptionWorkflow', async () => {
           customerId: usageCustomer.id,
         })
       ).unwrap()
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Usage Meter',
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Usage Meter',
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
       const usagePrice = await setupPrice({
         type: PriceType.Usage,
         name: 'Usage Price',
@@ -408,11 +410,13 @@ describe('createSubscriptionWorkflow', async () => {
           customerId: usageFeatureCustomer.id,
         })
       ).unwrap()
-      const usageFeatureMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Usage Meter',
-        pricingModelId: product.pricingModelId,
-      })
+      const usageFeatureMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Usage Meter',
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
       const usageFeaturePrice = await setupPrice({
         type: PriceType.Usage,
         name: 'Feature Usage Price',
@@ -1238,11 +1242,13 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
         customerId: customer.id,
       })
     ).unwrap()
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Meter for explicit test',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Meter for explicit test',
+      })
+    ).unwrap()
     const creditGrantFeature = await setupUsageCreditGrantFeature({
       organizationId: organization.id,
       name: 'Credit Grant Feature for explicit test',
@@ -1468,11 +1474,11 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
 
   // FIXME: Re-enable this once usage prices are fully deprecated
   // it('throws an error when trying to create a subscription with usage price for ledger account creation', async () => {
-  //   const usageMeter = await setupUsageMeter({
+  //   const usageMeter = (await setupUsageMeter({
   //     organizationId: organization.id,
   //     pricingModelId: defaultProduct.pricingModelId,
   //     name: 'Test Usage Meter for Ledger Account',
-  //   })
+  //   })).unwrap()
 
   //   await expect(
   //     adminTransaction(async ({ transaction }) => {
@@ -1596,12 +1602,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       livemode: true,
     })
 
-    const purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: defaultPrice.id,
-      livemode: true,
-    })
+    const purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: defaultPrice.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const discountRedemption = await setupDiscountRedemption({
       discount,
@@ -1685,12 +1693,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
 
     const discountRedemptions = await Promise.all(
       discounts.map(async (discount) => {
-        const purchase = await setupPurchase({
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: defaultPrice.id,
-          livemode: true,
-        })
+        const purchase = (
+          await setupPurchase({
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: defaultPrice.id,
+            livemode: true,
+          })
+        ).unwrap()
         return setupDiscountRedemption({
           discount,
           purchaseId: purchase.id,
@@ -1765,12 +1775,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       code: 'TEST10_' + core.nanoid().substring(0, 8),
       livemode: true,
     })
-    const purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: defaultPrice.id,
-      livemode: true,
-    })
+    const purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: defaultPrice.id,
+        livemode: true,
+      })
+    ).unwrap()
     const { subscription, subscriptionItems, billingPeriod } =
       await adminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_trial_discount_${core.nanoid()}`

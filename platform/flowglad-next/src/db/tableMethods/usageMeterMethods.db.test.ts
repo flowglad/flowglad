@@ -39,11 +39,13 @@ describe('usageMeterMethods', () => {
 
   describe('selectUsageMeterById', () => {
     it('should return a usage meter by ID', async () => {
-      const meter = await setupUsageMeter({
-        organizationId,
-        name: 'Meter A',
-        pricingModelId,
-      })
+      const meter = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'Meter A',
+          pricingModelId,
+        })
+      ).unwrap()
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const result = (
@@ -91,11 +93,13 @@ describe('usageMeterMethods', () => {
 
   describe('updateUsageMeter', () => {
     it('should update an existing usage meter', async () => {
-      const meter = await setupUsageMeter({
-        organizationId,
-        name: 'Old Name',
-        pricingModelId,
-      })
+      const meter = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'Old Name',
+          pricingModelId,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -123,23 +127,30 @@ describe('usageMeterMethods', () => {
 
   describe('selectUsageMeters', () => {
     it('should return all usage meters for an organization', async () => {
-      const m1 = await setupUsageMeter({
-        organizationId,
-        name: 'M1',
-        pricingModelId,
-      })
-      const m2 = await setupUsageMeter({
-        organizationId,
-        name: 'M2',
-        pricingModelId,
-      })
+      const m1 = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'M1',
+          pricingModelId,
+        })
+      ).unwrap()
+      const m2 = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'M2',
+          pricingModelId,
+        })
+      ).unwrap()
       // other org
-      const otherOrg = (await setupOrg()).unwrap()
-      await setupUsageMeter({
-        organizationId: otherOrg.organization.id,
-        name: 'Other',
-        pricingModelId: otherOrg.pricingModel.id,
-      })
+      const otherOrg = (await setupOrg())
+        .unwrap()(
+          await setupUsageMeter({
+            organizationId: otherOrg.organization.id,
+            name: 'Other',
+            pricingModelId: otherOrg.pricingModel.id,
+          })
+        )
+        .unwrap()
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const result = await selectUsageMeters(
@@ -154,18 +165,22 @@ describe('usageMeterMethods', () => {
     })
 
     it('should filter usage meters by slug', async () => {
-      const meterA = await setupUsageMeter({
-        organizationId,
-        name: 'A',
-        pricingModelId,
-        slug: 'slug-a',
-      })
-      await setupUsageMeter({
-        organizationId,
-        name: 'B',
-        pricingModelId,
-        slug: 'slug-b',
-      })
+      const meterA = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'A',
+          pricingModelId,
+          slug: 'slug-a',
+        })
+      ).unwrap()
+      ;(
+        await setupUsageMeter({
+          organizationId,
+          name: 'B',
+          pricingModelId,
+          slug: 'slug-b',
+        })
+      ).unwrap()
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const result = await selectUsageMeters(
@@ -181,11 +196,13 @@ describe('usageMeterMethods', () => {
   describe('selectUsageMetersPaginated', () => {
     it('should return hasMore=true and nextCursor when more items exist', async () => {
       for (let i = 1; i <= 5; i++) {
-        await setupUsageMeter({
-          organizationId,
-          name: `P${i}`,
-          pricingModelId,
-        })
+        ;(
+          await setupUsageMeter({
+            organizationId,
+            name: `P${i}`,
+            pricingModelId,
+          })
+        ).unwrap()
       }
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -202,11 +219,13 @@ describe('usageMeterMethods', () => {
 
   describe('selectUsageMetersCursorPaginated', () => {
     it('should return items enriched with pricing model data', async () => {
-      const meter = await setupUsageMeter({
-        organizationId,
-        name: 'E1',
-        pricingModelId,
-      })
+      const meter = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'E1',
+          pricingModelId,
+        })
+      ).unwrap()
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const result = await selectUsageMetersCursorPaginated({
@@ -227,16 +246,20 @@ describe('usageMeterMethods', () => {
     })
 
     it('should sort usage meters by creation date descending (newest first) by default', async () => {
-      const old = await setupUsageMeter({
-        organizationId,
-        name: 'Old',
-        pricingModelId,
-      })
-      const neu = await setupUsageMeter({
-        organizationId,
-        name: 'New',
-        pricingModelId,
-      })
+      const old = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'Old',
+          pricingModelId,
+        })
+      ).unwrap()
+      const neu = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'New',
+          pricingModelId,
+        })
+      ).unwrap()
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const result = await selectUsageMetersCursorPaginated({
@@ -279,12 +302,14 @@ describe('usageMeterMethods', () => {
         })
       ).unwrap()
       // Use the default pricing model since customer will use it
-      const meter = await setupUsageMeter({
-        organizationId,
-        name: 'Test Meter',
-        pricingModelId: defaultPricingModelId,
-        slug: 'test-meter',
-      })
+      const meter = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'Test Meter',
+          pricingModelId: defaultPricingModelId,
+          slug: 'test-meter',
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -306,12 +331,14 @@ describe('usageMeterMethods', () => {
         })
       ).unwrap()
       // Use the default pricing model since customer will use it
-      await setupUsageMeter({
-        organizationId,
-        name: 'Test Meter',
-        pricingModelId: defaultPricingModelId,
-        slug: 'test-meter',
-      })
+      ;(
+        await setupUsageMeter({
+          organizationId,
+          name: 'Test Meter',
+          pricingModelId: defaultPricingModelId,
+          slug: 'test-meter',
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -372,12 +399,14 @@ describe('usageMeterMethods', () => {
 
   describe('selectUsageMetersCursorPaginated search', () => {
     it('should search by name, slug, or exact ID (case-insensitive, trims whitespace)', async () => {
-      const meter = await setupUsageMeter({
-        organizationId,
-        pricingModelId,
-        name: 'API Calls Meter',
-        slug: 'api-calls-meter',
-      })
+      const meter = (
+        await setupUsageMeter({
+          organizationId,
+          pricingModelId,
+          name: 'API Calls Meter',
+          slug: 'api-calls-meter',
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -422,11 +451,13 @@ describe('usageMeterMethods', () => {
     })
 
     it('should return all usage meters when search query is empty or undefined', async () => {
-      await setupUsageMeter({
-        organizationId,
-        pricingModelId,
-        name: 'Test Meter',
-      })
+      ;(
+        await setupUsageMeter({
+          organizationId,
+          pricingModelId,
+          name: 'Test Meter',
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -458,17 +489,21 @@ describe('usageMeterMethods', () => {
 
   describe('pricingModelIdsForUsageMeters', () => {
     it('should successfully return map of pricingModelIds for multiple usage meters', async () => {
-      const usageMeter1 = await setupUsageMeter({
-        organizationId,
-        pricingModelId,
-        name: 'Test Meter 1',
-      })
+      const usageMeter1 = (
+        await setupUsageMeter({
+          organizationId,
+          pricingModelId,
+          name: 'Test Meter 1',
+        })
+      ).unwrap()
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId,
-        pricingModelId,
-        name: 'Test Meter 2',
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId,
+          pricingModelId,
+          name: 'Test Meter 2',
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -500,11 +535,13 @@ describe('usageMeterMethods', () => {
     })
 
     it('should only return entries for existing usage meters', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId,
-        pricingModelId,
-        name: 'Test Meter',
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId,
+          pricingModelId,
+          name: 'Test Meter',
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -527,18 +564,22 @@ describe('usageMeterMethods', () => {
 
   describe('selectUsageMetersByPricingModelId', () => {
     it('should return client-safe usage meter records for a pricing model', async () => {
-      const meter1 = await setupUsageMeter({
-        organizationId,
-        name: 'API Calls',
-        pricingModelId,
-        slug: 'api-calls',
-      })
-      const meter2 = await setupUsageMeter({
-        organizationId,
-        name: 'Storage',
-        pricingModelId,
-        slug: 'storage',
-      })
+      const meter1 = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'API Calls',
+          pricingModelId,
+          slug: 'api-calls',
+        })
+      ).unwrap()
+      const meter2 = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'Storage',
+          pricingModelId,
+          slug: 'storage',
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -579,21 +620,25 @@ describe('usageMeterMethods', () => {
 
     it('should only return meters for the specified pricing model', async () => {
       // Create meters for the test pricing model
-      const meter1 = await setupUsageMeter({
-        organizationId,
-        name: 'PM1 Meter',
-        pricingModelId,
-      })
+      const meter1 = (
+        await setupUsageMeter({
+          organizationId,
+          name: 'PM1 Meter',
+          pricingModelId,
+        })
+      ).unwrap()
 
       // Create meters for a different pricing model
       const otherPricingModel = await setupPricingModel({
         organizationId,
       })
-      await setupUsageMeter({
-        organizationId,
-        name: 'Other PM Meter',
-        pricingModelId: otherPricingModel.id,
-      })
+      ;(
+        await setupUsageMeter({
+          organizationId,
+          name: 'Other PM Meter',
+          pricingModelId: otherPricingModel.id,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx

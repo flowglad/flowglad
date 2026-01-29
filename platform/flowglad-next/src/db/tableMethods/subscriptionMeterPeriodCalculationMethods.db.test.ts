@@ -70,12 +70,14 @@ describe('insertSubscriptionMeterPeriodCalculation', () => {
       livemode: true,
     })
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,

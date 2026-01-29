@@ -103,12 +103,14 @@ describe('Ledger Management System', async () => {
       })
     ).unwrap()
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -129,12 +131,14 @@ describe('Ledger Management System', async () => {
       livemode: subscription.livemode,
     })
 
-    ledgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter.id,
-      livemode: subscription.livemode,
-    })
+    ledgerAccount = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: subscription.livemode,
+      })
+    ).unwrap()
   })
 
   describe('I. Core Ledger & System-Wide Properties', () => {
@@ -146,8 +150,9 @@ describe('Ledger Management System', async () => {
           subscriptionId: subscription.id,
           type: LedgerTransactionType.UsageEventProcessed,
         }
-        const ledgerTransaction =
+        const ledgerTransaction = (
           await setupLedgerTransaction(coreParams)
+        ).unwrap()
 
         const entry1Amount = -1000
         const entry2Amount = 200
@@ -162,34 +167,40 @@ describe('Ledger Management System', async () => {
           customerId: customer.id,
           amount: 100,
         })
-        await setupDebitLedgerEntry({
-          ...coreParams,
-          ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.UsageCost,
-          amount: usageEvent.amount,
-          status: LedgerEntryStatus.Posted,
-          ledgerAccountId: ledgerAccount.id,
-          sourceUsageEventId: usageEvent.id,
-          usageMeterId: usageMeter.id,
-        })
-        const usageCredit = await setupUsageCredit({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          issuedAmount: 100,
-          livemode: subscription.livemode,
-          creditType: UsageCreditType.Payment,
-        })
-        await setupCreditLedgerEntry({
-          ...coreParams,
-          ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.CreditGrantRecognized,
-          amount: usageCredit.issuedAmount,
-          status: LedgerEntryStatus.Posted,
-          ledgerAccountId: ledgerAccount.id,
-          sourceUsageCreditId: usageCredit.id,
-          usageMeterId: usageMeter.id,
-        })
+        ;(
+          await setupDebitLedgerEntry({
+            ...coreParams,
+            ledgerTransactionId: ledgerTransaction.id,
+            entryType: LedgerEntryType.UsageCost,
+            amount: usageEvent.amount,
+            status: LedgerEntryStatus.Posted,
+            ledgerAccountId: ledgerAccount.id,
+            sourceUsageEventId: usageEvent.id,
+            usageMeterId: usageMeter.id,
+          })
+        ).unwrap()
+        const usageCredit = (
+          await setupUsageCredit({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            issuedAmount: 100,
+            livemode: subscription.livemode,
+            creditType: UsageCreditType.Payment,
+          })
+        ).unwrap()
+        ;(
+          await setupCreditLedgerEntry({
+            ...coreParams,
+            ledgerTransactionId: ledgerTransaction.id,
+            entryType: LedgerEntryType.CreditGrantRecognized,
+            amount: usageCredit.issuedAmount,
+            status: LedgerEntryStatus.Posted,
+            ledgerAccountId: ledgerAccount.id,
+            sourceUsageCreditId: usageCredit.id,
+            usageMeterId: usageMeter.id,
+          })
+        ).unwrap()
         const secondUsageEvent = await setupUsageEvent({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -200,16 +211,18 @@ describe('Ledger Management System', async () => {
           transactionId: core.nanoid(),
           customerId: customer.id,
         })
-        await setupDebitLedgerEntry({
-          ...coreParams,
-          ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.UsageCost,
-          amount: secondUsageEvent.amount,
-          status: LedgerEntryStatus.Posted,
-          ledgerAccountId: ledgerAccount.id,
-          sourceUsageEventId: secondUsageEvent.id,
-          usageMeterId: usageMeter.id,
-        })
+        ;(
+          await setupDebitLedgerEntry({
+            ...coreParams,
+            ledgerTransactionId: ledgerTransaction.id,
+            entryType: LedgerEntryType.UsageCost,
+            amount: secondUsageEvent.amount,
+            status: LedgerEntryStatus.Posted,
+            ledgerAccountId: ledgerAccount.id,
+            sourceUsageEventId: secondUsageEvent.id,
+            usageMeterId: usageMeter.id,
+          })
+        ).unwrap()
         const thirdUsageEvent = await setupUsageEvent({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -220,16 +233,18 @@ describe('Ledger Management System', async () => {
           transactionId: core.nanoid(),
           customerId: customer.id,
         })
-        await setupDebitLedgerEntry({
-          ...coreParams,
-          ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.UsageCost,
-          amount: thirdUsageEvent.amount,
-          status: LedgerEntryStatus.Pending,
-          ledgerAccountId: ledgerAccount.id,
-          sourceUsageEventId: thirdUsageEvent.id,
-          usageMeterId: usageMeter.id,
-        })
+        ;(
+          await setupDebitLedgerEntry({
+            ...coreParams,
+            ledgerTransactionId: ledgerTransaction.id,
+            entryType: LedgerEntryType.UsageCost,
+            amount: thirdUsageEvent.amount,
+            status: LedgerEntryStatus.Pending,
+            ledgerAccountId: ledgerAccount.id,
+            sourceUsageEventId: thirdUsageEvent.id,
+            usageMeterId: usageMeter.id,
+          })
+        ).unwrap()
 
         const expectedBalance =
           usageCredit.issuedAmount -
@@ -256,8 +271,9 @@ describe('Ledger Management System', async () => {
           subscriptionId: subscription.id,
           type: LedgerTransactionType.UsageEventProcessed,
         }
-        const ledgerTransaction =
+        const ledgerTransaction = (
           await setupLedgerTransaction(coreParams)
+        ).unwrap()
 
         const usageEvent = await setupUsageEvent({
           organizationId: organization.id,
@@ -270,14 +286,16 @@ describe('Ledger Management System', async () => {
           customerId: customer.id,
           properties: {},
         })
-        const usageCredit = await setupUsageCredit({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          issuedAmount: 100,
-          livemode: subscription.livemode,
-          creditType: UsageCreditType.Payment,
-        })
+        const usageCredit = (
+          await setupUsageCredit({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            issuedAmount: 100,
+            livemode: subscription.livemode,
+            creditType: UsageCreditType.Payment,
+          })
+        ).unwrap()
         const secondUsageEvent = await setupUsageEvent({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -364,8 +382,9 @@ describe('Ledger Management System', async () => {
           type: LedgerTransactionType.UsageEventProcessed,
         }
 
-        const ledgerTransaction =
+        const ledgerTransaction = (
           await setupLedgerTransaction(coreParams)
+        ).unwrap()
         const paramsWithTransaction = {
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
@@ -379,24 +398,28 @@ describe('Ledger Management System', async () => {
           const isPending = i % 2 === 0
           const isDiscarded = isPending && i % 4 === 0
           if (amount > 0) {
-            const usageCredit = await setupUsageCredit({
-              organizationId: organization.id,
-              subscriptionId: subscription.id,
-              usageMeterId: usageMeter.id,
-              issuedAmount: amount,
-              livemode: subscription.livemode,
-              creditType: UsageCreditType.Payment,
-            })
-            await setupCreditLedgerEntry({
-              ...paramsWithTransaction,
-              entryType: LedgerEntryType.CreditGrantRecognized,
-              amount: Math.abs(amount),
-              status: isPending
-                ? LedgerEntryStatus.Pending
-                : LedgerEntryStatus.Posted,
-              sourceUsageCreditId: usageCredit.id,
-              usageMeterId: usageMeter.id,
-            })
+            const usageCredit = (
+              await setupUsageCredit({
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+                issuedAmount: amount,
+                livemode: subscription.livemode,
+                creditType: UsageCreditType.Payment,
+              })
+            ).unwrap()
+            ;(
+              await setupCreditLedgerEntry({
+                ...paramsWithTransaction,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                amount: Math.abs(amount),
+                status: isPending
+                  ? LedgerEntryStatus.Pending
+                  : LedgerEntryStatus.Posted,
+                sourceUsageCreditId: usageCredit.id,
+                usageMeterId: usageMeter.id,
+              })
+            ).unwrap()
           } else {
             const usageEvent = await setupUsageEvent({
               organizationId: organization.id,
@@ -408,16 +431,18 @@ describe('Ledger Management System', async () => {
               transactionId: core.nanoid(),
               customerId: customer.id,
             })
-            await setupDebitLedgerEntry({
-              ...paramsWithTransaction,
-              entryType: LedgerEntryType.UsageCost,
-              amount: Math.abs(amount),
-              status: isPending
-                ? LedgerEntryStatus.Pending
-                : LedgerEntryStatus.Posted,
-              sourceUsageEventId: usageEvent.id,
-              usageMeterId: usageMeter.id,
-            })
+            ;(
+              await setupDebitLedgerEntry({
+                ...paramsWithTransaction,
+                entryType: LedgerEntryType.UsageCost,
+                amount: Math.abs(amount),
+                status: isPending
+                  ? LedgerEntryStatus.Pending
+                  : LedgerEntryStatus.Posted,
+                sourceUsageEventId: usageEvent.id,
+                usageMeterId: usageMeter.id,
+              })
+            ).unwrap()
           }
 
           if (!isPending && !isDiscarded) {

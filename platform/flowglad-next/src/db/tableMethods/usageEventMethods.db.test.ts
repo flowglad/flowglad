@@ -60,11 +60,13 @@ describe('selectUsageEventsPaginated', () => {
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
 
-    usageMeter1 = await setupUsageMeter({
-      organizationId: org1Data.organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: org1Data.organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
     price1 = await setupPrice({
       name: 'Test Price 1',
@@ -131,11 +133,13 @@ describe('selectUsageEventsPaginated', () => {
       })
     ).unwrap()
 
-    const usageMeter2 = await setupUsageMeter({
-      organizationId: org2Data.organization.id,
-      name: 'Test Usage Meter 2',
-      pricingModelId: org2Data.pricingModel.id,
-    })
+    const usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: org2Data.organization.id,
+        name: 'Test Usage Meter 2',
+        pricingModelId: org2Data.pricingModel.id,
+      })
+    ).unwrap()
 
     const price2 = await setupPrice({
       name: 'Test Price 2',
@@ -305,11 +309,13 @@ describe('selectUsageEventsPaginated', () => {
       })
     ).unwrap()
 
-    const isolatedUsageMeter = await setupUsageMeter({
-      organizationId: isolatedOrgData.organization.id,
-      name: 'Test Usage Meter Limit',
-      pricingModelId: isolatedOrgData.pricingModel.id,
-    })
+    const isolatedUsageMeter = (
+      await setupUsageMeter({
+        organizationId: isolatedOrgData.organization.id,
+        name: 'Test Usage Meter Limit',
+        pricingModelId: isolatedOrgData.pricingModel.id,
+      })
+    ).unwrap()
 
     const isolatedPrice = await setupPrice({
       name: 'Test Price Limit',
@@ -499,11 +505,13 @@ describe('selectUsageEventsPaginated', () => {
       })
     ).unwrap()
 
-    const isolatedUsageMeter = await setupUsageMeter({
-      organizationId: isolatedOrgData.organization.id,
-      name: 'Test Usage Meter Cursor',
-      pricingModelId: isolatedOrgData.pricingModel.id,
-    })
+    const isolatedUsageMeter = (
+      await setupUsageMeter({
+        organizationId: isolatedOrgData.organization.id,
+        name: 'Test Usage Meter Cursor',
+        pricingModelId: isolatedOrgData.pricingModel.id,
+      })
+    ).unwrap()
 
     const isolatedPrice = await setupPrice({
       name: 'Test Price Cursor',
@@ -598,11 +606,13 @@ describe('insertUsageEvent', () => {
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
 
-    usageMeter1 = await setupUsageMeter({
-      organizationId: org1Data.organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: org1Data.organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
     price1 = await setupPrice({
       name: 'Test Price 1',
@@ -764,11 +774,13 @@ describe('selectUsageEventsTableRowData', () => {
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
 
-    usageMeter1 = await setupUsageMeter({
-      organizationId: org1Data.organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: org1Data.organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
     price1 = await setupPrice({
       name: 'Test Price 1',
@@ -959,17 +971,21 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
 
-    usageMeter1 = await setupUsageMeter({
-      organizationId: org1Data.organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: org1Data.organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    usageMeter2 = await setupUsageMeter({
-      organizationId: org1Data.organization.id,
-      name: 'Test Usage Meter 2',
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: org1Data.organization.id,
+        name: 'Test Usage Meter 2',
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
     price1 = await setupPrice({
       name: 'Test Price 1',

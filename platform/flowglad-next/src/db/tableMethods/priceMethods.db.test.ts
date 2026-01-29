@@ -1704,12 +1704,14 @@ describe('priceMethods.ts', () => {
     })
 
     it('should derive pricingModelId from usage meter for usage prices', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -1739,12 +1741,14 @@ describe('priceMethods.ts', () => {
     })
 
     it('should set productId to null for usage prices', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter For Null Product',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter For Null Product',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -1916,12 +1920,14 @@ describe('priceMethods.ts', () => {
     })
 
     it('should bulk insert subscription prices with pricingModelId from product and usage prices with pricingModelId from usage meter', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Bulk Test Usage Meter',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Bulk Test Usage Meter',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -1984,12 +1990,14 @@ describe('priceMethods.ts', () => {
 
   describe('selectPricesAndProductsForOrganization', () => {
     it('should not return usage prices (they are filtered out by innerJoin due to null productId)', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Select Test Usage Meter',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Select Test Usage Meter',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
 
       const usagePrice = await setupPrice({
         name: 'Usage Price For Select',
@@ -2035,12 +2043,14 @@ describe('priceMethods.ts', () => {
     })
 
     it('should return only product-attached prices and exclude usage prices (which have null productId)', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Mixed Select Test Meter',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Mixed Select Test Meter',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
 
       // Create a usage price that should NOT be returned (has null productId)
       await setupPrice({
@@ -2094,12 +2104,14 @@ describe('priceMethods.ts', () => {
       organization = setup.organization
       pricingModel = setup.pricingModel
 
-      usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter for Price Tests',
-        livemode: true,
-        pricingModelId: pricingModel.id,
-      })
+      usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter for Price Tests',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
     })
 
     describe('insertPrice', () => {
@@ -2185,12 +2197,14 @@ describe('priceMethods.ts', () => {
 
     describe('bulkInsertPrices', () => {
       it('derives pricingModelId from usageMeterId for usage prices in bulk insert', async () => {
-        const secondUsageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          name: 'Second Usage Meter',
-          livemode: true,
-          pricingModelId: pricingModel.id,
-        })
+        const secondUsageMeter = (
+          await setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Second Usage Meter',
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -2789,12 +2803,14 @@ describe('priceMethods.ts', () => {
     })
 
     it('derives pricingModelId from usageMeterId when usageMeterId is provided', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter for Derive',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter for Derive',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -2881,13 +2897,15 @@ describe('priceMethods.ts', () => {
       usageMeterOrg = setup.organization
       usageMeterPricingModel = setup.pricingModel
 
-      testUsageMeter = await setupUsageMeter({
-        organizationId: usageMeterOrg.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId: usageMeterPricingModel.id,
-        slug: `test-usage-meter-${core.nanoid()}`,
-      })
+      testUsageMeter = (
+        await setupUsageMeter({
+          organizationId: usageMeterOrg.id,
+          name: 'Test Usage Meter',
+          livemode: true,
+          pricingModelId: usageMeterPricingModel.id,
+          slug: `test-usage-meter-${core.nanoid()}`,
+        })
+      ).unwrap()
     })
 
     describe('setPricesForUsageMeterToNonDefault', () => {

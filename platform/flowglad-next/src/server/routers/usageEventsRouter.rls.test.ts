@@ -161,11 +161,13 @@ describe('usageEventsRouter', () => {
       })
     ).unwrap()
 
-    const usageMeter2 = await setupUsageMeter({
-      organizationId: org2Data.organization.id,
-      name: 'Test Usage Meter 2',
-      pricingModelId: org2Data.pricingModel.id,
-    })
+    const usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: org2Data.organization.id,
+        name: 'Test Usage Meter 2',
+        pricingModelId: org2Data.pricingModel.id,
+      })
+    ).unwrap()
 
     const price2 = await setupPrice({
       name: 'Test Price 2',
@@ -314,11 +316,13 @@ describe('usageEventsRouter', () => {
         })
       ).unwrap()
 
-      const isolatedUsageMeter = await setupUsageMeter({
-        organizationId: isolatedOrgData.organization.id,
-        name: 'Limit Test Meter',
-        pricingModelId: isolatedOrgData.pricingModel.id,
-      })
+      const isolatedUsageMeter = (
+        await setupUsageMeter({
+          organizationId: isolatedOrgData.organization.id,
+          name: 'Limit Test Meter',
+          pricingModelId: isolatedOrgData.pricingModel.id,
+        })
+      ).unwrap()
 
       const isolatedPrice = await setupPrice({
         name: 'Limit Test Price',

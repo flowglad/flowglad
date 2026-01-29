@@ -339,12 +339,14 @@ describe('subscriptionItemHelpers', () => {
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
       })
-      usageMeter = await setupUsageMeter({
-        organizationId: orgData.organization.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId: orgData.pricingModel.id,
-      })
+      usageMeter = (
+        await setupUsageMeter({
+          organizationId: orgData.organization.id,
+          name: 'Test Usage Meter',
+          livemode: true,
+          pricingModelId: orgData.pricingModel.id,
+        })
+      ).unwrap()
       feature = await setupUsageCreditGrantFeature({
         organizationId: orgData.organization.id,
         name: 'Test Credit Feature',
@@ -1072,18 +1074,20 @@ describe('subscriptionItemHelpers', () => {
           })
 
         // Pre-grant credits for this feature (simulating credits granted at period start)
-        const preGrantedCredit = await setupUsageCredit({
-          organizationId: orgData.organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          billingPeriodId: billingPeriod.id,
-          issuedAmount: 100,
-          creditType: UsageCreditType.Grant,
-          sourceReferenceId: subscriptionItemFeature.id,
-          sourceReferenceType:
-            UsageCreditSourceReferenceType.ManualAdjustment,
-          status: UsageCreditStatus.Posted,
-        })
+        const preGrantedCredit = (
+          await setupUsageCredit({
+            organizationId: orgData.organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: 100,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceId: subscriptionItemFeature.id,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.ManualAdjustment,
+            status: UsageCreditStatus.Posted,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1298,19 +1302,21 @@ describe('subscriptionItemHelpers', () => {
             })
 
           // Grant credits for the Once feature
-          const onceCredit = await setupUsageCredit({
-            organizationId: orgData.organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            issuedAmount: 500,
-            creditType: UsageCreditType.Grant,
-            sourceReferenceId: onceFeatureRecord.id,
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.ManualAdjustment,
-            status: UsageCreditStatus.Posted,
-            expiresAt: null, // Once credits don't expire
-          })
+          const onceCredit = (
+            await setupUsageCredit({
+              organizationId: orgData.organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              issuedAmount: 500,
+              creditType: UsageCreditType.Grant,
+              sourceReferenceId: onceFeatureRecord.id,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.ManualAdjustment,
+              status: UsageCreditStatus.Posted,
+              expiresAt: null, // Once credits don't expire
+            })
+          ).unwrap()
 
           // Now expire the subscription item by adjusting to a new item
           const newSubscriptionItems: SubscriptionItem.Insert[] = [
@@ -1803,12 +1809,14 @@ describe('subscriptionItemHelpers', () => {
 
         it('should grant credits for DIFFERENT features when both are present in same adjustment', async () => {
           // Create a second feature with a different usageMeterId
-          const usageMeter2 = await setupUsageMeter({
-            organizationId: orgData.organization.id,
-            name: 'Second Usage Meter',
-            livemode: true,
-            pricingModelId: orgData.pricingModel.id,
-          })
+          const usageMeter2 = (
+            await setupUsageMeter({
+              organizationId: orgData.organization.id,
+              name: 'Second Usage Meter',
+              livemode: true,
+              pricingModelId: orgData.pricingModel.id,
+            })
+          ).unwrap()
 
           const feature2 = await setupUsageCreditGrantFeature({
             organizationId: orgData.organization.id,
@@ -2659,18 +2667,20 @@ describe('subscriptionItemHelpers', () => {
           // Create BillingPeriodTransition credit WITHOUT sourceReferenceId
           // (this matches real production behavior - these credits don't have sourceReferenceId)
           const existingCreditAmount = 100
-          await setupUsageCredit({
-            organizationId: orgData.organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            issuedAmount: existingCreditAmount,
-            creditType: UsageCreditType.Grant,
-            // Note: NO sourceReferenceId - BillingPeriodTransition credits don't have this
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.BillingPeriodTransition,
-            status: UsageCreditStatus.Posted,
-          })
+          ;(
+            await setupUsageCredit({
+              organizationId: orgData.organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              issuedAmount: existingCreditAmount,
+              creditType: UsageCreditType.Grant,
+              // Note: NO sourceReferenceId - BillingPeriodTransition credits don't have this
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.BillingPeriodTransition,
+              status: UsageCreditStatus.Posted,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -2733,18 +2743,20 @@ describe('subscriptionItemHelpers', () => {
           // Delta = 50 - 50 = 0 (no credits should be granted)
 
           const existingCreditAmount = 50
-          await setupUsageCredit({
-            organizationId: orgData.organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            issuedAmount: existingCreditAmount,
-            creditType: UsageCreditType.Grant,
-            // NO sourceReferenceId - matches real BillingPeriodTransition credits
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.BillingPeriodTransition,
-            status: UsageCreditStatus.Posted,
-          })
+          ;(
+            await setupUsageCredit({
+              organizationId: orgData.organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              issuedAmount: existingCreditAmount,
+              creditType: UsageCreditType.Grant,
+              // NO sourceReferenceId - matches real BillingPeriodTransition credits
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.BillingPeriodTransition,
+              status: UsageCreditStatus.Posted,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -2800,18 +2812,20 @@ describe('subscriptionItemHelpers', () => {
           // Delta = 50 - 20 = 30 credits should be granted
 
           const existingCreditAmount = 20
-          await setupUsageCredit({
-            organizationId: orgData.organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            issuedAmount: existingCreditAmount,
-            creditType: UsageCreditType.Grant,
-            // NO sourceReferenceId - matches real BillingPeriodTransition credits
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.BillingPeriodTransition,
-            status: UsageCreditStatus.Posted,
-          })
+          ;(
+            await setupUsageCredit({
+              organizationId: orgData.organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              issuedAmount: existingCreditAmount,
+              creditType: UsageCreditType.Grant,
+              // NO sourceReferenceId - matches real BillingPeriodTransition credits
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.BillingPeriodTransition,
+              status: UsageCreditStatus.Posted,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -2884,18 +2898,20 @@ describe('subscriptionItemHelpers', () => {
             })
 
           // Existing ManualAdjustment credit from a previous mid-period upgrade
-          await setupUsageCredit({
-            organizationId: orgData.organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            issuedAmount: 50,
-            creditType: UsageCreditType.Grant,
-            sourceReferenceId: subscriptionItemFeature.id,
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.ManualAdjustment,
-            status: UsageCreditStatus.Posted,
-          })
+          ;(
+            await setupUsageCredit({
+              organizationId: orgData.organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              issuedAmount: 50,
+              creditType: UsageCreditType.Grant,
+              sourceReferenceId: subscriptionItemFeature.id,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.ManualAdjustment,
+              status: UsageCreditStatus.Posted,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -2988,17 +3004,19 @@ describe('subscriptionItemHelpers', () => {
 
           // Setup existing credits from BillingPeriodTransition (50 credits)
           const existingCreditAmount = 50
-          await setupUsageCredit({
-            organizationId: orgData.organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            issuedAmount: existingCreditAmount,
-            creditType: UsageCreditType.Grant,
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.BillingPeriodTransition,
-            status: UsageCreditStatus.Posted,
-          })
+          ;(
+            await setupUsageCredit({
+              organizationId: orgData.organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              issuedAmount: existingCreditAmount,
+              creditType: UsageCreditType.Grant,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.BillingPeriodTransition,
+              status: UsageCreditStatus.Posted,
+            })
+          ).unwrap()
 
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx

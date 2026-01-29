@@ -106,12 +106,14 @@ beforeEach(async () => {
   billingPeriod = scenarioData.billingPeriod
   ledgerAccount = scenarioData.ledgerAccount
 
-  defaultLedgerTransaction = await setupLedgerTransaction({
-    organizationId: organization.id,
-    subscriptionId: subscription.id,
-    type: LedgerTransactionType.AdminCreditAdjusted,
-    livemode: TEST_LIVEMODE,
-  })
+  defaultLedgerTransaction = (
+    await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.AdminCreditAdjusted,
+      livemode: TEST_LIVEMODE,
+    })
+  ).unwrap()
 
   sampleUsageEvent = await setupUsageEvent({
     organizationId: organization.id,
@@ -150,14 +152,16 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create one application if a single credit balance covers the entire usage event amount', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 150,
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 150,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
       const availableCreditBalances: AvailableCreditBalance[] = [
         { usageCreditId: usageCredit.id, balance: 150 },
@@ -190,14 +194,16 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create one application if a single credit balance is less than the usage event amount', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 50,
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 50,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
       const availableCreditBalances: AvailableCreditBalance[] = [
         { usageCreditId: usageCredit.id, balance: 50 },
@@ -227,22 +233,26 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create multiple applications if multiple credit balances are needed to cover the usage event amount', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const usageCredit1 = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 30,
-        livemode: TEST_LIVEMODE,
-      })
-      const usageCredit2 = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 90,
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit1 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 30,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
+      const usageCredit2 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 90,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
       const availableCreditBalances: AvailableCreditBalance[] = [
         { usageCreditId: usageCredit1.id, balance: 30 },
@@ -285,22 +295,26 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create multiple applications if multiple credit balances cover less than the usage event amount', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const usageCredit1 = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 30,
-        livemode: TEST_LIVEMODE,
-      })
-      const usageCredit2 = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 40,
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit1 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 30,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
+      const usageCredit2 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 40,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
       const availableCreditBalances: AvailableCreditBalance[] = [
         { usageCreditId: usageCredit1.id, balance: 30 },
@@ -337,14 +351,16 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
     await adminTransaction(async ({ transaction }) => {
       // No need to create usageCredit1 and usageCredit3 in DB as they have 0 balance
       // and are only represented in the availableCreditBalances input array.
-      const usageCredit2 = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 120,
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit2 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 120,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
       const availableCreditBalances: AvailableCreditBalance[] = [
         { usageCreditId: 'credit_id_1_zero_balance', balance: 0 },
@@ -381,42 +397,50 @@ describe('aggregateAvailableBalanceForUsageCredit', () => {
       const baseTime = 1_700_000_000_000
       const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000
 
-      const creditExpiringSoonest = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 50,
-        expiresAt: baseTime + thirtyDaysMs,
-        livemode: TEST_LIVEMODE,
-      })
-      const creditExpiringMiddle = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 50,
-        expiresAt: baseTime + 2 * thirtyDaysMs,
-        livemode: TEST_LIVEMODE,
-      })
-      const creditExpiringLast = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 50,
-        expiresAt: baseTime + 3 * thirtyDaysMs,
-        livemode: TEST_LIVEMODE,
-      })
-      const creditNonExpiring = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 50,
-        expiresAt: null,
-        livemode: TEST_LIVEMODE,
-      })
+      const creditExpiringSoonest = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 50,
+          expiresAt: baseTime + thirtyDaysMs,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
+      const creditExpiringMiddle = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 50,
+          expiresAt: baseTime + 2 * thirtyDaysMs,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
+      const creditExpiringLast = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 50,
+          expiresAt: baseTime + 3 * thirtyDaysMs,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
+      const creditNonExpiring = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 50,
+          expiresAt: null,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
       for (const usageCredit of [
         creditExpiringLast,
@@ -424,17 +448,19 @@ describe('aggregateAvailableBalanceForUsageCredit', () => {
         creditExpiringSoonest,
         creditExpiringMiddle,
       ]) {
-        await setupCreditLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: defaultLedgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          usageMeterId: usageMeter.id,
-          entryType: LedgerEntryType.CreditGrantRecognized,
-          sourceUsageCreditId: usageCredit.id,
-          amount: 50,
-          livemode: TEST_LIVEMODE,
-        })
+        ;(
+          await setupCreditLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: defaultLedgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            usageMeterId: usageMeter.id,
+            entryType: LedgerEntryType.CreditGrantRecognized,
+            sourceUsageCreditId: usageCredit.id,
+            amount: 50,
+            livemode: TEST_LIVEMODE,
+          })
+        ).unwrap()
       }
 
       const createdCreditIds = new Set([
@@ -473,16 +499,18 @@ describe('aggregateAvailableBalanceForUsageCredit', () => {
 describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
   it('should create a debit and a credit ledger entry insert for a single usage credit application', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id, // Assuming usage credits are tied to a usage meter
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 100, // Issued enough to cover the application
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id, // Assuming usage credits are tied to a usage meter
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 100, // Issued enough to cover the application
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
-      const usageCreditApplication =
+      const usageCreditApplication = (
         await setupUsageCreditApplication({
           organizationId: organization.id,
           usageCreditId: usageCredit.id,
@@ -491,6 +519,7 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
           status: UsageCreditApplicationStatus.Posted,
           livemode: TEST_LIVEMODE,
         })
+      ).unwrap()
 
       const inserts =
         createLedgerEntryInsertsForUsageCreditApplications({
@@ -551,15 +580,17 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
 
   it('should create debit and credit entries for multiple usage credit applications', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const usageCredit1 = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 50,
-        livemode: TEST_LIVEMODE,
-      })
-      const usageCreditApplication1 =
+      const usageCredit1 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 50,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
+      const usageCreditApplication1 = (
         await setupUsageCreditApplication({
           organizationId: organization.id,
           usageCreditId: usageCredit1.id,
@@ -568,16 +599,19 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
           status: UsageCreditApplicationStatus.Posted,
           livemode: TEST_LIVEMODE,
         })
+      ).unwrap()
 
-      const usageCredit2 = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 100,
-        livemode: TEST_LIVEMODE,
-      })
-      const usageCreditApplication2 =
+      const usageCredit2 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 100,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
+      const usageCreditApplication2 = (
         await setupUsageCreditApplication({
           organizationId: organization.id,
           usageCreditId: usageCredit2.id,
@@ -586,6 +620,7 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
           status: UsageCreditApplicationStatus.Posted,
           livemode: TEST_LIVEMODE,
         })
+      ).unwrap()
 
       const inserts =
         createLedgerEntryInsertsForUsageCreditApplications({
@@ -769,34 +804,40 @@ describe('processUsageEventProcessedLedgerCommand', () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create a partial credit
       const creditAmount = 30
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id, // Assuming credits can be tied to usage meters
-        creditType: UsageCreditType.Grant,
-        issuedAmount: creditAmount,
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id, // Assuming credits can be tied to usage meters
+          creditType: UsageCreditType.Grant,
+          issuedAmount: creditAmount,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
-      const creditGrantTransaction = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-        description: 'Test: Grant partial credit',
-        livemode: TEST_LIVEMODE,
-      })
+      const creditGrantTransaction = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+          description: 'Test: Grant partial credit',
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
-      await setupCreditLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        ledgerAccountId: ledgerAccount.id,
-        ledgerTransactionId: creditGrantTransaction.id,
-        sourceUsageCreditId: usageCredit.id,
-        entryType: LedgerEntryType.CreditGrantRecognized,
-        amount: creditAmount,
-        livemode: TEST_LIVEMODE,
-        usageMeterId: ledgerAccount.usageMeterId!,
-      })
+      ;(
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: creditGrantTransaction.id,
+          sourceUsageCreditId: usageCredit.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: creditAmount,
+          livemode: TEST_LIVEMODE,
+          usageMeterId: ledgerAccount.usageMeterId!,
+        })
+      ).unwrap()
 
       // Setup: Command for usage event (amount 100)
       const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} with partial credit`
@@ -942,34 +983,40 @@ describe('processUsageEventProcessedLedgerCommand', () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create a credit that fully covers the usage event
       const creditIssuedAmount = 120 // sampleUsageEvent.amount is 100
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: creditIssuedAmount,
-        livemode: TEST_LIVEMODE,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: creditIssuedAmount,
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
-      const creditGrantTransaction = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-        description: 'Test: Grant full credit',
-        livemode: TEST_LIVEMODE,
-      })
+      const creditGrantTransaction = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+          description: 'Test: Grant full credit',
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
-      await setupCreditLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        ledgerAccountId: ledgerAccount.id,
-        ledgerTransactionId: creditGrantTransaction.id,
-        sourceUsageCreditId: usageCredit.id,
-        entryType: LedgerEntryType.CreditGrantRecognized,
-        amount: creditIssuedAmount,
-        livemode: TEST_LIVEMODE,
-        usageMeterId: ledgerAccount.usageMeterId!,
-      })
+      ;(
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: creditGrantTransaction.id,
+          sourceUsageCreditId: usageCredit.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: creditIssuedAmount,
+          livemode: TEST_LIVEMODE,
+          usageMeterId: ledgerAccount.usageMeterId!,
+        })
+      ).unwrap()
 
       // Setup: Command for usage event (amount 100)
       const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} with full credit`
@@ -1160,12 +1207,14 @@ describe('processUsageEventProcessedLedgerCommand', () => {
   it('should create a new ledger account if one does not exist for the subscription and usage meter', async () => {
     await adminTransaction(async ({ transaction }) => {
       // 1. Setup a new UsageMeter that doesn\\'t have a ledger account with the existing subscription
-      const newUsageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'New Meter for LA Creation Test',
-        livemode: TEST_LIVEMODE,
-      })
+      const newUsageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'New Meter for LA Creation Test',
+          livemode: TEST_LIVEMODE,
+        })
+      ).unwrap()
 
       // 2. Create a new UsageEvent for this new meter
       const newUsageEvent = await setupUsageEvent({
@@ -1458,28 +1507,34 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       const creditAmount = 100
       const priorUsageAmount = 100
 
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: creditAmount,
-        usageMeterId: usageMeter.id,
-      })
-      const grantTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
-      await setupCreditLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        ledgerAccountId: ledgerAccount.id,
-        ledgerTransactionId: grantTx.id,
-        sourceUsageCreditId: usageCredit.id,
-        entryType: LedgerEntryType.CreditGrantRecognized,
-        amount: creditAmount,
-        usageMeterId: ledgerAccount.usageMeterId!,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: creditAmount,
+          usageMeterId: usageMeter.id,
+        })
+      ).unwrap()
+      const grantTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
+      ;(
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: grantTx.id,
+          sourceUsageCreditId: usageCredit.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: creditAmount,
+          usageMeterId: ledgerAccount.usageMeterId!,
+        })
+      ).unwrap()
       const priorUsageEvent = await setupUsageEvent({
         organizationId: organization.id,
         subscriptionId: subscription.id,

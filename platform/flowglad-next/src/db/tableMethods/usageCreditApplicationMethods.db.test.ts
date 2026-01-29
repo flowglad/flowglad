@@ -73,12 +73,14 @@ describe('Usage Credit Application Methods', () => {
       livemode: true,
     })
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a usage price for the usage meter (required for usage events)
     usagePrice = await setupPrice({
@@ -91,14 +93,16 @@ describe('Usage Credit Application Methods', () => {
       usageMeterId: usageMeter.id,
     })
 
-    usageCredit = await setupUsageCredit({
-      organizationId: organization.id,
-      usageMeterId: usageMeter.id,
-      subscriptionId: subscription.id,
-      creditType: UsageCreditType.Grant,
-      livemode: true,
-      issuedAmount: 1000,
-    })
+    usageCredit = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 1000,
+      })
+    ).unwrap()
   })
 
   describe('insertUsageCreditApplication', () => {
@@ -215,14 +219,16 @@ describe('Usage Credit Application Methods', () => {
 
     beforeEach(async () => {
       // Create a second usage credit for bulk operations
-      usageCredit2 = await setupUsageCredit({
-        organizationId: organization.id,
-        usageMeterId: usageMeter.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        livemode: true,
-        issuedAmount: 2000,
-      })
+      usageCredit2 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          livemode: true,
+          issuedAmount: 2000,
+        })
+      ).unwrap()
     })
 
     it('should bulk insert usage credit applications and derive pricingModelId for each', async () => {
@@ -309,7 +315,7 @@ describe('Usage Credit Application Methods', () => {
         livemode: true,
       })
 
-      const usageCreditApplication =
+      const usageCreditApplication = (
         await setupUsageCreditApplication({
           organizationId: organization.id,
           usageCreditId: usageCredit.id,
@@ -317,6 +323,7 @@ describe('Usage Credit Application Methods', () => {
           amountApplied: 100,
           livemode: true,
         })
+      ).unwrap()
 
       // Verify pricingModelId is correctly derived from usage credit
       expect(usageCreditApplication.pricingModelId).toBe(

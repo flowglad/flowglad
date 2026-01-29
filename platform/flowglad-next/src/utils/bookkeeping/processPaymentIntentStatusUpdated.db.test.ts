@@ -336,12 +336,14 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     // We need to ensure the feature is linked to the same product as singlePaymentPrice
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'UM-Z',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'UM-Z',
+          livemode: true,
+          pricingModelId: product.pricingModelId,
+        })
+      ).unwrap()
 
       const featureId = core.nanoid()
       const slug = `grant-zero-${core.nanoid(6)}`
@@ -662,12 +664,14 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('updates the associated purchase status when a purchaseId exists', async () => {
-      const purchase = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        livemode: true,
-        priceId: price.id,
-      })
+      const purchase = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          livemode: true,
+          priceId: price.id,
+        })
+      ).unwrap()
       const updatedPayment = {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
@@ -990,12 +994,14 @@ describe('Process payment intent status updated', async () => {
           livemode: true,
         })
       ).unwrap()
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
       const metadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -1393,12 +1399,14 @@ describe('Process payment intent status updated', async () => {
           livemode: true,
         })
       ).unwrap()
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
       const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
@@ -1466,12 +1474,14 @@ describe('Process payment intent status updated', async () => {
           livemode: true,
         })
       ).unwrap()
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
       const fakeCharge = createMockStripeCharge({
         id: 'ch_zero',
         payment_intent: 'pi_zero',
@@ -1562,12 +1572,14 @@ describe('Process payment intent status updated', async () => {
         } as any,
         billing_details: { address: { country: 'US' } } as any,
       })
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: checkoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: checkoutSession.livemode,
+        })
+      ).unwrap()
       const fakeMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -1793,12 +1805,14 @@ describe('Process payment intent status updated', async () => {
             livemode: true,
           })
         ).unwrap()
-        await setupFeeCalculation({
-          checkoutSessionId: checkoutSession.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        ;(
+          await setupFeeCalculation({
+            checkoutSessionId: checkoutSession.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
         const metadata: StripeIntentMetadata = {
           checkoutSessionId: checkoutSession.id,
           type: IntentMetadataType.CheckoutSession,
@@ -1937,12 +1951,14 @@ describe('Process payment intent status updated', async () => {
           livemode: true,
         })
       ).unwrap()
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
       const metadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -2012,12 +2028,14 @@ describe('Process payment intent status updated', async () => {
           livemode: true,
         })
       ).unwrap()
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
       const metadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -2137,13 +2155,15 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Set up purchase (will be customized per test)
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Open,
-        livemode: true,
-        priceId: price.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Open,
+          livemode: true,
+          priceId: price.id,
+        })
+      ).unwrap()
     })
 
     it('should create PaymentSucceeded and PurchaseCompleted events when payment succeeds and purchase becomes paid', async () => {
@@ -2166,12 +2186,14 @@ describe('Process payment intent status updated', async () => {
       ).unwrap()
 
       // Create fee calculation for the checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Mock getStripeCharge to return succeeded charge
       mockGetStripeCharge.mockResolvedValue({
@@ -2414,12 +2436,14 @@ describe('Process payment intent status updated', async () => {
       ).unwrap()
 
       // Create fee calculation for the checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const processingMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
@@ -2499,12 +2523,14 @@ describe('Process payment intent status updated', async () => {
       ).unwrap()
 
       // Create fee calculation for the checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const successMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
@@ -2604,12 +2630,14 @@ describe('Process payment intent status updated', async () => {
       ).unwrap()
 
       // Create fee calculation
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create mock payment intent
       const stripeCharge = createMockStripeCharge({
@@ -2671,13 +2699,15 @@ describe('Process payment intent status updated', async () => {
       const paymentIntentId = `pi_test_${core.nanoid()}`
 
       // Create purchase with Pending status
-      const pendingPurchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      const pendingPurchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
 
       const checkoutSession = (
         await setupCheckoutSession({
@@ -2692,12 +2722,14 @@ describe('Process payment intent status updated', async () => {
         })
       ).unwrap()
 
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const stripeCharge = createMockStripeCharge({
         id: chargeId,
@@ -2811,12 +2843,14 @@ describe('Process payment intent status updated', async () => {
         })
       ).unwrap()
 
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const stripeCharge = createMockStripeCharge({
         id: chargeId,
@@ -2925,15 +2959,14 @@ describe('Process payment intent status updated', async () => {
       )
 
       // Create a fee calculation for the anonymous checkout
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
+      ;(
         await setupFeeCalculation({
           checkoutSessionId: anonymousCheckoutSession.id,
           organizationId: organization.id,
           priceId: price.id,
           livemode: true,
         })
-      })
+      ).unwrap()
 
       const mockPaymentIntent = {
         id: `pi_${core.nanoid()}`,
@@ -3088,12 +3121,14 @@ describe('Process payment intent status updated', async () => {
         })
       ).unwrap()
 
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: singlePaymentPrice.id,
-        livemode: true,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: singlePaymentPrice.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const chargeId = `ch_test_${core.nanoid()}`
       const paymentIntentId = `pi_test_${core.nanoid()}`

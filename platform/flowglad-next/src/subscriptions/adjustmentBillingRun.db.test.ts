@@ -126,12 +126,14 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       })
     ).unwrap()
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Global Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Global Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -519,13 +521,15 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Setup: Create an existing payment for the billing period
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: staticPrice.id,
-      billingRunId: originalBillingRun.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+        billingRunId: originalBillingRun.id,
+      })
+    ).unwrap()
 
     const existingPaymentAmount = staticPrice.unitPrice / 2 // Half the price
     await setupPayment({
@@ -649,12 +653,14 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Create a payment for the full higher price
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: higherPrice.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: higherPrice.id,
+      })
+    ).unwrap()
 
     await setupPayment({
       stripeChargeId: 'ch_full_' + core.nanoid(),

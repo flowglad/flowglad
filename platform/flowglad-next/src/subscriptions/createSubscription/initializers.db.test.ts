@@ -152,11 +152,13 @@ describe('insertSubscriptionAndItems', () => {
     it('should route to createNonRenewingSubscriptionAndItems when price.startsWithCreditTrial is true', async () => {
       // setup:
       // - Create a usage meter.
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Credit Trial Usage Meter',
-        pricingModelId: pricingModel.id,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Credit Trial Usage Meter',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       // - Create a price with type PriceType.Usage and startsWithCreditTrial = true, associated with the usage meter.
       const creditTrialPrice = await setupPrice({
         type: PriceType.Usage,
@@ -384,11 +386,13 @@ describe('insertSubscriptionAndItems', () => {
     it('should set runBillingAtPeriodStart to false for a standard subscription with a usage-based price', async () => {
       // setup:
       // - Create a usage meter.
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Standard Usage Meter',
-        pricingModelId: pricingModel.id,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Standard Usage Meter',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       // - Create a price with type PriceType.Usage
       const usagePrice = await setupPrice({
         type: PriceType.Usage,

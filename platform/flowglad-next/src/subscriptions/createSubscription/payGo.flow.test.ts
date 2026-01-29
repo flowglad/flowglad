@@ -61,11 +61,13 @@ describe('Pay as You Go Workflow E2E', () => {
         transaction
       )
     })
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'API Calls',
-      pricingModelId: pricingModel.id,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'API Calls',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
     const freeOneTimeCreditGrant = await setupUsageCreditGrantFeature(
       {
         organizationId: organization.id,

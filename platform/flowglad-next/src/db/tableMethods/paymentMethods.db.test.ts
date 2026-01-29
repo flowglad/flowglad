@@ -65,12 +65,14 @@ describe('paymentMethods.ts', () => {
     ).unwrap()
 
     // Setup invoice
-    invoice = await setupInvoice({
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: setup.price.id,
-      livemode: true,
-    })
+    invoice = (
+      await setupInvoice({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: setup.price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup payment
     payment = await setupPayment({
@@ -472,24 +474,30 @@ describe('selectRevenueDataForOrganization', () => {
       const toDate = new Date('2023-02-28T23:59:59.999Z')
 
       // --- Setup Invoices ---
-      const invoiceJan = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
-      const invoiceFeb = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
-      const invoiceOutOfRange = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      const invoiceJan = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
+      const invoiceFeb = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
+      const invoiceOutOfRange = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // --- Payments for First Interval (January 2023 UTC) ---
       // Payment 1: Jan, 100 (10000 cents), no refund
@@ -673,50 +681,62 @@ describe('selectRevenueDataForOrganization', () => {
       })
 
       // Setup Purchases
-      const purchaseA1 = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceA.id,
-        livemode: true,
-      })
+      const purchaseA1 = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceA.id,
+          livemode: true,
+        })
+      ).unwrap()
       // Create Invoice for PurchaseA1
-      const invoiceA1 = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceA.id, // Needs a priceId to determine invoice type if not billingPeriod
-        purchaseId: purchaseA1.id, // Link this invoice to purchaseA1
-        livemode: true,
-      })
+      const invoiceA1 = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceA.id, // Needs a priceId to determine invoice type if not billingPeriod
+          purchaseId: purchaseA1.id, // Link this invoice to purchaseA1
+          livemode: true,
+        })
+      ).unwrap()
 
-      const purchaseA2 = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceA.id,
-        livemode: true,
-      })
+      const purchaseA2 = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceA.id,
+          livemode: true,
+        })
+      ).unwrap()
       // Create Invoice for PurchaseA2
-      const invoiceA2 = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceA.id,
-        purchaseId: purchaseA2.id, // Link this invoice to purchaseA2
-        livemode: true,
-      })
+      const invoiceA2 = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceA.id,
+          purchaseId: purchaseA2.id, // Link this invoice to purchaseA2
+          livemode: true,
+        })
+      ).unwrap()
 
-      const purchaseB1 = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceB.id,
-        livemode: true,
-      })
+      const purchaseB1 = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceB.id,
+          livemode: true,
+        })
+      ).unwrap()
       // Create Invoice for PurchaseB1
-      const invoiceB1 = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceB.id,
-        purchaseId: purchaseB1.id, // Link this invoice to purchaseB1
-        livemode: true,
-      })
+      const invoiceB1 = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceB.id,
+          purchaseId: purchaseB1.id, // Link this invoice to purchaseB1
+          livemode: true,
+        })
+      ).unwrap()
 
       // Setup Payments linked to Purchases and Invoices
       // Payment 1 (Product A)
@@ -876,20 +896,24 @@ describe('selectRevenueDataForOrganization', () => {
         currency: CurrencyCode.USD,
       })
 
-      const purchaseB = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceB.id,
-        livemode: true,
-      })
+      const purchaseB = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceB.id,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const invoiceForPurchaseB = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: priceB.id,
-        purchaseId: purchaseB.id,
-        livemode: true,
-      })
+      const invoiceForPurchaseB = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: priceB.id,
+          purchaseId: purchaseB.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Payment for Product B
       await setupPayment({
@@ -952,12 +976,14 @@ describe('selectRevenueDataForOrganization', () => {
       const revenueChartIntervalUnit = RevenueChartIntervalUnit.Month
 
       // Setup an invoice (needed for setupPayment)
-      const someInvoice = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: price.id, // price is from the global beforeEach
-        livemode: true,
-      })
+      const someInvoice = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id, // price is from the global beforeEach
+          livemode: true,
+        })
+      ).unwrap()
 
       // Payment outside the date range (e.g., April 2023)
       await setupPayment({
@@ -1012,18 +1038,22 @@ describe('selectRevenueDataForOrganization', () => {
         const toDate = new Date('2023-01-05T23:59:59.999Z')
         const revenueChartIntervalUnit = RevenueChartIntervalUnit.Day
 
-        const invoiceJan1 = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
-        const invoiceJan3 = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoiceJan1 = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
+        const invoiceJan3 = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payments on Jan 1
         await setupPayment({
@@ -1105,18 +1135,22 @@ describe('selectRevenueDataForOrganization', () => {
         const toDate = new Date('2023-01-15T23:59:59.999Z') // Sunday (covers up to week starting Jan 9th)
         const revenueChartIntervalUnit = RevenueChartIntervalUnit.Week
 
-        const invoiceW_A = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
-        const invoiceW_B = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoiceW_A = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
+        const invoiceW_B = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payments for Week A (Jan 2 - Jan 8)
         await setupPayment({
@@ -1203,18 +1237,22 @@ describe('selectRevenueDataForOrganization', () => {
         const revenueChartIntervalUnit =
           RevenueChartIntervalUnit.Month
 
-        const invoiceJan = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
-        const invoiceFeb = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoiceJan = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
+        const invoiceFeb = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payments for January
         await setupPayment({
@@ -1293,18 +1331,22 @@ describe('selectRevenueDataForOrganization', () => {
         const toDate = new Date('2024-03-01T23:59:59.999Z') // Covers 2023, and part of 2024
         const revenueChartIntervalUnit = RevenueChartIntervalUnit.Year
 
-        const invoice2023 = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
-        const invoice2024 = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoice2023 = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
+        const invoice2024 = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payments for 2023
         await setupPayment({
@@ -1386,12 +1428,14 @@ describe('selectRevenueDataForOrganization', () => {
         const toDate = new Date(`${targetDayStr}T23:59:59.999Z`)
         const revenueChartIntervalUnit = RevenueChartIntervalUnit.Day
 
-        const invoice = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoice = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         await setupPayment({
           stripeChargeId: `ch_sameday1_${nanoid()}`,
@@ -1449,18 +1493,22 @@ describe('selectRevenueDataForOrganization', () => {
         const revenueChartIntervalUnit =
           RevenueChartIntervalUnit.Month
 
-        const invoiceJuly = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
-        const invoiceAug = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoiceJuly = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
+        const invoiceAug = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payments within July
         await setupPayment({
@@ -1526,12 +1574,14 @@ describe('selectRevenueDataForOrganization', () => {
         const revenueChartIntervalUnit =
           RevenueChartIntervalUnit.Month
 
-        const invoiceJuly = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoiceJuly = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payment within the fromDate-toDate partial interval
         await setupPayment({
@@ -1590,12 +1640,14 @@ describe('selectRevenueDataForOrganization', () => {
       const revenueChartIntervalUnit = RevenueChartIntervalUnit.Month
       const chargeDate = new Date('2023-08-10T10:00:00.000Z')
 
-      const invoice = await setupInvoice({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      const invoice = (
+        await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Payment 1: No refund
       await setupPayment({
@@ -1713,12 +1765,14 @@ describe('selectRevenueDataForOrganization', () => {
           RevenueChartIntervalUnit.Month
         const chargeDate = new Date('2023-09-15T10:00:00.000Z')
 
-        const invoice = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoice = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payment 1: Succeeded - SHOULD be included ($100)
         await setupPayment({
@@ -1819,12 +1873,14 @@ describe('selectRevenueDataForOrganization', () => {
           RevenueChartIntervalUnit.Month
         const chargeDate = new Date('2023-10-15T10:00:00.000Z')
 
-        const invoice = await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const invoice = (
+          await setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Payment with partial refund (still Succeeded status)
         // $100 payment with $30 refund = $70 net revenue
@@ -1924,26 +1980,32 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
     ).unwrap()
 
     // Setup invoices
-    invoice1 = await setupInvoice({
-      customerId: customer1.id,
-      organizationId: organization.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    invoice1 = (
+      await setupInvoice({
+        customerId: customer1.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    invoice2 = await setupInvoice({
-      customerId: customer2.id,
-      organizationId: organization.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    invoice2 = (
+      await setupInvoice({
+        customerId: customer2.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    invoice3 = await setupInvoice({
-      customerId: customer3.id,
-      organizationId: organization.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    invoice3 = (
+      await setupInvoice({
+        customerId: customer3.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup payments
     payment1 = await setupPayment({
@@ -1992,12 +2054,14 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
       })
     ).unwrap()
 
-    invoiceOtherOrg = await setupInvoice({
-      customerId: customerOtherOrg.id,
-      organizationId: organization2.id,
-      priceId: orgData2.price.id,
-      livemode: true,
-    })
+    invoiceOtherOrg = (
+      await setupInvoice({
+        customerId: customerOtherOrg.id,
+        organizationId: organization2.id,
+        priceId: orgData2.price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     paymentOtherOrg = await setupPayment({
       stripeChargeId: `ch_${nanoid()}`,
@@ -2393,12 +2457,14 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
           })
         ).unwrap()
 
-        const specialInvoice = await setupInvoice({
-          customerId: specialCustomer.id,
-          organizationId: organization.id,
-          priceId: price.id,
-          livemode: true,
-        })
+        const specialInvoice = (
+          await setupInvoice({
+            customerId: specialCustomer.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         const specialPayment = await setupPayment({
           stripeChargeId: `ch_${nanoid()}`,
@@ -2473,18 +2539,22 @@ describe('pricingModelId derivation', () => {
       priceId: price.id,
     })
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+    ).unwrap()
 
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      status: InvoiceStatus.Open,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: InvoiceStatus.Open,
+      })
+    ).unwrap()
   })
 
   describe('insertPayment', () => {

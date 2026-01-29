@@ -215,16 +215,20 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
         .set({ createdAt: backdate })
         .where(eq(checkoutSessions.id, old.id))
     })
-    await setupFeeCalculation({
-      checkoutSessionId: recent.id,
-      organizationId,
-      priceId,
-    })
-    await setupFeeCalculation({
-      checkoutSessionId: old.id,
-      organizationId,
-      priceId,
-    })
+    ;(
+      await setupFeeCalculation({
+        checkoutSessionId: recent.id,
+        organizationId,
+        priceId,
+      })
+    ).unwrap()
+    ;(
+      await setupFeeCalculation({
+        checkoutSessionId: old.id,
+        organizationId,
+        priceId,
+      })
+    ).unwrap()
 
     const deleted = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)

@@ -142,13 +142,15 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     })
 
     // Set up invoice for payments to reference
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      billingPeriodId: billingPeriod.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        billingPeriodId: billingPeriod.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should handle processing payment + upgrade mid-cycle with proper proration adjustments', async () => {

@@ -100,12 +100,14 @@ describe('derivePricingModelIdFromUsageMeter', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should successfully derive pricingModelId when usage meter has pricingModelId', async () => {
@@ -218,12 +220,14 @@ describe('derivePricingModelIdFromUsageCredit', () => {
       })
     ).unwrap()
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -232,14 +236,16 @@ describe('derivePricingModelIdFromUsageCredit', () => {
       livemode: true,
     })
 
-    usageCredit = await setupUsageCredit({
-      organizationId: organization.id,
-      usageMeterId: usageMeter.id,
-      subscriptionId: subscription.id,
-      creditType: UsageCreditType.Grant,
-      livemode: true,
-      issuedAmount: 1000,
-    })
+    usageCredit = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 1000,
+      })
+    ).unwrap()
   })
 
   it('should successfully derive pricingModelId from usage credit', async () => {
@@ -303,20 +309,24 @@ describe('derivePricingModelIdForCheckoutSession', () => {
       })
     ).unwrap()
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      status: InvoiceStatus.Draft,
-      livemode: true,
-      priceId: price.id,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: InvoiceStatus.Draft,
+        livemode: true,
+        priceId: price.id,
+      })
+    ).unwrap()
   })
 
   it('should derive pricingModelId from priceId when provided (Product session)', async () => {
@@ -479,13 +489,15 @@ describe('derivePricingModelIdFromPayment', () => {
       })
     ).unwrap()
 
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      status: InvoiceStatus.Draft,
-      livemode: true,
-      priceId: price.id,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: InvoiceStatus.Draft,
+        livemode: true,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     payment = await setupPayment({
       organizationId: organization.id,
@@ -629,13 +641,15 @@ describe('insertRefund with derived pricingModelId', () => {
       })
     ).unwrap()
 
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      status: InvoiceStatus.Draft,
-      livemode: true,
-      priceId: price.id,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: InvoiceStatus.Draft,
+        livemode: true,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     payment = await setupPayment({
       organizationId: organization.id,

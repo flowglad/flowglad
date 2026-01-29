@@ -182,14 +182,16 @@ describe('Usage Credit Methods', () => {
 
   describe('derivePricingModelIdFromUsageCredit', () => {
     it('should successfully derive pricingModelId from usage credit', async () => {
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        usageMeterId: usageMeter.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        livemode: true,
-        issuedAmount: 1000,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          livemode: true,
+          issuedAmount: 1000,
+        })
+      ).unwrap()
 
       const derivedPricingModelId = (
         await adminTransaction(async ({ transaction }) => {
@@ -224,23 +226,27 @@ describe('Usage Credit Methods', () => {
 
   describe('pricingModelIdsForUsageCredits', () => {
     it('should successfully return map of pricingModelIds for multiple usage credits', async () => {
-      const usageCredit1 = await setupUsageCredit({
-        organizationId: organization.id,
-        usageMeterId: usageMeter.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        livemode: true,
-        issuedAmount: 1000,
-      })
+      const usageCredit1 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          livemode: true,
+          issuedAmount: 1000,
+        })
+      ).unwrap()
 
-      const usageCredit2 = await setupUsageCredit({
-        organizationId: organization.id,
-        usageMeterId: usageMeter.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        livemode: true,
-        issuedAmount: 2000,
-      })
+      const usageCredit2 = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          livemode: true,
+          issuedAmount: 2000,
+        })
+      ).unwrap()
 
       const pricingModelIdMap = (
         await adminTransaction(async ({ transaction }) => {
@@ -275,14 +281,16 @@ describe('Usage Credit Methods', () => {
     })
 
     it('should only return entries for existing usage credits', async () => {
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        usageMeterId: usageMeter.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        livemode: true,
-        issuedAmount: 1000,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          livemode: true,
+          issuedAmount: 1000,
+        })
+      ).unwrap()
 
       const nonExistentUsageCreditId = `uc_${core.nanoid()}`
       const pricingModelIdMap = (
@@ -371,14 +379,16 @@ describe('Usage Credit Methods', () => {
 
   describe('setupUsageCredit', () => {
     it('should create usage credit via setupUsageCredit and verify pricingModelId', async () => {
-      const usageCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        usageMeterId: usageMeter.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        livemode: true,
-        issuedAmount: 1000,
-      })
+      const usageCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          usageMeterId: usageMeter.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          livemode: true,
+          issuedAmount: 1000,
+        })
+      ).unwrap()
 
       // Verify pricingModelId is correctly derived from usage meter
       expect(usageCredit.pricingModelId).toBe(

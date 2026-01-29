@@ -1545,12 +1545,14 @@ describe('selectPricingModelSlugResolutionData', () => {
   })
 
   it('should return only minimal usage meter fields (id, slug)', async () => {
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'test-usage-meter',
-      name: 'Test Usage Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'test-usage-meter',
+        name: 'Test Usage Meter',
+      })
+    ).unwrap()
 
     const result = (
       await adminTransaction(async (ctx) => {
@@ -1663,12 +1665,14 @@ describe('selectPricingModelSlugResolutionData', () => {
   })
 
   it('should de-duplicate usage meters from LEFT JOIN rows', async () => {
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      slug: 'test-usage-meter-dedup',
-      name: 'Test Usage Meter Dedup',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'test-usage-meter-dedup',
+        name: 'Test Usage Meter Dedup',
+      })
+    ).unwrap()
 
     const result = (
       await adminTransaction(async (ctx) => {
@@ -1894,11 +1898,13 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     })
 
     // Create a usage meter (usage prices now belong to meters, not products)
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'API Calls Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'API Calls Meter',
+      })
+    ).unwrap()
 
     await setupPrice({
       name: 'Usage Price',
@@ -1950,11 +1956,13 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     })
 
     // Create a usage meter (usage prices now belong to meters, not products)
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'API Calls Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'API Calls Meter',
+      })
+    ).unwrap()
 
     await setupPrice({
       name: 'Usage Price',
@@ -2001,11 +2009,13 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     })
 
     // Create a usage meter (usage prices now belong to meters, not products)
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: emptyPricingModel.id,
-      name: 'API Calls Meter 2',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: emptyPricingModel.id,
+        name: 'API Calls Meter 2',
+      })
+    ).unwrap()
 
     await setupPrice({
       name: 'Usage Price',
@@ -2273,11 +2283,13 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
 
   it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes inactive usage prices at the SQL level', async () => {
     // Create a usage meter
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Usage Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Usage Meter',
+      })
+    ).unwrap()
 
     // Create two usage prices (both active initially via setupPrice)
     const usagePrice1 = await setupPrice({
@@ -2362,11 +2374,13 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
 
   it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere returns usage meters with their prices attached', async () => {
     // Create a usage meter
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'API Calls Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'API Calls Meter',
+      })
+    ).unwrap()
 
     // Create a usage price for the meter
     const usagePrice = await setupPrice({
@@ -2412,11 +2426,13 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
 
   it('returns usage meters with multiple prices correctly grouped', async () => {
     // Create a usage meter
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Video Minutes Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Video Minutes Meter',
+      })
+    ).unwrap()
 
     // Create multiple usage prices for the same meter
     // Note: safelyInsertPrice sets isDefault: false for all usage prices,
@@ -2479,11 +2495,13 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
 
   it('selectPricingModelForCustomer filters inactive usage prices from usage meters', async () => {
     // Create a usage meter
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Storage Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Storage Meter',
+      })
+    ).unwrap()
 
     // Create an active usage price
     const activeUsagePrice = await setupPrice({
@@ -2563,11 +2581,13 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
 
   it('returns usage meters with empty prices array when no prices exist', async () => {
     // Create a usage meter without any prices
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Empty Meter',
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Empty Meter',
+      })
+    ).unwrap()
 
     // Query the pricing model
     const result = (

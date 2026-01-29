@@ -60,12 +60,14 @@ describe('pricingModelId derivation', () => {
         })
       ).unwrap()
 
-      invoice = await setupInvoice({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: InvoiceStatus.Draft,
-      })
+      invoice = (
+        await setupInvoice({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: InvoiceStatus.Draft,
+        })
+      ).unwrap()
     })
 
     it('should derive pricingModelId from invoice when invoiceId is provided', async () => {
@@ -150,12 +152,14 @@ describe('pricingModelId derivation', () => {
         })
       ).unwrap()
 
-      invoice = await setupInvoice({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: InvoiceStatus.Draft,
-      })
+      invoice = (
+        await setupInvoice({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: InvoiceStatus.Draft,
+        })
+      ).unwrap()
     })
 
     it('should successfully insert invoice line item and derive pricingModelId from invoice', async () => {
@@ -265,12 +269,14 @@ describe('pricingModelId derivation', () => {
         })
       ).unwrap()
 
-      invoice = await setupInvoice({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price1.id,
-        status: InvoiceStatus.Draft,
-      })
+      invoice = (
+        await setupInvoice({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price1.id,
+          status: InvoiceStatus.Draft,
+        })
+      ).unwrap()
     })
 
     it('should bulk insert invoice line items and derive pricingModelId for each', async () => {
@@ -389,12 +395,14 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
     ).unwrap()
 
     // Create invoice with customer-facing status (Paid)
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      status: InvoiceStatus.Paid,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: InvoiceStatus.Paid,
+      })
+    ).unwrap()
   })
 
   it('should return invoices with line items for a customer with customer-facing statuses', async () => {
@@ -443,12 +451,14 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
 
   it('should not return invoices with Draft status', async () => {
     // Create a draft invoice (not customer-facing)
-    const draftInvoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      status: InvoiceStatus.Draft,
-    })
+    const draftInvoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: InvoiceStatus.Draft,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const result = await selectCustomerFacingInvoicesWithLineItems(
@@ -474,12 +484,14 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       })
     ).unwrap()
 
-    const otherInvoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: otherCustomer.id,
-      priceId: price.id,
-      status: InvoiceStatus.Paid,
-    })
+    const otherInvoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        priceId: price.id,
+        status: InvoiceStatus.Paid,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const result = await selectCustomerFacingInvoicesWithLineItems(

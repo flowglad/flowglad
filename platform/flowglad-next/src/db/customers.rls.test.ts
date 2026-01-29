@@ -391,39 +391,47 @@ describe('Customer Role RLS Policies', () => {
     })
 
     // Setup invoices for customerA_Org1
-    invoiceA1_Org1 = await setupInvoice({
-      customerId: customerA_Org1.id,
-      organizationId: org1.id,
-      status: InvoiceStatus.Paid,
-      livemode: true,
-      priceId: org1Price.id,
-    })
+    invoiceA1_Org1 = (
+      await setupInvoice({
+        customerId: customerA_Org1.id,
+        organizationId: org1.id,
+        status: InvoiceStatus.Paid,
+        livemode: true,
+        priceId: org1Price.id,
+      })
+    ).unwrap()
 
-    invoiceA2_Org1 = await setupInvoice({
-      customerId: customerA_Org1.id,
-      organizationId: org1.id,
-      status: InvoiceStatus.Open,
-      livemode: true,
-      priceId: org1Price.id,
-    })
+    invoiceA2_Org1 = (
+      await setupInvoice({
+        customerId: customerA_Org1.id,
+        organizationId: org1.id,
+        status: InvoiceStatus.Open,
+        livemode: true,
+        priceId: org1Price.id,
+      })
+    ).unwrap()
 
     // Setup invoice for customerB_Org1
-    invoiceB1_Org1 = await setupInvoice({
-      customerId: customerB_Org1.id,
-      organizationId: org1.id,
-      status: InvoiceStatus.Paid,
-      livemode: true,
-      priceId: org1Price.id,
-    })
+    invoiceB1_Org1 = (
+      await setupInvoice({
+        customerId: customerB_Org1.id,
+        organizationId: org1.id,
+        status: InvoiceStatus.Paid,
+        livemode: true,
+        priceId: org1Price.id,
+      })
+    ).unwrap()
 
     // Setup invoice for customerA_Org2
-    invoiceA1_Org2 = await setupInvoice({
-      customerId: customerA_Org2.id,
-      organizationId: org2.id,
-      status: InvoiceStatus.Paid,
-      livemode: true,
-      priceId: org2Price.id,
-    })
+    invoiceA1_Org2 = (
+      await setupInvoice({
+        customerId: customerA_Org2.id,
+        organizationId: org2.id,
+        status: InvoiceStatus.Paid,
+        livemode: true,
+        priceId: org2Price.id,
+      })
+    ).unwrap()
 
     // Setup payments
     paymentA_Org1 = await setupPayment({

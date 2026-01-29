@@ -337,12 +337,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    const purchase = await setupPurchase({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    const purchase = (
+      await setupPurchase({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       await commitPurchaseCompletedEvent(purchase, transaction)

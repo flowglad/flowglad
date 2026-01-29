@@ -398,12 +398,14 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should throw error when new subscription items have non-subscription price types', async () => {
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter',
-        pricingModelId: pricingModel.id,
-        livemode: false,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter',
+          pricingModelId: pricingModel.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const usagePrice = await setupPrice({
         name: 'Usage Price',
@@ -767,13 +769,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -848,13 +852,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -924,13 +930,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -1016,13 +1024,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -1354,13 +1364,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: item1.priceId!,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: item1.priceId!,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
 
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
@@ -1605,13 +1617,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -1700,13 +1714,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -1793,13 +1809,15 @@ describe('adjustSubscription Integration Tests', async () => {
             transaction
           )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
 
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
@@ -2657,13 +2675,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -2903,13 +2923,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -2983,13 +3005,15 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,
@@ -3661,11 +3685,13 @@ describe('adjustSubscription Integration Tests', async () => {
   describe('Immediate Downgrade Behavior', () => {
     it('should preserve existing usage credits, issue no refund, replace subscription item, expire old features, and create new features when downgrading immediately', async () => {
       // Create a usage meter and feature for the premium product
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'API Calls',
-        pricingModelId: pricingModel.id,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'API Calls',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
 
       const premiumFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -3770,26 +3796,30 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Setup existing usage credits (simulating credits granted at billing period start)
         const existingCreditIssuedAmount = 100
-        const existingCredit = await setupUsageCredit({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          billingPeriodId: billingPeriod.id,
-          issuedAmount: existingCreditIssuedAmount,
-          creditType: UsageCreditType.Grant,
-          sourceReferenceType:
-            UsageCreditSourceReferenceType.BillingPeriodTransition,
-          expiresAt: newEndDate,
-        })
+        const existingCredit = (
+          await setupUsageCredit({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditIssuedAmount,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            expiresAt: newEndDate,
+          })
+        ).unwrap()
 
         // Setup payment for the premium plan (customer already paid $49.99)
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
+        const invoice = (
+          await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+        ).unwrap()
         await setupPayment({
           stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
           status: PaymentStatus.Succeeded,

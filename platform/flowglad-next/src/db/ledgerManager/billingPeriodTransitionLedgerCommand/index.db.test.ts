@@ -142,18 +142,22 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       unitPrice: price.unitPrice,
     })
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Primary Test Meter',
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Primary Test Meter',
+      })
+    ).unwrap()
 
-    ledgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter.id,
-      livemode: subscription.livemode,
-    })
+    ledgerAccount = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: subscription.livemode,
+      })
+    ).unwrap()
 
     feature = await setupUsageCreditGrantFeature({
       organizationId: organization.id,
@@ -294,11 +298,13 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       it('should create a ledger account if one is missing for an entitlement', async () => {
         await adminTransaction(async ({ transaction }) => {
           // Arrange
-          const otherUsageMeter = await setupUsageMeter({
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            name: 'Unaccounted Meter',
-          })
+          const otherUsageMeter = (
+            await setupUsageMeter({
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              name: 'Unaccounted Meter',
+            })
+          ).unwrap()
           const otherFeature = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
             name: 'Feature for Unaccounted Meter',
@@ -390,21 +396,25 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         await adminTransaction(async ({ transaction }) => {
           // Arrange
           const issuedAmount = 500
-          const testLedgerTransaction = await setupLedgerTransaction({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            type: LedgerTransactionType.AdminCreditAdjusted, // An arbitrary type for setup
-          })
+          const testLedgerTransaction = (
+            await setupLedgerTransaction({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              type: LedgerTransactionType.AdminCreditAdjusted, // An arbitrary type for setup
+            })
+          ).unwrap()
 
-          const usageCreditToExpire = await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            issuedAmount,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            expiresAt: previousBillingPeriod.endDate - 1,
-          })
+          const usageCreditToExpire = (
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              issuedAmount,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              expiresAt: previousBillingPeriod.endDate - 1,
+            })
+          ).unwrap()
 
           await setupLedgerEntries({
             organizationId: organization.id,
@@ -467,21 +477,25 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           const issuedAmount = 1000
           const usedAmount = 400
           const remainingAmount = issuedAmount - usedAmount
-          const testLedgerTransaction = await setupLedgerTransaction({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            type: LedgerTransactionType.UsageEventProcessed, // An arbitrary type for setup
-          })
+          const testLedgerTransaction = (
+            await setupLedgerTransaction({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              type: LedgerTransactionType.UsageEventProcessed, // An arbitrary type for setup
+            })
+          ).unwrap()
 
-          const usageCredit = await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            issuedAmount,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            expiresAt: previousBillingPeriod.endDate - 1,
-          })
+          const usageCredit = (
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              issuedAmount,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              expiresAt: previousBillingPeriod.endDate - 1,
+            })
+          ).unwrap()
 
           const usageEvent = await setupUsageEvent({
             organizationId: organization.id,
@@ -494,7 +508,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             transactionId: testLedgerTransaction.id, // Link to same transaction
             customerId: customer.id,
           })
-          const usageCreditApplication =
+          const usageCreditApplication = (
             await setupUsageCreditApplication({
               organizationId: organization.id,
               usageCreditId: usageCredit.id,
@@ -502,6 +516,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               amountApplied: usedAmount,
               livemode: true,
             })
+          ).unwrap()
           await setupLedgerEntries({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -566,15 +581,17 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       it('should NOT expire credits that have no expiration date (expires_at is null)', async () => {
         await adminTransaction(async ({ transaction }) => {
           // Arrange
-          await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            issuedAmount: 500,
-            expiresAt: null, // The critical part of this test
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-          })
+          ;(
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              issuedAmount: 500,
+              expiresAt: null, // The critical part of this test
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+            })
+          ).unwrap()
 
           command.payload.subscriptionFeatureItems = []
 
@@ -599,15 +616,17 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           const futureExpiresAt = new Date(newBillingPeriod.endDate)
           futureExpiresAt.setDate(futureExpiresAt.getDate() + 1) // Expires after the *new* period ends
 
-          await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            issuedAmount: 500,
-            expiresAt: futureExpiresAt.getTime(), // The critical part of this test
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-          })
+          ;(
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              issuedAmount: 500,
+              expiresAt: futureExpiresAt.getTime(), // The critical part of this test
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+            })
+          ).unwrap()
 
           command.payload.subscriptionFeatureItems = []
 
@@ -701,23 +720,29 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       })
 
       // Create multiple usage meters for testing
-      usageMeter1 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Non-Renewing Meter 1',
-      })
+      usageMeter1 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Non-Renewing Meter 1',
+        })
+      ).unwrap()
 
-      usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Non-Renewing Meter 2',
-      })
+      usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Non-Renewing Meter 2',
+        })
+      ).unwrap()
 
-      usageMeter3 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Non-Renewing Meter 3',
-      })
+      usageMeter3 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Non-Renewing Meter 3',
+        })
+      ).unwrap()
 
       // Create features with different renewal frequencies
       onceFeature = await setupUsageCreditGrantFeature({
@@ -774,19 +799,23 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         })
 
       // Create ledger accounts
-      ledgerAccountNonRenewing1 = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: nonRenewingSubscription.id,
-        usageMeterId: usageMeter1.id,
-        livemode: nonRenewingSubscription.livemode,
-      })
+      ledgerAccountNonRenewing1 = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: nonRenewingSubscription.id,
+          usageMeterId: usageMeter1.id,
+          livemode: nonRenewingSubscription.livemode,
+        })
+      ).unwrap()
 
-      ledgerAccountNonRenewing2 = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: nonRenewingSubscription.id,
-        usageMeterId: usageMeter2.id,
-        livemode: nonRenewingSubscription.livemode,
-      })
+      ledgerAccountNonRenewing2 = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: nonRenewingSubscription.id,
+          usageMeterId: usageMeter2.id,
+          livemode: nonRenewingSubscription.livemode,
+        })
+      ).unwrap()
 
       // Create non-renewing command template
       nonRenewingCommand = {
@@ -1211,35 +1240,41 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       it('should never expire credits for non-renewing subscriptions', async () => {
         await adminTransaction(async ({ transaction }) => {
           // Arrange - create credits with various expiration dates
-          const pastExpiredCredit = await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: nonRenewingSubscription.id,
-            usageMeterId: usageMeter1.id,
-            issuedAmount: 200,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            expiresAt: Date.now() - 7 * 24 * 60 * 60 * 1000, // Expired 7 days ago
-          })
+          const pastExpiredCredit = (
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: nonRenewingSubscription.id,
+              usageMeterId: usageMeter1.id,
+              issuedAmount: 200,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              expiresAt: Date.now() - 7 * 24 * 60 * 60 * 1000, // Expired 7 days ago
+            })
+          ).unwrap()
 
-          const futureExpiringCredit = await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: nonRenewingSubscription.id,
-            usageMeterId: usageMeter2.id,
-            issuedAmount: 300,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // Expires in 30 days
-          })
+          const futureExpiringCredit = (
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: nonRenewingSubscription.id,
+              usageMeterId: usageMeter2.id,
+              issuedAmount: 300,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // Expires in 30 days
+            })
+          ).unwrap()
 
-          const neverExpiringCredit = await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: nonRenewingSubscription.id,
-            usageMeterId: usageMeter1.id,
-            issuedAmount: 400,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            expiresAt: null, // Never expires
-          })
+          const neverExpiringCredit = (
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: nonRenewingSubscription.id,
+              usageMeterId: usageMeter1.id,
+              issuedAmount: 400,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              expiresAt: null, // Never expires
+            })
+          ).unwrap()
 
           // Set up command
           nonRenewingCommand.payload.subscriptionFeatureItems = []
@@ -1307,31 +1342,37 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           })
 
           // Arrange - create credit that would normally expire
-          const expiringCredit = await setupUsageCredit({
-            organizationId: organization.id,
-            subscriptionId: testSubscription.id,
-            usageMeterId: usageMeter1.id,
-            issuedAmount: 1000,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            expiresAt: Date.now() - 1000, // Already expired
-            status: UsageCreditStatus.Posted,
-          })
+          const expiringCredit = (
+            await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: testSubscription.id,
+              usageMeterId: usageMeter1.id,
+              issuedAmount: 1000,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              expiresAt: Date.now() - 1000, // Already expired
+              status: UsageCreditStatus.Posted,
+            })
+          ).unwrap()
 
           // Create test accounts for the subscription
-          const testLedgerAccount1 = await setupLedgerAccount({
-            organizationId: organization.id,
-            subscriptionId: testSubscription.id,
-            usageMeterId: usageMeter1.id,
-            livemode: true,
-          })
+          const testLedgerAccount1 = (
+            await setupLedgerAccount({
+              organizationId: organization.id,
+              subscriptionId: testSubscription.id,
+              usageMeterId: usageMeter1.id,
+              livemode: true,
+            })
+          ).unwrap()
 
-          const testLedgerAccount2 = await setupLedgerAccount({
-            organizationId: organization.id,
-            subscriptionId: testSubscription.id,
-            usageMeterId: usageMeter2.id,
-            livemode: true,
-          })
+          const testLedgerAccount2 = (
+            await setupLedgerAccount({
+              organizationId: organization.id,
+              subscriptionId: testSubscription.id,
+              usageMeterId: usageMeter2.id,
+              livemode: true,
+            })
+          ).unwrap()
 
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {
@@ -1852,12 +1893,14 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             })
 
           // Create test ledger account
-          const testLedgerAccount = await setupLedgerAccount({
-            organizationId: organization.id,
-            subscriptionId: testSubscription.id,
-            usageMeterId: usageMeter1.id,
-            livemode: true,
-          })
+          const testLedgerAccount = (
+            await setupLedgerAccount({
+              organizationId: organization.id,
+              subscriptionId: testSubscription.id,
+              usageMeterId: usageMeter1.id,
+              livemode: true,
+            })
+          ).unwrap()
 
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {

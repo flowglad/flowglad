@@ -208,13 +208,15 @@ describe('Checkout Sessions', () => {
       })
     ).unwrap()
 
-    purchase = await setupPurchase({
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: price.id,
-      status: PurchaseStatus.Pending,
-      livemode: true,
-    })
+    purchase = (
+      await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        status: PurchaseStatus.Pending,
+        livemode: true,
+      })
+    ).unwrap()
 
     discount = await setupDiscount({
       organizationId: organization.id,
@@ -226,12 +228,14 @@ describe('Checkout Sessions', () => {
       livemode: true,
     })
 
-    feeCalculation = await setupFeeCalculation({
-      checkoutSessionId: checkoutSession.id,
-      organizationId: organization.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    feeCalculation = (
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Generate a new charge for each test
     succeededCharge = mockSucceededCharge(

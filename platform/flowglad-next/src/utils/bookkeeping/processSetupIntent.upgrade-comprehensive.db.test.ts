@@ -217,13 +217,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     ).unwrap()
 
     // Create purchase for checkout session
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      status: PurchaseStatus.Pending,
-      livemode: true,
-      priceId: paidPrice.id,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: PurchaseStatus.Pending,
+        livemode: true,
+        priceId: paidPrice.id,
+      })
+    ).unwrap()
   })
 
   describe('Basic Upgrade Flow', () => {
@@ -592,13 +594,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       ).unwrap()
 
       // Create a new purchase for the second checkout session
-      await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      ;(
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Attempt to create another paid subscription
       const secondSetupIntent = mockSucceededSetupIntent({
@@ -899,13 +903,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         })
       ).unwrap()
 
-      await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      ;(
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
 
       const firstSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -1415,12 +1421,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       })
 
       // Add fee calculation for the terminal checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: terminalCheckoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: terminalCheckoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: terminalCheckoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: terminalCheckoutSession.livemode,
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
@@ -1492,12 +1500,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       })
 
       // Add fee calculation for the failed checkout session
-      await setupFeeCalculation({
-        checkoutSessionId: failedCheckoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: failedCheckoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: failedCheckoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: failedCheckoutSession.livemode,
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
@@ -1564,12 +1574,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
       })
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: checkoutSession.livemode,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
@@ -1631,12 +1643,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: newCustomer.stripeCustomerId!,
       })
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: checkoutSession.livemode,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
@@ -1714,12 +1728,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customerWithTrialHistory.stripeCustomerId!,
       })
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: checkoutSession.livemode,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
@@ -1967,12 +1983,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           checkoutSessionId: checkoutSession.id,
         },
       }
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: checkoutSession.livemode,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
@@ -2021,12 +2039,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
       })
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: checkoutSession.livemode,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
@@ -2068,12 +2088,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
       })
-      await setupFeeCalculation({
-        checkoutSessionId: checkoutSession.id,
-        organizationId: organization.id,
-        priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
+      ;(
+        await setupFeeCalculation({
+          checkoutSessionId: checkoutSession.id,
+          organizationId: organization.id,
+          priceId: paidPrice.id,
+          livemode: checkoutSession.livemode,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)

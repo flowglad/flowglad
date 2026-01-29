@@ -97,11 +97,13 @@ describe('Discount Redemption Tracking', () => {
       amountType: DiscountAmountType.Percent,
       livemode: true,
     })
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+    ).unwrap()
   })
 
   describe('incrementNumberOfPaymentsForDiscountRedemption', () => {
@@ -388,11 +390,13 @@ describe('Discount Redemption Tracking', () => {
         customerId: otherCustomer.id,
         priceId: price.id,
       })
-      const otherPurchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: otherCustomer.id,
-        priceId: price.id,
-      })
+      const otherPurchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: otherCustomer.id,
+          priceId: price.id,
+        })
+      ).unwrap()
 
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,

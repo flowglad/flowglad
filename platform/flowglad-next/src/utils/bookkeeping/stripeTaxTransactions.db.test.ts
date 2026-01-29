@@ -56,11 +56,13 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
         organizationId: organization.id,
       })
     ).unwrap()
-    const purchase = await setupPurchase({
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: price.id,
-    })
+    const purchase = (
+      await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -151,11 +153,13 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
         organizationId: organization.id,
       })
     ).unwrap()
-    const purchase = await setupPurchase({
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: price.id,
-    })
+    const purchase = (
+      await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,

@@ -82,44 +82,54 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
       livemode: true,
     })
 
-    usageMeter1 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    usageMeter2 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter 2',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 2',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    usageMeter3 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter 3',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter3 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 3',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    ledgerAccountForUsageMeter1 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter1.id,
-      livemode: subscription.livemode,
-    })
+    ledgerAccountForUsageMeter1 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter1.id,
+        livemode: subscription.livemode,
+      })
+    ).unwrap()
   })
 
   it('should return existing ledger accounts and not attempt to create new ones if all specified ledger accounts already exist', async () => {
     await adminTransaction(async ({ transaction }) => {
       // setup:
-      const ledgerAccountForUsageMeter2 = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter2.id,
-        livemode: subscription.livemode,
-      })
+      const ledgerAccountForUsageMeter2 = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter2.id,
+          livemode: subscription.livemode,
+        })
+      ).unwrap()
 
       const initialLedgerAccounts = await selectLedgerAccounts(
         {
@@ -382,12 +392,14 @@ describe('Ledger Account Methods with pricingModelId', () => {
       livemode: true,
     })
 
-    usageMeter1 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('insertLedgerAccount', () => {
@@ -458,12 +470,14 @@ describe('Ledger Account Methods with pricingModelId', () => {
     let usageMeter2: UsageMeter.Record
 
     beforeEach(async () => {
-      usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter 2',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter 2',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
     })
 
     it('should bulk insert ledger accounts and derive pricingModelId for each', async () => {

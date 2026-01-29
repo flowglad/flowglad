@@ -727,11 +727,13 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should show features from new pricing model after migration', async () => {
       // Setup: Create features on both pricing models
-      const usageMeter1 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Old Pricing Model Meter',
-      })
+      const usageMeter1 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Old Pricing Model Meter',
+        })
+      ).unwrap()
 
       const feature1 = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -750,11 +752,13 @@ describe('Pricing Model Migration Test Suite', async () => {
         livemode: false,
       })
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel2.id,
-        name: 'New Pricing Model Meter',
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel2.id,
+          name: 'New Pricing Model Meter',
+        })
+      ).unwrap()
 
       const feature2 = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -853,12 +857,14 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should return experimental field with only new pricing model features for checkFeatureAccess and checkUsageBalance', async () => {
       // Setup: Create usage meters and features on both pricing models
-      const oldUsageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Old Meter for Experimental',
-        slug: 'old-meter-experimental',
-      })
+      const oldUsageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Old Meter for Experimental',
+          slug: 'old-meter-experimental',
+        })
+      ).unwrap()
 
       const oldFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -877,12 +883,14 @@ describe('Pricing Model Migration Test Suite', async () => {
         livemode: false,
       })
 
-      const newUsageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel2.id,
-        name: 'New Meter for Experimental',
-        slug: 'new-meter-experimental',
-      })
+      const newUsageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel2.id,
+          name: 'New Meter for Experimental',
+          slug: 'new-meter-experimental',
+        })
+      ).unwrap()
 
       const newFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -1125,11 +1133,13 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Create a feature on the subscription item
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        name: 'Test Meter',
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          name: 'Test Meter',
+        })
+      ).unwrap()
 
       const feature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,

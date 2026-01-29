@@ -361,11 +361,13 @@ describe('setupPurchase', () => {
   })
 
   it('should create purchase via setupPurchase and verify pricingModelId', async () => {
-    const purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-    })
+    const purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     // Verify pricingModelId is correctly derived
     expect(purchase.pricingModelId).toBe(price.pricingModelId)
@@ -406,11 +408,13 @@ describe('derivePricingModelIdFromPurchase', () => {
       })
     ).unwrap()
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+    ).unwrap()
   })
 
   it('should derive pricingModelId from an existing purchase', async () => {
@@ -472,11 +476,13 @@ describe('selectPurchasesByCustomerId', () => {
       })
     ).unwrap()
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      })
+    ).unwrap()
   })
 
   it('should return purchase records for a customer', async () => {
@@ -529,11 +535,13 @@ describe('selectPurchasesByCustomerId', () => {
       })
     ).unwrap()
 
-    const otherPurchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: otherCustomer.id,
-      priceId: price.id,
-    })
+    const otherPurchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const purchases = await selectPurchasesByCustomerId(

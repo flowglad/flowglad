@@ -203,12 +203,14 @@ describe('billingRunHelpers', async () => {
       })
     ).unwrap()
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Global Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Global Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     usageBasedPrice = await setupPrice({
       name: 'Global Usage Based Price',
@@ -268,12 +270,14 @@ describe('billingRunHelpers', async () => {
       // Usage charges come through the usageOverages parameter instead
     ]
 
-    ledgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
+    ledgerAccount = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   afterEach(async () => {
@@ -296,13 +300,15 @@ describe('billingRunHelpers', async () => {
         ),
         status: BillingPeriodStatus.Active,
       })
-      let invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        status: InvoiceStatus.Draft,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      let invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          status: InvoiceStatus.Draft,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
       const updatedBillingPeriod = await adminTransaction(
         ({ transaction }) =>
           processOutstandingBalanceForBillingPeriod(
@@ -322,13 +328,15 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should mark billing period as Completed when all payments are settled', async () => {
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        status: InvoiceStatus.Paid,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          status: InvoiceStatus.Paid,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
       const result = await adminTransaction(
         async ({ transaction }) => {
           const updatedBillingPeriod = await updateBillingPeriod(
@@ -375,13 +383,15 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should not create a payment intent if the invoice is in a terminal state', async () => {
-      await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        status: InvoiceStatus.Paid,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      ;(
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          status: InvoiceStatus.Paid,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
       const result = await adminTransaction(({ transaction }) =>
         executeBillingRunCalculationAndBookkeepingSteps(
           billingRun,
@@ -548,12 +558,14 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should generate invoice line items from billing period items, ommiting items with 0 quantity', async () => {
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
       const zeroQuantityBillingPeriodItem = {
         ...staticBillingPeriodItem,
         quantity: 0,
@@ -624,16 +636,20 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       // Create some existing invoices for this customer
-      await setupInvoice({
-        customerId: testCustomer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
-      await setupInvoice({
-        customerId: testCustomer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      ;(
+        await setupInvoice({
+          customerId: testCustomer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
+      ;(
+        await setupInvoice({
+          customerId: testCustomer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       const invoiceInsert = await adminTransaction(
         ({ transaction }) =>
@@ -736,13 +752,15 @@ describe('billingRunHelpers', async () => {
     let invoice: Invoice.Record
 
     beforeEach(async () => {
-      invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-        status: InvoiceStatus.Draft,
-      })
+      invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+          status: InvoiceStatus.Draft,
+        })
+      ).unwrap()
     })
 
     it('should calculate fee and total due correctly, ommitting billing period items that do not have any usage attached to them ', async () => {
@@ -932,13 +950,15 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should mark a future billing period as Upcoming when there is no more due', async () => {
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        status: InvoiceStatus.Paid,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          status: InvoiceStatus.Paid,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
       const result = await adminTransaction(
         async ({ transaction }) => {
           const futureBillingPeriod = await updateBillingPeriod(
@@ -1108,12 +1128,14 @@ describe('billingRunHelpers', async () => {
 
   describe('Atomicity Tests for executeBillingRun', () => {
     const setupOverpaymentScenario = async () => {
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       return await setupPayment({
         stripeChargeId: 'ch_test_123' + core.nanoid(),
@@ -1686,12 +1708,14 @@ describe('billingRunHelpers', async () => {
 
     it('should use existing invoice when one exists for the billing period', async () => {
       // Create an invoice first
-      const existingInvoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const existingInvoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(({ transaction }) =>
         executeBillingRunCalculationAndBookkeepingSteps(
@@ -1746,13 +1770,15 @@ describe('billingRunHelpers', async () => {
     })
     it('should handle terminal invoice state correctly', async () => {
       // Create an invoice in a terminal state
-      const paidInvoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-        status: InvoiceStatus.Paid,
-      })
+      const paidInvoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+          status: InvoiceStatus.Paid,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(({ transaction }) =>
         executeBillingRunCalculationAndBookkeepingSteps(
@@ -1779,12 +1805,14 @@ describe('billingRunHelpers', async () => {
 
     it('should delete and recreate invoice line items', async () => {
       // Create an invoice with line items
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       // Create some initial line items
       await adminTransaction(async ({ transaction }) => {
@@ -1949,13 +1977,15 @@ describe('billingRunHelpers', async () => {
 
     it('should update billing period status based on invoice status and date', async () => {
       // Create an invoice in a terminal state
-      await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-        status: InvoiceStatus.Paid,
-      })
+      ;(
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+          status: InvoiceStatus.Paid,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(({ transaction }) =>
         executeBillingRunCalculationAndBookkeepingSteps(
@@ -2078,12 +2108,14 @@ describe('billingRunHelpers', async () => {
 
     it('should handle multiple payments for billing period', async () => {
       // Create a payment for the billing period
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       await setupPayment({
         stripeChargeId: 'ch_test_123' + core.nanoid(),
@@ -2127,12 +2159,14 @@ describe('billingRunHelpers', async () => {
 
       // Create an existing payment of $50 for this billing period
       const existingPaymentAmount = 5000 // $50 in cents
-      const testInvoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const testInvoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       await setupPayment({
         stripeChargeId: 'ch_existing_' + core.nanoid(),
@@ -2193,12 +2227,14 @@ describe('billingRunHelpers', async () => {
       })
 
       // Create an invoice for this billing period
-      const testInvoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const testInvoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       // Create an existing payment that FULLY covers the totalDueAmount
       // This simulates the scenario from issue #1317 where prior payments
@@ -2265,12 +2301,14 @@ describe('billingRunHelpers', async () => {
       })
 
       // Create an invoice for this billing period
-      const testInvoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const testInvoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       // Create an existing payment that FULLY covers the totalDueAmount
       await setupPayment({
@@ -2378,11 +2416,13 @@ describe('billingRunHelpers', async () => {
 
     it('should claim outstanding usage costs by associating them with the billing run', async () => {
       // 1. Setup: Create a usage event and a debit ledger entry that is "unclaimed"
-      const ledgerTransaction = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+      const ledgerTransaction = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+      ).unwrap()
       const usageEvent = await setupUsageEvent({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2394,18 +2434,20 @@ describe('billingRunHelpers', async () => {
         customerId: customer.id,
         usageDate: Date.now(),
       })
-      const initialEntry = await setupDebitLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        ledgerTransactionId: ledgerTransaction.id,
-        ledgerAccountId: ledgerAccount.id,
-        amount: 100,
-        entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: usageEvent.id,
-        status: LedgerEntryStatus.Posted,
-        usageMeterId: usageMeter.id,
-        claimedByBillingRunId: null, // Explicitly unclaimed
-      })
+      const initialEntry = (
+        await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerTransactionId: ledgerTransaction.id,
+          ledgerAccountId: ledgerAccount.id,
+          amount: 100,
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: usageEvent.id,
+          status: LedgerEntryStatus.Posted,
+          usageMeterId: usageMeter.id,
+          claimedByBillingRunId: null, // Explicitly unclaimed
+        })
+      ).unwrap()
 
       // Verify it's picked up by tabulation
       await adminTransaction(async ({ transaction }) => {
@@ -2446,12 +2488,14 @@ describe('billingRunHelpers', async () => {
     it('should succeed and mark invoice as Paid if amount to charge is zero due to overpayment', async () => {
       // 1. Setup: Create a payment that overpays the due amount.
       // Total due is staticBillingPeriodItem.unitPrice (50)
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-      })
+      const invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+      ).unwrap()
 
       await setupPayment({
         stripeChargeId: 'ch_test_123' + core.nanoid(),
@@ -2625,11 +2669,13 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter For Tabulation',
-        pricingModelId: pricingModel.id,
-      })
+      usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter For Tabulation',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
 
       usageBasedPrice = await setupPrice({
         name: 'Metered Price For Tabulation',
@@ -2676,12 +2722,14 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should return empty results when ledger accounts exist but have no outstanding costs', async () => {
-      const ledgerAccount = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-      })
+      const ledgerAccount = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const result = await tabulateOutstandingUsageCosts(
           subscription.id,
@@ -2697,18 +2745,22 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should correctly tabulate a single outstanding usage cost for one ledger account', async () => {
-      const ledgerAccount = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerTransaction = await setupLedgerTransaction({
+      const ledgerAccount = (
+        await setupLedgerAccount({
           organizationId: organization.id,
           subscriptionId: subscription.id,
-          type: LedgerTransactionType.UsageEventProcessed,
+          usageMeterId: usageMeter.id,
+          livemode: true,
         })
+      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        const ledgerTransaction = (
+          await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
+        ).unwrap()
         const billingPeriod = await setupBillingPeriod({
           subscriptionId: subscription.id,
           startDate: new Date(Date.now() - 1000),
@@ -2728,17 +2780,19 @@ describe('billingRunHelpers', async () => {
           usageDate: Date.now(),
         })
 
-        const costEntry = await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: 100,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-        })
+        const costEntry = (
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: 100,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+          })
+        ).unwrap()
 
         const result = await tabulateOutstandingUsageCosts(
           subscription.id,
@@ -2769,18 +2823,22 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should handle multiple outstanding usage costs for one ledger account (map behavior)', async () => {
-      const ledgerAccount = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerTransaction = await setupLedgerTransaction({
+      const ledgerAccount = (
+        await setupLedgerAccount({
           organizationId: organization.id,
           subscriptionId: subscription.id,
-          type: LedgerTransactionType.UsageEventProcessed,
+          usageMeterId: usageMeter.id,
+          livemode: true,
         })
+      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        const ledgerTransaction = (
+          await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
+        ).unwrap()
         const billingPeriod = await setupBillingPeriod({
           subscriptionId: subscription.id,
           startDate: new Date(Date.now() - 1000),
@@ -2812,31 +2870,35 @@ describe('billingRunHelpers', async () => {
           usageDate: Date.now() - 1000,
         })
 
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: usageEvent1.amount,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent1.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: usageEvent1.usageDate,
-        })
+        ;(
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: usageEvent1.amount,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent1.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: usageEvent1.usageDate,
+          })
+        ).unwrap()
 
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: usageEvent2.amount,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent2.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: usageEvent2.usageDate,
-        })
+        ;(
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: usageEvent2.amount,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent2.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: usageEvent2.usageDate,
+          })
+        ).unwrap()
 
         const result = await tabulateOutstandingUsageCosts(
           subscription.id,
@@ -2867,40 +2929,52 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should correctly tabulate costs for multiple ledger accounts, some with and some without costs', async () => {
-      const la1 = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-      })
-      const anotherUsageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Another Meter',
-        pricingModelId: pricingModel.id,
-      })
-      const la2 = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: anotherUsageMeter.id,
-        livemode: true,
-      })
-      const usageMeter3 = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Another Meter 3',
-        pricingModelId: pricingModel.id,
-      })
-      const la3 = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter3.id,
-        livemode: true,
-      })
+      const la1 = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+        })
+      ).unwrap()
+      const anotherUsageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Another Meter',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
+      const la2 = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: anotherUsageMeter.id,
+          livemode: true,
+        })
+      ).unwrap()
+      const usageMeter3 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Another Meter 3',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
+      const la3 = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter3.id,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const lt = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+      const lt = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+      ).unwrap()
       const billingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
         startDate: new Date(Date.now() - 1000),
@@ -2918,17 +2992,19 @@ describe('billingRunHelpers', async () => {
         transactionId: 'strp_d3' + Math.random(),
         customerId: customer.id,
       })
-      await setupDebitLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        ledgerTransactionId: lt.id,
-        ledgerAccountId: la1.id,
-        amount: 100,
-        entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: ue1.id,
-        status: LedgerEntryStatus.Posted,
-        usageMeterId: usageMeter.id,
-      })
+      ;(
+        await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerTransactionId: lt.id,
+          ledgerAccountId: la1.id,
+          amount: 100,
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: ue1.id,
+          status: LedgerEntryStatus.Posted,
+          usageMeterId: usageMeter.id,
+        })
+      ).unwrap()
 
       const ue3 = await setupUsageEvent({
         organizationId: organization.id,
@@ -2940,18 +3016,20 @@ describe('billingRunHelpers', async () => {
         transactionId: 'strp_d4' + Math.random(),
         customerId: customer.id,
       })
-      await setupDebitLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        ledgerTransactionId: lt.id,
-        ledgerAccountId: la3.id,
-        amount: 200,
-        entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: ue3.id,
-        status: LedgerEntryStatus.Posted,
-        usageMeterId: usageMeter.id,
-        entryTimestamp: billingPeriod.endDate - 1000,
-      })
+      ;(
+        await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerTransactionId: lt.id,
+          ledgerAccountId: la3.id,
+          amount: 200,
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: ue3.id,
+          status: LedgerEntryStatus.Posted,
+          usageMeterId: usageMeter.id,
+          entryTimestamp: billingPeriod.endDate - 1000,
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         const result = await tabulateOutstandingUsageCosts(
@@ -3011,12 +3089,14 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should only include usage costs up to the billingPeriodEndDate', async () => {
-      const ledgerAccount = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-      })
+      const ledgerAccount = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         const billingPeriodEndDate = new Date()
@@ -3029,11 +3109,13 @@ describe('billingRunHelpers', async () => {
           status: BillingPeriodStatus.Active,
           livemode: true,
         })
-        const ledgerTransaction = await setupLedgerTransaction({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          type: LedgerTransactionType.UsageEventProcessed,
-        })
+        const ledgerTransaction = (
+          await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
+        ).unwrap()
 
         // Cost included: timestamp is on the end date
         const usageEvent1 = await setupUsageEvent({
@@ -3047,18 +3129,20 @@ describe('billingRunHelpers', async () => {
           customerId: customer.id,
           usageDate: billingPeriodEndDate.getTime() - 1000, // within period
         })
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: 150,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent1.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: billingPeriodEndDate.getTime() - 1000, // on the boundary
-        })
+        ;(
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: 150,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent1.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: billingPeriodEndDate.getTime() - 1000, // on the boundary
+          })
+        ).unwrap()
 
         // Cost excluded: timestamp is after the end date
         const usageEvent2 = await setupUsageEvent({
@@ -3072,18 +3156,20 @@ describe('billingRunHelpers', async () => {
           customerId: customer.id,
           usageDate: billingPeriodEndDate.getTime() + 1000, // outside period
         })
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: 250,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent2.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: billingPeriodEndDate.getTime() + 1, // after the boundary
-        })
+        ;(
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: 250,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent2.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: billingPeriodEndDate.getTime() + 1, // after the boundary
+          })
+        ).unwrap()
 
         const result = await tabulateOutstandingUsageCosts(
           subscription.id,
@@ -3112,13 +3198,15 @@ describe('billingRunHelpers', async () => {
   describe('billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts', () => {
     let invoice: Invoice.Record
     beforeEach(async () => {
-      invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
-        status: InvoiceStatus.Draft,
-      })
+      invoice = (
+        await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+          status: InvoiceStatus.Draft,
+        })
+      ).unwrap()
     })
     it('should correctly generate a Static invoice line item', () => {
       const lineItems =
@@ -3622,12 +3710,14 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter For DoNotCharge',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter For DoNotCharge',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       usageBasedPrice = await setupPrice({
         name: 'Usage Based Price For DoNotCharge',
@@ -3705,12 +3795,14 @@ describe('billingRunHelpers', async () => {
         return billingRunsSelectSchema.parse(inserted)
       })
 
-      ledgerAccount = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: doNotChargeSubscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-      })
+      ledgerAccount = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: doNotChargeSubscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+        })
+      ).unwrap()
     })
 
     afterEach(async () => {
@@ -3721,11 +3813,13 @@ describe('billingRunHelpers', async () => {
 
     it('should not include usage overages in billing calculations for doNotCharge subscriptions', async () => {
       // Create usage events that would normally create overages
-      const ledgerTransaction = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: doNotChargeSubscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+      const ledgerTransaction = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: doNotChargeSubscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+      ).unwrap()
 
       const usageEvent = await setupUsageEvent({
         organizationId: organization.id,
@@ -3738,17 +3832,19 @@ describe('billingRunHelpers', async () => {
         customerId: customer.id,
       })
 
-      await setupDebitLedgerEntry({
-        organizationId: organization.id,
-        subscriptionId: doNotChargeSubscription.id,
-        ledgerAccountId: ledgerAccount.id,
-        ledgerTransactionId: ledgerTransaction.id,
-        amount: 1000,
-        entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: usageEvent.id,
-        status: LedgerEntryStatus.Posted,
-        usageMeterId: usageMeter.id,
-      })
+      ;(
+        await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: doNotChargeSubscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: ledgerTransaction.id,
+          amount: 1000,
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: usageEvent.id,
+          status: LedgerEntryStatus.Posted,
+          usageMeterId: usageMeter.id,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(
         async ({ transaction }) => {

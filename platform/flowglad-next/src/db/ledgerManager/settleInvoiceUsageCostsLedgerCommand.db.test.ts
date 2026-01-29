@@ -94,12 +94,14 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
     usageCostLedgerEntry.claimedByBillingRunId = billingRun.id
 
     // 4. Create a paid Invoice that resulted from this billing run.
-    invoice = await setupInvoice({
-      organizationId: organization.id,
-      customerId: scenario.customer.id,
-      priceId: scenario.price.id,
-      status: InvoiceStatus.Paid,
-    })
+    invoice = (
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: scenario.customer.id,
+        priceId: scenario.price.id,
+        status: InvoiceStatus.Paid,
+      })
+    ).unwrap()
     invoice = (
       await adminTransaction(async ({ transaction }) => {
         return Result.ok(
@@ -114,15 +116,17 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       })
     ).unwrap()
     // 5. Create the specific InvoiceLineItem that represents the usage cost on the invoice.
-    usageInvoiceLineItem = await setupInvoiceLineItem({
-      invoiceId: invoice.id,
-      priceId: scenario.price.id,
-      quantity: 1,
-      ledgerAccountId: ledgerAccount.id,
-      type: SubscriptionItemType.Usage,
-      ledgerAccountCredit: usageCostLedgerEntry.amount, // The amount that credits the ledger
-      billingRunId: billingRun.id,
-    })
+    usageInvoiceLineItem = (
+      await setupInvoiceLineItem({
+        invoiceId: invoice.id,
+        priceId: scenario.price.id,
+        quantity: 1,
+        ledgerAccountId: ledgerAccount.id,
+        type: SubscriptionItemType.Usage,
+        ledgerAccountCredit: usageCostLedgerEntry.amount, // The amount that credits the ledger
+        billingRunId: billingRun.id,
+      })
+    ).unwrap()
   })
 
   describe('usageCreditInsertFromInvoiceLineItem', () => {
@@ -296,17 +300,21 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       const { customer, billingPeriod, price } =
         await setupUsageLedgerScenario({})
       // 1. Create a second usage meter and ledger account for the same subscription.
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Second Usage Meter',
-        pricingModelId: pricingModel.id,
-      })
-      const ledgerAccount2 = await setupLedgerAccount({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        usageMeterId: usageMeter2.id,
-        livemode: subscription.livemode,
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Second Usage Meter',
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
+      const ledgerAccount2 = (
+        await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter2.id,
+          livemode: subscription.livemode,
+        })
+      ).unwrap()
 
       // 2. Create a second, real usage_cost ledger entry and link it to the same billing run.
       const usageEvent2 = await setupUsageEvent({
@@ -319,11 +327,13 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         transactionId: 'ltxn_dummy_for_setup',
         customerId: customer.id,
       })
-      const usageCost2Transaction = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+      const usageCost2Transaction = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+      ).unwrap()
       const [usageCostLedgerEntry2] = await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -347,15 +357,17 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       })
 
       // 3. Create a second invoice line item for this new cost.
-      const usageInvoiceLineItem2 = await setupInvoiceLineItem({
-        invoiceId: invoice.id,
-        priceId: price.id,
-        quantity: 1,
-        ledgerAccountId: ledgerAccount2.id,
-        type: SubscriptionItemType.Usage,
-        ledgerAccountCredit: usageCostLedgerEntry2.amount,
-        billingRunId: billingRun.id,
-      })
+      const usageInvoiceLineItem2 = (
+        await setupInvoiceLineItem({
+          invoiceId: invoice.id,
+          priceId: price.id,
+          quantity: 1,
+          ledgerAccountId: ledgerAccount2.id,
+          type: SubscriptionItemType.Usage,
+          ledgerAccountCredit: usageCostLedgerEntry2.amount,
+          billingRunId: billingRun.id,
+        })
+      ).unwrap()
 
       const command: SettleInvoiceUsageCostsLedgerCommand = {
         organizationId: organization.id,
@@ -439,13 +451,15 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       // setup:
       // 1. Create a static (non-usage) invoice line item.
       const { price } = await setupUsageLedgerScenario({})
-      const staticInvoiceLineItem = await setupInvoiceLineItem({
-        invoiceId: invoice.id,
-        priceId: price.id,
-        type: SubscriptionItemType.Static,
-        quantity: 1,
-        billingRunId: billingRun.id,
-      })
+      const staticInvoiceLineItem = (
+        await setupInvoiceLineItem({
+          invoiceId: invoice.id,
+          priceId: price.id,
+          type: SubscriptionItemType.Static,
+          quantity: 1,
+          billingRunId: billingRun.id,
+        })
+      ).unwrap()
 
       // 2. Construct the command with both the original usage line item and the new static one.
       const command: SettleInvoiceUsageCostsLedgerCommand = {
@@ -599,13 +613,15 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       // setup:
       // 1. Create a static (non-usage) invoice line item.
       const { price } = await setupUsageLedgerScenario({})
-      const staticInvoiceLineItem = await setupInvoiceLineItem({
-        invoiceId: invoice.id,
-        priceId: price.id,
-        type: SubscriptionItemType.Static,
-        quantity: 1,
-        billingRunId: billingRun.id,
-      })
+      const staticInvoiceLineItem = (
+        await setupInvoiceLineItem({
+          invoiceId: invoice.id,
+          priceId: price.id,
+          type: SubscriptionItemType.Static,
+          quantity: 1,
+          billingRunId: billingRun.id,
+        })
+      ).unwrap()
       // 2. Construct the command with only the static line item.
       const command: SettleInvoiceUsageCostsLedgerCommand = {
         organizationId: organization.id,
@@ -665,13 +681,15 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       })
       const invoiceTest = (
         await adminTransaction(async ({ transaction }) => {
-          const inv = await setupInvoice({
-            organizationId: scenario.organization.id,
-            customerId: scenario.customer.id,
-            priceId: scenario.price.id,
-            status: InvoiceStatus.Paid,
-            livemode: false,
-          })
+          const inv = (
+            await setupInvoice({
+              organizationId: scenario.organization.id,
+              customerId: scenario.customer.id,
+              priceId: scenario.price.id,
+              status: InvoiceStatus.Paid,
+              livemode: false,
+            })
+          ).unwrap()
           return Result.ok(
             await updateInvoice(
               { ...inv, billingRunId: billingRunTest.id },
@@ -680,15 +698,17 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
           )
         })
       ).unwrap()
-      const usageInvoiceLineItemTest = await setupInvoiceLineItem({
-        invoiceId: invoiceTest.id,
-        priceId: scenario.price.id,
-        type: SubscriptionItemType.Usage,
-        ledgerAccountId: scenario.ledgerAccount.id,
-        ledgerAccountCredit: scenario.ledgerEntries[0].amount,
-        billingRunId: billingRunTest.id,
-        livemode: false,
-      })
+      const usageInvoiceLineItemTest = (
+        await setupInvoiceLineItem({
+          invoiceId: invoiceTest.id,
+          priceId: scenario.price.id,
+          type: SubscriptionItemType.Usage,
+          ledgerAccountId: scenario.ledgerAccount.id,
+          ledgerAccountCredit: scenario.ledgerEntries[0].amount,
+          billingRunId: billingRunTest.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // 2. Construct the command with livemode: false.
       const command: SettleInvoiceUsageCostsLedgerCommand = {
@@ -740,19 +760,23 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
     it('should settle usage costs correctly when a non-expiring credit exists', async () => {
       // setup:
       const priorCreditAmount = 5000
-      const priorCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: priorCreditAmount,
-        usageMeterId: usageMeter.id,
-        expiresAt: null, // non-expiring
-      })
-      const grantTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const priorCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: priorCreditAmount,
+          usageMeterId: usageMeter.id,
+          expiresAt: null, // non-expiring
+        })
+      ).unwrap()
+      const grantTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -823,19 +847,23 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
     it('should settle usage costs correctly when an expiring credit exists', async () => {
       // setup:
       const priorCreditAmount = 3000
-      const priorCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: priorCreditAmount,
-        usageMeterId: usageMeter.id,
-        expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // expires in 30 days
-      })
-      const grantTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const priorCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: priorCreditAmount,
+          usageMeterId: usageMeter.id,
+          expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // expires in 30 days
+        })
+      ).unwrap()
+      const grantTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -893,28 +921,34 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       const expiringAmount = 2500
       const totalPriorCredit = nonExpiringAmount + expiringAmount
 
-      const nonExpiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: nonExpiringAmount,
-        usageMeterId: usageMeter.id,
-        expiresAt: null,
-      })
-      const expiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: expiringAmount,
-        usageMeterId: usageMeter.id,
-        expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30,
-      })
+      const nonExpiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: nonExpiringAmount,
+          usageMeterId: usageMeter.id,
+          expiresAt: null,
+        })
+      ).unwrap()
+      const expiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: expiringAmount,
+          usageMeterId: usageMeter.id,
+          expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30,
+        })
+      ).unwrap()
 
-      const grantTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const grantTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,

@@ -2197,11 +2197,13 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
 
       // Create a feature on the subscription item
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Test Meter',
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Test Meter',
+        })
+      ).unwrap()
 
       const feature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -2337,17 +2339,21 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
 
       // Create features on the subscription items
-      const usageMeter1 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Test Meter 1',
-      })
+      const usageMeter1 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Test Meter 1',
+        })
+      ).unwrap()
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Test Meter 2',
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Test Meter 2',
+        })
+      ).unwrap()
 
       const feature1 = await setupUsageCreditGrantFeature({
         organizationId: organization.id,

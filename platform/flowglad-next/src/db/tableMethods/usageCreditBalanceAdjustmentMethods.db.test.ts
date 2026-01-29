@@ -72,14 +72,16 @@ describe('Usage Credit Balance Adjustment Methods', () => {
       })
     ).unwrap()
 
-    usageCredit = await setupUsageCredit({
-      organizationId: organization.id,
-      usageMeterId: usageMeter.id,
-      subscriptionId: subscription.id,
-      creditType: UsageCreditType.Grant,
-      livemode: true,
-      issuedAmount: 1000,
-    })
+    usageCredit = (
+      await setupUsageCredit({
+        organizationId: organization.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        livemode: true,
+        issuedAmount: 1000,
+      })
+    ).unwrap()
   })
 
   describe('insertUsageCreditBalanceAdjustment', () => {

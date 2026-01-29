@@ -141,12 +141,14 @@ describe('grantEntitlementUsageCredits', () => {
       priceId: basePrice.id,
     })
 
-    usageMeter1 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter 1 for Grants',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    usageMeter1 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 1 for Grants',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     baseFeature = await setupUsageCreditGrantFeature({
       organizationId: organization.id,
@@ -173,23 +175,27 @@ describe('grantEntitlementUsageCredits', () => {
         amount: baseFeature.amount,
       })
 
-    ledgerAccount1 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter1.id,
-      livemode: true,
-    })
+    ledgerAccount1 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter1.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     ledgerAccountsByUsageMeterId = new Map([
       [usageMeter1.id, ledgerAccount1],
     ])
 
-    testLedgerTransaction = await setupLedgerTransaction({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      type: LedgerTransactionType.BillingPeriodTransition,
-      livemode: true,
-    })
+    testLedgerTransaction = (
+      await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.BillingPeriodTransition,
+        livemode: true,
+      })
+    ).unwrap()
 
     const now = new Date()
     previousBillingPeriod = await setupBillingPeriod({
@@ -313,12 +319,14 @@ describe('grantEntitlementUsageCredits', () => {
 
   it('should grant multiple entitlement usage credits and create corresponding ledger entries', async () => {
     // setup:
-    const usageMeter2 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter 2 for Grants',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    const usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 2 for Grants',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const feature2 = await setupUsageCreditGrantFeature({
       organizationId: organization.id,
@@ -344,12 +352,14 @@ describe('grantEntitlementUsageCredits', () => {
       amount: feature2.amount, // Use default amount from feature2
     })
 
-    const ledgerAccount2 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter2.id,
-      livemode: true,
-    })
+    const ledgerAccount2 = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter2.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     ledgerAccountsByUsageMeterId.set(usageMeter2.id, ledgerAccount2)
 
@@ -720,12 +730,14 @@ describe('grantEntitlementUsageCredits', () => {
     const amountForNewSif = 100
 
     // 1. Create a second usage meter (usageMeter2)
-    const usageMeter2 = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter 2 for Auto Account Creation',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
+    const usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 2 for Auto Account Creation',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // 2. Create a new feature (feature2) linked to usageMeter2
     const feature2 = await setupUsageCreditGrantFeature({
@@ -890,12 +902,14 @@ describe('grantEntitlementUsageCredits', () => {
         command.payload as StandardBillingPeriodTransitionPayload
       standardPayload.previousBillingPeriod = null // Simulate initial grant
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter 2 for Initial Grant',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter 2 for Initial Grant',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
       const featureOnce = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
         name: 'One-Time Grant Feature',
@@ -1015,12 +1029,14 @@ describe('grantEntitlementUsageCredits', () => {
       // Setup
       // command.payload.previousBillingPeriod is already set in beforeEach, so this is a subsequent grant.
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter 2 for Subsequent Grant',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter 2 for Subsequent Grant',
+          pricingModelId: pricingModel.id,
+          livemode: true,
+        })
+      ).unwrap()
       const featureOnce = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
         name: 'One-Time Grant Feature To Be Ignored',

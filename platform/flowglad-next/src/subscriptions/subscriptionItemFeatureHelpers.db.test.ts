@@ -91,12 +91,14 @@ const setupTestFeaturesAndProductFeatures = async (
         spec.type === FeatureType.UsageCreditGrant &&
         spec.usageMeterName
       ) {
-        const usageMeter = await setupUsageMeter({
-          organizationId,
-          name: spec.usageMeterName,
-          livemode,
-          pricingModelId,
-        })
+        const usageMeter = (
+          await setupUsageMeter({
+            organizationId,
+            name: spec.usageMeterName,
+            livemode,
+            pricingModelId,
+          })
+        ).unwrap()
         usageMeterId = usageMeter.id
       }
 
@@ -634,12 +636,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
           ]
         )
 
-      await setupLedgerAccount({
-        subscriptionId: subscription.id,
-        usageMeterId: usageFeature.usageMeterId!,
-        organizationId: orgData.organization.id,
-        livemode: true,
-      })
+      ;(
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -729,12 +733,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
           ]
         )
 
-      await setupLedgerAccount({
-        subscriptionId: subscription.id,
-        usageMeterId: usageFeature.usageMeterId!,
-        organizationId: orgData.organization.id,
-        livemode: true,
-      })
+      ;(
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -1140,12 +1146,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
             ]
           )
 
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: usageFeature.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1210,12 +1218,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
             ]
           )
 
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: usageFeature.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1273,18 +1283,22 @@ describe('SubscriptionItemFeatureHelpers', () => {
             ]
           )
 
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: featureA.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: featureB.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: featureA.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: featureB.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1359,12 +1373,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
             ]
           )
 
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: usageFeature.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1441,12 +1457,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
             ]
           )
 
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: usageFeature.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1522,12 +1540,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
             ]
           )
 
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: usageFeature.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         // Create a billing period for this subscription
         const now = Date.now()
@@ -1615,12 +1635,14 @@ describe('SubscriptionItemFeatureHelpers', () => {
             ]
           )
 
-        await setupLedgerAccount({
-          subscriptionId: subscription.id,
-          usageMeterId: usageFeature.usageMeterId!,
-          organizationId: orgData.organization.id,
-          livemode: true,
-        })
+        ;(
+          await setupLedgerAccount({
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+            organizationId: orgData.organization.id,
+            livemode: true,
+          })
+        ).unwrap()
 
         const now = Date.now()
 

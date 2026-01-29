@@ -76,12 +76,14 @@ const setupTestFeaturesAndProductFeatures = async (
         spec.type === FeatureType.UsageCreditGrant &&
         spec.usageMeterName
       ) {
-        const usageMeter = await setupUsageMeter({
-          organizationId,
-          name: spec.usageMeterName,
-          livemode,
-          pricingModelId,
-        })
+        const usageMeter = (
+          await setupUsageMeter({
+            organizationId,
+            name: spec.usageMeterName,
+            livemode,
+            pricingModelId,
+          })
+        ).unwrap()
         usageMeterId = usageMeter.id
       }
 
@@ -336,12 +338,14 @@ describe('addFeatureToSubscription mutation', () => {
           ]
         )
 
-      await setupLedgerAccount({
-        subscriptionId: subscription.id,
-        usageMeterId: usageCreditFeature.usageMeterId!,
-        organizationId: orgData.organization.id,
-        livemode: true,
-      })
+      ;(
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageCreditFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const now = Date.now()
       await setupBillingPeriod({
@@ -420,12 +424,14 @@ describe('addFeatureToSubscription mutation', () => {
           ]
         )
 
-      await setupLedgerAccount({
-        subscriptionId: subscription.id,
-        usageMeterId: usageCreditFeature.usageMeterId!,
-        organizationId: orgData.organization.id,
-        livemode: true,
-      })
+      ;(
+        await setupLedgerAccount({
+          subscriptionId: subscription.id,
+          usageMeterId: usageCreditFeature.usageMeterId!,
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =

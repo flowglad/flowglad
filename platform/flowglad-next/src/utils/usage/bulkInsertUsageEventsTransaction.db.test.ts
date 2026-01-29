@@ -98,12 +98,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
       })
     ).unwrap()
 
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      livemode: true,
-      pricingModelId,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+        pricingModelId,
+      })
+    ).unwrap()
 
     price = await setupPrice({
       name: 'Test Usage Price',
@@ -278,14 +280,16 @@ describe('bulkInsertUsageEventsTransaction', () => {
         })
       ).unwrap()
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: org2.id,
-        name: 'Org2 Usage Meter',
-        livemode: true,
-        pricingModelId: pricingModel2Id,
-        // Use the same slug as the first org's usage meter
-        slug: usageMeter.slug ?? undefined,
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: org2.id,
+          name: 'Org2 Usage Meter',
+          livemode: true,
+          pricingModelId: pricingModel2Id,
+          // Use the same slug as the first org's usage meter
+          slug: usageMeter.slug ?? undefined,
+        })
+      ).unwrap()
 
       const price2 = await setupPrice({
         name: 'Org2 Usage Price',
@@ -411,14 +415,16 @@ describe('bulkInsertUsageEventsTransaction', () => {
         })
       ).unwrap()
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: org2.id,
-        name: 'Org2 Usage Meter For Meter Slug Test',
-        livemode: true,
-        pricingModelId: pricingModel2Id,
-        // Use the same slug as the first org's usage meter
-        slug: usageMeter.slug ?? undefined,
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: org2.id,
+          name: 'Org2 Usage Meter For Meter Slug Test',
+          livemode: true,
+          pricingModelId: pricingModel2Id,
+          // Use the same slug as the first org's usage meter
+          slug: usageMeter.slug ?? undefined,
+        })
+      ).unwrap()
 
       // Create a default price for org2's usage meter
       const defaultPrice2 = await setupPrice({
@@ -564,18 +570,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when usageMeterId not in customer pricing model', async () => {
       // Create a usage meter in a different pricing model
-      const otherOrg = await adminTransaction(
-        async ({ transaction }) => setupOrg()
-      )
-      const otherUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
+      const otherOrg = (
+        await adminTransaction(async ({ transaction }) => setupOrg())
+      ).unwrap()
+      const otherUsageMeter = (
+        await adminTransaction(async ({ transaction }) =>
           setupUsageMeter({
             organizationId: otherOrg.organization.id,
             name: 'Other Usage Meter',
             livemode: true,
             pricingModelId: otherOrg.pricingModel.id,
           })
-      )
+        )
+      ).unwrap()
 
       await expect(
         adminTransaction(async ({ transaction }) =>
@@ -601,12 +608,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when usageMeterId is used without explicit priceId and meter has no default price', async () => {
       // Create a usage meter WITHOUT a default price
-      const meterWithNoDefaultPrice = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Meter Without Default Price',
-        livemode: true,
-        pricingModelId,
-      })
+      const meterWithNoDefaultPrice = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Meter Without Default Price',
+          livemode: true,
+          pricingModelId,
+        })
+      ).unwrap()
 
       // Create a non-default price for this meter (so it's valid but not default)
       const nonDefaultPrice = await setupPrice({
@@ -647,13 +656,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when usageMeterSlug is used without explicit priceId and meter has no default price', async () => {
       // Create a usage meter WITHOUT a default price
-      const meterWithNoDefaultPriceSlug = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Meter Without Default Price For Slug Test',
-        livemode: true,
-        pricingModelId,
-        slug: 'meter-no-default-slug',
-      })
+      const meterWithNoDefaultPriceSlug = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Meter Without Default Price For Slug Test',
+          livemode: true,
+          pricingModelId,
+          slug: 'meter-no-default-slug',
+        })
+      ).unwrap()
 
       // Create a non-default price for this meter (so it's valid but not default)
       await setupPrice({
@@ -694,18 +705,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when priceId not in customer pricing model', async () => {
       // Create a usage price in a different pricing model (different org)
-      const otherOrg = await adminTransaction(
-        async ({ transaction }) => setupOrg()
-      )
-      const otherUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
+      const otherOrg = (
+        await adminTransaction(async ({ transaction }) => setupOrg())
+      ).unwrap()
+      const otherUsageMeter = (
+        await adminTransaction(async ({ transaction }) =>
           setupUsageMeter({
             organizationId: otherOrg.organization.id,
             name: 'Other Usage Meter',
             livemode: true,
             pricingModelId: otherOrg.pricingModel.id,
           })
-      )
+        )
+      ).unwrap()
       const otherPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
@@ -746,8 +758,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should throw error when CountDistinctProperties meter is used with subscription missing billing period', async () => {
-      const countDistinctMeter = await adminTransaction(
-        async ({ transaction }) =>
+      const countDistinctMeter = (
+        await adminTransaction(async ({ transaction }) =>
           setupUsageMeter({
             organizationId: organization.id,
             name: 'Count Distinct Meter',
@@ -756,7 +768,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             aggregationType:
               UsageMeterAggregationType.CountDistinctProperties,
           })
-      )
+        )
+      ).unwrap()
 
       // Default price must exist for meter-based events (required by system invariant),
       // even though this test expects an error before price resolution is reached
@@ -825,8 +838,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should throw error when CountDistinctProperties meter is used with empty properties', async () => {
-      const countDistinctMeter = await adminTransaction(
-        async ({ transaction }) =>
+      const countDistinctMeter = (
+        await adminTransaction(async ({ transaction }) =>
           setupUsageMeter({
             organizationId: organization.id,
             name: 'Count Distinct Meter Empty Props',
@@ -835,7 +848,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             aggregationType:
               UsageMeterAggregationType.CountDistinctProperties,
           })
-      )
+        )
+      ).unwrap()
 
       // Default price must exist for meter-based events (required by system invariant),
       // even though this test expects an error before price resolution is reached
@@ -1417,15 +1431,16 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      const customUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
+      const customUsageMeter = (
+        await adminTransaction(async ({ transaction }) =>
           setupUsageMeter({
             organizationId: organization.id,
             name: 'Custom Usage Meter',
             livemode: false,
             pricingModelId: customPricingModel.id,
           })
-      )
+        )
+      ).unwrap()
 
       const customPrice = await adminTransaction(
         async ({ transaction }) =>
@@ -1606,15 +1621,16 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      const explicitUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
+      const explicitUsageMeter = (
+        await adminTransaction(async ({ transaction }) =>
           setupUsageMeter({
             organizationId: organization.id,
             name: 'Explicit Usage Meter',
             livemode: false,
             pricingModelId: explicitPricingModel.id,
           })
-      )
+        )
+      ).unwrap()
 
       const explicitPrice = await adminTransaction(
         async ({ transaction }) =>
@@ -1803,12 +1819,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Shared Usage Meter',
-        livemode: true,
-        pricingModelId: pricingModel.id,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Shared Usage Meter',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
 
       const price = await setupPrice({
         name: 'Shared Usage Price',
@@ -1915,12 +1933,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const { organization } = orgSetup
 
       // Use the default pricing model from setupOrg as the first pricing model
-      const defaultUsageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Default Usage Meter',
-        livemode: true,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
+      const defaultUsageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Default Usage Meter',
+          livemode: true,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+      ).unwrap()
 
       const defaultPrice = await setupPrice({
         name: 'Default Usage Price',
@@ -1952,12 +1972,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
             })
         )
 
-        const usageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          name: `Usage Meter ${i + 1}`,
-          livemode: true,
-          pricingModelId: pricingModel.id,
-        })
+        const usageMeter = (
+          await setupUsageMeter({
+            organizationId: organization.id,
+            name: `Usage Meter ${i + 1}`,
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          })
+        ).unwrap()
 
         const price = await setupPrice({
           name: `Usage Price ${i + 1}`,
@@ -2103,12 +2125,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
       })
 
       // Create a usage meter and usage price
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId: pricingModel.id,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter',
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
 
       const usagePrice = await setupPrice({
         name: 'Usage Price',
@@ -2305,12 +2329,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
   describe('resolvePriceSlugs', () => {
     it('should resolve price slugs to IDs using composite customerId:slug keys', async () => {
       const orgSetup = (await setupOrg()).unwrap()
-      const usageMeter = await setupUsageMeter({
-        organizationId: orgSetup.organization.id,
-        name: 'Test Meter',
-        livemode: true,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: orgSetup.organization.id,
+          name: 'Test Meter',
+          livemode: true,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+      ).unwrap()
 
       const price = await setupPrice({
         name: 'Test Price',
@@ -2545,13 +2571,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
   describe('resolveUsageMeterSlugs', () => {
     it('should resolve usage meter slugs to IDs using composite customerId:slug keys', async () => {
       const orgSetup = (await setupOrg()).unwrap()
-      const usageMeter = await setupUsageMeter({
-        organizationId: orgSetup.organization.id,
-        name: 'Test Meter',
-        livemode: true,
-        pricingModelId: orgSetup.pricingModel.id,
-        slug: 'test-meter-slug',
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: orgSetup.organization.id,
+          name: 'Test Meter',
+          livemode: true,
+          pricingModelId: orgSetup.pricingModel.id,
+          slug: 'test-meter-slug',
+        })
+      ).unwrap()
 
       const customer = (
         await setupCustomer({
@@ -2609,21 +2637,25 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const orgSetup1 = (await setupOrg()).unwrap()
       const orgSetup2 = (await setupOrg()).unwrap()
 
-      const usageMeter1 = await setupUsageMeter({
-        organizationId: orgSetup1.organization.id,
-        name: 'Meter 1',
-        livemode: true,
-        pricingModelId: orgSetup1.pricingModel.id,
-        slug: 'meter-1-slug',
-      })
+      const usageMeter1 = (
+        await setupUsageMeter({
+          organizationId: orgSetup1.organization.id,
+          name: 'Meter 1',
+          livemode: true,
+          pricingModelId: orgSetup1.pricingModel.id,
+          slug: 'meter-1-slug',
+        })
+      ).unwrap()
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: orgSetup2.organization.id,
-        name: 'Meter 2',
-        livemode: true,
-        pricingModelId: orgSetup2.pricingModel.id,
-        slug: 'meter-2-slug',
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: orgSetup2.organization.id,
+          name: 'Meter 2',
+          livemode: true,
+          pricingModelId: orgSetup2.pricingModel.id,
+          slug: 'meter-2-slug',
+        })
+      ).unwrap()
 
       const customer1 = (
         await setupCustomer({

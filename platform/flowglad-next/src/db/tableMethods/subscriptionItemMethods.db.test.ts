@@ -1084,10 +1084,12 @@ describe('subscriptionItemMethods', async () => {
           )
 
         // Create second usage meter and its ledger entries within the transaction
-        const secondUsageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          name: 'Second Usage Meter',
-        })
+        const secondUsageMeter = (
+          await setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Second Usage Meter',
+          })
+        ).unwrap()
 
         const secondUsageEvent = await setupUsageEvent({
           subscriptionId: scenario1.subscription.id,
@@ -1101,29 +1103,35 @@ describe('subscriptionItemMethods', async () => {
           customerId: customer.id,
         })
 
-        const ledgerTransaction = await setupLedgerTransaction({
-          organizationId: organization.id,
-          subscriptionId: scenario1.subscription.id,
-          type: LedgerTransactionType.UsageEventProcessed,
-        })
+        const ledgerTransaction = (
+          await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: scenario1.subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
+        ).unwrap()
 
-        const secondLedgerAccount = await setupLedgerAccount({
-          organizationId: organization.id,
-          subscriptionId: scenario1.subscription.id,
-          usageMeterId: secondUsageMeter.id,
-          livemode: true,
-        })
+        const secondLedgerAccount = (
+          await setupLedgerAccount({
+            organizationId: organization.id,
+            subscriptionId: scenario1.subscription.id,
+            usageMeterId: secondUsageMeter.id,
+            livemode: true,
+          })
+        ).unwrap()
 
-        const secondLedgerEntry = await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: scenario1.subscription.id,
-          usageMeterId: secondUsageMeter.id,
-          amount: 200,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: secondUsageEvent.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: secondLedgerAccount.id,
-        })
+        const secondLedgerEntry = (
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: scenario1.subscription.id,
+            usageMeterId: secondUsageMeter.id,
+            amount: 200,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: secondUsageEvent.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: secondLedgerAccount.id,
+          })
+        ).unwrap()
 
         const richSubscriptions =
           await selectRichSubscriptionsAndActiveItems(

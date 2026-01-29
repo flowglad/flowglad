@@ -808,11 +808,13 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
     describe('Credits for Non-Renewing Subscriptions', () => {
       it('should grant initial credits for credit trial subscriptions', async () => {
         // Set up usage meter and credit grant feature
-        const usageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Credit Trial Meter',
-        })
+        const usageMeter = (
+          await setupUsageMeter({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Credit Trial Meter',
+          })
+        ).unwrap()
 
         const creditGrantFeature = await setupUsageCreditGrantFeature(
           {
@@ -895,11 +897,13 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
       it('should not grant recurring credits for non-renewing subscriptions', async () => {
         // Set up usage meter and recurring credit grant feature
-        const usageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Recurring Credit Meter',
-        })
+        const usageMeter = (
+          await setupUsageMeter({
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            name: 'Recurring Credit Meter',
+          })
+        ).unwrap()
 
         const recurringFeature = await setupUsageCreditGrantFeature({
           organizationId: organization.id,

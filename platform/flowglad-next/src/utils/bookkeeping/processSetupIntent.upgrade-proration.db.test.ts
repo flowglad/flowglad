@@ -199,13 +199,15 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       // Create purchase
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-        priceId: paidPrice.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+          priceId: paidPrice.id,
+        })
+      ).unwrap()
     })
 
     it('should start new billing cycle from upgrade date', async () => {
@@ -431,13 +433,15 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       // Create purchase
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-        priceId: paidPrice.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+          priceId: paidPrice.id,
+        })
+      ).unwrap()
     })
 
     it('should maintain original billing cycle anchor date', async () => {
@@ -567,13 +571,15 @@ describe('Subscription Upgrade with Proration', () => {
         })
       ).unwrap()
 
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-        priceId: paidPrice.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+          priceId: paidPrice.id,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -686,13 +692,15 @@ describe('Subscription Upgrade with Proration', () => {
         })
       ).unwrap()
 
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-        priceId: paidPrice.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+          priceId: paidPrice.id,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -793,13 +801,15 @@ describe('Subscription Upgrade with Proration', () => {
         })
       ).unwrap()
 
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-        priceId: paidPrice.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+          priceId: paidPrice.id,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -900,13 +910,15 @@ describe('Subscription Upgrade with Proration', () => {
         })
       ).unwrap()
 
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-        priceId: paidPrice.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+          priceId: paidPrice.id,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -1018,13 +1030,15 @@ describe('Subscription Upgrade with Proration', () => {
         })
       ).unwrap()
 
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-        priceId: paidPrice.id,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+          priceId: paidPrice.id,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,

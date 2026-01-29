@@ -129,11 +129,13 @@ describe('subscriptionItemFeatureMethods', () => {
     ] = featureData
 
     // Setup usageMeter for UsageCreditGrant
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Meter',
-      pricingModelId: pricingModel.id,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Meter',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
   })
 
   describe('selectSubscriptionItemFeatureById', () => {

@@ -56,17 +56,21 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
     }
     apiKeyToken = userApiKey.apiKey.token
 
-    usageMeter = await setupUsageMeter({
-      organizationId: orgData.organization.id,
-      name: 'Test Usage Meter',
-      pricingModelId: orgData.pricingModel.id,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: orgData.organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: orgData.pricingModel.id,
+      })
+    ).unwrap()
 
-    usageMeter2 = await setupUsageMeter({
-      organizationId: orgData.organization.id,
-      name: 'Test Usage Meter 2',
-      pricingModelId: orgData.pricingModel.id,
-    })
+    usageMeter2 = (
+      await setupUsageMeter({
+        organizationId: orgData.organization.id,
+        name: 'Test Usage Meter 2',
+        pricingModelId: orgData.pricingModel.id,
+      })
+    ).unwrap()
 
     price = await setupPrice({
       name: 'Test Usage Price',

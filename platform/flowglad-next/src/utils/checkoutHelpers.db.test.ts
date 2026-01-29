@@ -71,12 +71,14 @@ describe('checkoutHelpers', () => {
       })
       let usageMeterId: string | undefined
       if (type === PriceType.Usage) {
-        const meter = await setupUsageMeter({
-          organizationId: organization.id,
-          name: 'Meter',
-          livemode: true,
-          pricingModelId: product.pricingModelId,
-        })
+        const meter = (
+          await setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Meter',
+            livemode: true,
+            pricingModelId: product.pricingModelId,
+          })
+        ).unwrap()
         usageMeterId = meter.id
       }
 
@@ -329,18 +331,22 @@ describe('checkoutHelpers', () => {
 
     it('includes latest feeCalculation for checkout', async () => {
       const { organization, price, session } = await makeSession()
-      const first = await setupFeeCalculation({
-        checkoutSessionId: session.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
-      const second = await setupFeeCalculation({
-        checkoutSessionId: session.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      const first = (
+        await setupFeeCalculation({
+          checkoutSessionId: session.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
+      const second = (
+        await setupFeeCalculation({
+          checkoutSessionId: session.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const result = await checkoutInfoForCheckoutSession(
           session.id,

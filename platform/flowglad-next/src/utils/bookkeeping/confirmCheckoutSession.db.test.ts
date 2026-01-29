@@ -101,13 +101,15 @@ describe('confirmCheckoutSessionTransaction', () => {
 
     // Only create a purchase if the price is not free
     if (price.unitPrice > 0) {
-      purchase = await setupPurchase({
-        customerId: customer.id,
-        organizationId: organization.id,
-        priceId: price.id,
-        status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+      purchase = (
+        await setupPurchase({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          status: PurchaseStatus.Pending,
+          livemode: true,
+        })
+      ).unwrap()
     }
 
     feeCalculation = await adminTransaction(

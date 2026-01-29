@@ -174,13 +174,15 @@ describe('Process setup intent', async () => {
         livemode: true,
       })
     ).unwrap()
-    purchase = await setupPurchase({
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: price.id,
-      status: PurchaseStatus.Pending,
-      livemode: true,
-    })
+    purchase = (
+      await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        status: PurchaseStatus.Pending,
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,

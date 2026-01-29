@@ -377,11 +377,13 @@ describe('createCheckoutSessionTransaction', () => {
         pricingModelId: pricingModel.id,
       })
     ).unwrap()
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Usage Meter',
-      pricingModelId: pricingModel.id,
-    })
+    usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Usage Meter',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     // Create a non-default product for testing
     const nonDefaultProduct = await setupProduct({

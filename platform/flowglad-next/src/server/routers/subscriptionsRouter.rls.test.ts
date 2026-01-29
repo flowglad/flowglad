@@ -204,12 +204,14 @@ describe('validateAndResolvePriceForSubscription', () => {
 
   it('throws BAD_REQUEST when price is a usage price (via priceId)', async () => {
     // Setup usage meter and usage price
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      livemode: true,
-      pricingModelId: product.pricingModelId,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+        pricingModelId: product.pricingModelId,
+      })
+    ).unwrap()
 
     const usagePrice = await setupPrice({
       name: 'Usage Price',

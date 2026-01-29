@@ -199,13 +199,15 @@ describe('Subscription Billing Period Transition', async () => {
 
   // Test 3: When payment totals fully cover the billing period, mark it as Completed
   it('should mark the current billing period as Completed if fully paid', async () => {
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      status: InvoiceStatus.Paid,
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: price.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        status: InvoiceStatus.Paid,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+      })
+    ).unwrap()
     await setupPayment({
       billingPeriodId: billingPeriod.id,
       organizationId: organization.id,
@@ -431,13 +433,15 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 12: Edge-case when billing period payment totals exactly match billing item total.
   it('should mark the billing period as Completed when total due exactly equals total paid', async () => {
     // Simulate full payment by creating a paid invoice
-    const invoice = await setupInvoice({
-      billingPeriodId: billingPeriod.id,
-      status: InvoiceStatus.Paid,
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: price.id,
-    })
+    const invoice = (
+      await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        status: InvoiceStatus.Paid,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+      })
+    ).unwrap()
 
     await setupPayment({
       billingPeriodId: billingPeriod.id,
@@ -824,18 +828,22 @@ describe('Ledger Interactions', () => {
     subscription = result.subscription as Subscription.StandardRecord
     usageMeter = result.usageMeter
     subscriptionItem = result.subscriptionItem
-    otherUsageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Non-Entitled Test Meter',
-    })
+    otherUsageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Non-Entitled Test Meter',
+      })
+    ).unwrap()
     ledgerAccount = result.ledgerAccount
-    otherLedgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: otherUsageMeter.id,
-      livemode: true,
-    })
+    otherLedgerAccount = (
+      await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: otherUsageMeter.id,
+        livemode: true,
+      })
+    ).unwrap()
     pastBillingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
       startDate: thirtyDaysAgo,
@@ -1482,20 +1490,24 @@ describe('Ledger Interactions', () => {
 
   describe('Credit Expiration Scenarios', () => {
     it('should expire a usage credit that has a balance and create a credit_grant_expired ledger entry', async () => {
-      const expiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 500,
-        usageMeterId: usageMeter.id,
-        expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
-      const ledgerTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const expiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 500,
+          usageMeterId: usageMeter.id,
+          expiresAt: pastBillingPeriod.endDate,
+          livemode: true,
+        })
+      ).unwrap()
+      const ledgerTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       const ledgerEntries = await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1551,21 +1563,25 @@ describe('Ledger Interactions', () => {
     })
 
     it('should expire a usage credit that has a partial balance and create a credit_grant_expired ledger entry for the remaining balance', async () => {
-      const expiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 1000,
-        usageMeterId: usageMeter.id,
-        expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
+      const expiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 1000,
+          usageMeterId: usageMeter.id,
+          expiresAt: pastBillingPeriod.endDate,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const grantTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const grantTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1592,17 +1608,21 @@ describe('Ledger Interactions', () => {
         customerId: customer.id,
         livemode: true,
       })
-      const creditApplication = await setupUsageCreditApplication({
-        organizationId: organization.id,
-        usageCreditId: expiringCredit.id,
-        amountApplied: 400,
-        usageEventId: usageEvent.id,
-      })
-      const usageTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+      const creditApplication = (
+        await setupUsageCreditApplication({
+          organizationId: organization.id,
+          usageCreditId: expiringCredit.id,
+          amountApplied: 400,
+          usageEventId: usageEvent.id,
+        })
+      ).unwrap()
+      const usageTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1661,21 +1681,25 @@ describe('Ledger Interactions', () => {
     })
 
     it('should not create a credit_grant_expired ledger entry for a usage credit with a zero balance', async () => {
-      const expiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 1000,
-        usageMeterId: usageMeter.id,
-        expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
+      const expiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 1000,
+          usageMeterId: usageMeter.id,
+          expiresAt: pastBillingPeriod.endDate,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const grantTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const grantTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1702,17 +1726,21 @@ describe('Ledger Interactions', () => {
         customerId: customer.id,
         livemode: false,
       })
-      const creditApplication = await setupUsageCreditApplication({
-        organizationId: organization.id,
-        usageCreditId: expiringCredit.id,
-        amountApplied: 1000,
-        usageEventId: usageEvent.id,
-      })
-      const usageTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+      const creditApplication = (
+        await setupUsageCreditApplication({
+          organizationId: organization.id,
+          usageCreditId: expiringCredit.id,
+          amountApplied: 1000,
+          usageEventId: usageEvent.id,
+        })
+      ).unwrap()
+      const usageTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1770,21 +1798,25 @@ describe('Ledger Interactions', () => {
     })
 
     it('should not expire a usage credit that has a null expiresAt', async () => {
-      const nonExpiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 700,
-        usageMeterId: usageMeter.id,
-        expiresAt: null, // This credit should not expire
-        livemode: false,
-      })
+      const nonExpiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 700,
+          usageMeterId: usageMeter.id,
+          expiresAt: null, // This credit should not expire
+          livemode: false,
+        })
+      ).unwrap()
 
-      const ledgerTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const ledgerTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1839,21 +1871,25 @@ describe('Ledger Interactions', () => {
     })
 
     it('should not expire credits with a future expiration date', async () => {
-      const futureCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 10000,
-        usageMeterId: usageMeter.id,
-        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-        livemode: false,
-      })
+      const futureCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 10000,
+          usageMeterId: usageMeter.id,
+          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const ledgerTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const ledgerTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1908,20 +1944,24 @@ describe('Ledger Interactions', () => {
 
     it('should correctly handle a mix of expiring and non-expiring credits', async () => {
       // Expiring credit with balance
-      const expiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 100,
-        usageMeterId: usageMeter.id,
-        expiresAt: pastBillingPeriod.endDate,
-        livemode: false,
-      })
-      const ledgerTx1 = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const expiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 100,
+          usageMeterId: usageMeter.id,
+          expiresAt: pastBillingPeriod.endDate,
+          livemode: false,
+        })
+      ).unwrap()
+      const ledgerTx1 = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1938,20 +1978,24 @@ describe('Ledger Interactions', () => {
       })
 
       // Evergreen credit with balance
-      const evergreenCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 200,
-        usageMeterId: usageMeter.id,
-        expiresAt: null,
-        livemode: false,
-      })
-      const ledgerTx2 = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const evergreenCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 200,
+          usageMeterId: usageMeter.id,
+          expiresAt: null,
+          livemode: false,
+        })
+      ).unwrap()
+      const ledgerTx2 = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1968,20 +2012,24 @@ describe('Ledger Interactions', () => {
       })
 
       // Future-expiring credit with balance
-      const futureCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: 300,
-        usageMeterId: usageMeter.id,
-        expiresAt: pastBillingPeriod.endDate + 10000, // Expires after transition
-        livemode: false,
-      })
-      const ledgerTx3 = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const futureCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: 300,
+          usageMeterId: usageMeter.id,
+          expiresAt: pastBillingPeriod.endDate + 10000, // Expires after transition
+          livemode: false,
+        })
+      ).unwrap()
+      const ledgerTx3 = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2064,20 +2112,24 @@ describe('Ledger Interactions', () => {
       // Setup:
       // 1. An expiring credit
       const expiringAmount = 150
-      const expiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: expiringAmount,
-        usageMeterId: usageMeter.id,
-        expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
-      const expiringTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const expiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: expiringAmount,
+          usageMeterId: usageMeter.id,
+          expiresAt: pastBillingPeriod.endDate,
+          livemode: true,
+        })
+      ).unwrap()
+      const expiringTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2184,20 +2236,24 @@ describe('Ledger Interactions', () => {
       // Setup:
       // 1. An expiring credit
       const expiringAmount = 100
-      const expiringCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: expiringAmount,
-        usageMeterId: usageMeter.id,
-        expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
-      const expiringTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const expiringCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: expiringAmount,
+          usageMeterId: usageMeter.id,
+          expiresAt: pastBillingPeriod.endDate,
+          livemode: true,
+        })
+      ).unwrap()
+      const expiringTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2215,20 +2271,24 @@ describe('Ledger Interactions', () => {
 
       // 2. A non-expiring (evergreen) credit
       const evergreenAmount = 200
-      const evergreenCredit = await setupUsageCredit({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        creditType: UsageCreditType.Grant,
-        issuedAmount: evergreenAmount,
-        usageMeterId: usageMeter.id,
-        expiresAt: null,
-        livemode: true,
-      })
-      const evergreenTx = await setupLedgerTransaction({
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+      const evergreenCredit = (
+        await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: evergreenAmount,
+          usageMeterId: usageMeter.id,
+          expiresAt: null,
+          livemode: true,
+        })
+      ).unwrap()
+      const evergreenTx = (
+        await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.AdminCreditAdjusted,
+        })
+      ).unwrap()
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,

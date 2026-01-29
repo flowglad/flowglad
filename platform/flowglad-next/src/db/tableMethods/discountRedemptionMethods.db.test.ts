@@ -62,12 +62,14 @@ describe('Discount Redemption Methods', () => {
       })
     ).unwrap()
 
-    purchase = await setupPurchase({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      livemode: true,
-    })
+    purchase = (
+      await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     discount = await setupDiscount({
       organizationId: organization.id,

@@ -73,12 +73,14 @@ describe('usageEventHelpers', () => {
 
       const defaultPricingModelForOrg = orgSetup.pricingModel
       const defaultProductForOrg = orgSetup.product
-      usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId: defaultPricingModelForOrg.id,
-      })
+      usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter',
+          livemode: true,
+          pricingModelId: defaultPricingModelForOrg.id,
+        })
+      ).unwrap()
       usagePrice = await setupPrice({
         name: 'Test Usage Price',
         type: PriceType.Usage,
@@ -325,12 +327,14 @@ describe('usageEventHelpers', () => {
         startDate: now,
         endDate: endDate,
       })
-      await setupLedgerAccount({
-        subscriptionId: sub2.id,
-        usageMeterId: usagePrice.usageMeterId!,
-        livemode: true,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupLedgerAccount({
+          subscriptionId: sub2.id,
+          usageMeterId: usagePrice.usageMeterId!,
+          livemode: true,
+          organizationId: organization.id,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         return ingestAndProcessUsageEvent(
           {
@@ -578,12 +582,14 @@ describe('usageEventHelpers', () => {
         paymentMethodId: paymentMethod.id,
         priceId: usagePrice.id,
       })
-      await setupLedgerAccount({
-        subscriptionId: testmodeSubscription.id,
-        usageMeterId: usagePrice.usageMeterId!,
-        livemode: false,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupLedgerAccount({
+          subscriptionId: testmodeSubscription.id,
+          usageMeterId: usagePrice.usageMeterId!,
+          livemode: false,
+          organizationId: organization.id,
+        })
+      ).unwrap()
       await setupBillingPeriod({
         subscriptionId: testmodeSubscription.id,
         startDate: Date.now(),
@@ -646,13 +652,15 @@ describe('usageEventHelpers', () => {
 
     it('should handle usage meter of type "count_distinct_properties" correctly', async () => {
       // Setup a usage meter with count_distinct_properties aggregation
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Distinct Properties Usage Meter',
-        livemode: true,
-        aggregationType:
-          UsageMeterAggregationType.CountDistinctProperties,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Distinct Properties Usage Meter',
+          livemode: true,
+          aggregationType:
+            UsageMeterAggregationType.CountDistinctProperties,
+        })
+      ).unwrap()
 
       // Setup price with this usage meter
       const distinctPrice = await setupPrice({
@@ -686,12 +694,14 @@ describe('usageEventHelpers', () => {
       })
 
       // Setup ledger account
-      await setupLedgerAccount({
-        subscriptionId: distinctSubscription.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-        organizationId: organization.id,
-      })
+      ;(
+        await setupLedgerAccount({
+          subscriptionId: distinctSubscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       const testProperties = {
         user_id: 'user_123',
@@ -891,12 +901,14 @@ describe('usageEventHelpers', () => {
       const { otherOrgUsageMeter, otherOrgPrice } =
         await adminTransaction(async ({ transaction }) => {
           const orgSetup = (await setupOrg()).unwrap()
-          const testUsageMeter = await setupUsageMeter({
-            organizationId: orgSetup.organization.id,
-            name: 'Other Org Usage Meter',
-            livemode: true,
-            pricingModelId: orgSetup.pricingModel.id,
-          })
+          const testUsageMeter = (
+            await setupUsageMeter({
+              organizationId: orgSetup.organization.id,
+              name: 'Other Org Usage Meter',
+              livemode: true,
+              pricingModelId: orgSetup.pricingModel.id,
+            })
+          ).unwrap()
           const testPrice = await setupPrice({
             name: 'Other Org Usage Price',
             type: PriceType.Usage,
@@ -947,12 +959,14 @@ describe('usageEventHelpers', () => {
       const otherOrgPrice = await adminTransaction(
         async ({ transaction }) => {
           const otherOrgSetup = (await setupOrg()).unwrap()
-          const otherUsageMeter = await setupUsageMeter({
-            organizationId: otherOrgSetup.organization.id,
-            name: 'Other Org Usage Meter',
-            livemode: true,
-            pricingModelId: otherOrgSetup.pricingModel.id,
-          })
+          const otherUsageMeter = (
+            await setupUsageMeter({
+              organizationId: otherOrgSetup.organization.id,
+              name: 'Other Org Usage Meter',
+              livemode: true,
+              pricingModelId: otherOrgSetup.pricingModel.id,
+            })
+          ).unwrap()
           const otherPrice = await setupPrice({
             name: 'Other Org Usage Price',
             type: PriceType.Usage,
@@ -1334,12 +1348,14 @@ describe('usageEventHelpers', () => {
               customerId: testCustomer.id,
             })
           ).unwrap()
-          const testUsageMeter = await setupUsageMeter({
-            organizationId: orgSetup.organization.id,
-            name: 'Test Usage Meter with Slug',
-            livemode: true,
-            pricingModelId: orgSetup.pricingModel.id,
-          })
+          const testUsageMeter = (
+            await setupUsageMeter({
+              organizationId: orgSetup.organization.id,
+              name: 'Test Usage Meter with Slug',
+              livemode: true,
+              pricingModelId: orgSetup.pricingModel.id,
+            })
+          ).unwrap()
           const testPrice = await setupPrice({
             name: 'Test Usage Price with Slug',
             type: PriceType.Usage,
@@ -1428,12 +1444,14 @@ describe('usageEventHelpers', () => {
           active: true,
         })
 
-        const secondUsageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          name: 'Second Usage Meter',
-          livemode: false,
-          pricingModelId: secondPricingModel.id,
-        })
+        const secondUsageMeter = (
+          await setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Second Usage Meter',
+            livemode: false,
+            pricingModelId: secondPricingModel.id,
+          })
+        ).unwrap()
 
         // Create a price with a slug in the second pricing model
         await setupPrice({
@@ -1559,13 +1577,15 @@ describe('usageEventHelpers', () => {
               customerId: testCustomer.id,
             })
           ).unwrap()
-          const testUsageMeter = await setupUsageMeter({
-            organizationId: orgSetup.organization.id,
-            name: 'Test Usage Meter with Slug',
-            livemode: true,
-            pricingModelId: orgSetup.pricingModel.id,
-            slug: 'test-usage-meter-slug',
-          })
+          const testUsageMeter = (
+            await setupUsageMeter({
+              organizationId: orgSetup.organization.id,
+              name: 'Test Usage Meter with Slug',
+              livemode: true,
+              pricingModelId: orgSetup.pricingModel.id,
+              slug: 'test-usage-meter-slug',
+            })
+          ).unwrap()
           // Create a default price for the usage meter
           const testDefaultPrice = await setupPrice({
             name: 'Test Default Price',
@@ -1639,12 +1659,14 @@ describe('usageEventHelpers', () => {
       const otherOrgUsageMeter = await adminTransaction(
         async ({ transaction }) => {
           const orgSetup = (await setupOrg()).unwrap()
-          const testUsageMeter = await setupUsageMeter({
-            organizationId: orgSetup.organization.id,
-            name: 'Other Org Usage Meter',
-            livemode: true,
-            pricingModelId: orgSetup.pricingModel.id,
-          })
+          const testUsageMeter = (
+            await setupUsageMeter({
+              organizationId: orgSetup.organization.id,
+              name: 'Other Org Usage Meter',
+              livemode: true,
+              pricingModelId: orgSetup.pricingModel.id,
+            })
+          ).unwrap()
           return testUsageMeter
         }
       )
@@ -1708,14 +1730,16 @@ describe('usageEventHelpers', () => {
     pricingModelId: string
     productId: string
   }) {
-    const distinctMeter = await setupUsageMeter({
-      organizationId,
-      name: 'Distinct Properties Meter',
-      livemode: true,
-      pricingModelId,
-      aggregationType:
-        UsageMeterAggregationType.CountDistinctProperties,
-    })
+    const distinctMeter = (
+      await setupUsageMeter({
+        organizationId,
+        name: 'Distinct Properties Meter',
+        livemode: true,
+        pricingModelId,
+        aggregationType:
+          UsageMeterAggregationType.CountDistinctProperties,
+      })
+    ).unwrap()
 
     const distinctPrice = await setupPrice({
       name: 'Distinct Price',

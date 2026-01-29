@@ -106,27 +106,33 @@ describe('selectInvoicesTableRowData', () => {
     customer3Id = customer3.id
 
     // Set up invoices
-    const invoice1 = await setupInvoice({
-      customerId: customer1Id,
-      organizationId: org1Id,
-      status: InvoiceStatus.Open,
-      priceId,
-      type: InvoiceType.Purchase,
-    })
-    const invoice2 = await setupInvoice({
-      customerId: customer2Id,
-      organizationId: org1Id,
-      status: InvoiceStatus.Paid,
-      priceId,
-      type: InvoiceType.Purchase,
-    })
-    const invoice3 = await setupInvoice({
-      customerId: customer3Id,
-      organizationId: org1Id,
-      status: InvoiceStatus.Open,
-      priceId,
-      type: InvoiceType.Purchase,
-    })
+    const invoice1 = (
+      await setupInvoice({
+        customerId: customer1Id,
+        organizationId: org1Id,
+        status: InvoiceStatus.Open,
+        priceId,
+        type: InvoiceType.Purchase,
+      })
+    ).unwrap()
+    const invoice2 = (
+      await setupInvoice({
+        customerId: customer2Id,
+        organizationId: org1Id,
+        status: InvoiceStatus.Paid,
+        priceId,
+        type: InvoiceType.Purchase,
+      })
+    ).unwrap()
+    const invoice3 = (
+      await setupInvoice({
+        customerId: customer3Id,
+        organizationId: org1Id,
+        status: InvoiceStatus.Open,
+        priceId,
+        type: InvoiceType.Purchase,
+      })
+    ).unwrap()
     invoice1Id = invoice1.id
     invoice2Id = invoice2.id
     invoice3Id = invoice3.id
@@ -164,22 +170,32 @@ describe('selectInvoicesTableRowData', () => {
     ).unwrap()
     customerOtherOrgId = customerOtherOrg.id
 
-    const invoiceOtherOrg = await setupInvoice({
-      customerId: customerOtherOrgId,
-      organizationId: org2Id,
-      status: InvoiceStatus.Open,
-      priceId: priceOtherOrg.id,
-      type: InvoiceType.Purchase,
-    })
+    const invoiceOtherOrg = (
+      await setupInvoice({
+        customerId: customerOtherOrgId,
+        organizationId: org2Id,
+        status: InvoiceStatus.Open,
+        priceId: priceOtherOrg.id,
+        type: InvoiceType.Purchase,
+      })
+    ).unwrap()
 
     // Set up line items
-    await setupInvoiceLineItem({ invoiceId: invoice1Id, priceId })
-    await setupInvoiceLineItem({ invoiceId: invoice1Id, priceId })
-    await setupInvoiceLineItem({ invoiceId: invoice2Id, priceId })
-    await setupInvoiceLineItem({
-      invoiceId: invoiceOtherOrg.id,
-      priceId: priceOtherOrg.id,
-    })
+    ;(
+      await setupInvoiceLineItem({ invoiceId: invoice1Id, priceId })
+    ).unwrap()
+    ;(
+      await setupInvoiceLineItem({ invoiceId: invoice1Id, priceId })
+    ).unwrap()
+    ;(
+      await setupInvoiceLineItem({ invoiceId: invoice2Id, priceId })
+    ).unwrap()
+    ;(
+      await setupInvoiceLineItem({
+        invoiceId: invoiceOtherOrg.id,
+        priceId: priceOtherOrg.id,
+      })
+    ).unwrap()
   })
 
   it('should return correct pagination metadata when there are more results', async () => {
@@ -619,12 +635,14 @@ describe('selectInvoicesTableRowData', () => {
         livemode: true,
       })
 
-      purchase = await setupPurchase({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        livemode: true,
-      })
+      purchase = (
+        await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      ).unwrap()
     })
 
     describe('derivePricingModelIdForInvoice', () => {

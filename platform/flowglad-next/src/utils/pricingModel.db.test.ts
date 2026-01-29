@@ -558,21 +558,25 @@ describe('clonePricingModelTransaction', () => {
   describe('Usage Meters Cloning', () => {
     it('should clone usage meters with preserved slugs', async () => {
       // Create usage meters for the source pricing model
-      const usageMeter1 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'API Calls',
-        slug: 'api-calls',
-        livemode: false,
-      })
+      const usageMeter1 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'API Calls',
+          slug: 'api-calls',
+          livemode: false,
+        })
+      ).unwrap()
 
-      const usageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'Storage GB',
-        slug: 'storage-gb',
-        livemode: false,
-      })
+      const usageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'Storage GB',
+          slug: 'storage-gb',
+          livemode: false,
+        })
+      ).unwrap()
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
@@ -660,13 +664,15 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Create a usage meter for the usage credit grant feature
-      const apiRequestsMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'API Requests Meter',
-        slug: 'api-requests-meter',
-        livemode: false,
-      })
+      const apiRequestsMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'API Requests Meter',
+          slug: 'api-requests-meter',
+          livemode: false,
+        })
+      ).unwrap()
 
       const usageFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -754,13 +760,15 @@ describe('clonePricingModelTransaction', () => {
 
     it('should handle features with usage meter dependencies', async () => {
       // Create a usage meter first
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'Data Transfer',
-        slug: 'data-transfer',
-        livemode: false,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'Data Transfer',
+          slug: 'data-transfer',
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create a feature that references the usage meter
       const featureWithMeter = await setupUsageCreditGrantFeature({
@@ -999,13 +1007,15 @@ describe('clonePricingModelTransaction', () => {
       // Setup: Create a comprehensive pricing model with all components
 
       // 1. Create usage meters
-      const meter1 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'API Requests',
-        slug: 'api-requests-meter',
-        livemode: false,
-      })
+      const meter1 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'API Requests',
+          slug: 'api-requests-meter',
+          livemode: false,
+        })
+      ).unwrap()
 
       // 2. Create additional features
       const additionalFeature = await setupToggleFeature({
@@ -1153,13 +1163,15 @@ describe('clonePricingModelTransaction', () => {
     it('should inherit livemode from source pricing model when destinationEnvironment is not specified', async () => {
       // sourcePricingModel from beforeEach is testmode - use it to test inheritance
       // Add usage meter to verify inheritance of all artifacts
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'Test Meter',
-        slug: 'test-meter-inherit',
-        livemode: false,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'Test Meter',
+          slug: 'test-meter-inherit',
+          livemode: false,
+        })
+      ).unwrap()
 
       // Clone without specifying destinationEnvironment
       const clonedPricingModel = await adminTransaction(
@@ -1223,13 +1235,15 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Add artifacts to the livemode source pricing model
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: livemodeSource.id,
-        name: 'Test Meter',
-        slug: 'test-meter-2',
-        livemode: true,
-      })
+      const usageMeter = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: livemodeSource.id,
+          name: 'Test Meter',
+          slug: 'test-meter-2',
+          livemode: true,
+        })
+      ).unwrap()
 
       const feature = await setupToggleFeature({
         organizationId: organization.id,
@@ -1336,13 +1350,15 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Add a simple artifact
-      await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: testmodeSource.id,
-        name: 'Test Meter',
-        slug: 'test-meter-4',
-        livemode: false,
-      })
+      ;(
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: testmodeSource.id,
+          name: 'Test Meter',
+          slug: 'test-meter-4',
+          livemode: false,
+        })
+      ).unwrap()
 
       // Clone without specifying destinationEnvironment
       const clonedPricingModel = await adminTransaction(
@@ -1534,21 +1550,25 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Create usage meters
-      const sourceUsageMeter1 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'API Calls Meter',
-        slug: 'api-calls-meter-validation',
-        livemode: false,
-      })
+      const sourceUsageMeter1 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'API Calls Meter',
+          slug: 'api-calls-meter-validation',
+          livemode: false,
+        })
+      ).unwrap()
 
-      const sourceUsageMeter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'Storage Meter',
-        slug: 'storage-meter-validation',
-        livemode: false,
-      })
+      const sourceUsageMeter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'Storage Meter',
+          slug: 'storage-meter-validation',
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create features - one with usage meter reference
       const sourceToggleFeature = await setupToggleFeature({
@@ -1798,21 +1818,25 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Create multiple usage meters
-      const meter1 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'Meter 1',
-        slug: 'meter-1',
-        livemode: false,
-      })
+      const meter1 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'Meter 1',
+          slug: 'meter-1',
+          livemode: false,
+        })
+      ).unwrap()
 
-      const meter2 = await setupUsageMeter({
-        organizationId: organization.id,
-        pricingModelId: sourcePricingModel.id,
-        name: 'Meter 2',
-        slug: 'meter-2',
-        livemode: false,
-      })
+      const meter2 = (
+        await setupUsageMeter({
+          organizationId: organization.id,
+          pricingModelId: sourcePricingModel.id,
+          name: 'Meter 2',
+          slug: 'meter-2',
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create features referencing different meters
       const feature1 = await setupUsageCreditGrantFeature({
@@ -2334,13 +2358,15 @@ describe('createProductTransaction', () => {
 
   it('should throw an error when creating a usage price with featureIds', async () => {
     // Setup: Create a usage meter for the usage price
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: sourcePricingModel.id,
-      name: 'API Calls',
-      slug: 'api-calls',
-      livemode: false,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Calls',
+        slug: 'api-calls',
+        livemode: false,
+      })
+    ).unwrap()
 
     const featureIds = features.map((f) => f.id)
 
@@ -2395,13 +2421,15 @@ describe('createProductTransaction', () => {
     // Setup: Create a usage meter for the usage price
     // Must use livemode: true to match org1ApiKey.livemode, otherwise RLS
     // livemode policy will filter out the usage meter during prices INSERT check
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: sourcePricingModel.id,
-      name: 'API Requests',
-      slug: 'api-requests',
-      livemode: true,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Requests',
+        slug: 'api-requests',
+        livemode: true,
+      })
+    ).unwrap()
 
     // Test: Create a usage price product without featureIds - should succeed
     const result = await authenticatedTransaction(
@@ -2546,13 +2574,15 @@ describe('createProductTransaction', () => {
 
   it('should allow creating a SinglePayment product with usage credit grant features', async () => {
     // Setup: Create a usage meter for the usage credit grant feature
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: sourcePricingModel.id,
-      name: 'API Credits',
-      slug: `api-credits-${core.nanoid()}`,
-      livemode: false,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Credits',
+        slug: `api-credits-${core.nanoid()}`,
+        livemode: false,
+      })
+    ).unwrap()
 
     // Setup: Create a usage credit grant feature
     const usageCreditGrantFeature =
@@ -2847,13 +2877,15 @@ describe('editProductTransaction - Feature Updates', () => {
     })
 
     // Setup: Create a usage meter and usage credit grant feature
-    const usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      pricingModelId: product.pricingModelId,
-      name: 'API Credits Meter',
-      slug: `api-credits-meter-${core.nanoid()}`,
-      livemode: true,
-    })
+    const usageMeter = (
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'API Credits Meter',
+        slug: `api-credits-meter-${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const usageCreditGrantFeature =
       await setupUsageCreditGrantFeature({
