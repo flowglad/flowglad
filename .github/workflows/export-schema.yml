@@ -26,9 +26,18 @@ jobs:
             -b schema-export
           git push origin schema-export --force
 
+      - name: Generate GitHub App token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.SCHEMA_SYNC_APP_ID }}
+          private-key: ${{ secrets.SCHEMA_SYNC_APP_PRIVATE_KEY }}
+          owner: flowglad
+          repositories: flowglad-internal
+
       - name: Notify internal repo
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.INTERNAL_REPO_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
           repository: flowglad/flowglad-internal
           event-type: schema-updated
