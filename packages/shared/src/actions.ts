@@ -1,6 +1,7 @@
 import type { Flowglad } from '@flowglad/node'
 import { type ZodType, z } from 'zod'
 import {
+  FeatureAccessItem,
   FlowgladActionKey,
   HTTPMethod,
   UsageMeterBalance,
@@ -595,6 +596,20 @@ export type GetUsageMeterBalancesResponse = {
   usageMeterBalances: UsageMeterBalance[]
 }
 
+export const getFeatureAccessItemsSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .strict()
+
+export type GetFeatureAccessParams = z.infer<
+  typeof getFeatureAccessItemsSchema
+>
+
+export type GetFeatureAccessResponse = {
+  features: FeatureAccessItem[]
+}
+
 export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -671,5 +686,9 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.GetUsageMeterBalances]: {
     method: HTTPMethod.POST,
     inputValidator: getUsageMeterBalancesSchema,
+  },
+  [FlowgladActionKey.GetFeatureAccess]: {
+    method: HTTPMethod.POST,
+    inputValidator: getFeatureAccessItemsSchema,
   },
 } as const satisfies FlowgladActionValidatorMap
