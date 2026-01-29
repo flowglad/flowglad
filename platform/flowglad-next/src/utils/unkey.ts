@@ -28,11 +28,21 @@ export type VerifyApiKeyResult = {
   error: unknown | undefined
 }
 
+/**
+ * Create an Unkey client configured from the `UNKEY_ROOT_KEY` environment variable.
+ *
+ * When `UNKEY_MOCK_HOST` is set, the client uses that URL as the server endpoint.
+ * This enables testing against a mock server (e.g., flowglad-mock-server) instead
+ * of the production Unkey API.
+ *
+ * @returns An Unkey client instance.
+ */
 export const unkey = () =>
   new Unkey({
     rootKey: core.IS_TEST
       ? 'test_root_key'
       : core.envVariable('UNKEY_ROOT_KEY'),
+    serverURL: process.env.UNKEY_MOCK_HOST || undefined,
   })
 
 /**
