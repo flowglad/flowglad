@@ -1,0 +1,30 @@
+{
+  "name": "@flowglad/db-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./schema/*": "./schema/*.ts",
+    "./enums": "./enums.ts",
+    "./tableUtils": "./tableUtils.ts",
+    "./schemaTypes": "./schemaTypes.ts",
+    "./createZodSchemas": "./createZodSchemas.ts",
+    "./timestampMs": "./timestampMs.ts",
+    "./commonZodSchema": "./commonZodSchema.ts",
+    "./utils": "./utils.ts"
+  },
+  "dependencies": {
+    "better-result": "^1.0.0",
+    "change-case": "^5.4.4",
+    "drizzle-orm": "^0.38.3",
+    "drizzle-zod": "^0.7.0",
+    "nanoid": "^5.0.7",
+    "ramda": "^0.30.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/ramda": "^0.30.2",
+    "drizzle-kit": "^0.30.1",
+    "typescript": "^5.7.2"
+  }
+}
