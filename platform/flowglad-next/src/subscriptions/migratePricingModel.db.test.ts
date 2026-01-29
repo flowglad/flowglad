@@ -810,13 +810,15 @@ describe('Pricing Model Migration Test Suite', async () => {
         type: SubscriptionItemType.Static,
       })
 
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem1.id,
-        featureId: feature1.id,
-        type: FeatureType.UsageCreditGrant,
-        usageMeterId: usageMeter1.id,
-        productFeatureId: productFeature1.id,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem1.id,
+          featureId: feature1.id,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: usageMeter1.id,
+          productFeatureId: productFeature1.id,
+        })
+      ).unwrap()
 
       // Execute migration
       const migrationResult = await adminTransaction(
@@ -947,13 +949,15 @@ describe('Pricing Model Migration Test Suite', async () => {
         type: SubscriptionItemType.Static,
       })
 
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: oldSubscriptionItem.id,
-        featureId: oldFeature.id,
-        type: FeatureType.UsageCreditGrant,
-        usageMeterId: oldUsageMeter.id,
-        productFeatureId: oldProductFeature.id,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: oldSubscriptionItem.id,
+          featureId: oldFeature.id,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: oldUsageMeter.id,
+          productFeatureId: oldProductFeature.id,
+        })
+      ).unwrap()
 
       // Execute migration
       const migrationResult = await adminTransaction(
@@ -1182,13 +1186,15 @@ describe('Pricing Model Migration Test Suite', async () => {
         })
       ).unwrap()
 
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        type: FeatureType.UsageCreditGrant,
-        usageMeterId: usageMeter.id,
-        productFeatureId: productFeature.id,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: feature.id,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: usageMeter.id,
+          productFeatureId: productFeature.id,
+        })
+      ).unwrap()
 
       await setupBillingPeriod({
         subscriptionId: subscription.id,

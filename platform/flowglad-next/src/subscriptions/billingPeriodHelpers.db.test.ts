@@ -880,17 +880,19 @@ describe('Ledger Interactions', () => {
             livemode: true,
           })
         ).unwrap()
-        await setupSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: feature.id,
-          productFeatureId: productFeature.id,
-          usageMeterId: usageMeter.id,
-          livemode: true,
-          type: FeatureType.UsageCreditGrant,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          amount: grantAmount,
-        })
+        ;(
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: feature.id,
+            productFeatureId: productFeature.id,
+            usageMeterId: usageMeter.id,
+            livemode: true,
+            type: FeatureType.UsageCreditGrant,
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            amount: grantAmount,
+          })
+        ).unwrap()
         return Result.ok(undefined)
       })
 
@@ -1132,16 +1134,18 @@ describe('Ledger Interactions', () => {
             livemode: true,
           })
         ).unwrap()
-        await setupSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: feature.id,
-          productFeatureId: productFeature.id,
-          usageMeterId: usageMeter.id,
-          type: FeatureType.UsageCreditGrant,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          amount: grantAmount,
-        })
+        ;(
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: feature.id,
+            productFeatureId: productFeature.id,
+            usageMeterId: usageMeter.id,
+            type: FeatureType.UsageCreditGrant,
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            amount: grantAmount,
+          })
+        ).unwrap()
 
         await updateSubscription(
           {
@@ -1237,26 +1241,30 @@ describe('Ledger Interactions', () => {
             livemode: true,
           })
         ).unwrap()
-        await setupSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: feature1.id,
-          productFeatureId: productFeature1.id,
-          usageMeterId: usageMeter.id,
-          type: FeatureType.UsageCreditGrant,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          amount: grantAmount1,
-        })
-        await setupSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: feature2.id,
-          productFeatureId: productFeature2.id,
-          usageMeterId: otherUsageMeter.id,
-          type: FeatureType.UsageCreditGrant,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          amount: grantAmount2,
-        })
+        ;(
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: feature1.id,
+            productFeatureId: productFeature1.id,
+            usageMeterId: usageMeter.id,
+            type: FeatureType.UsageCreditGrant,
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            amount: grantAmount1,
+          })
+        ).unwrap()
+        ;(
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: feature2.id,
+            productFeatureId: productFeature2.id,
+            usageMeterId: otherUsageMeter.id,
+            type: FeatureType.UsageCreditGrant,
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            amount: grantAmount2,
+          })
+        ).unwrap()
         return Result.ok(undefined)
       })
 
@@ -1338,16 +1346,18 @@ describe('Ledger Interactions', () => {
             livemode: true,
           })
         ).unwrap()
-        await setupSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: feature.id,
-          productFeatureId: productFeature.id,
-          usageMeterId: usageMeter.id,
-          type: FeatureType.UsageCreditGrant,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          amount: grantAmount,
-        })
+        ;(
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: feature.id,
+            productFeatureId: productFeature.id,
+            usageMeterId: usageMeter.id,
+            type: FeatureType.UsageCreditGrant,
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            amount: grantAmount,
+          })
+        ).unwrap()
         return Result.ok(undefined)
       })
 
@@ -1437,25 +1447,29 @@ describe('Ledger Interactions', () => {
             livemode: true,
           })
         ).unwrap()
-        await setupSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: featureOnce.id,
-          productFeatureId: productFeatureOnce.id,
-          usageMeterId: usageMeter.id,
-          type: FeatureType.UsageCreditGrant,
-          renewalFrequency: FeatureUsageGrantFrequency.Once,
-          amount: onceGrantAmount,
-        })
-        await setupSubscriptionItemFeature({
-          subscriptionItemId: subscriptionItem.id,
-          featureId: featureEvery.id,
-          productFeatureId: productFeatureEvery.id,
-          usageMeterId: otherUsageMeter.id,
-          type: FeatureType.UsageCreditGrant,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          amount: everyGrantAmount,
-        })
+        ;(
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: featureOnce.id,
+            productFeatureId: productFeatureOnce.id,
+            usageMeterId: usageMeter.id,
+            type: FeatureType.UsageCreditGrant,
+            renewalFrequency: FeatureUsageGrantFrequency.Once,
+            amount: onceGrantAmount,
+          })
+        ).unwrap()
+        ;(
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: featureEvery.id,
+            productFeatureId: productFeatureEvery.id,
+            usageMeterId: otherUsageMeter.id,
+            type: FeatureType.UsageCreditGrant,
+            renewalFrequency:
+              FeatureUsageGrantFrequency.EveryBillingPeriod,
+            amount: everyGrantAmount,
+          })
+        ).unwrap()
         return Result.ok(undefined)
       })
 
@@ -2178,17 +2192,19 @@ describe('Ledger Interactions', () => {
           livemode: true,
         })
       ).unwrap()
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        productFeatureId: productFeature.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-        type: FeatureType.UsageCreditGrant,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-        amount: grantAmount,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: feature.id,
+          productFeatureId: productFeature.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          type: FeatureType.UsageCreditGrant,
+          renewalFrequency:
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          amount: grantAmount,
+        })
+      ).unwrap()
 
       // Action:
       await adminTransaction(async (params) =>
@@ -2339,17 +2355,19 @@ describe('Ledger Interactions', () => {
           livemode: true,
         })
       ).unwrap()
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        productFeatureId: productFeature.id,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-        type: FeatureType.UsageCreditGrant,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-        amount: grantAmount,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: feature.id,
+          productFeatureId: productFeature.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          type: FeatureType.UsageCreditGrant,
+          renewalFrequency:
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          amount: grantAmount,
+        })
+      ).unwrap()
 
       // Action:
       await adminTransaction(async (params) =>

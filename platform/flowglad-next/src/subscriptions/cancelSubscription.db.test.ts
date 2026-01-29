@@ -2242,13 +2242,15 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
       ).unwrap()
 
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        type: FeatureType.UsageCreditGrant,
-        usageMeterId: usageMeter.id,
-        productFeatureId: productFeature.id,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: feature.id,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: usageMeter.id,
+          productFeatureId: productFeature.id,
+        })
+      ).unwrap()
 
       await setupBillingPeriod({
         subscriptionId: subscription.id,
@@ -2412,21 +2414,25 @@ describe('Subscription Cancellation Test Suite', async () => {
           livemode: true,
         })
       ).unwrap()
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem1.id,
-        featureId: feature1.id,
-        type: FeatureType.UsageCreditGrant,
-        usageMeterId: usageMeter1.id,
-        productFeatureId: productFeature1.id,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem1.id,
+          featureId: feature1.id,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: usageMeter1.id,
+          productFeatureId: productFeature1.id,
+        })
+      ).unwrap()
 
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem2.id,
-        featureId: feature2.id,
-        type: FeatureType.UsageCreditGrant,
-        usageMeterId: usageMeter2.id,
-        productFeatureId: productFeature2.id,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem2.id,
+          featureId: feature2.id,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: usageMeter2.id,
+          productFeatureId: productFeature2.id,
+        })
+      ).unwrap()
 
       await setupBillingPeriod({
         subscriptionId: subscription.id,

@@ -765,14 +765,16 @@ describe('subscriptionItemHelpers', () => {
         ).unwrap()
 
         // Add a manual feature to the manual item (same featureId as the product's feature)
-        const manualFeature = await setupSubscriptionItemFeature({
-          subscriptionItemId: manualItem.id,
-          featureId: feature.id,
-          productFeatureId: productFeature.id,
-          usageMeterId: usageMeter.id,
-          amount: 50,
-          manuallyCreated: true,
-        })
+        const manualFeature = (
+          await setupSubscriptionItemFeature({
+            subscriptionItemId: manualItem.id,
+            featureId: feature.id,
+            productFeatureId: productFeature.id,
+            usageMeterId: usageMeter.id,
+            amount: 50,
+            manuallyCreated: true,
+          })
+        ).unwrap()
 
         // Verify manual feature is active before adjustment
         await adminTransaction(async (ctx) => {
@@ -1068,7 +1070,7 @@ describe('subscriptionItemHelpers', () => {
 
       it('should not double-grant credits if credits already exist for the feature', async () => {
         // First, create a subscription item feature
-        const subscriptionItemFeature =
+        const subscriptionItemFeature = (
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: feature.id,
@@ -1076,6 +1078,7 @@ describe('subscriptionItemHelpers', () => {
             usageMeterId: usageMeter.id,
             amount: 100,
           })
+        ).unwrap()
 
         // Pre-grant credits for this feature (simulating credits granted at period start)
         const preGrantedCredit = (
@@ -1300,7 +1303,7 @@ describe('subscriptionItemHelpers', () => {
             addedDate: itemAddedDate,
           })
 
-          const onceFeatureRecord =
+          const onceFeatureRecord = (
             await setupSubscriptionItemFeature({
               subscriptionItemId: itemWithOnceFeature.id,
               featureId: onceFeature.id,
@@ -1308,6 +1311,7 @@ describe('subscriptionItemHelpers', () => {
               usageMeterId: usageMeter.id,
               amount: 500,
             })
+          ).unwrap()
 
           // Grant credits for the Once feature
           const onceCredit = (
@@ -2899,7 +2903,7 @@ describe('subscriptionItemHelpers', () => {
         it('calculates delta correctly when ManualAdjustment credits already exist', async () => {
           // Test scenario: Previous mid-period adjustment already granted 50 credits
           // New adjustment at same point would calculate delta against existing
-          const subscriptionItemFeature =
+          const subscriptionItemFeature = (
             await setupSubscriptionItemFeature({
               subscriptionItemId: subscriptionItem.id,
               featureId: feature.id,
@@ -2910,6 +2914,7 @@ describe('subscriptionItemHelpers', () => {
               livemode: true,
               productFeatureId: productFeature.id,
             })
+          ).unwrap()
 
           // Existing ManualAdjustment credit from a previous mid-period upgrade
           ;(

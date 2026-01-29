@@ -3762,17 +3762,19 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       // Create subscription item feature for the premium item
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: premiumItem.id,
-        featureId: premiumFeature.id,
-        productFeatureId: premiumProductFeature.id,
-        type: FeatureType.UsageCreditGrant,
-        usageMeterId: usageMeter.id,
-        livemode: true,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-        amount: 100,
-      })
+      ;(
+        await setupSubscriptionItemFeature({
+          subscriptionItemId: premiumItem.id,
+          featureId: premiumFeature.id,
+          productFeatureId: premiumProductFeature.id,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          renewalFrequency:
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          amount: 100,
+        })
+      ).unwrap()
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
