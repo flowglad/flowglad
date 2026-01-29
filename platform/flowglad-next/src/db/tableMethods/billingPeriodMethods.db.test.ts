@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -83,6 +84,7 @@ describe('Billing Period Methods', () => {
         )
         expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
         expect(billingPeriod.subscriptionId).toBe(subscription.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -105,6 +107,7 @@ describe('Billing Period Methods', () => {
             transaction
           )
         ).rejects.toThrow()
+        return Result.ok(undefined)
       })
     })
 
@@ -127,6 +130,7 @@ describe('Billing Period Methods', () => {
 
         // Verify the provided pricingModelId is used
         expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
       })
     })
   })

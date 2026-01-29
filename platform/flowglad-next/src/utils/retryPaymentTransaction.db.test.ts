@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
   setupCustomer,
@@ -78,29 +79,32 @@ describe('retryPaymentTransaction', () => {
       currency: 'usd',
     } as unknown as Stripe.Response<Stripe.Charge>)
 
-    const updatedFailedPayment = await adminTransaction(
-      async ({ transaction }) => {
-        return updatePayment(
-          {
-            id: failedPayment.id,
-            subtotal: 800,
-            taxAmount: 123,
-            stripeTaxCalculationId: 'txcalc_test_retry',
-            stripeTaxTransactionId: 'tax_txn_test_retry',
-          },
-          transaction
-        )
-      }
-    )
-
-    const retriedPayment = (
+    const updatedFailedPayment = (
       await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await updatePayment(
+            {
+              id: failedPayment.id,
+              subtotal: 800,
+              taxAmount: 123,
+              stripeTaxCalculationId: 'txcalc_test_retry',
+              stripeTaxTransactionId: 'tax_txn_test_retry',
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
+
+    const retriedPaymentResult = await adminTransaction(
+      async ({ transaction }) => {
         return retryPaymentTransaction(
           { id: updatedFailedPayment.id },
           transaction
         )
-      })
-    ).unwrap()
+      }
+    )
+    const retriedPayment = retriedPaymentResult.unwrap().unwrap()
 
     expect(retriedPayment.id).not.toBe(updatedFailedPayment.id)
     expect(retriedPayment.stripeChargeId).not.toBe(

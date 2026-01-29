@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -39,21 +40,23 @@ describe('calculateUsageVolumeByInterval', () => {
       const startDate = new Date('2023-01-01T00:00:00.000Z')
       const endDate = new Date('2023-01-07T23:59:59.999Z')
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should return 7 data points with zeros
       expect(result).toHaveLength(7)
@@ -144,21 +147,23 @@ describe('calculateUsageVolumeByInterval', () => {
       const startDate = new Date('2023-01-01T00:00:00.000Z')
       const endDate = new Date('2023-01-02T23:59:59.999Z')
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toHaveLength(2)
       expect(result[0].amount).toBe(60) // 10 + 20 + 30
@@ -227,21 +232,23 @@ describe('calculateUsageVolumeByInterval', () => {
       const startDate = new Date('2023-01-01T00:00:00.000Z')
       const endDate = new Date('2023-01-07T23:59:59.999Z')
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toHaveLength(7)
       expect(result[0].amount).toBe(100) // Jan 1
@@ -318,21 +325,23 @@ describe('calculateUsageVolumeByInterval', () => {
       const startDate = new Date('2023-01-01T00:00:00.000Z')
       const endDate = new Date('2023-01-01T23:59:59.999Z')
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].amount).toBe(100) // Only livemode event
@@ -416,21 +425,23 @@ describe('calculateUsageVolumeByInterval', () => {
       const startDate = new Date('2023-01-01T00:00:00.000Z')
       const endDate = new Date('2023-01-01T23:59:59.999Z')
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].amount).toBe(2) // 2 distinct property combinations
@@ -501,21 +512,23 @@ describe('calculateUsageVolumeByInterval', () => {
       const startDate = new Date('2023-01-01T00:00:00.000Z')
       const endDate = new Date('2023-01-02T23:59:59.999Z')
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toHaveLength(2)
       expect(result[0].amount).toBe(1) // Day 1: user_1
@@ -542,19 +555,26 @@ describe('calculateUsageVolumeByInterval', () => {
 
       // Request from org2 should fail
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            org2.id, // Different org
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              livemode: true,
-            },
-            transaction
+        (async () => {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await calculateUsageVolumeByInterval(
+                  org2.id, // Different org
+                  {
+                    startDate,
+                    endDate,
+                    granularity: RevenueChartIntervalUnit.Day,
+                    usageMeterId: usageMeter.id,
+                    livemode: true,
+                  },
+                  transaction
+                )
+              )
+            }
           )
-        })
+          return result.unwrap()
+        })()
       ).rejects.toThrow('Usage meter not found')
     })
 
@@ -580,22 +600,24 @@ describe('calculateUsageVolumeByInterval', () => {
 
       // Request from org2 with product from org1 should return zeros
       // (product should not be found due to org validation)
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            org2.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              productId: productInOrg1.id, // Product from different org
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              org2.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                productId: productInOrg1.id, // Product from different org
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should return zeros - product from different org is effectively "not found"
       expect(result).toHaveLength(7)
@@ -670,22 +692,24 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-01T23:59:59.999Z')
 
       // Query with product filter - should find matching events
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              productId: product1.id,
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                productId: product1.id,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].amount).toBe(100)
@@ -743,22 +767,24 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-01T23:59:59.999Z')
 
       // Query with non-existent productId
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return calculateUsageVolumeByInterval(
-            organization.id,
-            {
-              startDate,
-              endDate,
-              granularity: RevenueChartIntervalUnit.Day,
-              usageMeterId: usageMeter.id,
-              productId: 'prod_nonexistent',
-              livemode: true,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await calculateUsageVolumeByInterval(
+              organization.id,
+              {
+                startDate,
+                endDate,
+                granularity: RevenueChartIntervalUnit.Day,
+                usageMeterId: usageMeter.id,
+                productId: 'prod_nonexistent',
+                livemode: true,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].amount).toBe(0) // Zeros when product not found
@@ -849,13 +875,17 @@ describe('getUsageMetersWithEvents', () => {
       pricingModelId: pricingModel.id,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(
-        organization.id,
-        true,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await getUsageMetersWithEvents(
+            organization.id,
+            true,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Only meter A should be returned
     expect(result).toHaveLength(1)
@@ -873,13 +903,17 @@ describe('getUsageMetersWithEvents', () => {
       pricingModelId: pricingModel.id,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(
-        organization.id,
-        true,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await getUsageMetersWithEvents(
+            organization.id,
+            true,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(0)
   })
@@ -894,13 +928,17 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     // No customers created for this org
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(
-        organization.id,
-        true,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await getUsageMetersWithEvents(
+            organization.id,
+            true,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(0)
   })
@@ -990,13 +1028,17 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     // getUsageMetersWithEvents should return BOTH meters (decoupled from product filter)
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(
-        organization.id,
-        true,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await getUsageMetersWithEvents(
+            organization.id,
+            true,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Both meters should be returned regardless of their pricingModel
     expect(result).toHaveLength(2)
@@ -1053,13 +1095,17 @@ describe('getUsageMetersWithEvents', () => {
       transactionId: `tx_${core.nanoid()}`,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(
-        organization.id,
-        true,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await getUsageMetersWithEvents(
+            organization.id,
+            true,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
@@ -1148,13 +1194,17 @@ describe('getUsageMetersWithEvents', () => {
       transactionId: `tx_${core.nanoid()}`,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getUsageMetersWithEvents(
-        organization.id,
-        true,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await getUsageMetersWithEvents(
+            organization.id,
+            true,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(2)
 

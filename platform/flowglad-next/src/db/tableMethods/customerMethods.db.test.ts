@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -78,6 +79,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -88,19 +90,22 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify both customers with target email were updated
-    const updatedCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            email: targetEmail,
-          },
-          transaction
+    const updatedCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              email: targetEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedCustomers).toHaveLength(2)
     expect(updatedCustomers[0].stackAuthHostedBillingUserId).toBe(
@@ -134,6 +139,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         { id: customer2.id, email: targetEmail },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -144,20 +150,23 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify both customers in org1 were updated
-    const updatedCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            organizationId: org1Id,
-            email: targetEmail,
-          },
-          transaction
+    const updatedCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              organizationId: org1Id,
+              email: targetEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedCustomers).toHaveLength(2)
     expect(updatedCustomers[0].stackAuthHostedBillingUserId).toBe(
@@ -200,6 +209,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -210,20 +220,23 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify only the customer without existing id was updated
-    const updatedCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            organizationId: org1Id,
-            email: targetEmail,
-          },
-          transaction
+    const updatedCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              organizationId: org1Id,
+              email: targetEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedCustomers).toHaveLength(2)
     const customerWithExistingIdAfter = updatedCustomers.find(
@@ -268,6 +281,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         { id: customerWithTargetEmail.id, email: targetEmail },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -278,19 +292,22 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify only the customer with target email was updated
-    const updatedCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            organizationId: org1Id,
-          },
-          transaction
+    const updatedCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              organizationId: org1Id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedCustomers).toHaveLength(2)
     const customerWithDifferentEmailAfter = updatedCustomers.find(
@@ -370,19 +387,22 @@ describe('setUserIdForCustomerRecords', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify all customers with target email were updated
-    const updatedCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            email: targetEmail,
-          },
-          transaction
+    const updatedCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              email: targetEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedCustomers).toHaveLength(3)
     expect(updatedCustomers[0].userId).toBe(user1.id)
@@ -416,29 +436,34 @@ describe('setUserIdForCustomerRecords', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify only the customer with target email was updated
-    const targetEmailCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            email: targetEmail,
-          },
-          transaction
+    const targetEmailCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              email: targetEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
-    const differentEmailCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            email: differentEmail,
-          },
-          transaction
+      })
+    ).unwrap()
+    const differentEmailCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              email: differentEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(targetEmailCustomers).toHaveLength(1)
     expect(targetEmailCustomers[0].userId).toBe(user1.id)
@@ -465,18 +490,19 @@ describe('setUserIdForCustomerRecords', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify initial userId is set to user2
-    const customerBeforeUpdate = await adminTransaction(
-      async ({ transaction }) => {
+    const customerBeforeUpdate = (
+      await adminTransaction(async ({ transaction }) => {
         const customers = await selectCustomers(
           { id: customer.id },
           transaction
         )
-        return customers[0]
-      }
-    )
+        return Result.ok(customers[0])
+      })
+    ).unwrap()
     expect(customerBeforeUpdate.userId).toBe(user2.id)
 
     // Now execute setUserIdForCustomerRecords to change to user1
@@ -488,18 +514,19 @@ describe('setUserIdForCustomerRecords', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify userId was updated to user1
-    const customerAfterUpdate = await adminTransaction(
-      async ({ transaction }) => {
+    const customerAfterUpdate = (
+      await adminTransaction(async ({ transaction }) => {
         const customers = await selectCustomers(
           { id: customer.id },
           transaction
         )
-        return customers[0]
-      }
-    )
+        return Result.ok(customers[0])
+      })
+    ).unwrap()
     expect(customerAfterUpdate.userId).toBe(user1.id)
   })
 
@@ -522,19 +549,22 @@ describe('setUserIdForCustomerRecords', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify no customers exist with the non-existent email
-    const customers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            email: nonExistentEmail,
-          },
-          transaction
+    const customers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              email: nonExistentEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(customers).toHaveLength(0)
   })
 
@@ -566,19 +596,22 @@ describe('setUserIdForCustomerRecords', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Verify both customers were updated regardless of organization
-    const updatedCustomers = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            email: targetEmail,
-          },
-          transaction
+    const updatedCustomers = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              email: targetEmail,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedCustomers).toHaveLength(2)
     const org1Customer = updatedCustomers.find(
@@ -618,18 +651,23 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
         { id: customer.id, archived: true },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Lookup without includeArchived should return null
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerByExternalIdAndOrganizationId(
-        {
-          externalId,
-          organizationId: organization.id,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toBeNull()
   })
@@ -651,19 +689,24 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
         { id: customer.id, archived: true },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Lookup with includeArchived=true should return the archived customer
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerByExternalIdAndOrganizationId(
-        {
-          externalId,
-          organizationId: organization.id,
-          includeArchived: true,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId,
+              organizationId: organization.id,
+              includeArchived: true,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toMatchObject({
       id: customer.id,
@@ -684,17 +727,19 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     ).unwrap()
 
     // Lookup without includeArchived should return the customer
-    const resultDefault = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomerByExternalIdAndOrganizationId(
-          {
-            externalId,
-            organizationId: organization.id,
-          },
-          transaction
+    const resultDefault = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultDefault).toMatchObject({
       id: customer.id,
@@ -702,18 +747,20 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     })
 
     // Lookup with includeArchived=true should also return the customer
-    const resultIncludeArchived = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomerByExternalIdAndOrganizationId(
-          {
-            externalId,
-            organizationId: organization.id,
-            includeArchived: true,
-          },
-          transaction
+    const resultIncludeArchived = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId,
+              organizationId: organization.id,
+              includeArchived: true,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultIncludeArchived).toMatchObject({
       id: customer.id,
@@ -722,15 +769,19 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
   })
 
   it('should return null for non-existent externalId', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerByExternalIdAndOrganizationId(
-        {
-          externalId: `non_existent_${core.nanoid()}`,
-          organizationId: organization.id,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId: `non_existent_${core.nanoid()}`,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toBeNull()
   })
@@ -752,30 +803,36 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     ).unwrap()
 
     // Lookup in org2 should return null (customer doesn't exist in org2)
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerByExternalIdAndOrganizationId(
-        {
-          externalId,
-          organizationId: organization2.id,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId,
+              organizationId: organization2.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toBeNull()
 
     // Lookup in org1 should return the customer
-    const resultOrg1 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectCustomerByExternalIdAndOrganizationId(
-          {
-            externalId,
-            organizationId: organization.id,
-          },
-          transaction
+    const resultOrg1 = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultOrg1).toMatchObject({
       id: customer.id,
@@ -820,16 +877,19 @@ describe('Customer uniqueness constraints', () => {
           { id: customer1.id, archived: true },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Verify customer1 is archived
-      const archivedCustomer = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectCustomerById(customer1.id, transaction)
-          ).unwrap()
-        }
-      )
+      const archivedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectCustomerById(customer1.id, transaction)
+            ).unwrap()
+          )
+        })
+      ).unwrap()
       expect(archivedCustomer.archived).toBe(true)
 
       // Create new customer with same externalId - should succeed
@@ -877,6 +937,7 @@ describe('Customer uniqueness constraints', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
@@ -928,6 +989,7 @@ describe('Customer uniqueness constraints', () => {
           { id: customer1.id, archived: true },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Create and archive second customer with same externalId
@@ -944,10 +1006,11 @@ describe('Customer uniqueness constraints', () => {
           { id: customer2.id, archived: true },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Verify both are archived with the same externalId
-      const [archivedCustomer1, archivedCustomer2] =
+      const [archivedCustomer1, archivedCustomer2] = (
         await adminTransaction(async ({ transaction }) => {
           const c1 = (
             await selectCustomerById(customer1.id, transaction)
@@ -955,8 +1018,9 @@ describe('Customer uniqueness constraints', () => {
           const c2 = (
             await selectCustomerById(customer2.id, transaction)
           ).unwrap()
-          return [c1, c2]
+          return Result.ok([c1, c2])
         })
+      ).unwrap()
 
       expect(archivedCustomer1.externalId).toBe(sharedExternalId)
       expect(archivedCustomer2.externalId).toBe(sharedExternalId)
@@ -981,6 +1045,7 @@ describe('Customer uniqueness constraints', () => {
           { id: customer1.id, archived: true },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Create second active customer with same externalId
@@ -1002,17 +1067,20 @@ describe('Customer uniqueness constraints', () => {
             { id: customer1.id, archived: false },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
 
       // Verify customer1 is still archived
-      const stillArchivedCustomer = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectCustomerById(customer1.id, transaction)
-          ).unwrap()
-        }
-      )
+      const stillArchivedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectCustomerById(customer1.id, transaction)
+            ).unwrap()
+          )
+        })
+      ).unwrap()
       expect(stillArchivedCustomer.archived).toBe(true)
     })
   })
@@ -1112,6 +1180,7 @@ describe('Customer uniqueness constraints', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
@@ -1139,17 +1208,19 @@ describe('Customer uniqueness constraints', () => {
       const newExternalId = `ext_003_${core.nanoid()}`
 
       // Update customer2's externalId
-      const updatedCustomer = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateCustomer(
-            {
-              id: customer2.id,
-              externalId: newExternalId,
-            },
-            transaction
+      const updatedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateCustomer(
+              {
+                id: customer2.id,
+                externalId: newExternalId,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify the update succeeded
       expect(updatedCustomer.externalId).toBe(newExternalId)
@@ -1189,17 +1260,20 @@ describe('Customer uniqueness constraints', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
 
       // Verify customer2 still has its original externalId
-      const unchangedCustomer = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectCustomerById(customer2.id, transaction)
-          ).unwrap()
-        }
-      )
+      const unchangedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectCustomerById(customer2.id, transaction)
+            ).unwrap()
+          )
+        })
+      ).unwrap()
       expect(unchangedCustomer.externalId).toBe(externalId2)
     })
 
@@ -1256,21 +1330,23 @@ describe('Customer uniqueness constraints', () => {
       const sharedExternalId = `ext_method_${core.nanoid()}`
 
       // Create first customer using insertCustomer
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: sharedExternalId,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: sharedExternalId,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(customer1).toMatchObject({})
       expect(customer1.externalId).toBe(sharedExternalId)
@@ -1289,6 +1365,7 @@ describe('Customer uniqueness constraints', () => {
             createdAt: Date.now(),
             updatedAt: new Date(),
           })
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
@@ -1309,6 +1386,7 @@ describe('Customer uniqueness constraints', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
 
@@ -1327,6 +1405,7 @@ describe('Customer uniqueness constraints', () => {
             createdAt: Date.now(),
             updatedAt: Date.now(),
           })
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
@@ -1337,40 +1416,44 @@ describe('Customer uniqueness constraints', () => {
       const sharedInvoiceBase = `INV${core.nanoid().slice(0, 6)}`
 
       // Create customer in organization1
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              invoiceNumberBase: sharedInvoiceBase,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                invoiceNumberBase: sharedInvoiceBase,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Create customer with same invoiceNumberBase in organization2
-      const customer2 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization2.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer2_${core.nanoid()}@test.com`,
-              name: 'Customer 2',
-              invoiceNumberBase: sharedInvoiceBase,
-              livemode: true,
-              pricingModelId: pricingModel2Id,
-            },
-            transaction
+      const customer2 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization2.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer2_${core.nanoid()}@test.com`,
+                name: 'Customer 2',
+                invoiceNumberBase: sharedInvoiceBase,
+                livemode: true,
+                pricingModelId: pricingModel2Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify both customers were created successfully
       expect(customer1).toMatchObject({})
@@ -1388,40 +1471,44 @@ describe('Customer uniqueness constraints', () => {
       const { testmodePricingModel } = (await setupOrg()).unwrap()
 
       // Create customer with livemode=true
-      const customerLive = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer_live_${core.nanoid()}@test.com`,
-              name: 'Customer Live',
-              invoiceNumberBase: sharedInvoiceBase,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customerLive = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer_live_${core.nanoid()}@test.com`,
+                name: 'Customer Live',
+                invoiceNumberBase: sharedInvoiceBase,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Create customer with same invoiceNumberBase but livemode=false
-      const customerTest = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer_test_${core.nanoid()}@test.com`,
-              name: 'Customer Test',
-              invoiceNumberBase: sharedInvoiceBase,
-              livemode: false,
-              pricingModelId: testmodePricingModel.id,
-            },
-            transaction
+      const customerTest = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer_test_${core.nanoid()}@test.com`,
+                name: 'Customer Test',
+                invoiceNumberBase: sharedInvoiceBase,
+                livemode: false,
+                pricingModelId: testmodePricingModel.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify both customers were created successfully
       expect(typeof customerLive).toBe('object')
@@ -1436,22 +1523,24 @@ describe('Customer uniqueness constraints', () => {
       const duplicateInvoiceBase = `INV${core.nanoid().slice(0, 6)}`
 
       // Create first customer
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              invoiceNumberBase: duplicateInvoiceBase,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                invoiceNumberBase: duplicateInvoiceBase,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(customer1).toMatchObject({})
       expect(customer1.invoiceNumberBase).toBe(duplicateInvoiceBase)
@@ -1471,6 +1560,7 @@ describe('Customer uniqueness constraints', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
@@ -1525,22 +1615,24 @@ describe('Customer uniqueness constraints', () => {
       const stripeCustomerId = `cus_${core.nanoid()}`
 
       // Create customer with stripeCustomerId in organization1
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              stripeCustomerId: stripeCustomerId,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                stripeCustomerId: stripeCustomerId,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(customer1).toMatchObject({})
       expect(customer1.stripeCustomerId).toBe(stripeCustomerId)
@@ -1560,6 +1652,7 @@ describe('Customer uniqueness constraints', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
@@ -1568,44 +1661,48 @@ describe('Customer uniqueness constraints', () => {
       const stripeCustomerId = `cus_${core.nanoid()}`
 
       // Create customer with stripeCustomerId in pricingModel1
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              stripeCustomerId: stripeCustomerId,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                stripeCustomerId: stripeCustomerId,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(customer1).toMatchObject({})
       expect(customer1.stripeCustomerId).toBe(stripeCustomerId)
 
       // Create customer with same stripeCustomerId in DIFFERENT pricingModel - should succeed
       // This is the expected behavior: same Stripe customer can exist in multiple pricing models
-      const customer2 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization2.id, // Different organization
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer2_${core.nanoid()}@test.com`,
-              name: 'Customer 2',
-              stripeCustomerId: stripeCustomerId, // Same Stripe ID
-              livemode: true,
-              pricingModelId: pricingModel2Id, // Different pricing model - should succeed
-            },
-            transaction
+      const customer2 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization2.id, // Different organization
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer2_${core.nanoid()}@test.com`,
+                name: 'Customer 2',
+                stripeCustomerId: stripeCustomerId, // Same Stripe ID
+                livemode: true,
+                pricingModelId: pricingModel2Id, // Different pricing model - should succeed
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(customer2).toMatchObject({
         stripeCustomerId,
@@ -1619,56 +1716,62 @@ describe('Customer uniqueness constraints', () => {
       // Get testmode pricing model for this test
       const { testmodePricingModel } = (await setupOrg()).unwrap()
       // Create three customers with different stripeCustomerIds
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              stripeCustomerId: `cus_${core.nanoid()}`,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                stripeCustomerId: `cus_${core.nanoid()}`,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const customer2 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization2.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer2_${core.nanoid()}@test.com`,
-              name: 'Customer 2',
-              stripeCustomerId: `cus_${core.nanoid()}`,
-              livemode: false,
-              pricingModelId: testmodePricingModel.id,
-            },
-            transaction
+      const customer2 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization2.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer2_${core.nanoid()}@test.com`,
+                name: 'Customer 2',
+                stripeCustomerId: `cus_${core.nanoid()}`,
+                livemode: false,
+                pricingModelId: testmodePricingModel.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const customer3 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer3_${core.nanoid()}@test.com`,
-              name: 'Customer 3',
-              stripeCustomerId: `cus_${core.nanoid()}`,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer3 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer3_${core.nanoid()}@test.com`,
+                name: 'Customer 3',
+                stripeCustomerId: `cus_${core.nanoid()}`,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify all customers were created successfully
       expect(customer1).toMatchObject({})
@@ -1691,56 +1794,62 @@ describe('Customer uniqueness constraints', () => {
       // Get testmode pricing model for this test
       const { testmodePricingModel } = (await setupOrg()).unwrap()
       // Create multiple customers without stripeCustomerId - use insertCustomer directly
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-              // Explicitly not including stripeCustomerId to get null
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+                // Explicitly not including stripeCustomerId to get null
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const customer2 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer2_${core.nanoid()}@test.com`,
-              name: 'Customer 2',
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-              // Explicitly not including stripeCustomerId to get null
-            },
-            transaction
+      const customer2 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer2_${core.nanoid()}@test.com`,
+                name: 'Customer 2',
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+                // Explicitly not including stripeCustomerId to get null
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const customer3 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization2.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer3_${core.nanoid()}@test.com`,
-              name: 'Customer 3',
-              livemode: false,
-              pricingModelId: testmodePricingModel.id,
-              // Explicitly not including stripeCustomerId to get null
-            },
-            transaction
+      const customer3 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization2.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer3_${core.nanoid()}@test.com`,
+                name: 'Customer 3',
+                livemode: false,
+                pricingModelId: testmodePricingModel.id,
+                // Explicitly not including stripeCustomerId to get null
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify all customers were created successfully with null stripeCustomerId
       expect(customer1).toMatchObject({})
@@ -1756,39 +1865,43 @@ describe('Customer uniqueness constraints', () => {
       const stripeId2 = `cus_${core.nanoid()}`
 
       // Create two customers with different stripeCustomerIds in the SAME pricingModel
-      const customer1 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id,
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer1_${core.nanoid()}@test.com`,
-              name: 'Customer 1',
-              stripeCustomerId: stripeId1,
-              livemode: true,
-              pricingModelId: pricingModel1Id,
-            },
-            transaction
+      const customer1 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id,
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer1_${core.nanoid()}@test.com`,
+                name: 'Customer 1',
+                stripeCustomerId: stripeId1,
+                livemode: true,
+                pricingModelId: pricingModel1Id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const customer2 = await adminTransaction(
-        async ({ transaction }) => {
-          return await insertCustomer(
-            {
-              organizationId: organization1.id, // Same organization
-              externalId: `ext_${core.nanoid()}`,
-              email: `customer2_${core.nanoid()}@test.com`,
-              name: 'Customer 2',
-              stripeCustomerId: stripeId2,
-              livemode: true,
-              pricingModelId: pricingModel1Id, // Same pricing model
-            },
-            transaction
+      const customer2 = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                organizationId: organization1.id, // Same organization
+                externalId: `ext_${core.nanoid()}`,
+                email: `customer2_${core.nanoid()}@test.com`,
+                name: 'Customer 2',
+                stripeCustomerId: stripeId2,
+                livemode: true,
+                pricingModelId: pricingModel1Id, // Same pricing model
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Attempt to update customer2 to have customer1's stripeCustomerId (same pricing model)
       await expect(
@@ -1800,17 +1913,20 @@ describe('Customer uniqueness constraints', () => {
             },
             transaction
           )
+          return Result.ok(undefined)
         })
       ).rejects.toThrow()
 
       // Verify customer2 still has its original stripeCustomerId
-      const unchangedCustomer = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectCustomerById(customer2.id, transaction)
-          ).unwrap()
-        }
-      )
+      const unchangedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectCustomerById(customer2.id, transaction)
+            ).unwrap()
+          )
+        })
+      ).unwrap()
       expect(unchangedCustomer.stripeCustomerId).toBe(stripeId2)
     })
   })
@@ -1952,6 +2068,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
         expect(resultByIdWithWhitespace.items[0].customer.id).toBe(
           customer1.id
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -1985,6 +2102,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
         expect(resultEmpty.total).toBe(3)
         expect(resultUndefined.items.length).toBe(3)
         expect(resultUndefined.total).toBe(3)
+        return Result.ok(undefined)
       })
     })
 
@@ -2007,6 +2125,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
           organization.id
         )
         expect(result.total).toBe(1)
+        return Result.ok(undefined)
       })
     })
   })
@@ -2026,6 +2145,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
           })
         expect(resultUndefined.items.length).toBe(3)
         expect(resultUndefined.total).toBe(3)
+        return Result.ok(undefined)
       })
     })
   })
@@ -2078,9 +2198,16 @@ describe('selectCustomerPricingInfoBatch', () => {
       ...pricingModel2CustomerIds,
     ]
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerPricingInfoBatch(customerIds, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerPricingInfoBatch(
+            customerIds,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Verify all 10 customers returned
     expect(result.size).toBe(10)
@@ -2114,9 +2241,13 @@ describe('selectCustomerPricingInfoBatch', () => {
   })
 
   it('returns an empty result map when no customerIds are provided', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerPricingInfoBatch([], transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerPricingInfoBatch([], transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result.size).toBe(0)
     expect(result).toEqual(new Map())
@@ -2138,12 +2269,16 @@ describe('selectCustomerPricingInfoBatch', () => {
       })
     ).unwrap()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerPricingInfoBatch(
-        [customer1.id, customer2.id],
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerPricingInfoBatch(
+            [customer1.id, customer2.id],
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.size).toBe(2)
     expect(result.get(customer1.id)?.pricingModelId).toBe(
@@ -2168,9 +2303,16 @@ describe('selectCustomerPricingInfoBatch', () => {
       customerIds.push(customer.id)
     }
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerPricingInfoBatch(customerIds, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerPricingInfoBatch(
+            customerIds,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Verify all 100 customers returned
     expect(result.size).toBe(100)
@@ -2198,12 +2340,16 @@ describe('selectCustomerPricingInfoBatch', () => {
       })
     ).unwrap()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomerPricingInfoBatch(
-        [customerLive.id, customerTest.id],
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerPricingInfoBatch(
+            [customerLive.id, customerTest.id],
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.size).toBe(2)
     expect(result.get(customerLive.id)?.livemode).toBe(true)

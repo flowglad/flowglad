@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Membership } from '@/db/schema/memberships'
@@ -75,14 +76,16 @@ describe('organizationsRouter - notification preferences', () => {
     user = userApiKeySetup.user
 
     // Get the membership that was created
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMemberships(
-          { userId: user.id, organizationId: organization.id },
-          transaction
+    const memberships = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectMemberships(
+            { userId: user.id, organizationId: organization.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     membership = memberships[0]
   })
 
@@ -118,6 +121,7 @@ describe('organizationsRouter - notification preferences', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       const caller = createCaller(organization, apiKeyToken, user)

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,

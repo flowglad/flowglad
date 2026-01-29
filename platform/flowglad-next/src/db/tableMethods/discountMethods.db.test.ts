@@ -220,17 +220,19 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
       })
     ).unwrap()
 
-    const discounts = await adminTransaction(
-      async ({ transaction }) => {
+    const discounts = (
+      await adminTransaction(async ({ transaction }) => {
         const discountRecord = (
           await selectDiscountById(discount.id, transaction)
         ).unwrap()
-        return await enrichDiscountsWithRedemptionCounts(
-          [discountRecord],
-          transaction
+        return Result.ok(
+          await enrichDiscountsWithRedemptionCounts(
+            [discountRecord],
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(discounts).toHaveLength(1)
     expect(discounts[0].id).toBe(discount.id)
@@ -285,17 +287,19 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
       )
     )
 
-    const enrichedDiscounts = await adminTransaction(
-      async ({ transaction }) => {
+    const enrichedDiscounts = (
+      await adminTransaction(async ({ transaction }) => {
         const discountRecord = (
           await selectDiscountById(discount.id, transaction)
         ).unwrap()
-        return await enrichDiscountsWithRedemptionCounts(
-          [discountRecord],
-          transaction
+        return Result.ok(
+          await enrichDiscountsWithRedemptionCounts(
+            [discountRecord],
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(enrichedDiscounts).toHaveLength(1)
     expect(enrichedDiscounts[0].id).toBe(discount.id)

@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,

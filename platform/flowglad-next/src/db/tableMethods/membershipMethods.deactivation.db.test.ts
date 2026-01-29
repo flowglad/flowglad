@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Membership } from '@/db/schema/memberships'

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { user } from '@/db/schema/betterAuthSchema'
 import core from '@/utils/core'
@@ -23,11 +24,16 @@ describe('selectBetterAuthUserById', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
+      return Result.ok(undefined)
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectBetterAuthUserById(userId, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserById(userId, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result.id).toBe(userId)
     expect(result.email).toBe(userEmail)
@@ -39,11 +45,17 @@ describe('selectBetterAuthUserById', () => {
   it('throws an error when no user exists with the given id', async () => {
     const nonExistentId = `bau_nonexistent_${core.nanoid()}`
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        return selectBetterAuthUserById(nonExistentId, transaction)
-      })
-    ).rejects.toThrow('BetterAuth user not found')
+    const result = await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await selectBetterAuthUserById(nonExistentId, transaction)
+      )
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'BetterAuth user not found'
+      )
+    }
   })
 })
 
@@ -63,11 +75,16 @@ describe('selectBetterAuthUserByEmail', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
+      return Result.ok(undefined)
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectBetterAuthUserByEmail(userEmail, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserByEmail(userEmail, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result.id).toBe(userId)
     expect(result.email).toBe(userEmail)
@@ -79,14 +96,20 @@ describe('selectBetterAuthUserByEmail', () => {
   it('throws an error when no user exists with the given email', async () => {
     const nonExistentEmail = `nonexistent+${core.nanoid()}@test.com`
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(
+    const result = await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await selectBetterAuthUserByEmail(
           nonExistentEmail,
           transaction
         )
-      })
-    ).rejects.toThrow('BetterAuth user not found')
+      )
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'BetterAuth user not found'
+      )
+    }
   })
 
   it('returns the correct user when multiple users exist (email is unique)', async () => {
@@ -116,19 +139,24 @@ describe('selectBetterAuthUserByEmail', () => {
           updatedAt: new Date(),
         },
       ])
+      return Result.ok(undefined)
     })
 
-    const result1 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(user1Email, transaction)
-      }
-    )
+    const result1 = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserByEmail(user1Email, transaction)
+        )
+      })
+    ).unwrap()
 
-    const result2 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(user2Email, transaction)
-      }
-    )
+    const result2 = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserByEmail(user2Email, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result1.id).toBe(user1Id)
     expect(result1.email).toBe(user1Email)

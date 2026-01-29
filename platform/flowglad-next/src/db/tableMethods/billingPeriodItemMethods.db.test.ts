@@ -43,14 +43,18 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const startDate = new Date('2023-06-01T05:00:00.000Z')
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
-        organization.id,
-        startDate,
-        endDate,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
+            organization.id,
+            startDate,
+            endDate,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toEqual([])
   })

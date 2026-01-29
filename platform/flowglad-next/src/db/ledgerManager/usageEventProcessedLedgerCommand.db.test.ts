@@ -6,6 +6,7 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+import { Result } from 'better-result'
 import { and, eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
@@ -143,6 +144,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
       expect(applications).toBeInstanceOf(Array)
       expect(applications.length).toBe(0)
+      return Result.ok(undefined)
     })
   })
 
@@ -182,6 +184,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
       )
       expect(application.organizationId).toBe(organization.id)
       expect(application.livemode).toBe(TEST_LIVEMODE)
+      return Result.ok(undefined)
     })
   })
 
@@ -276,6 +279,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
       expect(application2.status).toBe(
         UsageCreditApplicationStatus.Posted
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -325,6 +329,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
         (app) => app.usageCreditId === usageCredit2.id
       )!
       expect(application2.amountApplied).toBe(40)
+      return Result.ok(undefined)
     })
   })
 
@@ -365,6 +370,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
       expect(application.status).toBe(
         UsageCreditApplicationStatus.Posted
       )
+      return Result.ok(undefined)
     })
   })
 })
@@ -459,6 +465,7 @@ describe('aggregateAvailableBalanceForUsageCredit', () => {
         baseTime + 3 * thirtyDaysMs,
         null,
       ])
+      return Result.ok(undefined)
     })
   })
 })
@@ -538,6 +545,7 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
       )
       expect(creditEntry.organizationId).toBe(organization.id)
       expect(creditEntry.livemode).toBe(TEST_LIVEMODE)
+      return Result.ok(undefined)
     })
   })
 
@@ -651,6 +659,7 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
             c.sourceCreditApplicationId === usageCreditApplication2.id
         )!.amount
       ).toBe(70)
+      return Result.ok(undefined)
     })
   })
 
@@ -752,6 +761,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           transaction
         )
       expect(finalBalance).toBe(-sampleUsageEvent.amount)
+      return Result.ok(undefined)
     })
   })
 
@@ -924,6 +934,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       expect(finalBalance).toBe(
         creditAmount - sampleUsageEvent.amount
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -1102,6 +1113,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       expect(finalBalance).toBe(
         creditIssuedAmount - sampleUsageEvent.amount
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -1129,18 +1141,20 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         ).unwrap()
       })
     ).rejects.toThrowError('No subscriptions found with id')
-    const rogueTransactions = await adminTransaction(
-      async ({ transaction }) => {
-        return selectLedgerTransactions(
-          {
-            organizationId: organization.id,
-            subscriptionId: invalidSubscriptionId,
-          },
-          transaction
+    const rogueTransactions = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          selectLedgerTransactions(
+            {
+              organizationId: organization.id,
+              subscriptionId: invalidSubscriptionId,
+            },
+            transaction
+          )
         )
-      }
-    )
-    expect(rogueTransactions.length).toBe(0)
+      })
+    ).unwrap()
+    expect((await rogueTransactions).length).toBe(0)
   })
 
   it('should create a new ledger account if one does not exist for the subscription and usage meter', async () => {
@@ -1268,6 +1282,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           transaction
         )
       expect(finalBalance).toBe(-newUsageEvent.amount)
+      return Result.ok(undefined)
     })
   })
 
@@ -1385,6 +1400,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       expect(finalBalance).toBe(
         -priorUsageAmount - sampleUsageEvent.amount
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -1432,6 +1448,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       expect(finalBalance).toBe(
         creditAmount - priorUsageAmount - newUsageAmount
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -1538,6 +1555,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           transaction
         )
       expect(finalBalance).toBe(-newUsageAmount)
+      return Result.ok(undefined)
     })
   })
 })

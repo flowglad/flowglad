@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupInvoice,
@@ -40,24 +41,31 @@ describe('updateInvoiceTransaction', () => {
       // Attempt to exploit by passing draft invoice ID for validation
       // but paid invoice ID in the invoice object for the actual update
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return updateInvoiceTransaction(
-            {
-              id: draftInvoice.id, // Use draft invoice ID for terminal check
-              invoice: {
-                id: paidInvoice.id, // But try to update paid invoice
-                type: InvoiceType.Purchase,
-                status: InvoiceStatus.Open,
-                currency: paidInvoice.currency,
-                dueDate: paidInvoice.dueDate,
-                invoiceDate: paidInvoice.invoiceDate,
-              },
-              invoiceLineItems: [],
-            },
-            true,
-            transaction
+        (async () => {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await updateInvoiceTransaction(
+                  {
+                    id: draftInvoice.id, // Use draft invoice ID for terminal check
+                    invoice: {
+                      id: paidInvoice.id, // But try to update paid invoice
+                      type: InvoiceType.Purchase,
+                      status: InvoiceStatus.Open,
+                      currency: paidInvoice.currency,
+                      dueDate: paidInvoice.dueDate,
+                      invoiceDate: paidInvoice.invoiceDate,
+                    },
+                    invoiceLineItems: [],
+                  },
+                  true,
+                  transaction
+                )
+              )
+            }
           )
-        })
+          return result.unwrap()
+        })()
       ).rejects.toThrow(/ID mismatch/)
     })
 
@@ -104,6 +112,7 @@ describe('updateInvoiceTransaction', () => {
 
         expect(result.invoice.id).toBe(invoice.id)
         expect(result.invoice.status).toBe(InvoiceStatus.Open)
+        return Result.ok(undefined)
       })
     })
   })
@@ -479,6 +488,7 @@ describe('updateInvoiceTransaction', () => {
         expect(modifiedItem!.quantity).toBe(2)
         expect(newItem).toMatchObject({ price: 3000 })
         expect(newItem!.price).toBe(3000)
+        return Result.ok(undefined)
       })
     })
   })

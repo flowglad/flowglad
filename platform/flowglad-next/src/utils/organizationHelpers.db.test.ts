@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
@@ -123,15 +124,17 @@ describe('createOrganizationTransaction', () => {
           countryId,
         },
       }
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
+      return Result.ok(
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
       )
     })
     await adminTransaction(async ({ transaction }) => {
@@ -179,6 +182,7 @@ describe('createOrganizationTransaction', () => {
        * they can only be created once the organization has payouts enabled.
        */
       expect(livemodeKeys.length).toBe(0)
+      return Result.ok(undefined)
     })
   })
 
@@ -195,15 +199,17 @@ describe('createOrganizationTransaction', () => {
           countryId,
         },
       }
-      return createOrganizationTransaction(
-        input,
-        {
-          id: userId,
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
+      return Result.ok(
+        await createOrganizationTransaction(
+          input,
+          {
+            id: userId,
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
       )
     })
 
@@ -221,6 +227,7 @@ describe('createOrganizationTransaction', () => {
       expect(typeof membership).toBe('object')
 
       expect(membership.role).toBe(MembershipRole.Owner)
+      return Result.ok(undefined)
     })
   })
 
@@ -235,15 +242,17 @@ describe('createOrganizationTransaction', () => {
           countryId,
         },
       }
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
+      return Result.ok(
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
       )
     })
 
@@ -340,6 +349,7 @@ describe('createOrganizationTransaction', () => {
       expect(testProductWithPrices.defaultPrice.currency).toBe(
         organization.defaultCurrency
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -357,15 +367,17 @@ describe('createOrganizationTransaction', () => {
         },
       }
 
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
+      return Result.ok(
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
       )
     })
 
@@ -378,6 +390,7 @@ describe('createOrganizationTransaction', () => {
       expect(organization.stripeConnectContractType).toBe(
         StripeConnectContractType.MerchantOfRecord
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -393,15 +406,17 @@ describe('createOrganizationTransaction', () => {
         },
       }
 
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
+      return Result.ok(
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
       )
     })
 
@@ -414,36 +429,44 @@ describe('createOrganizationTransaction', () => {
       expect(organization.stripeConnectContractType).toBe(
         StripeConnectContractType.MerchantOfRecord
       )
+      return Result.ok(undefined)
     })
   })
 
   it('should reject Platform contract type for MoR-only countries', async () => {
     const organizationName = `org_${core.nanoid()}`
 
-    const promise = adminTransaction(async ({ transaction }) => {
-      const countryId = await getMoROnlyCountryId(transaction)
-      const input: CreateOrganizationInput = {
-        organization: {
-          name: organizationName,
-          countryId,
-          stripeConnectContractType:
-            StripeConnectContractType.Platform,
-        },
-      }
+    await expect(
+      (async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const countryId = await getMoROnlyCountryId(transaction)
+            const input: CreateOrganizationInput = {
+              organization: {
+                name: organizationName,
+                countryId,
+                stripeConnectContractType:
+                  StripeConnectContractType.Platform,
+              },
+            }
 
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
-      )
-    })
-
-    await expect(promise).rejects.toThrow(
+            return Result.ok(
+              await createOrganizationTransaction(
+                input,
+                {
+                  id: core.nanoid(),
+                  email: `test+${core.nanoid()}@test.com`,
+                  fullName: 'Test User',
+                },
+                transaction,
+                { type: 'admin', livemode: true }
+              )
+            )
+          }
+        )
+        return result.unwrap()
+      })()
+    ).rejects.toThrow(
       /Stripe Connect contract type .* is not supported/
     )
   })
@@ -463,15 +486,17 @@ describe('createOrganizationTransaction', () => {
           },
         }
 
-        return createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
+        return Result.ok(
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
         )
       })
 
@@ -485,6 +510,7 @@ describe('createOrganizationTransaction', () => {
           StripeConnectContractType.MerchantOfRecord
         )
         expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+        return Result.ok(undefined)
       })
     })
 
@@ -503,15 +529,17 @@ describe('createOrganizationTransaction', () => {
           },
         }
 
-        return createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
+        return Result.ok(
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
         )
       })
 
@@ -526,6 +554,7 @@ describe('createOrganizationTransaction', () => {
         )
         // MoR orgs always get USD, even if the country has a different default currency
         expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+        return Result.ok(undefined)
       })
     })
 
@@ -572,6 +601,7 @@ describe('createOrganizationTransaction', () => {
         // Verify it's not USD (unless the country's default happens to be USD)
         // This test uses a non-US country, so it should have a different currency
         expect(expectedCurrency).not.toBe(CurrencyCode.USD)
+        return Result.ok(undefined)
       })
     })
 
@@ -618,6 +648,7 @@ describe('createOrganizationTransaction', () => {
         )
         // US Platform orgs should also have USD (via defaultCurrencyForCountry)
         expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+        return Result.ok(undefined)
       })
     })
 
@@ -634,15 +665,17 @@ describe('createOrganizationTransaction', () => {
           },
         }
 
-        return createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
+        return Result.ok(
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
         )
       })
 
@@ -658,6 +691,7 @@ describe('createOrganizationTransaction', () => {
         )
         // And should enforce USD as the default currency
         expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+        return Result.ok(undefined)
       })
     })
   })

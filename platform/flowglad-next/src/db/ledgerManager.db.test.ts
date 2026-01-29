@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCreditLedgerEntry,
@@ -235,15 +236,17 @@ describe('Ledger Management System', async () => {
           usageEvent.amount -
           secondUsageEvent.amount // omit thirdUsageEvent, which is pending
 
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return await aggregateBalanceForLedgerAccountFromEntries(
-              { ledgerAccountId: ledgerAccount.id },
-              'posted',
-              transaction
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
         expect(result).toBe(expectedBalance)
       })
       it('should accurately reflect the "effective/pending" balance from posted or active pending LedgerEntries', async () => {
@@ -339,15 +342,17 @@ describe('Ledger Management System', async () => {
           secondUsageEvent.amount
         // omit thirdUsageEvent, which is DISCARDED
 
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return await aggregateBalanceForLedgerAccountFromEntries(
-              { ledgerAccountId: ledgerAccount.id },
-              'available',
-              transaction
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
         expect(result).toBe(expectedBalance)
       })
       it('should correctly calculate balances with a mix of positive and negative entries', async () => {
@@ -431,6 +436,7 @@ describe('Ledger Management System', async () => {
               transaction
             )
           expect(postedResult).toBe(expectedPostedBalance)
+          return Result.ok(undefined)
         })
 
         // await adminTransaction(async ({ transaction: adminDb }) => {
@@ -934,6 +940,7 @@ describe('Ledger Management System', async () => {
                 .map((e: LedgerEntry.Record) => e.id)
                 .sort()
             )
+            return Result.ok(undefined)
           })
         })
 
@@ -1007,6 +1014,7 @@ describe('Ledger Management System', async () => {
                 .map((e: LedgerEntry.Record) => e.id)
                 .sort()
             )
+            return Result.ok(undefined)
           })
         })
 
@@ -1088,6 +1096,7 @@ describe('Ledger Management System', async () => {
             expect(secondResult.ledgerTransaction.id).not.toBe(
               firstResult.ledgerTransaction.id
             )
+            return Result.ok(undefined)
           })
         })
       })

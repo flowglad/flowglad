@@ -6,6 +6,7 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+import { Result } from 'better-result'
 import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 
 // Only mock Next headers to satisfy runtime; avoid higher-level mocks
@@ -261,6 +262,7 @@ describe('checkoutHelpers', () => {
         expect(result.price.id).toBe(price.id)
         expect(result.sellerOrganization.id).toBe(organization.id)
         expect(result.maybeCustomer?.id).toBe(customer.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -297,6 +299,7 @@ describe('checkoutHelpers', () => {
         expect(result.price.id).toBe(price.id)
         expect(result.sellerOrganization.id).toBe(organization.id)
         expect(result.maybeCustomer).toBeNull()
+        return Result.ok(undefined)
       })
     })
 
@@ -320,6 +323,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result.discount?.id).toBe(discount.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -345,6 +349,7 @@ describe('checkoutHelpers', () => {
         expect(result.feeCalculation).toMatchObject({ id: second.id })
         expect(result.feeCalculation?.id).toBe(second.id)
         expect(result.feeCalculation?.id).not.toBe(first.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -365,6 +370,7 @@ describe('checkoutHelpers', () => {
         expect(
           result.maybeCurrentSubscriptions?.length
         ).toBeGreaterThan(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -404,6 +410,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result.features?.length).toBeGreaterThan(0)
+        return Result.ok(undefined)
       })
     })
   })
@@ -423,6 +430,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(false)
+        return Result.ok(undefined)
       })
     })
 
@@ -470,6 +478,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(false)
+        return Result.ok(undefined)
       })
     })
 
@@ -518,6 +527,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(true)
+        return Result.ok(undefined)
       })
     })
 
@@ -587,6 +597,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(true)
+        return Result.ok(undefined)
       })
     })
 
@@ -635,6 +646,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(true)
+        return Result.ok(undefined)
       })
     })
   })
@@ -674,6 +686,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBeUndefined()
+        return Result.ok(undefined)
       })
     })
 
@@ -708,6 +721,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(true)
+        return Result.ok(undefined)
       })
     })
 
@@ -756,6 +770,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(true)
+        return Result.ok(undefined)
       })
     })
 
@@ -818,6 +833,7 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result).toBe(false)
+        return Result.ok(undefined)
       })
     })
   })

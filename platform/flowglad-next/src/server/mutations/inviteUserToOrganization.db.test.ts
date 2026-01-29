@@ -6,6 +6,7 @@ import {
   it,
   mock,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupOrg,
   setupUserAndApiKey,
@@ -99,6 +100,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
         expect(newMemberships).toHaveLength(1)
         expect(newMemberships[0].focused).toBe(false)
         expect(newMemberships[0].livemode).toBe(false)
+        return Result.ok(undefined)
       })
 
       expect(result).toEqual({ action: 'created' })
@@ -146,6 +148,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
           transaction
         )
         expect(newMemberships).toHaveLength(1)
+        return Result.ok(undefined)
       })
     })
   })
@@ -184,6 +187,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
         expect(memberships).toHaveLength(1)
         expect(memberships[0].focused).toBe(false)
         expect(memberships[0].livemode).toBe(false)
+        return Result.ok(undefined)
       })
 
       expect(result).toEqual({ action: 'created' })
@@ -208,6 +212,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
           transaction
         )
         expect(memberships.length).toBeGreaterThan(0)
+        return Result.ok(undefined)
       })
 
       const result = await innerInviteUserToOrganizationHandler(
@@ -227,6 +232,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
           transaction
         )
         expect(memberships).toHaveLength(1)
+        return Result.ok(undefined)
       })
 
       expect(result).toEqual({ action: 'already_member' })
@@ -249,6 +255,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
           { id: membership.id, deactivatedAt: Date.now() },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Verify membership is deactivated (not visible in default query)
@@ -261,6 +268,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
           transaction
         )
         expect(activeMemberships).toHaveLength(0)
+        return Result.ok(undefined)
       })
 
       const input = { email: removedUser.email! }
@@ -289,6 +297,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
         )
         expect(memberships).toHaveLength(1)
         expect(memberships[0].deactivatedAt).toBeNull()
+        return Result.ok(undefined)
       })
 
       expect(result).toEqual({ action: 'reactivated' })
@@ -309,6 +318,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
           { id: membership.id, deactivatedAt: Date.now() },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       const input = { email: removedUser.email! }
@@ -338,6 +348,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
         )
         expect(memberships).toHaveLength(1)
         expect(memberships[0].deactivatedAt).toBeNull()
+        return Result.ok(undefined)
       })
     })
   })

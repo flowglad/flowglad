@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -136,8 +137,8 @@ const setupTestFeaturesAndProductFeatures = async (
       )
       createdData.push({ feature, productFeature })
     }
-    return createdData
-  })
+    return Result.ok(createdData)
+  }).then((r) => r.unwrap())
 }
 
 describe('addFeatureToSubscription mutation', () => {
@@ -234,6 +235,7 @@ describe('addFeatureToSubscription mutation', () => {
         expect(result.subscriptionItemFeature.manuallyCreated).toBe(
           true
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -260,6 +262,7 @@ describe('addFeatureToSubscription mutation', () => {
         ).rejects.toThrow(
           'grantCreditsImmediately is only supported for usage credit features.'
         )
+        return Result.ok(undefined)
       })
     })
   })
@@ -310,6 +313,7 @@ describe('addFeatureToSubscription mutation', () => {
         expect(result.subscriptionItemFeature.manuallyCreated).toBe(
           true
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -393,6 +397,7 @@ describe('addFeatureToSubscription mutation', () => {
         expect(usageCredits[0].issuedAmount).toBe(
           usageCreditFeature.amount
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -447,6 +452,7 @@ describe('addFeatureToSubscription mutation', () => {
           transaction
         )
         expect(usageCredits.length).toBe(0)
+        return Result.ok(undefined)
       })
     })
   })
@@ -487,6 +493,7 @@ describe('addFeatureToSubscription mutation', () => {
         ).rejects.toThrow(
           `Subscription item ${subscriptionItem.id} is expired and cannot accept new features.`
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -522,6 +529,7 @@ describe('addFeatureToSubscription mutation', () => {
         ).rejects.toThrow(
           `Feature ${inactiveFeature.id} is inactive and cannot be added to subscriptions.`
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -557,6 +565,7 @@ describe('addFeatureToSubscription mutation', () => {
         ).rejects.toThrow(
           `Feature ${otherOrgFeature.id} does not belong to the same organization as subscription ${subscription.id}.`
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -590,6 +599,7 @@ describe('addFeatureToSubscription mutation', () => {
         ).rejects.toThrow(
           'Feature livemode does not match subscription item livemode.'
         )
+        return Result.ok(undefined)
       })
     })
   })
@@ -640,6 +650,7 @@ describe('addFeatureToSubscription mutation', () => {
           transaction
         )
         expect(features.length).toBe(1)
+        return Result.ok(undefined)
       })
     })
   })

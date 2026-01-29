@@ -7,6 +7,7 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+import { Result } from 'better-result'
 import { and, eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
@@ -228,63 +229,66 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
   describe('processBillingPeriodTransitionLedgerCommand', () => {
     describe('Credit Granting Logic', () => {
       it('should grant credits for a new billing period', async () => {
-        await adminTransaction(async ({ transaction }) => {
-          // Arrange
-          command.payload.subscriptionFeatureItems = [
-            subscriptionFeatureItem,
-          ]
+        const {
+          ledgerTransaction,
+          ledgerEntries: createdLedgerEntries,
+        } = (
+          await adminTransaction(async ({ transaction }) => {
+            // Arrange
+            command.payload.subscriptionFeatureItems = [
+              subscriptionFeatureItem,
+            ]
 
-          // Act
-          const {
-            ledgerTransaction,
-            ledgerEntries: createdLedgerEntries,
-          } = (
-            await processBillingPeriodTransitionLedgerCommand(
-              command,
-              transaction
+            // Act
+            const result = (
+              await processBillingPeriodTransitionLedgerCommand(
+                command,
+                transaction
+              )
+            ).unwrap()
+
+            // Assert
+            // 1. Verify the main transaction record
+            expect(result.ledgerTransaction.type).toBe(
+              LedgerTransactionType.BillingPeriodTransition
             )
-          ).unwrap()
-
-          // Assert
-          // 1. Verify the main transaction record
-          expect(ledgerTransaction.type).toBe(
-            LedgerTransactionType.BillingPeriodTransition
-          )
-          expect(ledgerTransaction.subscriptionId).toBe(
-            subscription.id
-          )
-
-          // 2. Verify the ledger entry for the credit grant
-          expect(createdLedgerEntries).toHaveLength(1)
-          const creditEntry =
-            createdLedgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
-          expect(creditEntry.entryType).toBe(
-            LedgerEntryType.CreditGrantRecognized
-          )
-          expect(creditEntry.amount).toBe(feature.amount!)
-          expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
-          expect(typeof creditEntry.sourceUsageCreditId).toBe(
-            'string'
-          )
-
-          // 3. Verify the usage credit record was created
-          const usageCredit = (
-            await selectUsageCreditById(
-              creditEntry.sourceUsageCreditId!,
-              transaction
+            expect(result.ledgerTransaction.subscriptionId).toBe(
+              subscription.id
             )
-          ).unwrap()
 
-          expect(usageCredit).toMatchObject({
-            issuedAmount: feature.amount,
-            status: UsageCreditStatus.Posted,
+            // 2. Verify the ledger entry for the credit grant
+            expect(result.ledgerEntries).toHaveLength(1)
+            const creditEntry = result
+              .ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
+            expect(creditEntry.entryType).toBe(
+              LedgerEntryType.CreditGrantRecognized
+            )
+            expect(creditEntry.amount).toBe(feature.amount!)
+            expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
+            expect(typeof creditEntry.sourceUsageCreditId).toBe(
+              'string'
+            )
+
+            // 3. Verify the usage credit record was created
+            const usageCredit = (
+              await selectUsageCreditById(
+                creditEntry.sourceUsageCreditId!,
+                transaction
+              )
+            ).unwrap()
+
+            expect(usageCredit).toMatchObject({
+              issuedAmount: feature.amount,
+              status: UsageCreditStatus.Posted,
+            })
+            if (!usageCredit) {
+              throw new Error('Usage credit not found')
+            }
+            expect(usageCredit.issuedAmount).toBe(feature.amount!)
+            expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
+            return Result.ok(result)
           })
-          if (!usageCredit) {
-            throw new Error('Usage credit not found')
-          }
-          expect(usageCredit.issuedAmount).toBe(feature.amount!)
-          expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
-        })
+        ).unwrap()
       })
 
       it('should create a ledger account if one is missing for an entitlement', async () => {
@@ -366,6 +370,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(ledgerEntries[0].ledgerAccountId).toBe(
             finalAccounts[0].id
           )
+          return Result.ok(undefined)
         })
       })
 
@@ -375,6 +380,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           await db
             .delete(usageCredits)
             .where(eq(usageCredits.id, 'test'))
+          return Result.ok(undefined)
         })
       })
     })
@@ -451,6 +457,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(expirationEntry.sourceUsageCreditId).toBe(
             usageCreditToExpire.id
           )
+          return Result.ok(undefined)
         })
       })
 
@@ -552,6 +559,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(expirationEntry.sourceUsageCreditId).toBe(
             usageCredit.id
           )
+          return Result.ok(undefined)
         })
       })
 
@@ -581,6 +589,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Assert
           // Expect no expiration entries to be created for non-expiring credits.
           expect(createdLedgerEntries).toHaveLength(0)
+          return Result.ok(undefined)
         })
       })
 
@@ -613,6 +622,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Assert
           // Expect no expiration entries to be created for credits that expire in the future.
           expect(createdLedgerEntries).toHaveLength(0)
+          return Result.ok(undefined)
         })
       })
     })
@@ -926,6 +936,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(recurringCredit.expiresAt).toBeNull() // Never expires for non-renewing
           expect(recurringCredit.billingPeriodId).toBeNull()
           expect(recurringCredit.issuedAmount).toBe(1000)
+          return Result.ok(undefined)
         })
       })
 
@@ -1008,6 +1019,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Verify the credit is non-expiring
           expect(allCredits[0].expiresAt).toBeNull()
           expect(allCredits[0].billingPeriodId).toBeNull()
+          return Result.ok(undefined)
         })
       })
 
@@ -1152,6 +1164,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Note: For non-renewing subscriptions, we cannot process the same command twice
           // due to unique constraints on ledger transactions. This is expected behavior.
           // Ledger accounts are created once and reused for future transactions.
+          return Result.ok(undefined)
         })
       })
 
@@ -1189,6 +1202,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               )
             )
           expect(credits).toHaveLength(0)
+          return Result.ok(undefined)
         })
       })
     })
@@ -1276,6 +1290,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             futureExpiringCredit.expiresAt
           )
           expect(neverCredit?.expiresAt).toBeNull()
+          return Result.ok(undefined)
         })
       })
 
@@ -1364,6 +1379,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             )
 
           expect(dbExpirationEntries).toHaveLength(0)
+          return Result.ok(undefined)
         })
       })
     })
@@ -1421,6 +1437,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             ).unwrap()
             expect(credit.billingPeriodId).toBeNull()
           }
+          return Result.ok(undefined)
         })
       })
 
@@ -1615,6 +1632,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
 
           // Assert - no new credits on second call (all treated as Once for non-renewing)
           expect(secondResult.ledgerEntries).toHaveLength(0)
+          return Result.ok(undefined)
         })
       })
     })
@@ -1720,6 +1738,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(newCredit.billingPeriodId).toBe(
             renewingBillingPeriod.id
           )
+          return Result.ok(undefined)
         })
       })
 
@@ -1767,6 +1786,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(initialCredit.expiresAt).toBeNull()
           expect(initialCredit.billingPeriodId).toBeNull()
           expect(initialCredit.status).toBe(UsageCreditStatus.Posted)
+          return Result.ok(undefined)
         })
       })
     })
@@ -1893,6 +1913,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(availableBalance[0].balance).toBe(500) // Full amount available
           expect(availableBalance[0].usageCreditId).toBe(creditId)
           expect(availableBalance[0].expiresAt).toBeNull() // Never expires
+          return Result.ok(undefined)
         })
       })
 

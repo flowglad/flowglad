@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -112,26 +113,30 @@ describe('resourceClaimHelpers', () => {
     })
 
     // Create a Resource feature
-    const resourceFeature = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return insertFeature(
-        {
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          type: FeatureType.Resource,
-          name: 'Seats Feature',
-          slug: 'seats-feature',
-          description: 'Resource feature for seats',
-          amount: 5,
-          usageMeterId: null,
-          renewalFrequency: null,
-          resourceId: resource.id,
-          livemode: true,
-          active: true,
-        },
-        ctx
-      )
-    })
+    const resourceFeature = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              type: FeatureType.Resource,
+              name: 'Seats Feature',
+              slug: 'seats-feature',
+              description: 'Resource feature for seats',
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              resourceId: resource.id,
+              livemode: true,
+              active: true,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
 
     subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
@@ -157,22 +162,25 @@ describe('resourceClaimHelpers', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                quantity: 1,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 1,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
       ).rejects.toThrow('is not active')
@@ -193,38 +201,44 @@ describe('resourceClaimHelpers', () => {
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                quantity: 1,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 1,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
       ).rejects.toThrow('No available capacity')
     })
 
     it('when quantity is provided, creates that many anonymous claims with externalId=null and returns accurate usage', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 3,
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 3,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.claims.length).toBe(3)
       expect(result.claims.every((c) => c.externalId === null)).toBe(
@@ -243,21 +257,25 @@ describe('resourceClaimHelpers', () => {
     })
 
     it('when externalId is provided, creates a single named claim with that externalId', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'user_123',
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'user_123',
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.claims.length).toBe(1)
       expect(result.claims[0].externalId).toBe('user_123')
@@ -272,38 +290,46 @@ describe('resourceClaimHelpers', () => {
 
     it('when claiming with an already active externalId, returns the existing claim without creating a duplicate (idempotent)', async () => {
       // Create first claim
-      const firstResult = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'user_123',
-            },
-          },
-          transaction
-        )
-      })
+      const firstResult = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'user_123',
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Attempt to claim again with same externalId
-      const secondResult = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'user_123',
-            },
-          },
-          transaction
-        )
-      })
+      const secondResult = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'user_123',
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(secondResult.claims.length).toBe(1)
       expect(secondResult.claims[0].id).toBe(firstResult.claims[0].id)
@@ -320,40 +346,46 @@ describe('resourceClaimHelpers', () => {
       // Create one claim first
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'existing_user',
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'existing_user',
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       // Now claim with multiple externalIds including the existing one
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: [
-                'existing_user',
-                'new_user_1',
-                'new_user_2',
-              ],
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: [
+                    'existing_user',
+                    'new_user_1',
+                    'new_user_2',
+                  ],
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.claims.length).toBe(3)
       expect(result.claims.map((c) => c.externalId).sort()).toEqual(
@@ -386,32 +418,38 @@ describe('resourceClaimHelpers', () => {
         await expect(
           adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 2,
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: 'seats',
+                    subscriptionId: subscription.id,
+                    quantity: 2,
+                  },
                 },
-              },
-              transaction
+                transaction
+              )
             )
           })
         ).rejects.toThrow('No available capacity')
 
         // Verify no partial claims were created - should still have exactly 4
-        const activeClaims = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-        })
+        const activeClaims = (
+          await adminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
         expect(activeClaims.length).toBe(4)
         // All should be our prefill claims
         expect(
@@ -423,21 +461,25 @@ describe('resourceClaimHelpers', () => {
 
       it('when batch claim succeeds, all claims are inserted atomically', async () => {
         // Claim 3 resources atomically
-        const result = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                externalIds: ['user-a', 'user-b', 'user-c'],
-              },
-            },
-            transaction
-          )
-        })
+        const result = (
+          await adminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: 'seats',
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-a', 'user-b', 'user-c'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // All 3 should be created
         expect(result.claims.length).toBe(3)
@@ -446,36 +488,44 @@ describe('resourceClaimHelpers', () => {
         )
 
         // Verify in database
-        const activeClaims = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-        })
+        const activeClaims = (
+          await adminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
         expect(activeClaims.length).toBe(3)
       })
 
       it('when exact capacity is requested, succeeds without over-claiming', async () => {
         // Claim exactly 5 (full capacity)
-        const result = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                quantity: 5,
-              },
-            },
-            transaction
-          )
-        })
+        const result = (
+          await adminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: 'seats',
+                    subscriptionId: subscription.id,
+                    quantity: 5,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         expect(result.claims.length).toBe(5)
         expect(result.usage).toMatchObject({
@@ -488,17 +538,19 @@ describe('resourceClaimHelpers', () => {
         await expect(
           adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 1,
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: 'seats',
+                    subscriptionId: subscription.id,
+                    quantity: 1,
+                  },
                 },
-              },
-              transaction
+                transaction
+              )
             )
           })
         ).rejects.toThrow('No available capacity')
@@ -511,53 +563,61 @@ describe('resourceClaimHelpers', () => {
       // Create 3 anonymous claims
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 3,
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       // Create 2 named claims
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: ['named_user_1', 'named_user_2'],
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['named_user_1', 'named_user_2'],
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       // Release 2 anonymous claims
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 2,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.releasedClaims.length).toBe(2)
       expect(
@@ -577,16 +637,20 @@ describe('resourceClaimHelpers', () => {
       expect(result.usage.resourceId).toBe(resource.id)
 
       // Verify the named claims are still active
-      const activeClaims = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: resource.id,
-          },
-          transaction
-        )
-      })
+      const activeClaims = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       const namedClaims = activeClaims.filter(
         (c) => c.externalId !== null
       )
@@ -597,17 +661,19 @@ describe('resourceClaimHelpers', () => {
       // Create only 2 anonymous claims
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
@@ -615,17 +681,19 @@ describe('resourceClaimHelpers', () => {
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return releaseResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                quantity: 3,
+          return Result.ok(
+            await releaseResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 3,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
       ).rejects.toThrow(
@@ -637,35 +705,41 @@ describe('resourceClaimHelpers', () => {
       // Create a named claim
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'user_to_release',
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'user_to_release',
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'user_to_release',
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'user_to_release',
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.releasedClaims.length).toBe(1)
       expect(result.releasedClaims[0].externalId).toBe(
@@ -685,17 +759,19 @@ describe('resourceClaimHelpers', () => {
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return releaseResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                externalId: 'nonexistent_user',
+          return Result.ok(
+            await releaseResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'nonexistent_user',
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
       ).rejects.toThrow('No active claim found with externalId')
@@ -703,37 +779,45 @@ describe('resourceClaimHelpers', () => {
 
     it('when claimIds are provided, releases those specific claims regardless of type', async () => {
       // Create mixed claims
-      const anonymousResult = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
+      const anonymousResult = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 2,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
-      const namedResult = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'named_user',
-            },
-          },
-          transaction
-        )
-      })
+      const namedResult = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'named_user',
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Release one anonymous and one named by ID
       const claimIdsToRelease = [
@@ -741,21 +825,25 @@ describe('resourceClaimHelpers', () => {
         namedResult.claims[0].id,
       ]
 
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              claimIds: claimIdsToRelease,
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  claimIds: claimIdsToRelease,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.releasedClaims.length).toBe(2)
       expect(result.usage).toMatchObject({
@@ -773,68 +861,84 @@ describe('resourceClaimHelpers', () => {
       // Create mixed claims: 3 anonymous + 2 named = 5 total
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 3,
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: ['named_1', 'named_2'],
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['named_1', 'named_2'],
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       // Release all claims
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseAllResourceClaimsForSubscription(
-          subscription.id,
-          'subscription_canceled',
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseAllResourceClaimsForSubscription(
+              subscription.id,
+              'subscription_canceled',
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.releasedCount).toBe(5)
 
       // Verify all claims are released
-      const activeClaims = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectActiveResourceClaims(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-      })
+      const activeClaims = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectActiveResourceClaims(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       expect(activeClaims.length).toBe(0)
     })
 
     it('when there are no active claims, returns releasedCount of 0', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseAllResourceClaimsForSubscription(
-          subscription.id,
-          'subscription_canceled',
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseAllResourceClaimsForSubscription(
+              subscription.id,
+              'subscription_canceled',
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.releasedCount).toBe(0)
     })
@@ -845,28 +949,34 @@ describe('resourceClaimHelpers', () => {
       // Create 3 claims
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 3,
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
-      const usage = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return getResourceUsage(
-          subscription.id,
-          resource.id,
-          transaction
-        )
-      })
+      const usage = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await getResourceUsage(
+              subscription.id,
+              resource.id,
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(usage).toEqual({
         capacity: 5,
@@ -876,14 +986,18 @@ describe('resourceClaimHelpers', () => {
     })
 
     it('when no claims exist, returns full capacity as available', async () => {
-      const usage = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return getResourceUsage(
-          subscription.id,
-          resource.id,
-          transaction
-        )
-      })
+      const usage = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await getResourceUsage(
+              subscription.id,
+              resource.id,
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(usage).toEqual({
         capacity: 5,
@@ -898,47 +1012,55 @@ describe('resourceClaimHelpers', () => {
       // Create 2 anonymous claims and 1 named claim
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'named_user_1',
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'named_user_1',
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       // Fetch claims using array-based resourceId filtering (as the router does)
-      const claims = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: [resource.id],
-          },
-          transaction
-        )
-      })
+      const claims = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: [resource.id],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(claims.length).toBe(3)
       expect(
@@ -959,16 +1081,20 @@ describe('resourceClaimHelpers', () => {
     })
 
     it('when no claims exist for the specified resources, returns an empty array', async () => {
-      const claims = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: [resource.id],
-          },
-          transaction
-        )
-      })
+      const claims = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: [resource.id],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(claims).toEqual([])
     })
@@ -976,22 +1102,26 @@ describe('resourceClaimHelpers', () => {
 
   describe('claimResourceTransaction - additional coverage', () => {
     it('when metadata is provided, persists metadata to the created claims', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalId: 'user_with_metadata',
-              metadata: { team: 'engineering', role: 'admin' },
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'user_with_metadata',
+                  metadata: { team: 'engineering', role: 'admin' },
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.claims.length).toBe(1)
       expect(result.claims[0].metadata).toEqual({
@@ -1001,21 +1131,25 @@ describe('resourceClaimHelpers', () => {
     })
 
     it('when subscriptionId is omitted, automatically uses the first active subscription for the customer', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              // subscriptionId intentionally omitted
-              quantity: 1,
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  // subscriptionId intentionally omitted
+                  quantity: 1,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.claims.length).toBe(1)
       expect(result.claims[0].subscriptionId).toBe(subscription.id)
@@ -1034,22 +1168,25 @@ describe('resourceClaimHelpers', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                // subscriptionId intentionally omitted
-                quantity: 1,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  // subscriptionId intentionally omitted
+                  quantity: 1,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
       ).rejects.toThrow('No active subscription found')
@@ -1061,36 +1198,42 @@ describe('resourceClaimHelpers', () => {
       // Create 3 named claims
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: ['user_1', 'user_2', 'user_3'],
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['user_1', 'user_2', 'user_3'],
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
       // Release 2 of the 3 claims
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: ['user_1', 'user_3'],
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: ['user_1', 'user_3'],
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.releasedClaims.length).toBe(2)
       expect(
@@ -1105,16 +1248,20 @@ describe('resourceClaimHelpers', () => {
       expect(result.usage.resourceId).toBe(resource.id)
 
       // Verify user_2 is still active
-      const activeClaims = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: resource.id,
-          },
-          transaction
-        )
-      })
+      const activeClaims = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       expect(activeClaims.length).toBe(1)
       expect(activeClaims[0].externalId).toBe('user_2')
     })
@@ -1123,17 +1270,19 @@ describe('resourceClaimHelpers', () => {
       // Create only 2 named claims
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: ['user_1', 'user_2'],
+        return Result.ok(
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['user_1', 'user_2'],
+              },
             },
-          },
-          transaction
+            transaction
+          )
         )
       })
 
@@ -1141,17 +1290,23 @@ describe('resourceClaimHelpers', () => {
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return releaseResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                externalIds: ['user_1', 'user_2', 'nonexistent_user'],
+          return Result.ok(
+            await releaseResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: [
+                    'user_1',
+                    'user_2',
+                    'nonexistent_user',
+                  ],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
       ).rejects.toThrow('No active claim found with externalId')
@@ -1313,26 +1468,30 @@ describe('expired_at functionality', () => {
     })
 
     // Create a Resource feature with capacity of 5
-    const resourceFeature = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return insertFeature(
-        {
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          type: FeatureType.Resource,
-          name: 'Seats Feature',
-          slug: 'seats-feature',
-          description: 'Resource feature for seats',
-          amount: 5,
-          usageMeterId: null,
-          renewalFrequency: null,
-          resourceId: resource.id,
-          livemode: true,
-          active: true,
-        },
-        ctx
-      )
-    })
+    const resourceFeature = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              type: FeatureType.Resource,
+              name: 'Seats Feature',
+              slug: 'seats-feature',
+              description: 'Resource feature for seats',
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              resourceId: resource.id,
+              livemode: true,
+              active: true,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
 
     subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({
@@ -1378,16 +1537,20 @@ describe('expired_at functionality', () => {
         expiredAt: oneHourFromNow,
       })
 
-      const activeClaims = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: resource.id,
-          },
-          transaction
-        )
-      })
+      const activeClaims = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Only active and future-expiry claims should be returned
       expect(activeClaims.length).toBe(2)
@@ -1428,16 +1591,20 @@ describe('expired_at functionality', () => {
         })
       }
 
-      const count = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return countActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: resource.id,
-          },
-          transaction
-        )
-      })
+      const count = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await countActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Only 3 active claims should be counted
       expect(count).toBe(3)
@@ -1481,14 +1648,18 @@ describe('expired_at functionality', () => {
         expiredAt: null,
       })
 
-      const usage = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return getResourceUsage(
-          subscription.id,
-          resource.id,
-          transaction
-        )
-      })
+      const usage = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await getResourceUsage(
+              subscription.id,
+              resource.id,
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(usage).toEqual({
         capacity: 5,
@@ -1515,24 +1686,29 @@ describe('expired_at functionality', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // Now claim a resource
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 2,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Both claims should be temporary because future capacity is 0
       expect(result.claims.length).toBe(2)
@@ -1552,21 +1728,25 @@ describe('expired_at functionality', () => {
     })
 
     it('when no scheduled change exists, claims are created without expiredAt', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 2,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.claims.length).toBe(2)
       expect(result.claims.every((c) => c.expiredAt === null)).toBe(
@@ -1589,23 +1769,28 @@ describe('expired_at functionality', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 1,
-            },
-          },
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 1,
+                },
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Since cancelScheduledAt is in the past, it shouldn't affect new claims
       expect(result.claims.length).toBe(1)
@@ -1657,28 +1842,36 @@ describe('expired_at functionality', () => {
       })
 
       // Release expired claims
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseExpiredResourceClaims(
-          subscription.id,
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseExpiredResourceClaims(
+              subscription.id,
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Only the 2 expired claims should have been released
       expect(result.releasedCount).toBe(2)
 
       // Verify remaining active claims
-      const activeClaims = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return selectActiveResourceClaims(
-          {
-            subscriptionId: subscription.id,
-            resourceId: resource.id,
-          },
-          transaction
-        )
-      })
+      const activeClaims = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Only active and future-expiry claims remain
       expect(activeClaims.length).toBe(2)
@@ -1698,13 +1891,17 @@ describe('expired_at functionality', () => {
         expiredAt: null,
       })
 
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return releaseExpiredResourceClaims(
-          subscription.id,
-          transaction
-        )
-      })
+      const result = (
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await releaseExpiredResourceClaims(
+              subscription.id,
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.releasedCount).toBe(0)
     })

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -179,6 +180,7 @@ describe('validateAndResolvePriceForSubscription', () => {
       expect(result.price.type).toBe(PriceType.Subscription)
       expect(result.product.id).toBe(product.id)
       expect(result.organization.id).toBe(organization.id)
+      return Result.ok(undefined)
     })
   })
 
@@ -196,6 +198,7 @@ describe('validateAndResolvePriceForSubscription', () => {
         code: 'NOT_FOUND',
         message: `Price with id "${nonExistentId}" not found`,
       })
+      return Result.ok(undefined)
     })
   })
 
@@ -231,6 +234,7 @@ describe('validateAndResolvePriceForSubscription', () => {
         code: 'BAD_REQUEST',
         message: `Price "${usagePrice.id}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
       })
+      return Result.ok(undefined)
     })
   })
 
@@ -246,6 +250,7 @@ describe('validateAndResolvePriceForSubscription', () => {
         code: 'BAD_REQUEST',
         message: `Price ${singlePaymentPrice.id} is a single payment price and cannot be used to create a subscription.`,
       })
+      return Result.ok(undefined)
     })
   })
 
@@ -260,6 +265,7 @@ describe('validateAndResolvePriceForSubscription', () => {
         code: 'BAD_REQUEST',
         message: 'Either priceId or priceSlug must be provided',
       })
+      return Result.ok(undefined)
     })
   })
 
@@ -277,6 +283,7 @@ describe('validateAndResolvePriceForSubscription', () => {
         code: 'NOT_FOUND',
         message: `Price with slug "${nonExistentSlug}" not found for this customer's pricing model`,
       })
+      return Result.ok(undefined)
     })
   })
 })
@@ -309,6 +316,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
 
       expect(result.id).toBe(customer.id)
       expect(result.email).toBe(customer.email)
+      return Result.ok(undefined)
     })
   })
 
@@ -322,6 +330,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
 
       expect(result.id).toBe(customer.id)
       expect(result.externalId).toBe(customer.externalId)
+      return Result.ok(undefined)
     })
   })
 
@@ -339,6 +348,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
         code: 'NOT_FOUND',
         message: `Customer with externalId ${nonExistentExternalId} not found`,
       })
+      return Result.ok(undefined)
     })
   })
 
@@ -354,6 +364,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
         message:
           'Either customerId or customerExternalId must be provided',
       })
+      return Result.ok(undefined)
     })
   })
 })

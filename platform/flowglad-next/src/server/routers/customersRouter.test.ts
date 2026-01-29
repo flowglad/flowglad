@@ -6,6 +6,7 @@ import {
   setDefaultTimeout,
 } from 'bun:test'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -151,6 +152,7 @@ describe('customersRouter.archive', () => {
 
       expect(updatedSub2.status).toBe(SubscriptionStatus.Canceled)
       expect(updatedSub2.cancellationReason).toBe('customer_archived')
+      return Result.ok(undefined)
     })
   })
 

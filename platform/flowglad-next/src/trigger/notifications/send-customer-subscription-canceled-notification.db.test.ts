@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -86,6 +87,7 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
         { id: customerWithEmail.id, email: '' },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     const orgSetup2 = (await setupOrg()).unwrap()

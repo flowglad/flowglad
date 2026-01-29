@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupMemberships,
@@ -14,12 +15,16 @@ describe('buildNotificationContext', () => {
     it('returns organization record when found', async () => {
       const { organization } = (await setupOrg()).unwrap()
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          { organizationId: organization.id },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              { organizationId: organization.id },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(ctx.organization.id).toBe(organization.id)
       expect(ctx.organization.name).toBe(organization.name)
@@ -29,12 +34,19 @@ describe('buildNotificationContext', () => {
       const nonExistentId = 'org_non_existent_12345'
 
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return buildNotificationContext(
-            { organizationId: nonExistentId },
-            transaction
+        (async () => {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await buildNotificationContext(
+                  { organizationId: nonExistentId },
+                  transaction
+                )
+              )
+            }
           )
-        })
+          return result.unwrap()
+        })()
       ).rejects.toThrow(
         `No organizations found with id: ${nonExistentId}`
       )
@@ -50,15 +62,19 @@ describe('buildNotificationContext', () => {
         })
       ).unwrap()
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(ctx.organization.id).toBe(organization.id)
       expect('customer' in ctx).toBe(true)
@@ -73,15 +89,22 @@ describe('buildNotificationContext', () => {
       const nonExistentCustomerId = 'cust_non_existent_12345'
 
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return buildNotificationContext(
-            {
-              organizationId: organization.id,
-              customerId: nonExistentCustomerId,
-            },
-            transaction
+        (async () => {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await buildNotificationContext(
+                  {
+                    organizationId: organization.id,
+                    customerId: nonExistentCustomerId,
+                  },
+                  transaction
+                )
+              )
+            }
           )
-        })
+          return result.unwrap()
+        })()
       ).rejects.toThrow(
         `No customers found with id: ${nonExistentCustomerId}`
       )
@@ -109,17 +132,21 @@ describe('buildNotificationContext', () => {
         paymentMethodId: paymentMethod.id,
       })
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            include: ['price', 'defaultPaymentMethod'],
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                include: ['price', 'defaultPaymentMethod'],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(ctx.organization.id).toBe(organization.id)
       expect('customer' in ctx).toBe(true)
@@ -160,17 +187,21 @@ describe('buildNotificationContext', () => {
         paymentMethodId: paymentMethod.id,
       })
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            // no include array - subscription should still be fetched
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                // no include array - subscription should still be fetched
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(ctx.organization.id).toBe(organization.id)
       expect('subscription' in ctx).toBe(true)
@@ -202,17 +233,21 @@ describe('buildNotificationContext', () => {
         priceId: price.id,
       })
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            include: ['price', 'defaultPaymentMethod'],
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                include: ['price', 'defaultPaymentMethod'],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect('subscription' in ctx).toBe(true)
       expect('price' in ctx).toBe(true)
@@ -238,17 +273,21 @@ describe('buildNotificationContext', () => {
         // No paymentMethodId provided
       })
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            include: ['price', 'defaultPaymentMethod'],
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                include: ['price', 'defaultPaymentMethod'],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect('paymentMethod' in ctx).toBe(true)
       if ('paymentMethod' in ctx) {
@@ -286,17 +325,21 @@ describe('buildNotificationContext', () => {
         paymentMethodId: defaultPaymentMethod.id,
       })
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            include: ['price', 'defaultPaymentMethod'],
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                include: ['price', 'defaultPaymentMethod'],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect('paymentMethod' in ctx).toBe(true)
       if ('paymentMethod' in ctx) {
@@ -314,17 +357,24 @@ describe('buildNotificationContext', () => {
       const nonExistentSubscriptionId = 'sub_non_existent_12345'
 
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return buildNotificationContext(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              subscriptionId: nonExistentSubscriptionId,
-              include: ['price', 'defaultPaymentMethod'],
-            },
-            transaction
+        (async () => {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await buildNotificationContext(
+                  {
+                    organizationId: organization.id,
+                    customerId: customer.id,
+                    subscriptionId: nonExistentSubscriptionId,
+                    include: ['price', 'defaultPaymentMethod'],
+                  },
+                  transaction
+                )
+              )
+            }
           )
-        })
+          return result.unwrap()
+        })()
       ).rejects.toThrow(
         `No subscriptions found with id: ${nonExistentSubscriptionId}`
       )
@@ -340,17 +390,24 @@ describe('buildNotificationContext', () => {
       const nonExistentSubscriptionId = 'sub_non_existent_67890'
 
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return buildNotificationContext(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              subscriptionId: nonExistentSubscriptionId,
-              // no include array - subscription should still be fetched and throw
-            },
-            transaction
+        (async () => {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await buildNotificationContext(
+                  {
+                    organizationId: organization.id,
+                    customerId: customer.id,
+                    subscriptionId: nonExistentSubscriptionId,
+                    // no include array - subscription should still be fetched and throw
+                  },
+                  transaction
+                )
+              )
+            }
           )
-        })
+          return result.unwrap()
+        })()
       ).rejects.toThrow(
         `No subscriptions found with id: ${nonExistentSubscriptionId}`
       )
@@ -369,16 +426,20 @@ describe('buildNotificationContext', () => {
       await setupMemberships({ organizationId: organization.id })
       await setupMemberships({ organizationId: organization.id })
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            include: ['usersAndMemberships'],
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                include: ['usersAndMemberships'],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(ctx.organization.id).toBe(organization.id)
       expect('customer' in ctx).toBe(true)
@@ -408,16 +469,20 @@ describe('buildNotificationContext', () => {
       ).unwrap()
       // Note: setupOrg doesn't create memberships by default
 
-      const ctx = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            include: ['usersAndMemberships'],
-          },
-          transaction
-        )
-      })
+      const ctx = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await buildNotificationContext(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                include: ['usersAndMemberships'],
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect('usersAndMemberships' in ctx).toBe(true)
       if ('usersAndMemberships' in ctx) {

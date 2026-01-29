@@ -6,6 +6,7 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   addDays,
   addYears,
@@ -447,14 +448,18 @@ describe('getBillingPeriodsForDateRange', () => {
     const startDate = new Date('2023-06-01T05:00:00.000Z')
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getBillingPeriodsForDateRange(
-        organization.id,
-        startDate,
-        endDate,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await getBillingPeriodsForDateRange(
+            organization.id,
+            startDate,
+            endDate,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toEqual([])
   })

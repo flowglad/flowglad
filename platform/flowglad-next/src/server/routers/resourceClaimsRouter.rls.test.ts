@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -128,45 +129,53 @@ describe('resourceClaimsRouter', () => {
     })
 
     // Create Resource features (shared across tests)
-    seatsFeature = await adminTransaction(async (ctx) => {
-      return insertFeature(
-        {
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          type: FeatureType.Resource,
-          name: 'Seats Feature',
-          slug: 'seats-feature',
-          description: 'Resource feature for seats',
-          amount: 10,
-          usageMeterId: null,
-          renewalFrequency: null,
-          resourceId: resource.id,
-          livemode: true,
-          active: true,
-        },
-        ctx
-      )
-    })
+    seatsFeature = (
+      await adminTransaction(async (ctx) => {
+        return Result.ok(
+          await insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              type: FeatureType.Resource,
+              name: 'Seats Feature',
+              slug: 'seats-feature',
+              description: 'Resource feature for seats',
+              amount: 10,
+              usageMeterId: null,
+              renewalFrequency: null,
+              resourceId: resource.id,
+              livemode: true,
+              active: true,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
 
-    projectsFeature = await adminTransaction(async (ctx) => {
-      return insertFeature(
-        {
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          type: FeatureType.Resource,
-          name: 'Projects Feature',
-          slug: 'projects-feature',
-          description: 'Resource feature for projects',
-          amount: 5,
-          usageMeterId: null,
-          renewalFrequency: null,
-          resourceId: resource2.id,
-          livemode: true,
-          active: true,
-        },
-        ctx
-      )
-    })
+    projectsFeature = (
+      await adminTransaction(async (ctx) => {
+        return Result.ok(
+          await insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              type: FeatureType.Resource,
+              name: 'Projects Feature',
+              slug: 'projects-feature',
+              description: 'Resource feature for projects',
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              resourceId: resource2.id,
+              livemode: true,
+              active: true,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
 
     // Setup organization 2 for cross-tenant tests (shared)
     // NOTE: org2's subscription is created in beforeAll (not beforeEach) because

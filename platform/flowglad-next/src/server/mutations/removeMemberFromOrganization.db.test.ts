@@ -50,8 +50,8 @@ const createUserWithMembership = async (params: {
       transaction
     )
 
-    return { user, membership }
-  })
+    return Result.ok({ user, membership })
+  }).then((r) => r.unwrap())
 }
 
 describe('innerRemoveMemberFromOrganization', () => {
@@ -84,15 +84,17 @@ describe('innerRemoveMemberFromOrganization', () => {
           focused: true,
         })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: memberMembership.id },
-            ownerMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: memberMembership.id },
+              ownerMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isOk(result)).toBe(true)
       const updatedMembership = (
@@ -103,29 +105,33 @@ describe('innerRemoveMemberFromOrganization', () => {
       expect(typeof updatedMembership.deactivatedAt).toBe('number')
 
       // Verify the membership is not returned by default queries
-      const memberships = await adminTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { organizationId: organization.id },
-            transaction
+      const memberships = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectMemberships(
+              { organizationId: organization.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       const membershipIds = memberships.map((m) => m.id)
       expect(membershipIds).not.toContain(memberMembership.id)
       expect(membershipIds).toContain(ownerMembership.id)
     })
 
     it('returns AuthorizationError when owner tries to remove themselves', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: ownerMembership.id },
-            ownerMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: ownerMembership.id },
+              ownerMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       const error = (result as { error: AuthorizationError }).error
@@ -140,15 +146,17 @@ describe('innerRemoveMemberFromOrganization', () => {
           role: MembershipRole.Owner,
         })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: anotherOwnerMembership.id },
-            ownerMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: anotherOwnerMembership.id },
+              ownerMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       const error = (result as { error: AuthorizationError }).error
@@ -168,15 +176,17 @@ describe('innerRemoveMemberFromOrganization', () => {
     })
 
     it('successfully removes self (leave org) and sets focused=false and deactivatedAt', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: memberMembership.id },
-            memberMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: memberMembership.id },
+              memberMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isOk(result)).toBe(true)
       const updatedMembership = (
@@ -195,15 +205,17 @@ describe('innerRemoveMemberFromOrganization', () => {
           role: MembershipRole.Member,
         })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: anotherMemberMembership.id },
-            memberMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: anotherMemberMembership.id },
+              memberMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       const error = (result as { error: NotFoundError }).error
@@ -211,15 +223,17 @@ describe('innerRemoveMemberFromOrganization', () => {
     })
 
     it('returns AuthorizationError when trying to remove the owner', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: ownerMembership.id },
-            memberMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: ownerMembership.id },
+              memberMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Owner role check happens before requester permission check,
       // so attempting to remove an owner always returns AuthorizationError
@@ -233,15 +247,17 @@ describe('innerRemoveMemberFromOrganization', () => {
     it('returns NotFoundError for non-existent membership', async () => {
       const fakeMembershipId = `memb_${core.nanoid()}`
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: fakeMembershipId },
-            ownerMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: fakeMembershipId },
+              ownerMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       const error = (result as { error: NotFoundError }).error
@@ -258,7 +274,7 @@ describe('innerRemoveMemberFromOrganization', () => {
         })
 
       await adminTransaction(async ({ transaction }) => {
-        return updateMembership(
+        await updateMembership(
           {
             id: deactivatedMembership.id,
             deactivatedAt: Date.now(),
@@ -266,17 +282,20 @@ describe('innerRemoveMemberFromOrganization', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: deactivatedMembership.id },
-            ownerMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: deactivatedMembership.id },
+              ownerMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       const error = (result as { error: ConflictError }).error
@@ -295,15 +314,17 @@ describe('innerRemoveMemberFromOrganization', () => {
           role: MembershipRole.Member,
         })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return innerRemoveMemberFromOrganization(
-            { membershipId: otherOrgMembership.id },
-            ownerMembership,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await innerRemoveMemberFromOrganization(
+              { membershipId: otherOrgMembership.id },
+              ownerMembership,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       const error = (result as { error: NotFoundError }).error
@@ -327,22 +348,25 @@ describe('innerRemoveMemberFromOrganization', () => {
 
       // Remove the member
       await adminTransaction(async ({ transaction }) => {
-        return innerRemoveMemberFromOrganization(
+        await innerRemoveMemberFromOrganization(
           { membershipId: memberMembership.id },
           ownerMembership,
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // The deactivated membership should still be retrievable via includeDeactivated
-      const membershipIncludingDeactivated = await adminTransaction(
-        async ({ transaction }) => {
-          return selectMembershipByIdIncludingDeactivated(
-            memberMembership.id,
-            transaction
+      const membershipIncludingDeactivated = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectMembershipByIdIncludingDeactivated(
+              memberMembership.id,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(membershipIncludingDeactivated?.id).toBe(
         memberMembership.id
@@ -353,14 +377,16 @@ describe('innerRemoveMemberFromOrganization', () => {
       expect(membershipIncludingDeactivated!.focused).toBe(false)
 
       // But excluded from default queries
-      const defaultQueryMemberships = await adminTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { id: memberMembership.id },
-            transaction
+      const defaultQueryMemberships = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectMemberships(
+              { id: memberMembership.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(defaultQueryMemberships).toHaveLength(0)
     })
   })

@@ -169,6 +169,7 @@ describe('Subscription Billing Period Transition', async () => {
       )
       // And because a valid payment method exists, a billing run should be created
       expect(typeof newBillingRun).toBe('object')
+      return Result.ok(undefined)
     })
   })
 
@@ -192,6 +193,7 @@ describe('Subscription Billing Period Transition', async () => {
           /Cannot close billing period/
         )
       }
+      return Result.ok(undefined)
     })
   })
 
@@ -237,6 +239,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
         billingPeriod.startDate
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -259,6 +262,7 @@ describe('Subscription Billing Period Transition', async () => {
 
       expect(newBillingRun).toBeNull()
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
+      return Result.ok(undefined)
     })
   })
 
@@ -293,6 +297,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(typeof updatedSub.canceledAt).toBe('number')
       expect(updatedSub.canceledAt).toBeGreaterThan(0)
       expect(newBillingRun).toBeNull()
+      return Result.ok(undefined)
     })
   })
 
@@ -329,6 +334,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(newBillingRun?.scheduledFor).toEqual(
         updatedSub.currentBillingPeriodStart!
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -371,6 +377,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
         billingPeriod.startDate
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -417,6 +424,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(updatedSub.currentBillingPeriodEnd).toEqual(
         subscription.currentBillingPeriodEnd
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -463,6 +471,7 @@ describe('Subscription Billing Period Transition', async () => {
         (bp) => bp.id === billingPeriod.id
       )
       expect(currentBp?.status).toBe(BillingPeriodStatus.Completed)
+      return Result.ok(undefined)
     })
   })
 
@@ -480,6 +489,7 @@ describe('Subscription Billing Period Transition', async () => {
         )
 
       expect(Result.isError(result)).toBe(true)
+      return Result.ok(undefined)
     })
   })
 
@@ -507,6 +517,7 @@ describe('Subscription Billing Period Transition', async () => {
       )
       // And because a valid payment method exists, a billing run should be created.
       expect(typeof newBillingRun).toBe('object')
+      return Result.ok(undefined)
     })
   })
 
@@ -542,6 +553,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(effects.ledgerCommands[0].organizationId).toBe(
         organization.id
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -603,6 +615,7 @@ describe('Subscription Billing Period Transition', async () => {
         ).unwrap()
         expect(billingPeriod.trialPeriod).toBe(true)
         expect(billingPeriodItems).toHaveLength(0)
+        return Result.ok(undefined)
       })
     })
   })
@@ -641,6 +654,7 @@ describe('Subscription Billing Period Transition', async () => {
           `Cannot transition subscription ${subscription.id} in credit trial status`
         )
       }
+      return Result.ok(undefined)
     })
   })
 
@@ -685,6 +699,7 @@ describe('Subscription Billing Period Transition', async () => {
       expect(billingPeriodItemInserts.length).toBe(1)
       expect(billingPeriodItemInserts[0].name).toBe('Regular Plan')
       expect(billingPeriodItemInserts[0].unitPrice).toBe(1000)
+      return Result.ok(undefined)
     })
   })
 
@@ -730,6 +745,7 @@ describe('Subscription Billing Period Transition', async () => {
         expect(updatedSub.currentBillingPeriodStart).toBeGreaterThan(
           billingPeriod.startDate
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -774,6 +790,7 @@ describe('Subscription Billing Period Transition', async () => {
         expect(updatedSub.currentBillingPeriodStart).toBeGreaterThan(
           billingPeriod.startDate
         )
+        return Result.ok(undefined)
       })
     })
   })
@@ -864,6 +881,7 @@ describe('Ledger Interactions', () => {
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           amount: grantAmount,
         })
+        return Result.ok(undefined)
       })
 
       // execution:
@@ -915,6 +933,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance).toBe(grantAmount)
+        return Result.ok(undefined)
       })
     })
 
@@ -926,6 +945,7 @@ describe('Ledger Interactions', () => {
           SubscriptionStatus.Canceled,
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // execution:
@@ -951,6 +971,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -968,6 +989,7 @@ describe('Ledger Interactions', () => {
           status: BillingPeriodStatus.Upcoming,
           livemode: true,
         })
+        return Result.ok(undefined)
       })
 
       // execution:
@@ -992,6 +1014,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1008,16 +1031,22 @@ describe('Ledger Interactions', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // execution:
-      const { subscription: updatedSub } = await adminTransaction(
-        async (params) =>
-          attemptToTransitionSubscriptionBillingPeriod(
-            pastBillingPeriod,
-            createProcessingEffectsContext(params)
+      const { subscription: updatedSub } = (
+        await adminTransaction(async (params) =>
+          Result.ok(
+            (
+              await attemptToTransitionSubscriptionBillingPeriod(
+                pastBillingPeriod,
+                createProcessingEffectsContext(params)
+              )
+            ).unwrap()
           )
-      )
+        )
+      ).unwrap()
       canceledSub = updatedSub
 
       // expects:
@@ -1036,6 +1065,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1066,6 +1096,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1110,16 +1141,22 @@ describe('Ledger Interactions', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       // execution:
-      const { subscription: updatedSub } = await adminTransaction(
-        async (params) =>
-          attemptToTransitionSubscriptionBillingPeriod(
-            pastBillingPeriod,
-            createProcessingEffectsContext(params)
+      const { subscription: updatedSub } = (
+        await adminTransaction(async (params) =>
+          Result.ok(
+            (
+              await attemptToTransitionSubscriptionBillingPeriod(
+                pastBillingPeriod,
+                createProcessingEffectsContext(params)
+              )
+            ).unwrap()
           )
-      )
+        )
+      ).unwrap()
       pastDueSub = updatedSub
 
       // expects:
@@ -1145,6 +1182,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance).toBe(grantAmount)
+        return Result.ok(undefined)
       })
     })
 
@@ -1203,6 +1241,7 @@ describe('Ledger Interactions', () => {
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           amount: grantAmount2,
         })
+        return Result.ok(undefined)
       })
 
       // execution:
@@ -1258,6 +1297,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance2).toBe(grantAmount2)
+        return Result.ok(undefined)
       })
     })
 
@@ -1290,6 +1330,7 @@ describe('Ledger Interactions', () => {
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           amount: grantAmount,
         })
+        return Result.ok(undefined)
       })
 
       // execution:
@@ -1336,6 +1377,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balance2).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1392,6 +1434,7 @@ describe('Ledger Interactions', () => {
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           amount: everyGrantAmount,
         })
+        return Result.ok(undefined)
       })
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
@@ -1432,6 +1475,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(balanceForEveryMeter).toBe(everyGrantAmount)
+        return Result.ok(undefined)
       })
     })
   })
@@ -1473,17 +1517,19 @@ describe('Ledger Interactions', () => {
         )
       )
 
-      const expiredLedgerEntryResult = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerEntries(
-            {
-              sourceUsageCreditId: expiringCredit.id,
-              entryType: LedgerEntryType.CreditGrantExpired,
-            },
-            transaction
+      const expiredLedgerEntryResult = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerEntries(
+              {
+                sourceUsageCreditId: expiringCredit.id,
+                entryType: LedgerEntryType.CreditGrantExpired,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       const expiredLedgerEntry = expiredLedgerEntryResult.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1500,6 +1546,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(finalBalance).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1581,16 +1628,18 @@ describe('Ledger Interactions', () => {
         )
       )
 
-      const ledgerEntries = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerEntries(
-            {
-              sourceUsageCreditId: expiringCredit.id,
-            },
-            transaction
+      const ledgerEntries = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerEntries(
+              {
+                sourceUsageCreditId: expiringCredit.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
@@ -1607,6 +1656,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(finalBalance).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1688,16 +1738,18 @@ describe('Ledger Interactions', () => {
         )
       )
 
-      const ledgerEntries = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerEntries(
-            {
-              sourceUsageCreditId: expiringCredit.id,
-            },
-            transaction
+      const ledgerEntries = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerEntries(
+              {
+                sourceUsageCreditId: expiringCredit.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1713,6 +1765,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(finalBalance).toBe(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1754,16 +1807,18 @@ describe('Ledger Interactions', () => {
         )
       )
 
-      const ledgerEntries = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerEntries(
-            {
-              sourceUsageCreditId: nonExpiringCredit.id,
-            },
-            transaction
+      const ledgerEntries = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerEntries(
+              {
+                sourceUsageCreditId: nonExpiringCredit.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1779,6 +1834,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(finalBalance).toBe(700)
+        return Result.ok(undefined)
       })
     })
 
@@ -1820,16 +1876,18 @@ describe('Ledger Interactions', () => {
         )
       )
 
-      const ledgerEntries = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerEntries(
-            {
-              sourceUsageCreditId: futureCredit.id,
-            },
-            transaction
+      const ledgerEntries = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerEntries(
+              {
+                sourceUsageCreditId: futureCredit.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1844,6 +1902,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(finalBalance).toBe(10000)
+        return Result.ok(undefined)
       })
     })
 
@@ -1997,6 +2056,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
         expect(finalBalance).toBe(500)
+        return Result.ok(undefined)
       })
     })
 
@@ -2116,6 +2176,7 @@ describe('Ledger Interactions', () => {
           )
         // Initial: 150. Expired: -150. New Grant: +250. Final: 250.
         expect(finalBalance).toBe(grantAmount)
+        return Result.ok(undefined)
       })
     })
 
@@ -2265,6 +2326,7 @@ describe('Ledger Interactions', () => {
         // Initial: 100 (expiring) + 200 (evergreen) = 300
         // Expired: -100. New Grant: +300. Final: 200 + 300 = 500.
         expect(finalBalance).toBe(evergreenAmount + grantAmount)
+        return Result.ok(undefined)
       })
     })
   })
@@ -2379,14 +2441,16 @@ describe('Resource claim expiration during billing period transition', async () 
     })
 
     // Verify initial state: both claims exist and are not released
-    const claimsBefore = await adminTransaction(
-      async ({ transaction }) => {
-        return selectResourceClaims(
-          { subscriptionId: subscription.id },
-          transaction
+    const claimsBefore = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectResourceClaims(
+            { subscriptionId: subscription.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(claimsBefore.length).toBe(2)
     expect(claimsBefore.every((c) => c.releasedAt === null)).toBe(
       true
@@ -2394,21 +2458,27 @@ describe('Resource claim expiration during billing period transition', async () 
 
     // Transition the billing period
     await adminTransaction(async (params) =>
-      attemptToTransitionSubscriptionBillingPeriod(
-        billingPeriod,
-        createProcessingEffectsContext(params)
+      Result.ok(
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            billingPeriod,
+            createProcessingEffectsContext(params)
+          )
+        ).unwrap()
       )
     )
 
     // Verify claims after transition
-    const claimsAfter = await adminTransaction(
-      async ({ transaction }) => {
-        return selectResourceClaims(
-          { subscriptionId: subscription.id },
-          transaction
+    const claimsAfter = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectResourceClaims(
+            { subscriptionId: subscription.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(claimsAfter.length).toBe(2)
 
     // The normal claim should still be active (not released)

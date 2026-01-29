@@ -1,4 +1,5 @@
 import { afterEach, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -121,19 +122,21 @@ describeIfRedisKey('cache recomputation integration', () => {
     keysToCleanup.push(cacheKey, metadataKey, registryKey)
 
     // Step 1: Populate cache by calling selectSubscriptionItemsWithPricesBySubscriptionId
-    const initialResult = await adminTransaction(
-      async ({ transaction }) => {
+    const initialResult = (
+      await adminTransaction(async ({ transaction }) => {
         const cacheRecomputationContext = {
           type: 'admin' as const,
           livemode: true,
         }
-        return selectSubscriptionItemsWithPricesBySubscriptionId(
-          subscription.id,
-          transaction,
-          cacheRecomputationContext
+        return Result.ok(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
+            subscription.id,
+            transaction,
+            cacheRecomputationContext
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(initialResult).toHaveLength(1)
     expect(initialResult[0].subscriptionItem.id).toBe(
@@ -167,6 +170,7 @@ describeIfRedisKey('cache recomputation integration', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Step 4: Invalidate cache (triggers fire-and-forget recomputation internally)
@@ -266,10 +270,12 @@ describeIfRedisKey('cache recomputation integration', () => {
           type: 'admin' as const,
           livemode: false,
         }
-        return selectSubscriptionItemsWithPricesBySubscriptionId(
-          subscription.id,
-          transaction,
-          cacheRecomputationContext
+        return Result.ok(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
+            subscription.id,
+            transaction,
+            cacheRecomputationContext
+          )
         )
       },
       { livemode: false }
@@ -380,10 +386,12 @@ describeIfRedisKey('cache recomputation integration', () => {
         type: 'admin' as const,
         livemode: true,
       }
-      return selectSubscriptionItemsWithPricesBySubscriptionId(
-        subscription.id,
-        transaction,
-        cacheRecomputationContext
+      return Result.ok(
+        await selectSubscriptionItemsWithPricesBySubscriptionId(
+          subscription.id,
+          transaction,
+          cacheRecomputationContext
+        )
       )
     })
 
