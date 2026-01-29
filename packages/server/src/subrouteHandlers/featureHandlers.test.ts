@@ -102,7 +102,7 @@ describe('Feature subroute handlers', () => {
       })
     })
 
-    it('filters to toggle features only', async () => {
+    it('returns toggle features from FlowgladServer.getFeatureAccessItems', async () => {
       const { server, mocks } = createMockFlowgladServer()
       const toggleFeatures = [
         {
@@ -125,24 +125,6 @@ describe('Feature subroute handlers', () => {
       )
 
       assert200Success(result, { features: toggleFeatures })
-    })
-
-    it('deduplicates features by slug', async () => {
-      const { server, mocks } = createMockFlowgladServer()
-      // Mock returns deduplicated features
-      mocks.getFeatureAccessItems.mockResolvedValue({
-        features: mockFeatureAccessItems,
-      })
-
-      const result = await getFeatureAccessItems(
-        {
-          method: HTTPMethod.POST,
-          data: {},
-        },
-        server
-      )
-
-      assert200Success(result, { features: mockFeatureAccessItems })
     })
 
     it('filters by subscriptionId', async () => {
