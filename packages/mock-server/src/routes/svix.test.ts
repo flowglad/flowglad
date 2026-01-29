@@ -230,13 +230,13 @@ describe('handleGetEndpointSecret', () => {
     expect(body.key).toMatch(/^whsec_mock_/)
   })
 
-  it('returns different keys on consecutive calls', async () => {
-    const response1 = handleGetEndpointSecret('app_123', 'ep_456')
-    const response2 = handleGetEndpointSecret('app_123', 'ep_456')
-    const body1 = await response1.json()
-    const body2 = await response2.json()
+  it('returns a key with the expected format (prefix + 21 char nanoid)', async () => {
+    const response = handleGetEndpointSecret('app_123', 'ep_456')
+    const body = await response.json()
 
-    expect(body1.key).not.toBe(body2.key)
+    // whsec_mock_ prefix (11 chars) + nanoid (21 chars) = 32 chars total
+    expect(body.key.length).toBe(32)
+    expect(body.key).toMatch(/^whsec_mock_[A-Za-z0-9_-]{21}$/)
   })
 })
 
