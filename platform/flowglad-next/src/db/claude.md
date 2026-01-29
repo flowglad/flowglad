@@ -41,93 +41,103 @@ db/
 
 ```typescript
 // For API routes/procedures (client-initiated)
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerById, updateCustomer } from '@/db/tableMethods/customerMethods'
 
 const result = await authenticatedTransaction(async ({ transaction, organizationId }) => {
   // All operations are scoped to the authenticated user/org
   const customer = await selectCustomerById(customerId, transaction)
-  
+
   // Update operations
   const updated = await updateCustomer({
     id: customerId,
     name: 'New Name'
   }, transaction)
-  
-  return updated
+
+  return Result.ok(updated)
 }, { apiKey: userApiKey })
+
+// At router/API boundaries, unwrap to get the value (throws on error)
+const customer = result.unwrap()
 ```
 
 ### 2. Admin Operations (Background Jobs, System Tasks)
 
 ```typescript
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 
 const ORGANIZATION_ID = 'org_foo'
 // Use adminTransaction for ALL background operations (Trigger tasks, cron jobs, etc.)
-await adminTransaction(async ({ transaction }) => {
+const result = await adminTransaction(async ({ transaction }) => {
   // Can access all data across all organizations
   const testmodeInvoices = await selectInvoices({
     organizationId: ORGANIZATION_ID
   }, transaction)
+  return Result.ok(testmodeInvoices)
 }, { livemode: true })
+
+// Handle the result or unwrap at boundaries
+const invoices = result.unwrap()
 ```
 
 ### 3. Complex Business Logic with Events and Ledger
 
+Transaction callbacks receive effect callbacks (`emitEvent`, `enqueueLedgerCommand`, `invalidateCache`) to queue side effects that are processed atomically within the transaction. Callbacks return `Result<T, Error>` for type-safe error handling.
+
 ```typescript
 // For client-initiated operations with events/ledger
-import { comprehensiveAuthenticatedTransaction } from '@/db/authenticatedTransaction'
+import { Result } from 'better-result'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { Event } from '@/db/schema/events'
-import { EventType, LedgerTransactionType } from '@/types'
+import { LedgerTransactionType } from '@/types'
 import { constructPaymentSucceededEventHash } from '@/utils/eventHelpers'
 
-const result = await comprehensiveAuthenticatedTransaction(async (params) => {
-  const { transaction, organizationId } = params
-  
+const result = await authenticatedTransaction(async (params) => {
+  const { transaction, organizationId, emitEvent, enqueueLedgerCommand } = params
+
   // Perform business logic (hypothetical code)
   const { invoice, invoiceLineItems } = await createInvoice(data, transaction)
   const payment = await selectPaymentById(invoice.paymentId, transaction)
-  const eventsToInsert: Event.Insert[] = const eventInserts: Event.Insert[] = [
-    {
-      type: FlowgladEventType.PaymentSucceeded,
-      occurredAt: new Date(),
-      organizationId,
-      livemode: invoice.livemode,
-      payload: {
-        object: EventNoun.Payment,
-        id: payment.id,
-      },
-      submittedAt: timestamp,
-      // always use a helper method to construct the event hash
-      hash: constructPaymentSucceededEventHash(subscription),
-      metadata: {},
-      processedAt: null,
+
+  // Queue events using the emitEvent callback
+  emitEvent({
+    type: FlowgladEventType.PaymentSucceeded,
+    occurredAt: new Date(),
+    organizationId,
+    livemode: invoice.livemode,
+    payload: {
+      object: EventNoun.Payment,
+      id: payment.id,
     },
-  ]
-  const invoiceLedgerCommand:
-    | SettleInvoiceUsageCostsLedgerCommand
-    | undefined =
-    invoice.status === InvoiceStatus.Paid
-      ? {
-          type: LedgerTransactionType.SettleInvoiceUsageCosts,
-          payload: {
-            invoice,
-            invoiceLineItems,
-          },
-          livemode: invoice.livemode,
-          organizationId: invoice.organizationId,
-          subscriptionId: invoice.subscriptionId!,
-        }
-      : undefined
-  // Return with events and ledger commands
-  return {
-    result: invoice,
-    eventsToInsert,
-    ledgerCommand: invoiceLedgerCommand
+    submittedAt: timestamp,
+    // always use a helper method to construct the event hash
+    hash: constructPaymentSucceededEventHash(subscription),
+    metadata: {},
+    processedAt: null,
+  })
+
+  // Queue ledger commands using the enqueueLedgerCommand callback
+  if (invoice.status === InvoiceStatus.Paid) {
+    enqueueLedgerCommand({
+      type: LedgerTransactionType.SettleInvoiceUsageCosts,
+      payload: {
+        invoice,
+        invoiceLineItems,
+      },
+      livemode: invoice.livemode,
+      organizationId: invoice.organizationId,
+      subscriptionId: invoice.subscriptionId!,
+    })
   }
+
+  // Return a Result - events and ledger commands are processed automatically
+  return Result.ok(invoice)
 }, { apiKey })
 
+// At router boundaries, unwrap the Result to convert to exceptions
+const invoice = result.unwrap()
 ```
 
 ### 4. Using Table Methods
@@ -204,6 +214,7 @@ const response = apiResponseSchema.parse({
 ```typescript
 // Tests use real database operations with setup helpers
 import { describe, it, expect, beforeEach } from 'bun:test'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { setupOrg, setupCustomer } from '@/../seedDatabase'
 import { selectCustomers, updateCustomer } from './tableMethods/customerMethods'
@@ -216,7 +227,7 @@ describe('Customer operations', () => {
     // Use seed helpers to set up test data
     const { organization } = await setupOrg()
     organizationId = organization.id
-    
+
     const customer = await setupCustomer({
       organizationId,
       email: `test+${core.nanoid()}@test.com`
@@ -225,23 +236,27 @@ describe('Customer operations', () => {
   })
 
   it('should update customer email', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
       const updated = await updateCustomer(
         { id: customerId, email: 'new@example.com' },
         transaction
       )
-      expect(updated.email).toBe('new@example.com')
+      return Result.ok(updated)
     })
+    const updated = result.unwrap()
+    expect(updated.email).toBe('new@example.com')
   })
 
   it('should select customers by organization', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
       const customers = await selectCustomers(
         { where: { organizationId } },
         transaction
       )
-      expect(customers.length).toBeGreaterThan(0)
+      return Result.ok(customers)
     })
+    const customers = result.unwrap()
+    expect(customers.length).toBeGreaterThan(0)
   })
 })
 ```
