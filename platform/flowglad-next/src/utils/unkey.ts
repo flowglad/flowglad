@@ -170,6 +170,7 @@ export interface StandardCreateApiKeyParams {
   userId: string
   type: FlowgladApiKeyType.Secret
   expiresAt?: Date | number
+  pricingModelId: string
 }
 
 interface CreateApiKeyResult {
@@ -184,25 +185,35 @@ type UnkeyInput = Parameters<
 export const secretApiKeyInputToUnkeyInput = (
   params: StandardCreateApiKeyParams
 ): UnkeyInput => {
-  const { organization, apiEnvironment } = params
+  const { organization, apiEnvironment, pricingModelId } = params
 
   const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
+  // Extract first 4 chars from pricingModelId (after 'pricing_model_' prefix)
+  const pmIdSuffix = pricingModelId
+    .replace('pricing_model_', '')
+    .slice(0, 4)
+
   const unparsedMeta: ApiKey.SecretMetadata = {
     userId: params.userId,
     type: FlowgladApiKeyType.Secret,
+    pricingModelId,
   }
   const secretMeta = secretApiKeyMetadataSchema.parse(unparsedMeta)
 
   return {
-    apiId: core.IS_TEST
-      ? 'test_api_id'
-      : core.envVariable('UNKEY_API_ID'),
-    name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
+    apiId: core.envVariable('UNKEY_API_ID'),
+    name: `${organization.id} / ${apiEnvironment} / ${pricingModelId} / ${params.name}`,
     expires: params.expiresAt
       ? new Date(params.expiresAt).getTime()
       : undefined,
     externalId: organization.id,
-    prefix: [maybeStagingPrefix, 'sk_', apiEnvironment].join(''),
+    prefix: [
+      maybeStagingPrefix,
+      'sk_',
+      apiEnvironment,
+      '_',
+      pmIdSuffix,
+    ].join(''),
     meta: secretMeta,
   }
 }
@@ -224,14 +235,15 @@ export const createSecretApiKey = async (
 
   const livemode = params.apiEnvironment === 'live'
   /**
-   * Hide the key in live mode
+   * Hide the key in live mode - preserve full prefix including PM ID suffix
    */
   const token = livemode
-    ? `sk_live_...${result.key.slice(-4)}`
+    ? `${unkeyInput.prefix}_...${result.key.slice(-4)}`
     : result.key
   return {
     apiKeyInsert: {
       organizationId: params.organization.id,
+      pricingModelId: params.pricingModelId,
       name: params.name,
       token,
       livemode,
@@ -270,6 +282,7 @@ export const replaceSecretApiKey = async (
     userId: params.userId,
     type: FlowgladApiKeyType.Secret,
     expiresAt: params.oldApiKey.expiresAt ?? undefined,
+    pricingModelId: params.oldApiKey.pricingModelId,
   })
 }
 

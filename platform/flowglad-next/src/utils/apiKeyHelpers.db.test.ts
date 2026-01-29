@@ -27,11 +27,15 @@ describe('apiKeyHelpers', () => {
   let organization: Organization.Record
   let userId: string
   let membershipId: string
+  let testmodePricingModelId: string
+  let livemodePricingModelId: string
 
   beforeEach(async () => {
     // Setup test data
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
+    testmodePricingModelId = orgSetup.testmodePricingModel.id
+    livemodePricingModelId = orgSetup.pricingModel.id
 
     // Create a test customer
     const customer = await setupCustomer({
@@ -52,6 +56,7 @@ describe('apiKeyHelpers', () => {
         apiKey: {
           name: 'Test API Key',
           type: FlowgladApiKeyType.Secret,
+          pricingModelId: testmodePricingModelId,
         },
       }
 
@@ -92,6 +97,7 @@ describe('apiKeyHelpers', () => {
         apiKey: {
           name: 'Test API Key',
           type: FlowgladApiKeyType.Secret,
+          pricingModelId: testmodePricingModelId,
         },
       }
 
@@ -126,6 +132,7 @@ describe('apiKeyHelpers', () => {
         apiKey: {
           name: 'Test API Key',
           type: FlowgladApiKeyType.Secret,
+          pricingModelId: livemodePricingModelId,
         },
       }
 
@@ -162,6 +169,7 @@ describe('apiKeyHelpers', () => {
         apiKey: {
           name: 'Test API Key',
           type: FlowgladApiKeyType.Secret,
+          pricingModelId: testmodePricingModelId,
         },
       }
 
@@ -200,6 +208,7 @@ describe('apiKeyHelpers', () => {
           name: 'Test API Key',
           // @ts-expect-error - we know that publishable keys are not supported
           type: FlowgladApiKeyType.Publishable,
+          pricingModelId: livemodePricingModelId,
         },
       }
 
@@ -234,6 +243,7 @@ describe('apiKeyHelpers', () => {
           return insertApiKey(
             {
               organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
               name: 'Test Secret API Key for Deletion',
               token: `live_sk_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
@@ -306,6 +316,7 @@ describe('apiKeyHelpers', () => {
           return insertApiKey(
             {
               organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
               name: 'Test Publishable API Key',
               token: `live_pk_${core.nanoid()}`,
               type: FlowgladApiKeyType.Publishable,
@@ -341,6 +352,7 @@ describe('apiKeyHelpers', () => {
           return insertApiKey(
             {
               organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
               name: 'Secret API Key without Unkey ID',
               token: `live_sk_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
@@ -384,6 +396,7 @@ describe('apiKeyHelpers', () => {
           return insertApiKey(
             {
               organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
               name: 'API Key Without Hash',
               token: `live_sk_nohash_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
@@ -431,6 +444,7 @@ describe('apiKeyHelpers', () => {
           return insertApiKey(
             {
               organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
               name: 'API Key With Fake Unkey ID',
               token: `live_sk_unkey_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,

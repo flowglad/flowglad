@@ -247,6 +247,7 @@ export const createOrganizationTransaction = async (
       apiKey: {
         name: 'Secret Testmode Key',
         type: FlowgladApiKeyType.Secret,
+        pricingModelId: defaultTestmodePricingModel.id,
       },
     },
     {
