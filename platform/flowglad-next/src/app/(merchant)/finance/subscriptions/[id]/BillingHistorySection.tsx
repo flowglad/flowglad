@@ -10,14 +10,14 @@ import {
 import Link from 'next/link'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
-import RefundPaymentModal from '@/app/finance/payments/RefundPaymentModal'
-import RetryPaymentModal from '@/app/finance/payments/RetryPaymentModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import {
   type BillingHistoryStatus,
   ItemBillingHistory,
 } from '@/components/ItemBillingHistory'
 import type { PopoverMenuItem } from '@/components/PopoverMenu'
+import RefundPaymentModal from '@/components/payments/RefundPaymentModal'
+import RetryPaymentModal from '@/components/payments/RetryPaymentModal'
 import {
   Alert,
   AlertDescription,
