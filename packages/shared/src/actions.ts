@@ -596,14 +596,14 @@ export type GetUsageMeterBalancesResponse = {
   usageMeterBalances: UsageMeterBalance[]
 }
 
-export const getFeatureAccessItemsSchema = z
+export const getFeatureAccessSchema = z
   .object({
     subscriptionId: z.string().optional(),
   })
   .strict()
 
 export type GetFeatureAccessParams = z.infer<
-  typeof getFeatureAccessItemsSchema
+  typeof getFeatureAccessSchema
 >
 
 export type GetFeatureAccessResponse = {
@@ -689,6 +689,6 @@ export const flowgladActionValidators = {
   },
   [FlowgladActionKey.GetFeatureAccess]: {
     method: HTTPMethod.POST,
-    inputValidator: getFeatureAccessItemsSchema,
+    inputValidator: getFeatureAccessSchema,
   },
 } as const satisfies FlowgladActionValidatorMap
