@@ -24,7 +24,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   adminTransaction,
-  comprehensiveAdminTransaction,
+  adminTransactionWithResult,
 } from '@/db/adminTransaction'
 import {
   authenticatedProcedureTransaction,
@@ -451,28 +451,30 @@ const createOrganization = protectedProcedure
       throw new Error('User not found')
     }
 
-    const result = await comprehensiveAdminTransaction(
-      async ({ transaction, cacheRecomputationContext }) => {
-        const [user] = await selectUsers(
-          {
-            betterAuthId: session.user.id,
-          },
-          transaction
-        )
-        const organizationResult =
-          await createOrganizationTransaction(
-            input,
+    const result = (
+      await adminTransactionWithResult(
+        async ({ transaction, cacheRecomputationContext }) => {
+          const [user] = await selectUsers(
             {
-              id: user.id,
-              email: user.email!,
-              fullName: user.name ?? undefined,
+              betterAuthId: session.user.id,
             },
-            transaction,
-            cacheRecomputationContext
+            transaction
           )
-        return Result.ok(organizationResult)
-      }
-    )
+          const organizationResult =
+            await createOrganizationTransaction(
+              input,
+              {
+                id: user.id,
+                email: user.email!,
+                fullName: user.name ?? undefined,
+              },
+              transaction,
+              cacheRecomputationContext
+            )
+          return Result.ok(organizationResult)
+        }
+      )
+    ).unwrap()
     if (input.codebaseMarkdown) {
       await saveOrganizationCodebaseMarkdown({
         organizationId: result.organization.id,
