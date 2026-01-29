@@ -204,3 +204,67 @@ export async function adminTransactionUnwrap<T>(
     return fn(ctx)
   }, options)
 }
+
+/**
+ * Executes a function within an admin database transaction and returns the Result directly.
+ *
+ * Unlike `comprehensiveAdminTransaction` which unwraps and throws on error, this function
+ * returns the Result for explicit error handling by the caller via `.unwrap()`.
+ *
+ * Use this when you need to:
+ * - Chain multiple transactions and handle errors between them
+ * - Return errors to callers without throwing
+ * - Migrate code towards explicit Result handling
+ *
+ * @param fn - Function that receives admin transaction parameters and returns a Result
+ * @param options - Transaction options including livemode flag
+ * @returns Promise resolving to the Result (not unwrapped)
+ *
+ * @example
+ * ```ts
+ * const result = await adminTransactionWithResult(async ({ transaction, emitEvent }) => {
+ *   // ... perform operations ...
+ *   emitEvent(event1)
+ *   return Result.ok(someValue)
+ * })
+ *
+ * // At router/API boundary, unwrap to convert to exceptions:
+ * return result.unwrap()
+ *
+ * // Or handle errors explicitly:
+ * if (Result.isError(result)) {
+ *   // handle error
+ * }
+ * ```
+ */
+export async function adminTransactionWithResult<T>(
+  fn: (
+    params: ComprehensiveAdminTransactionParams
+  ) => Promise<Result<T, Error>>,
+  options: AdminTransactionOptions = {}
+): Promise<Result<T, Error>> {
+  const { livemode = true } = options
+  const effectiveLivemode = isNil(livemode) ? true : livemode
+
+  const { output } = await traced(
+    {
+      options: {
+        spanName: 'db.adminTransactionWithResult',
+        tracerName: 'db.transaction',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          'db.transaction.type': 'admin',
+          'db.user_id': 'ADMIN',
+          'db.livemode': effectiveLivemode,
+        },
+      },
+      extractResultAttributes: (data) => ({
+        'db.events_count': data.processedEventsCount,
+        'db.ledger_commands_count': data.processedLedgerCommandsCount,
+      }),
+    },
+    () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
+  )()
+
+  return output
+}
