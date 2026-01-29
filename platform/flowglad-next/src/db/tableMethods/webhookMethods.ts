@@ -1,3 +1,11 @@
+import {
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@db-core/tableUtils'
 import { eq, inArray } from 'drizzle-orm'
 import {
   webhooks,
@@ -6,14 +14,6 @@ import {
   webhooksTableRowDataSchema,
   webhooksUpdateSchema,
 } from '@/db/schema/webhooks'
-import {
-  createCursorPaginatedSelectFunction,
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
 import {
   organizations,
   organizationsSelectSchema,

@@ -1,3 +1,4 @@
+import { createDateNotPassedFilter } from '@db-core/tableUtils'
 import { endOfMonth, startOfMonth } from 'date-fns'
 import { and, eq, inArray, lte } from 'drizzle-orm'
 import { prices } from '@/db/schema/prices'
@@ -7,7 +8,6 @@ import {
   currentSubscriptionStatuses,
   getActiveSubscriptionsForPeriod,
 } from '@/db/tableMethods/subscriptionMethods'
-import { createDateNotPassedFilter } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, RevenueChartIntervalUnit } from '@/types'
 

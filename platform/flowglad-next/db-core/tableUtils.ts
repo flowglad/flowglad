@@ -1,8 +1,3 @@
-import {
-  CountryCode,
-  SupabasePayloadType,
-  TaxType,
-} from '@db-core/enums'
 import { Result } from 'better-result'
 import { noCase, snakeCase } from 'change-case'
 import {
@@ -52,6 +47,8 @@ import {
 } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
+import { countryCodeSchema } from './commonZodSchema'
+import { CountryCode, SupabasePayloadType, TaxType } from './enums'
 import type {
   DbTransaction,
   PgStringColumn,
@@ -59,11 +56,10 @@ import type {
   PgTableWithId,
   PgTableWithIdAndPricingModelId,
   PgTableWithPosition,
-} from '@/db/types'
-import core, { gitCommitId, IS_TEST } from '@/utils/core'
-import { countryCodeSchema } from './commonZodSchema'
+  PgTimestampColumn,
+} from './schemaTypes'
 import { timestamptzMs } from './timestampMs'
-import type { PgTimestampColumn } from './types'
+import core, { gitCommitId, IS_TEST } from './utils'
 
 /**
  * Custom error class for when a database record is not found.
@@ -545,6 +541,10 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
       const cleanArray = selectConditions[key].filter(
         (item: any) => item !== undefined && item !== ''
       )
+      // Empty array would generate invalid SQL `column IN ()`, so return a condition that's always false
+      if (cleanArray.length === 0) {
+        return sql`false`
+      }
       return inArray(
         table[key as keyof typeof table] as PgColumn,
         cleanArray

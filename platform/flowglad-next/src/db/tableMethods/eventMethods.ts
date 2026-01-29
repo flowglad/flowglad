@@ -1,4 +1,13 @@
 import { EventNoun } from '@db-core/enums'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@db-core/tableUtils'
 import { inArray } from 'drizzle-orm'
 import { customers } from '@/db/schema/customers'
 import {
@@ -11,15 +20,6 @@ import {
 import { payments } from '@/db/schema/payments'
 import { purchases } from '@/db/schema/purchases'
 import { subscriptions } from '@/db/schema/subscriptions'
-import {
-  createBulkInsertOrDoNothingFunction,
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  createUpsertFunction,
-  type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<

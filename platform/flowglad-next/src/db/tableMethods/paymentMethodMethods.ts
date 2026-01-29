@@ -1,11 +1,3 @@
-import { eq } from 'drizzle-orm'
-import {
-  type PaymentMethod,
-  paymentMethods,
-  paymentMethodsInsertSchema,
-  paymentMethodsSelectSchema,
-  paymentMethodsUpdateSchema,
-} from '@/db/schema/paymentMethods'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -15,7 +7,15 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
   onConflictDoUpdateSetValues,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { eq } from 'drizzle-orm'
+import {
+  type PaymentMethod,
+  paymentMethods,
+  paymentMethodsInsertSchema,
+  paymentMethodsSelectSchema,
+  paymentMethodsUpdateSchema,
+} from '@/db/schema/paymentMethods'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import type {

@@ -1,3 +1,8 @@
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
@@ -19,11 +24,6 @@ import {
   selectUsageMetersPaginated,
   updateUsageMeter as updateUsageMeterDB,
 } from '@/db/tableMethods/usageMeterMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createUsageMeterTransaction } from '@/utils/usage'

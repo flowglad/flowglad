@@ -1,13 +1,8 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
 } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { usageMeters } from '@/db/schema/usageMeters'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -21,7 +16,12 @@ import {
   pgEnumColumn,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { usageMeters } from '@/db/schema/usageMeters'
 import core, { safeZodSanitizedString } from '@/utils/core'
 import { pricingModels } from './pricingModels'
 import { resources } from './resources'

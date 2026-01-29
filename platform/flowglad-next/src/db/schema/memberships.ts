@@ -1,17 +1,5 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { MembershipRole } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { users, usersSelectSchema } from '@/db/schema/users'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -23,7 +11,19 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { users, usersSelectSchema } from '@/db/schema/users'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
 

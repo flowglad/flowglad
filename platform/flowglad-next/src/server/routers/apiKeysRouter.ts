@@ -1,4 +1,9 @@
 import { FlowgladApiKeyType } from '@db-core/enums'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -13,11 +18,6 @@ import {
   selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import {
   createSecretApiKeyTransaction,
   deleteSecretApiKeyTransaction,

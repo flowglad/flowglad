@@ -1,6 +1,7 @@
 'use client'
 
 import { PaymentMethodType, PriceType } from '@db-core/enums'
+import { encodeCursor } from '@db-core/tableUtils'
 import { useEffect, useMemo } from 'react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -29,7 +30,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModelWithProductsAndUsageMeters } from '@/db/schema/prices'
-import { encodeCursor } from '@/db/tableUtils'
 import { filterAvailableSubscriptionProducts } from '@/utils/productHelpers'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 

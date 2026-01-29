@@ -1,5 +1,15 @@
 // NOTE: Import utilities only - don't import server-only functions from subscriptionItemMethods.server.ts
 
+import {
+  createBulkUpsertFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+  whereClauseFromObject,
+} from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { eq, inArray } from 'drizzle-orm'
 import {
@@ -10,16 +20,6 @@ import {
   subscriptionItemFeaturesSelectSchema,
   subscriptionItemFeaturesUpdateSchema,
 } from '@/db/schema/subscriptionItemFeatures'
-import {
-  createBulkUpsertFunction,
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  createUpsertFunction,
-  type ORMMethodCreatorConfig,
-  whereClauseFromObject,
-} from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError } from '@/errors'
 import {

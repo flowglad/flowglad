@@ -1,5 +1,5 @@
-import { CountryCode, CurrencyCode } from '@db-core/enums'
-import core from '@/utils/core'
+import { CountryCode, CurrencyCode } from './enums'
+import core from './utils'
 
 export const currencyCodeSchema = core
   .createSafeZodEnum(CurrencyCode)

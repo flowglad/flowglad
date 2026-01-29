@@ -1,21 +1,6 @@
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { CurrencyCode, RefundStatus } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  integer,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import { z } from 'zod'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { payments } from '@/db/schema/payments'
-import { pricingModels } from '@/db/schema/pricingModels'
-import { subscriptions } from '@/db/schema/subscriptions'
 import {
   constructIndex,
   enableCustomerReadPolicy,
@@ -28,7 +13,22 @@ import {
   pgEnumColumn,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { payments } from '@/db/schema/payments'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'refunds'

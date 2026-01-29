@@ -3,6 +3,7 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import { NotFoundError as DbNotFoundError } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
@@ -34,7 +35,6 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { NotFoundError as DbNotFoundError } from '@/db/tableUtils'
 import type {
   DbTransaction,
   TransactionEffectsContext,

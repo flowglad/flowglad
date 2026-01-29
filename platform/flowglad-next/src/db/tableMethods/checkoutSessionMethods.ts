@@ -1,13 +1,4 @@
 import { CheckoutSessionType } from '@db-core/enums'
-import { Result } from 'better-result'
-import { and, eq, inArray, lt, not } from 'drizzle-orm'
-import {
-  type CheckoutSession,
-  checkoutSessions,
-  checkoutSessionsInsertSchema,
-  checkoutSessionsSelectSchema,
-  checkoutSessionsUpdateSchema,
-} from '@/db/schema/checkoutSessions'
 import {
   createInsertFunction,
   createPaginatedSelectFunction,
@@ -17,7 +8,16 @@ import {
   NotFoundError,
   type ORMMethodCreatorConfig,
   type SelectConditions,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { and, eq, inArray, lt, not } from 'drizzle-orm'
+import {
+  type CheckoutSession,
+  checkoutSessions,
+  checkoutSessionsInsertSchema,
+  checkoutSessionsSelectSchema,
+  checkoutSessionsUpdateSchema,
+} from '@/db/schema/checkoutSessions'
 import type { DbTransaction } from '@/db/types'
 import { TerminalStateError, ValidationError } from '@/errors'
 import { CheckoutSessionStatus } from '@/types'

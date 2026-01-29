@@ -1,0 +1,21 @@
+engine biome(1.0)
+language js
+
+// Enforce relative imports in db-core to keep the package self-contained.
+// db-core is extracted as a git subtree to other repos, so it cannot use
+// path aliases like @/ or @db-core that depend on the host project's config.
+//
+// Bad:  import { foo } from '@/utils'
+// Bad:  import { foo } from '@db-core/enums'
+// Good: import { foo } from './utils'
+// Good: import { foo } from './enums'
+
+// Match import declarations where the source uses path aliases (@/ or @db-core/)
+// but NOT scoped npm packages like @types/node
+`import $imports from $source` where {
+  $source <: or {
+    r"['\"]@/.*",
+    r"['\"]@db-core/.*"
+  },
+  register_diagnostic(span=$source, message="db-core must use relative imports only. Path aliases like @/ or @db-core/ break subtree portability.", severity="error")
+}

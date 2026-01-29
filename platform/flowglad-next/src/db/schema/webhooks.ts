@@ -1,9 +1,5 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { FlowgladEventType } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
   livemodePolicyTable,
@@ -11,8 +7,12 @@ import {
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
   tableBase,
-} from '@/db/tableUtils'
-import { buildSchemas } from '../createZodSchemas'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 
 const TABLE_NAME = 'webhooks'
 

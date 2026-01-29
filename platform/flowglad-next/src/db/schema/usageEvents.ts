@@ -1,10 +1,4 @@
-import { sql } from 'drizzle-orm'
-import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { billingPeriods } from '@/db/schema/billingPeriods'
-import { customers } from '@/db/schema/customers'
-import { pricingModels } from '@/db/schema/pricingModels'
-import { usageMeters } from '@/db/schema/usageMeters'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -20,9 +14,15 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
-import { buildSchemas } from '../createZodSchemas'
-import { zodEpochMs } from '../timestampMs'
+} from '@db-core/tableUtils'
+import { zodEpochMs } from '@db-core/timestampMs'
+import { sql } from 'drizzle-orm'
+import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { billingPeriods } from '@/db/schema/billingPeriods'
+import { customers } from '@/db/schema/customers'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { usageMeters } from '@/db/schema/usageMeters'
 import { customerClientSelectSchema } from './customers'
 import { prices, pricesClientSelectSchema } from './prices'
 import {

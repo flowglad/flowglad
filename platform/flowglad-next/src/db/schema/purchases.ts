@@ -1,8 +1,26 @@
+import { currencyCodeSchema } from '@db-core/commonZodSchema'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   IntervalUnit,
   PriceType,
   PurchaseStatus,
 } from '@db-core/enums'
+import {
+  constructIndex,
+  enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicyTable,
+  merchantPolicy,
+  metadataSchema,
+  newBaseZodSelectSchemaColumns,
+  notNullStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  orgIdEqualsCurrentSQL,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+  timestampWithTimezoneColumn,
+} from '@db-core/tableUtils'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -12,8 +30,6 @@ import {
   text,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
-import { buildSchemas } from '@/db/createZodSchemas'
 import {
   Customer,
   customerClientSelectSchema,
@@ -32,22 +48,6 @@ import {
 } from '@/db/schema/products'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
-import {
-  constructIndex,
-  enableCustomerReadPolicy,
-  hiddenColumnsForClientSchema,
-  livemodePolicyTable,
-  merchantPolicy,
-  metadataSchema,
-  newBaseZodSelectSchemaColumns,
-  notNullStringForeignKey,
-  ommittedColumnsForInsertSchema,
-  orgIdEqualsCurrentSQL,
-  pgEnumColumn,
-  type SelectConditions,
-  tableBase,
-  timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
 import core from '@/utils/core'
 
 export const TABLE_NAME = 'purchases'

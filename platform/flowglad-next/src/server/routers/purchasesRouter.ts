@@ -1,4 +1,9 @@
 import { PurchaseStatus } from '@db-core/enums'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -12,11 +17,6 @@ import {
   selectPurchaseById,
   selectPurchasesTableRowData,
 } from '@/db/tableMethods/purchaseMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 

@@ -1,12 +1,12 @@
 'use client'
 
+import { encodeCursor } from '@db-core/tableUtils'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { editProductFormSchema, type Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
-import { encodeCursor } from '@/db/tableUtils'
 import {
   countableCurrencyAmountToRawStringAmount,
   isCurrencyZeroDecimal,

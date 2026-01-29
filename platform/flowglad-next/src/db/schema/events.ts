@@ -1,7 +1,5 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { EventNoun, FlowgladEventType } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -14,9 +12,11 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
 import core from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 import { organizations } from './organizations'
 import { pricingModels } from './pricingModels'
 

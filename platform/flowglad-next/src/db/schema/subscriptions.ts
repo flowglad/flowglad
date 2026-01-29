@@ -1,23 +1,5 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { IntervalUnit, SubscriptionStatus } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  integer,
-  jsonb,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { uuid, z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import {
-  customerClientSelectSchema,
-  customers,
-} from '@/db/schema/customers'
-import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -34,8 +16,26 @@ import {
   type SelectConditions,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
-import { zodEpochMs } from '@/db/timestampMs'
+} from '@db-core/tableUtils'
+import { zodEpochMs } from '@db-core/timestampMs'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
+import { createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { uuid, z } from 'zod'
+import {
+  customerClientSelectSchema,
+  customers,
+} from '@/db/schema/customers'
+import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import core from '@/utils/core'
 import { organizations } from './organizations'
 import { paymentMethods } from './paymentMethods'
