@@ -64,12 +64,19 @@ export const sendMessage = protectedProcedure
       response: string
       sources?: Array<{ title?: string; path: string }>
     }> => {
-      // 1. Query turbopuffer for relevant docs
-      const docResults = await queryTurbopuffer(
-        input.message,
-        5, // topK
-        'flowglad-docs'
-      )
+      // 1. Query turbopuffer for relevant docs (gracefully degrade on failure)
+      let docResults: Awaited<ReturnType<typeof queryTurbopuffer>> =
+        []
+      try {
+        docResults = await queryTurbopuffer(
+          input.message,
+          5, // topK
+          'flowglad-docs'
+        )
+      } catch (error) {
+        // Log error but continue without RAG context
+        console.error('Failed to query Turbopuffer for docs:', error)
+      }
 
       // 2. Build context from retrieved docs (filter out docs without text)
       const docsWithText = docResults.filter((doc) => doc.text)

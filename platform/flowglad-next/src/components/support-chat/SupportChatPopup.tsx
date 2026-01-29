@@ -80,6 +80,13 @@ export function SupportChatPopup({
       content: message,
     }
 
+    // Capture history BEFORE adding the new message to avoid sending it twice
+    // (the router adds the current message separately)
+    const historyBeforeNewMessage = messagesRef.current.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }))
+
     // Build updated messages array including the new user message
     const updatedMessages = [...messagesRef.current, userMessage]
 
@@ -88,10 +95,7 @@ export function SupportChatPopup({
 
     sendMessageMutation.mutate({
       message,
-      history: messagesRef.current.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      history: historyBeforeNewMessage,
     })
   }
 
