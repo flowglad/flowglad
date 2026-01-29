@@ -660,3 +660,99 @@ export enum DestinationEnvironment {
   Livemode = 'livemode',
   Testmode = 'testmode',
 }
+
+export enum RevenueChartIntervalUnit {
+  Year = 'year',
+  Month = 'month',
+  Week = 'week',
+  Day = 'day',
+  Hour = 'hour',
+}
+
+export enum InvoiceStatus {
+  Draft = 'draft',
+  Open = 'open',
+  Paid = 'paid',
+  Uncollectible = 'uncollectible',
+  Void = 'void',
+  FullyRefunded = 'refunded',
+  PartiallyRefunded = 'partially_refunded',
+  AwaitingPaymentConfirmation = 'awaiting_payment_confirmation',
+}
+
+export enum PaymentStatus {
+  // FIXME: remove "canceled"
+  Canceled = 'canceled',
+  Failed = 'failed',
+  Refunded = 'refunded',
+  Processing = 'processing',
+  Succeeded = 'succeeded',
+  RequiresConfirmation = 'requires_confirmation',
+  RequiresAction = 'requires_action',
+}
+
+export enum CheckoutSessionStatus {
+  Open = 'open',
+  Pending = 'pending',
+  Succeeded = 'succeeded',
+  Failed = 'failed',
+  Expired = 'expired',
+}
+
+export enum FeeCalculationType {
+  SubscriptionPayment = 'subscription_payment',
+  CheckoutSessionPayment = 'checkout_session_payment',
+}
+
+export enum InvoiceType {
+  Subscription = 'subscription',
+  Purchase = 'purchase',
+  Standalone = 'standalone',
+}
+
+export enum UsageCreditType {
+  /**
+   * Unlocked as a result of a subscription lifecycle event,
+   * such as on creation.
+   */
+  Grant = 'grant',
+  /**
+   * Unlocked as a result of a payment, including a subscription payment.
+   */
+  Payment = 'payment',
+}
+
+export enum UsageCreditStatus {
+  Pending = 'pending',
+  Posted = 'posted',
+}
+
+export enum UsageCreditSourceReferenceType {
+  InvoiceSettlement = 'invoice_settlement',
+  ManualAdjustment = 'manual_adjustment',
+  BillingPeriodTransition = 'billing_period_transition',
+  // FIXME: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
+}
+
+export enum LedgerEntryStatus {
+  Pending = 'pending',
+  Posted = 'posted',
+}
+
+export enum LedgerEntryDirection {
+  Debit = 'debit',
+  Credit = 'credit',
+}
+
+export enum LedgerEntryType {
+  UsageCost = 'usage_cost',
+  PaymentInitiated = 'payment_initiated',
+  PaymentFailed = 'payment_failed',
+  CreditGrantRecognized = 'credit_grant_recognized',
+  CreditBalanceAdjusted = 'credit_balance_adjusted',
+  CreditGrantExpired = 'credit_grant_expired',
+  PaymentRefunded = 'payment_refunded',
+  BillingAdjustment = 'billing_adjustment',
+  UsageCreditApplicationDebitFromCreditBalance = 'usage_credit_application_debit_from_credit_balance',
+  UsageCreditApplicationCreditTowardsUsageCost = 'usage_credit_application_credit_towards_usage_cost',
+}

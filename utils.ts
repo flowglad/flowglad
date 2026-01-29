@@ -39,6 +39,18 @@ export const safeZodNonNegativeInteger = z.coerce
     { message: 'Value must be a non-negative integer' }
   )
 
+export const safeZodPositiveInteger = z.coerce
+  .number()
+  .int()
+  .positive()
+  .meta({
+    description: 'A positive integer',
+  })
+
+export const safeZodPositiveIntegerOrZero = safeZodPositiveInteger.or(
+  z.literal(0)
+)
+
 export const zodOptionalNullableString = z
   .string()
   .nullable()
@@ -84,6 +96,8 @@ const core = {
   nanoid,
   createSafeZodEnum,
   safeZodNonNegativeInteger,
+  safeZodPositiveInteger,
+  safeZodPositiveIntegerOrZero,
   safeZodNullOrUndefined,
   safeZodSanitizedString,
   zodOptionalNullableString,
