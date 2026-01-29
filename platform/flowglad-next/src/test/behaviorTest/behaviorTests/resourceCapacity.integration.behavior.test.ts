@@ -12,6 +12,12 @@
  * 4. Resource Amount Zero Edge Case - Verify claim operations fail
  */
 
+import {
+  BillingPeriodStatus,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { addDays, subDays } from 'date-fns'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -33,12 +39,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { countActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { claimResourceTransaction } from '@/resources/resourceClaimHelpers'
-import {
-  BillingPeriodStatus,
-  IntervalUnit,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import core from '@/utils/core'
 
 describe('Resource Capacity Integration Tests', () => {

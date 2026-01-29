@@ -7,18 +7,13 @@
  * that the components actually use, not full database records.
  */
 
+import { CurrencyCode, SubscriptionItemType } from '@db-core/enums'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
-import {
-  CurrencyCode,
-  InvoiceStatus,
-  InvoiceType,
-  PaymentStatus,
-  SubscriptionItemType,
-} from '@/types'
+import { InvoiceStatus, InvoiceType, PaymentStatus } from '@/types'
 
 let idCounter = 1
 

@@ -27,6 +27,7 @@ mock.module('next/headers', () => ({
 // Note: @/utils/auth is mocked globally in bun.setup.ts
 // Tests can set globalThis.__mockedAuthSession to configure the session
 
+import { PaymentMethodType, SubscriptionStatus } from '@db-core/enums'
 // Now import everything else (including mocked modules)
 import { TRPCError } from '@trpc/server'
 import {
@@ -64,9 +65,7 @@ import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/sch
 import { createSpyTracker } from '@/test/spyTracker'
 import {
   InvoiceStatus,
-  PaymentMethodType,
   SubscriptionCancellationArrangement,
-  SubscriptionStatus,
 } from '@/types'
 import { auth } from '@/utils/auth'
 import core from '@/utils/core'

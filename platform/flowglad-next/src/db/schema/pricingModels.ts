@@ -1,3 +1,4 @@
+import { DestinationEnvironment, IntervalUnit } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -20,7 +21,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { DestinationEnvironment, IntervalUnit } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 

@@ -1,4 +1,5 @@
 'use client'
+import { FlowgladApiKeyType } from '@db-core/enums'
 import { Copy } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -24,7 +25,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { DEFAULT_NOTIFICATION_PREFERENCES } from '@/db/schema/memberships'
 import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
-import { FlowgladApiKeyType } from '@/types'
 import { cursorDeepLink } from '@/utils/cursor'
 
 const SettingsPage = () => {

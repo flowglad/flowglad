@@ -1,15 +1,15 @@
 import { describe, expect, it, mock, spyOn } from 'bun:test'
 import {
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+} from '@db-core/enums'
+import {
   type CreateDiscountFormSchema,
   createDiscountInputSchema,
   type EditDiscountFormSchema,
   editDiscountInputSchema,
 } from '@/db/schema/discounts'
-import {
-  CurrencyCode,
-  DiscountAmountType,
-  DiscountDuration,
-} from '@/types'
 import {
   normalizeDiscountAmount,
   toCreateDiscountInput,

@@ -1,3 +1,8 @@
+import {
+  DestinationEnvironment,
+  FeatureType,
+  PriceType,
+} from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import omit from 'ramda/src/omit'
 import type { Feature } from '@/db/schema/features'
@@ -51,11 +56,6 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import {
-  DestinationEnvironment,
-  FeatureType,
-  PriceType,
-} from '@/types'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
 import {
   validatePriceTypeProductIdConsistency,

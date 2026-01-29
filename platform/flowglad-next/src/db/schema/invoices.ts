@@ -1,3 +1,4 @@
+import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -30,12 +31,7 @@ import {
   taxSchemaColumns,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import {
-  CurrencyCode,
-  IntervalUnit,
-  InvoiceStatus,
-  InvoiceType,
-} from '@/types'
+import { InvoiceStatus, InvoiceType } from '@/types'
 import core, { safeZodNullOrUndefined } from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { billingPeriods } from './billingPeriods'

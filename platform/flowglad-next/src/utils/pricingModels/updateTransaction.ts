@@ -7,6 +7,7 @@
  * transaction.
  */
 
+import { CurrencyCode, FeatureType, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
 import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
@@ -42,7 +43,6 @@ import {
 } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { CurrencyCode, FeatureType, PriceType } from '@/types'
 import {
   computeUpdateObject,
   diffPricingModel,

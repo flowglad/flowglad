@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  PriceType,
+  SubscriptionItemType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -19,13 +26,6 @@ import {
   resourceSubscriptionItemFeatureSelectSchema,
   type SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
-import {
-  CurrencyCode,
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  PriceType,
-  SubscriptionItemType,
-} from '@/types'
 import core from '@/utils/core'
 import type { Customer } from '../schema/customers'
 import { Feature } from '../schema/features'

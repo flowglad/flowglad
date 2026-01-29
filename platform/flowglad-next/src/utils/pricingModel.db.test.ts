@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  DestinationEnvironment,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
@@ -41,14 +49,6 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
-import {
-  CurrencyCode,
-  DestinationEnvironment,
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  IntervalUnit,
-  PriceType,
-} from '@/types'
 import { core } from '@/utils/core'
 import {
   clonePricingModelTransaction,

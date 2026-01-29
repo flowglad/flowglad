@@ -1,5 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupCustomer,
   setupOrg,
@@ -24,12 +30,6 @@ import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { ComprehensiveAuthenticatedTransactionParams } from '@/db/types'
 import { usageEventsRouter } from '@/server/routers/usageEventsRouter'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import {
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 
 const createCaller = (
   organization: Organization.Record,

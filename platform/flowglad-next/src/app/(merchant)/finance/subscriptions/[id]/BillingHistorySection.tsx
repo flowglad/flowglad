@@ -1,5 +1,6 @@
 'use client'
 
+import { PaymentMethodType } from '@db-core/enums'
 import {
   ChevronRight,
   CircleAlert,
@@ -26,7 +27,7 @@ import {
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Payment } from '@/db/schema/payments'
 import { encodeCursor } from '@/db/tableUtils'
-import { PaymentMethodType, PaymentStatus } from '@/types'
+import { PaymentStatus } from '@/types'
 import core from '@/utils/core'
 import { getCurrencyParts } from '@/utils/stripe'
 

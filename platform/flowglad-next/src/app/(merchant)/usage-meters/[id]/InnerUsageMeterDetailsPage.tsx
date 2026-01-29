@@ -1,5 +1,6 @@
 'use client'
 
+import { UsageMeterAggregationType } from '@db-core/enums'
 import { sentenceCase } from 'change-case'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -15,7 +16,6 @@ import { PageHeaderNew } from '@/components/ui/page-header-new'
 import type { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { UsageMeter } from '@/db/schema/usageMeters'
-import { UsageMeterAggregationType } from '@/types'
 
 interface InnerUsageMeterDetailsPageProps {
   usageMeter: UsageMeter.ClientRecord

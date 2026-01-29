@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+  PriceType,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupDiscount,
   setupOrg,
@@ -8,12 +14,6 @@ import {
   setupPurchase,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  CurrencyCode,
-  DiscountAmountType,
-  DiscountDuration,
-  PriceType,
-} from '@/types'
 import { core } from '@/utils/core'
 import type { Customer } from '../schema/customers'
 import type { Discount } from '../schema/discounts'

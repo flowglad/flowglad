@@ -1,5 +1,6 @@
 'use client'
 
+import type { CurrencyCode } from '@db-core/enums'
 import {
   type ColumnFiltersState,
   type ColumnSizingState,
@@ -24,7 +25,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { CurrencyCode } from '@/types'
 import { columns } from './columns'
 
 interface SubscriptionItemsDataTableProps {

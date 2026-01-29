@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CurrencyCode,
+  IntervalUnit,
+  LedgerTransactionType,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupCustomer,
   setupOrg,
@@ -38,13 +45,6 @@ import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
-import {
-  CurrencyCode,
-  IntervalUnit,
-  LedgerTransactionType,
-  PriceType,
-  UsageMeterAggregationType,
-} from '@/types'
 import core from '@/utils/core'
 import {
   batchFetchPricingModelsForCustomers,

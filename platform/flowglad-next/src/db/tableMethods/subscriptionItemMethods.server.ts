@@ -9,6 +9,7 @@
  * will cause build failures due to postgres/node.js dependencies.
  */
 
+import type { SubscriptionStatus } from '@db-core/enums'
 import { eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -22,7 +23,6 @@ import {
   type RichSubscription,
   richSubscriptionClientSelectSchema,
 } from '@/subscriptions/schemas'
-import type { SubscriptionStatus } from '@/types'
 import {
   CacheDependency,
   type CacheRecomputationContext,

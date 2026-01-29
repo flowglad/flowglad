@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import {
   setupMemberships,
   setupOrg,
@@ -11,7 +12,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 import {
   getProductTableRows,

@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
-import {
-  CheckoutSessionStatus,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
+import { PriceType, SubscriptionStatus } from '@db-core/enums'
+import { CheckoutSessionStatus } from '@/types'
 
 // Mock next/navigation redirect
 const redirect = mock()

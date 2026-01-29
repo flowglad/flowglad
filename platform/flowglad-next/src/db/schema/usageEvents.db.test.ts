@@ -1,5 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupCustomer,
   setupOrg,
@@ -17,12 +23,6 @@ import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
-import {
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import core from '@/utils/core'
 
 // NOTE: RLS tests are in src/db/usageEvents.rls.test.ts

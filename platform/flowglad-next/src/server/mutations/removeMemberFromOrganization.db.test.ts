@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { MembershipRole } from '@db-core/enums'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -17,7 +18,6 @@ import {
   ConflictError,
   NotFoundError,
 } from '@/errors'
-import { MembershipRole } from '@/types'
 import core from '@/utils/core'
 import { innerRemoveMemberFromOrganization } from './removeMemberFromOrganization'
 

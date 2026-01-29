@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FlowgladApiKeyType } from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -15,7 +16,6 @@ import {
 import { updateMembership } from '@/db/tableMethods/membershipMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
-import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 import {
   createSecretApiKeyTransaction,

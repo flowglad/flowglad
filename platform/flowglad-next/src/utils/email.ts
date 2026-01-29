@@ -1,3 +1,4 @@
+import type { CurrencyCode } from '@db-core/enums'
 import {
   type CreateEmailOptions,
   type CreateEmailRequestOptions,
@@ -26,7 +27,6 @@ import {
 import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/organization/organization-payouts-enabled'
 import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
 import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
-import type { CurrencyCode } from '@/types'
 import { resendTraced } from '@/utils/tracing'
 import core from './core'
 import { getFromAddress } from './email/fromAddress'

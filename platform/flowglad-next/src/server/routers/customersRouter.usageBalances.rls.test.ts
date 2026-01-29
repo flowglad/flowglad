@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  IntervalUnit,
+  LedgerTransactionType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import {
   setupBillingPeriod,
@@ -21,14 +27,7 @@ import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import {
-  IntervalUnit,
-  LedgerEntryType,
-  LedgerTransactionType,
-  PriceType,
-  SubscriptionStatus,
-  UsageCreditType,
-} from '@/types'
+import { LedgerEntryType, UsageCreditType } from '@/types'
 import { customersRouter } from './customersRouter'
 
 const createCaller = (

@@ -1,3 +1,4 @@
+import { MembershipRole } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -23,7 +24,6 @@ import {
   tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { MembershipRole } from '@/types'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
 

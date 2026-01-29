@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FeatureUsageGrantFrequency, PriceType } from '@db-core/enums'
 import {
   setupOrg,
   setupPrice,
@@ -13,7 +14,6 @@ import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import { productFeaturesRouter } from '@/server/routers/productFeaturesRouter'
-import { FeatureUsageGrantFrequency, PriceType } from '@/types'
 import { core } from '@/utils/core'
 
 describe('productFeaturesRouter.create - Toggle Feature Validation', () => {

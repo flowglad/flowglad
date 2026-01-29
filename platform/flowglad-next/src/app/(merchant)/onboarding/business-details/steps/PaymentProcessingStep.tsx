@@ -1,5 +1,6 @@
 'use client'
 
+import { StripeConnectContractType } from '@db-core/enums'
 import { trpc } from '@/app/_trpc/client'
 import { useMultiStepForm } from '@/components/onboarding/MultiStepForm'
 import { StepContainer } from '@/components/onboarding/StepContainer'
@@ -15,7 +16,6 @@ import {
   RadioGroupItem,
 } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
-import { StripeConnectContractType } from '@/types'
 import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 import { type BusinessDetailsFormData } from './schemas'
 

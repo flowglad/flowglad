@@ -4,10 +4,10 @@ Run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/clonePricingModel.ts pricing_model_id=pm_... [destination_env=livemode|testmode]
 */
 
+import { DestinationEnvironment } from '@db-core/enums'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { createTransactionEffectsContext } from '@/db/types'
-import { DestinationEnvironment } from '@/types'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import runScript from './scriptRunner'
 

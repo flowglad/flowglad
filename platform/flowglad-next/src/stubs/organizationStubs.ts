@@ -1,9 +1,9 @@
-import type { Organization } from '@/db/schema/organizations'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
   StripeConnectContractType,
-} from '@/types'
+} from '@db-core/enums'
+import type { Organization } from '@/db/schema/organizations'
 
 export const dummyOrganization: Organization.Record = {
   id: '1',

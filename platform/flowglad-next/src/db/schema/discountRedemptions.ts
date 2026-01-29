@@ -1,3 +1,4 @@
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -27,7 +28,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { pricingModels } from './pricingModels'

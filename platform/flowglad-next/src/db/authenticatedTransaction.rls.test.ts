@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FlowgladApiKeyType, MembershipRole } from '@db-core/enums'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -32,7 +33,6 @@ import {
   selectProducts,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType, MembershipRole } from '@/types'
 
 describe('RLS Access Control with selectOrganizations', () => {
   // Global test state variables

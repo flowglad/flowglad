@@ -1,4 +1,4 @@
-import { CurrencyCode } from '@/types'
+import { CurrencyCode } from '@db-core/enums'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,

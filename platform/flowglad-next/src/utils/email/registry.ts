@@ -1,5 +1,5 @@
+import type { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import type * as React from 'react'
-import type { CurrencyCode, IntervalUnit } from '@/types'
 
 /**
  * Email recipient types for determining appropriate branding.

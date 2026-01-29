@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FlowgladApiKeyType, MembershipRole } from '@db-core/enums'
 import {
   setupCustomer,
   setupOrg,
@@ -33,7 +34,6 @@ import {
 } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType, MembershipRole } from '@/types'
 import { deleteSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'

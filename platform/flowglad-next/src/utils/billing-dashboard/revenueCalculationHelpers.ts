@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 
+import { IntervalUnit } from '@db-core/enums'
 import {
   addMonths,
   differenceInDays,
@@ -31,11 +32,7 @@ import {
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
-import {
-  CancellationReason,
-  IntervalUnit,
-  RevenueChartIntervalUnit,
-} from '@/types'
+import { CancellationReason, RevenueChartIntervalUnit } from '@/types'
 
 export interface MonthlyRecurringRevenue {
   month: Date

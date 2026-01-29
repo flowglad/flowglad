@@ -5,6 +5,7 @@ import {
   it,
   setDefaultTimeout,
 } from 'bun:test'
+import { SubscriptionStatus } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import {
   setupCustomer,
@@ -20,7 +21,6 @@ import {
 import type { Organization } from '@/db/schema/organizations'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import { SubscriptionStatus } from '@/types'
 import { customersRouter } from './customersRouter'
 
 // Increase timeout for tests that involve subscription cancellation

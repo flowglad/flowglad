@@ -1,6 +1,6 @@
+import { PriceType } from '@db-core/enums'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
-import { PriceType } from '@/types'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 
 /**

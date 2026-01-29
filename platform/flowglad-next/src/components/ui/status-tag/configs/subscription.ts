@@ -1,3 +1,4 @@
+import { SubscriptionStatus } from '@db-core/enums'
 import {
   AlertCircle,
   AlertTriangle,
@@ -7,7 +8,6 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import { SubscriptionStatus } from '@/types'
 import type { StatusConfigItem } from '../types'
 
 export const subscriptionStatusConfig = {

@@ -3,6 +3,7 @@ Run the following in the terminal to add default products to all pricing models:
 NODE_ENV=production bunx tsx src/scripts/addDefaultProductsToPricingModels.ts
 */
 
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
@@ -14,7 +15,6 @@ import {
   selectProducts,
 } from '@/db/tableMethods/productMethods'
 import { createTransactionEffectsContext } from '@/db/types'
-import { IntervalUnit, PriceType } from '@/types'
 import {
   createFreePlanPriceInsert,
   createFreePlanProductInsert,

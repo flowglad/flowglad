@@ -1,3 +1,4 @@
+import { PriceType } from '@db-core/enums'
 import {
   and,
   eq,
@@ -38,7 +39,6 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import { ConflictError } from '@/errors'
-import { PriceType } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {

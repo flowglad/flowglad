@@ -1,3 +1,8 @@
+import {
+  LedgerTransactionType,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
@@ -44,11 +49,6 @@ import {
   panic,
   ValidationError,
 } from '@/errors'
-import {
-  LedgerTransactionType,
-  PriceType,
-  UsageMeterAggregationType,
-} from '@/types'
 import core from '@/utils/core'
 
 /**

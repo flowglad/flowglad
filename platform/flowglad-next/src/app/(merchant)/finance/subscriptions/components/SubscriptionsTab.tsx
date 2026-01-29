@@ -1,6 +1,6 @@
+import type { SubscriptionStatus } from '@db-core/enums'
 import { sentenceCase } from 'change-case'
 import { TabsTrigger } from '@/components/ui/tabs'
-import type { SubscriptionStatus } from '@/types'
 import { useSubscriptionCountsByStatusMap } from '../hooks/useSubscriptionCountsByStatusMap'
 
 interface SubscriptionsTabProps {

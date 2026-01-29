@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -16,7 +17,6 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
 import type { Resource } from '@/db/schema/resources'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { IntervalUnit, PriceType } from '@/types'
 import {
   countActiveResourceClaims,
   countActiveResourceClaimsBatch,

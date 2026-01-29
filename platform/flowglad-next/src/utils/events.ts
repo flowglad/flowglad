@@ -1,3 +1,4 @@
+import { EventNoun, FlowgladEventType } from '@db-core/enums'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
 import type { Payment } from '@/db/schema/payments'
@@ -9,12 +10,7 @@ import {
   upsertEventByHash,
 } from '@/db/tableMethods/eventMethods'
 import type { DbTransaction } from '@/db/types'
-import {
-  EventCategory,
-  EventNoun,
-  EventRetentionPolicy,
-  FlowgladEventType,
-} from '@/types'
+import { EventCategory, EventRetentionPolicy } from '@/types'
 import { hashData } from './backendCore'
 
 export interface CreateEventPayload {

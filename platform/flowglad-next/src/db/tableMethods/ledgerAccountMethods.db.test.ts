@@ -6,6 +6,7 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+import { NormalBalanceType } from '@db-core/enums'
 import {
   setupCustomer,
   setupLedgerAccount,
@@ -28,7 +29,6 @@ import {
   AdminTransactionParams,
   type DbTransaction,
 } from '@/db/types'
-import { NormalBalanceType } from '@/types'
 import { core } from '@/utils/core'
 import {
   bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId,

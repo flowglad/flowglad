@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  EventNoun,
+  FlowgladEventType,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupInvoice,
   setupOrg,
@@ -20,14 +26,7 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
 import type { Subscription } from '@/db/schema/subscriptions'
-import {
-  EventNoun,
-  FlowgladEventType,
-  InvoiceStatus,
-  PaymentMethodType,
-  PaymentStatus,
-  PriceType,
-} from '@/types'
+import { InvoiceStatus, PaymentStatus } from '@/types'
 import core from '@/utils/core'
 import {
   bulkInsertOrDoNothingEventsByHash,

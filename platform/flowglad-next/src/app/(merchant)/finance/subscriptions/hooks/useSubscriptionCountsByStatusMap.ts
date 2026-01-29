@@ -1,5 +1,5 @@
+import type { SubscriptionStatus } from '@db-core/enums'
 import { trpc } from '@/app/_trpc/client'
-import type { SubscriptionStatus } from '@/types'
 
 export const useSubscriptionCountsByStatusMap = () => {
   const { data: countsData, isLoading } =

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { SubscriptionStatus } from '@db-core/enums'
 import {
   setupCustomer,
   setupOrg,
@@ -9,7 +10,6 @@ import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
-import { SubscriptionStatus } from '@/types'
 import * as actualEmail from '@/utils/email'
 import { runSendCustomerSubscriptionCanceledNotification } from './send-customer-subscription-canceled-notification'
 

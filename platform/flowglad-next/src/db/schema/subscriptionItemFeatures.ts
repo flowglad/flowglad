@@ -1,3 +1,7 @@
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -33,7 +37,6 @@ import {
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { zodEpochMs } from '@/db/timestampMs'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import core, { zodOptionalNullableString } from '@/utils/core'
 
 const TABLE_NAME = 'subscription_item_features'

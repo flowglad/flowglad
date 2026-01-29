@@ -6,6 +6,12 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupBillingPeriod,
   setupBillingPeriodItem,
   setupBillingRun,
@@ -23,12 +29,6 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import { executeBillingRun } from './billingRunHelpers'
 
 describe('executeBillingRun - Adjustment Billing Run Error Handling', () => {

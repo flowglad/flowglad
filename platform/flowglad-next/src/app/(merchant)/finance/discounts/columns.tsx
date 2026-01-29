@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+} from '@db-core/enums'
 import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
 // Icons come next
@@ -19,11 +24,6 @@ import {
 } from '@/components/ui/status-tag'
 // Other imports
 import type { Discount } from '@/db/schema/discounts'
-import {
-  CurrencyCode,
-  DiscountAmountType,
-  DiscountDuration,
-} from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export type DiscountTableRowData = Discount.TableRowData

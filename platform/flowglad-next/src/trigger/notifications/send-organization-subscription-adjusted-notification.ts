@@ -1,3 +1,4 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -14,7 +15,6 @@ import {
   type SubscriptionItem,
 } from '@/email-templates/organization/organization-subscription-adjusted'
 import { ValidationError } from '@/errors'
-import type { CurrencyCode } from '@/types'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,

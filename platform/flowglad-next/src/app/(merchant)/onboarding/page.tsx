@@ -1,3 +1,7 @@
+import {
+  BusinessOnboardingStatus,
+  FlowgladApiKeyType,
+} from '@db-core/enums'
 import { redirect } from 'next/navigation'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
 import PageContainer from '@/components/PageContainer'
@@ -11,8 +15,6 @@ import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceM
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import {
-  BusinessOnboardingStatus,
-  FlowgladApiKeyType,
   type OnboardingChecklistItem,
   OnboardingItemType,
 } from '@/types'

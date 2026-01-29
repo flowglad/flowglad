@@ -1,3 +1,4 @@
+import { IntervalUnit, SubscriptionStatus } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -35,7 +36,6 @@ import {
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { zodEpochMs } from '@/db/timestampMs'
-import { IntervalUnit, SubscriptionStatus } from '@/types'
 import core from '@/utils/core'
 import { organizations } from './organizations'
 import { paymentMethods } from './paymentMethods'

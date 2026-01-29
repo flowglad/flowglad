@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { EventNoun, FlowgladEventType } from '@db-core/enums'
 import { ValidationError } from '@/errors'
-import { EventNoun, FlowgladEventType } from '@/types'
 import { validateEventInsertPayload } from './event-inserted'
 
 describe('validateEventInsertPayload', () => {

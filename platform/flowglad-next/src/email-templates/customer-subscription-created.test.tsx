@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import { render } from '@testing-library/react'
-import { CurrencyCode, IntervalUnit } from '@/types'
 import core from '@/utils/core'
 import { CustomerSubscriptionCreatedEmail } from './customer-subscription-created'
 

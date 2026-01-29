@@ -1,6 +1,6 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { Img, Section, Text } from '@react-email/components'
 import * as React from 'react'
-import type { CurrencyCode } from '@/types'
 import { emailBaseUrl } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from '../components/EmailButton'

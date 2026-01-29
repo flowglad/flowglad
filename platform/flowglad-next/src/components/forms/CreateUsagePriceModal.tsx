@@ -1,5 +1,6 @@
 'use client'
 
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import { Info } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -28,7 +29,6 @@ import {
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { createPriceFormSchema } from '@/db/schema/prices'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import { IntervalUnit, PriceType } from '@/types'
 import {
   isCurrencyZeroDecimal,
   rawStringAmountToCountableCurrencyAmount,

@@ -1,3 +1,4 @@
+import { FeatureUsageGrantFrequency } from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   type BillingPeriodTransitionLedgerCommand,
@@ -16,7 +17,6 @@ import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError } from '@/errors'
 import {
-  FeatureUsageGrantFrequency,
   LedgerEntryDirection,
   LedgerEntryStatus,
   LedgerEntryType,

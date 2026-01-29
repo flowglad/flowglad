@@ -1,3 +1,4 @@
+import { SubscriptionItemType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -28,7 +29,6 @@ import {
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { zodEpochMs } from '@/db/timestampMs'
-import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
 import { pricingModels } from './pricingModels'
 import { usageMeters } from './usageMeters'

@@ -19,6 +19,11 @@
  */
 
 import { expect } from 'bun:test'
+import {
+  CurrencyCode,
+  PriceType,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import { teardownOrg } from '@/../seedDatabase'
 import { authenticateUserBehavior } from '@/test/behaviorTest/behaviors/authBehaviors'
 import {
@@ -34,13 +39,7 @@ import { CountryDep } from '@/test/behaviorTest/dependencies/countryDependencies
 import { CustomerResidencyDep } from '@/test/behaviorTest/dependencies/customerResidencyDependencies'
 import { DiscountDep } from '@/test/behaviorTest/dependencies/discountDependencies'
 import { behaviorTest } from '@/test/behaviorTest/index'
-import {
-  CheckoutSessionStatus,
-  CurrencyCode,
-  FeeCalculationType,
-  PriceType,
-  StripeConnectContractType,
-} from '@/types'
+import { CheckoutSessionStatus, FeeCalculationType } from '@/types'
 
 // =============================================================================
 // Shared teardown function

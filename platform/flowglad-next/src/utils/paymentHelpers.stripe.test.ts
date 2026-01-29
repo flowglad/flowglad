@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import {
+  PaymentMethodType,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -22,11 +26,7 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
 import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import { NotFoundError, ValidationError } from '@/errors'
-import {
-  PaymentMethodType,
-  PaymentStatus,
-  StripeConnectContractType,
-} from '@/types'
+import { PaymentStatus } from '@/types'
 import { nanoid } from '@/utils/core'
 import {
   refundPaymentTransaction,

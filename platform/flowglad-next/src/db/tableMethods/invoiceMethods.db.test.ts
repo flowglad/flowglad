@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -15,13 +16,7 @@ import type { Customer } from '@/db/schema/customers'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Purchase } from '@/db/schema/purchases'
 import type { Subscription } from '@/db/schema/subscriptions'
-import {
-  CurrencyCode,
-  IntervalUnit,
-  InvoiceStatus,
-  InvoiceType,
-  PriceType,
-} from '@/types'
+import { InvoiceStatus, InvoiceType } from '@/types'
 import { core } from '@/utils/core'
 import {
   derivePricingModelIdForInvoice,

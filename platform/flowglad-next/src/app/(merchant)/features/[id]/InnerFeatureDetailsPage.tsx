@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import { Check, DollarSign, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -17,7 +21,6 @@ import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { Feature } from '@/db/schema/features'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { UsageMeter } from '@/db/schema/usageMeters'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import ToggleFeatureModal from './ToggleFeatureModal'
 
 interface InnerFeatureDetailsPageProps {

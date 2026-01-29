@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  PriceType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   AlertCircle,
   AlertTriangle,
   CalendarCheck,
@@ -16,13 +21,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { Purchase } from '@/db/schema/purchases'
-import {
-  InvoiceStatus,
-  PaymentStatus,
-  PriceType,
-  PurchaseStatus,
-  SubscriptionStatus,
-} from '@/types'
+import { InvoiceStatus, PaymentStatus } from '@/types'
 import { type ActiveStatus, activeStatusConfig } from './active'
 import { invoiceStatusConfig } from './invoice'
 import { paymentStatusConfig } from './payment'

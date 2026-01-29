@@ -1,3 +1,4 @@
+import { CheckoutSessionType } from '@db-core/enums'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { dummyOrganization } from '@/stubs/organizationStubs'
@@ -7,11 +8,7 @@ import {
   subscriptionWithoutTrialDummyPurchase,
   subscriptionWithTrialDummyPurchase,
 } from '@/stubs/purchaseStubs'
-import {
-  CheckoutFlowType,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-} from '@/types'
+import { CheckoutFlowType, CheckoutSessionStatus } from '@/types'
 
 const checkoutSession: CheckoutSession.Record = {
   id: '1',

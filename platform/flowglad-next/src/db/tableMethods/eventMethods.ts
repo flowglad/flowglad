@@ -1,3 +1,4 @@
+import { EventNoun } from '@db-core/enums'
 import { inArray } from 'drizzle-orm'
 import { customers } from '@/db/schema/customers'
 import {
@@ -19,7 +20,6 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { EventNoun } from '@/types'
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<

@@ -1,3 +1,4 @@
+import { PaymentMethodType } from '@db-core/enums'
 import { sql } from 'drizzle-orm'
 import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
@@ -19,7 +20,6 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
-import { PaymentMethodType } from '@/types'
 import core, { zodOptionalNullableString } from '@/utils/core'
 import { billingAddressSchema } from './organizations'
 

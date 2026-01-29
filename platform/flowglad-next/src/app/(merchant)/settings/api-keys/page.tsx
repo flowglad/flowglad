@@ -1,11 +1,11 @@
 'use client'
 
+import { FlowgladApiKeyType } from '@db-core/enums'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
-import { FlowgladApiKeyType } from '@/types'
 import { ApiKeysDataTable } from './data-table'
 
 function ApiKeysPage() {

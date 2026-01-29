@@ -1,5 +1,6 @@
 'use client'
 
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
@@ -8,7 +9,6 @@ import {
   Price,
   pricesClientInsertSchema,
 } from '@/db/schema/prices'
-import { IntervalUnit, PriceType } from '@/types'
 import {
   countableCurrencyAmountToRawStringAmount,
   rawStringAmountToCountableCurrencyAmount,

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { MembershipRole } from '@db-core/enums'
 import {
   setupCustomer,
   setupOrg,
@@ -16,7 +17,6 @@ import {
 } from '@/db/tableMethods/customerMethods'
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import { NotFoundError } from '@/db/tableUtils'
-import { MembershipRole } from '@/types'
 
 /**
  * Reference suite for merchant-facing RLS isolation using `authenticatedTransaction`.

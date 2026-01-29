@@ -1,5 +1,6 @@
 'use client'
 
+import type { FlowgladApiKeyType } from '@db-core/enums'
 import {
   type ColumnFiltersState,
   type ColumnSizingState,
@@ -25,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { FlowgladApiKeyType } from '@/types'
 import { type ApiKeyTableRowData, columns } from './columns'
 
 export interface ApiKeysTableFilters {

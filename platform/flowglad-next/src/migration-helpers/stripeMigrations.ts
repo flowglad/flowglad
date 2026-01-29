@@ -1,3 +1,11 @@
+import {
+  type CurrencyCode,
+  type IntervalUnit,
+  type PaymentMethodType,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import type Stripe from 'stripe'
 import type { Customer } from '@/db/schema/customers'
 import type { BillingAddress } from '@/db/schema/organizations'
@@ -7,14 +15,6 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import {
-  type CurrencyCode,
-  type IntervalUnit,
-  type PaymentMethodType,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   dateFromStripeTimestamp,
   stripeIdFromObjectOrId,

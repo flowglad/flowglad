@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -14,13 +21,6 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
-import {
-  CurrencyCode,
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import { insertSubscriptionAndItems } from './initializers'
 
 describe('insertSubscriptionAndItems', () => {

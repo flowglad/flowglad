@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { StripeConnectContractType } from '@/types'
+import { StripeConnectContractType } from '@db-core/enums'
 import {
   cardPaymentsCountries,
   getEligibleFundsFlowsForCountry,

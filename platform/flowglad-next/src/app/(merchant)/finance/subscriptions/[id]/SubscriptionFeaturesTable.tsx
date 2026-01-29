@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import type { ReactNode } from 'react'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import {
@@ -12,7 +16,6 @@ import {
 } from '@/components/ui/table'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { cn } from '@/lib/utils'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 
 const FEATURE_TYPE_LABELS: Record<FeatureType, string> = {
   [FeatureType.Toggle]: 'Toggle',

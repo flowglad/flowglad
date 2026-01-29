@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { FlowgladEventType } from '@db-core/enums'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
-import { FlowgladEventType } from '@/types'
 import { createWebhookTransaction } from './webhooks'
 
 describe('createWebhookTransaction', () => {

@@ -1,3 +1,4 @@
+import { LedgerTransactionType } from '@db-core/enums'
 import { z } from 'zod'
 import { billingPeriodsSelectSchema } from '@/db/schema/billingPeriods'
 import type { LedgerEntry } from '@/db/schema/ledgerEntries'
@@ -11,7 +12,6 @@ import { usageCreditApplicationsSelectSchema } from '@/db/schema/usageCreditAppl
 import { usageCreditBalanceAdjustmentsSelectSchema } from '@/db/schema/usageCreditBalanceAdjustments'
 import { usageCreditsSelectSchema } from '@/db/schema/usageCredits'
 import { usageEventsSelectSchema } from '@/db/schema/usageEvents'
-import { LedgerTransactionType } from '@/types'
 import { invoiceWithLineItemsSchema } from '../schema/invoiceLineItems'
 
 // Base fields for all ledger commands, primarily for the LedgerTransaction record

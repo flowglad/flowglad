@@ -1,4 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import {
@@ -63,15 +71,9 @@ import { insertUser } from '@/db/tableMethods/userMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  IntervalUnit,
   InvoiceStatus,
   InvoiceType,
-  PaymentMethodType,
   PaymentStatus,
-  PriceType,
-  SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
 

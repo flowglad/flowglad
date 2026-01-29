@@ -1,4 +1,4 @@
-import { PriceType } from '@/types'
+import { PriceType } from '@db-core/enums'
 
 // Returns UI-ready flags for price form behavior based on price type and default locks
 // - omitTrialFields: hide trial UI for usage prices

@@ -1,3 +1,4 @@
+import { MembershipRole } from '@db-core/enums'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -15,7 +16,6 @@ import {
   NotFoundError,
 } from '@/errors'
 import { protectedProcedure } from '@/server/trpc'
-import { MembershipRole } from '@/types'
 
 export const removeMemberFromOrganizationSchema = z.object({
   membershipId: z.string(),
