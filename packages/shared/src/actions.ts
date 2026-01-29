@@ -607,7 +607,9 @@ export const getSubscriptionsSchema = z
   })
   .strict()
 
-export type GetSubscriptionsParams = z.infer<typeof getSubscriptionsSchema>
+export type GetSubscriptionsParams = z.infer<
+  typeof getSubscriptionsSchema
+>
 
 export type GetSubscriptionsResponse = {
   subscriptions: SubscriptionDetails[]
