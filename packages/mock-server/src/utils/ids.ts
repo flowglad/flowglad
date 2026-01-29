@@ -37,3 +37,17 @@ export function generateUnkeyKeyId(): string {
 export function generateTriggerRunId(): string {
   return generateId('run_')
 }
+
+/**
+ * Generate a Svix-style endpoint ID (prefixed with "ep_mock_")
+ */
+export function generateSvixEndpointId(): string {
+  return generateId('ep_mock_')
+}
+
+/**
+ * Generate a Svix-style webhook secret (prefixed with "whsec_mock_")
+ */
+export function generateSvixWebhookSecret(): string {
+  return generateId('whsec_mock_')
+}

@@ -1,4 +1,5 @@
 import { handleHealth } from './routes/health'
+import { handleSvixRoute } from './routes/svix'
 import { handleUnkeyRoute } from './routes/unkey'
 
 const SVIX_PORT = 9001
@@ -8,7 +9,10 @@ const TRIGGER_PORT = 9003
 interface ServerConfig {
   port: number
   serviceName: string
-  routeHandler?: (req: Request, pathname: string) => Response | null
+  routeHandler?: (
+    req: Request,
+    pathname: string
+  ) => Response | Promise<Response> | null
 }
 
 function createServer(config: ServerConfig): void {
@@ -52,7 +56,11 @@ function createServer(config: ServerConfig): void {
 }
 
 // Start all mock servers
-createServer({ port: SVIX_PORT, serviceName: 'svix' })
+createServer({
+  port: SVIX_PORT,
+  serviceName: 'svix',
+  routeHandler: handleSvixRoute,
+})
 createServer({
   port: UNKEY_PORT,
   serviceName: 'unkey',
