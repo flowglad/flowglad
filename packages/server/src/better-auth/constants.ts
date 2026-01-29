@@ -32,6 +32,7 @@ export const endpointKeyToActionKey: Record<
   releaseResource: FlowgladActionKey.ReleaseResource,
   listResourceClaims: FlowgladActionKey.ListResourceClaims,
   getUsageMeterBalances: FlowgladActionKey.GetUsageMeterBalances,
+  getFeatureAccess: FlowgladActionKey.GetFeatureAccess,
 }
 
 /**
@@ -66,6 +67,7 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.ReleaseResource]: 'releaseResource',
   [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
   [FlowgladActionKey.GetUsageMeterBalances]: 'getUsageMeterBalances',
+  [FlowgladActionKey.GetFeatureAccess]: 'getFeatureAccess',
 } satisfies Record<
   AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey

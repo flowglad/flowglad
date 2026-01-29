@@ -333,6 +333,7 @@ describe('flowgladPlugin', () => {
       'releaseResource',
       'listResourceClaims',
       'getUsageMeterBalances',
+      'getFeatureAccess',
       'getPricingModel',
     ]
 

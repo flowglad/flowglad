@@ -676,14 +676,19 @@ export class FlowgladServer {
   ): Promise<GetFeatureAccessResponse> => {
     const billing = await this.getBilling()
     const subscriptions = params?.subscriptionId
-      ? billing.currentSubscriptions?.filter(s => s.id === params.subscriptionId)
+      ? billing.currentSubscriptions?.filter(
+          (s) => s.id === params.subscriptionId
+        )
       : billing.currentSubscriptions
 
     const featuresBySlug = new Map<string, FeatureAccessItem>()
     for (const sub of subscriptions ?? []) {
-      const featureItems = sub.featureItems ?? sub.experimental?.featureItems ?? []
+      const featureItems = sub.experimental?.featureItems ?? []
       for (const item of featureItems) {
-        if (item.type === 'toggle' && !featuresBySlug.has(item.slug)) {
+        if (
+          item.type === 'toggle' &&
+          !featuresBySlug.has(item.slug)
+        ) {
           featuresBySlug.set(item.slug, {
             id: item.id,
             livemode: item.livemode,
