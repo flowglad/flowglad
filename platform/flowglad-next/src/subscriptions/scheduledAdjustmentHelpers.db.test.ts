@@ -1,4 +1,9 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -28,22 +33,26 @@ import {
   hasScheduledAdjustment,
 } from '@/subscriptions/scheduledAdjustmentHelpers'
 import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 
-describe('scheduledAdjustmentHelpers', async () => {
-  const {
-    organization,
-    price: basePrice,
-    product: baseProduct,
-    pricingModel,
-  } = await setupOrg()
-
+describe('scheduledAdjustmentHelpers', () => {
+  let organization: Organization.Record
+  let basePrice: Price.ProductPrice
+  let baseProduct: Product.Record
+  let pricingModel: { id: string }
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let subscription: Subscription.Record
   let downgradePrice: Price.ProductPrice
   let downgradeProduct: Product.Record
   let existingSubscriptionItem: SubscriptionItem.Record
+
+  beforeAll(async () => {
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+    basePrice = orgSetup.price
+    baseProduct = orgSetup.product
+    pricingModel = orgSetup.pricingModel
+  })
 
   beforeEach(async () => {
     customer = await setupCustomer({
