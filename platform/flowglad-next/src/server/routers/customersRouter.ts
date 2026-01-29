@@ -1,3 +1,4 @@
+import { externalIdInputSchema } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { revalidatePath } from 'next/cache'
@@ -47,7 +48,6 @@ import {
   selectSubscriptionsByCustomerId,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
-import { externalIdInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { migrateCustomerPricingModelProcedureTransaction } from '@/subscriptions/migratePricingModel'

@@ -9,13 +9,13 @@ import {
 } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
+import type { PgTableWithId } from '@/db/types'
 import {
   clientWriteOmitsConstructor,
   hiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema,
 } from './tableUtils'
 import { type TIMESTAMPTZ_MS, zodEpochMs } from './timestampMs'
-import type { PgTableWithId } from './types'
 
 // ---------- type helpers ----------
 type TableColumns<T extends PgTable> = T['_']['columns']
@@ -230,7 +230,8 @@ export const buildClientSchemas = <
   } = args
 
   const hiddenColumns = (args.hiddenColumns ?? {}) as HC
-  const readOnlyColumns = (args.readOnlyColumns ?? {}) as ROC
+  // Create a shallow copy to avoid mutating the caller's object when adding livemode/organizationId
+  const readOnlyColumns = { ...(args.readOnlyColumns ?? {}) } as ROC
   const createOnlyColumns = (args.createOnlyColumns ?? {}) as COC
 
   const clientSelectBuilt = (

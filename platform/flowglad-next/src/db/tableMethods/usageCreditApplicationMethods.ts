@@ -1,18 +1,18 @@
 import {
-  type UsageCreditApplication,
-  usageCreditApplications,
-  usageCreditApplicationsInsertSchema,
-  usageCreditApplicationsSelectSchema,
-  usageCreditApplicationsUpdateSchema,
-} from '@/db/schema/usageCreditApplications'
-import {
   createBulkInsertFunction,
   createInsertFunction,
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import {
+  type UsageCreditApplication,
+  usageCreditApplications,
+  usageCreditApplicationsInsertSchema,
+  usageCreditApplicationsSelectSchema,
+  usageCreditApplicationsUpdateSchema,
+} from '@/db/schema/usageCreditApplications'
 import type { DbTransaction } from '@/db/types'
 import {
   derivePricingModelIdFromUsageCredit,

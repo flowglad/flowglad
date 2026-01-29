@@ -1,12 +1,5 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -22,7 +15,14 @@ import {
   pgEnumColumn,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
+import { createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'discounts'

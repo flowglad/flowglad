@@ -1,18 +1,4 @@
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-} from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
-import { pricingModels } from '@/db/schema/pricingModels'
-import { usageCredits } from '@/db/schema/usageCredits'
-import { usageMeters } from '@/db/schema/usageMeters'
-import { users } from '@/db/schema/users'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   constructIndex,
   enableCustomerReadPolicy,
@@ -25,7 +11,21 @@ import {
   orgIdEqualsCurrentSQL,
   tableBase,
   timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { usageCredits } from '@/db/schema/usageCredits'
+import { usageMeters } from '@/db/schema/usageMeters'
+import { users } from '@/db/schema/users'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'usage_credit_balance_adjustments'

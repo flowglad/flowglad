@@ -1,11 +1,5 @@
+import { buildSchemas } from '@db-core/createZodSchemas'
 import { SubscriptionItemType } from '@db-core/enums'
-import { sql } from 'drizzle-orm'
-import { integer, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
-import * as R from 'ramda'
-import { z } from 'zod'
-import { billingPeriods } from '@/db/schema/billingPeriods'
-import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -18,9 +12,15 @@ import {
   pgEnumColumn,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import { integer, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
+import { createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { billingPeriods } from '@/db/schema/billingPeriods'
+import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import core from '@/utils/core'
-import { buildSchemas } from '../createZodSchemas'
 import { pricingModels } from './pricingModels'
 import { usageMeters } from './usageMeters'
 

@@ -1,8 +1,3 @@
-import {
-  CountryCode,
-  SupabasePayloadType,
-  TaxType,
-} from '@db-core/enums'
 import { Result } from 'better-result'
 import { noCase, snakeCase } from 'change-case'
 import {
@@ -59,11 +54,12 @@ import type {
   PgTableWithId,
   PgTableWithIdAndPricingModelId,
   PgTableWithPosition,
+  PgTimestampColumn,
 } from '@/db/types'
 import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import { countryCodeSchema } from './commonZodSchema'
+import { CountryCode, SupabasePayloadType, TaxType } from './enums'
 import { timestamptzMs } from './timestampMs'
-import type { PgTimestampColumn } from './types'
 
 /**
  * Custom error class for when a database record is not found.
@@ -545,6 +541,10 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
       const cleanArray = selectConditions[key].filter(
         (item: any) => item !== undefined && item !== ''
       )
+      // Empty array would generate invalid SQL `column IN ()`, so return a condition that's always false
+      if (cleanArray.length === 0) {
+        return sql`false`
+      }
       return inArray(
         table[key as keyof typeof table] as PgColumn,
         cleanArray

@@ -1,12 +1,5 @@
 import { NormalBalanceType } from '@db-core/enums'
 import {
-  type LedgerAccount,
-  ledgerAccounts,
-  ledgerAccountsInsertSchema,
-  ledgerAccountsSelectSchema,
-  ledgerAccountsUpdateSchema,
-} from '@/db/schema/ledgerAccounts'
-import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
   createSelectById,
@@ -14,7 +7,14 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import {
+  type LedgerAccount,
+  ledgerAccounts,
+  ledgerAccountsInsertSchema,
+  ledgerAccountsSelectSchema,
+  ledgerAccountsUpdateSchema,
+} from '@/db/schema/ledgerAccounts'
 import type { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
 import {

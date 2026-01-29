@@ -1,13 +1,3 @@
-import { eq } from 'drizzle-orm'
-import { z } from 'zod'
-import {
-  type Resource,
-  resources,
-  resourcesClientSelectSchema,
-  resourcesInsertSchema,
-  resourcesSelectSchema,
-  resourcesUpdateSchema,
-} from '@/db/schema/resources'
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
@@ -19,7 +9,17 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import {
+  type Resource,
+  resources,
+  resourcesClientSelectSchema,
+  resourcesInsertSchema,
+  resourcesSelectSchema,
+  resourcesUpdateSchema,
+} from '@/db/schema/resources'
 import type { DbTransaction } from '@/db/types'
 import type { PricingModel } from '../schema/pricingModels'
 import { selectPricingModels } from './pricingModelMethods'

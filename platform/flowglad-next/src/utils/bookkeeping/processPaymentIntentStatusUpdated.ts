@@ -8,6 +8,7 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@db-core/enums'
+import { NotFoundError as TableUtilsNotFoundError } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
@@ -34,7 +35,6 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter } from '@/db/tableMethods/usageCreditMethods'
-import { NotFoundError as TableUtilsNotFoundError } from '@/db/tableUtils'
 import type {
   DbTransaction,
   TransactionEffectsContext,

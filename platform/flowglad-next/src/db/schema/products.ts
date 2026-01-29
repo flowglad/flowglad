@@ -1,15 +1,4 @@
-import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  jsonb,
-  pgTable,
-  text,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
-import { z } from 'zod'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { organizations } from '@/db/schema/organizations'
+import { buildSchemas } from '@db-core/createZodSchemas'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -27,7 +16,18 @@ import {
   orgIdEqualsCurrentSQL,
   type SelectConditions,
   tableBase,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  jsonb,
+  pgTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
+import { createSelectSchema } from 'drizzle-zod'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
 import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'products'

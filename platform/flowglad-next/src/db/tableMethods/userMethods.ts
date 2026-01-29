@@ -1,17 +1,17 @@
 import {
-  users,
-  usersInsertSchema,
-  usersSelectSchema,
-  usersUpdateSchema,
-} from '@/db/schema/users'
-import {
   createInsertFunction,
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import {
+  users,
+  usersInsertSchema,
+  usersSelectSchema,
+  usersUpdateSchema,
+} from '@/db/schema/users'
 
 export type UserInsert = typeof users.$inferInsert
 export type UserUpdate = Partial<UserInsert>

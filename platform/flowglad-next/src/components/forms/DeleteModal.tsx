@@ -1,10 +1,10 @@
+import { idInputSchema } from '@db-core/tableUtils'
 import { sentenceCase } from 'change-case'
 import type { UseFormReturn } from 'react-hook-form'
 import type { trpc } from '@/app/_trpc/client'
 import FormModal, {
   NestedFormModal,
 } from '@/components/forms/FormModal'
-import { idInputSchema } from '@/db/tableUtils'
 
 export type LocalDeleteMutation = (params: {
   id: string
