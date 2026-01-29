@@ -458,3 +458,13 @@ describe('constructGetPrice', () => {
     })
   })
 })
+
+describe.skip('constructCheckFeatureAccess', () => {
+  it('prefers featureItems over experimental', () => {
+    // Test stub - to be implemented in Patch 6
+  })
+
+  it('falls back to experimental.featureItems', () => {
+    // Test stub - to be implemented in Patch 6
+  })
+})
