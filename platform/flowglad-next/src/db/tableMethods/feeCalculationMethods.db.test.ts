@@ -75,12 +75,14 @@ describe('Fee Calculation Methods', () => {
     })
 
     const now = Date.now()
-    billingPeriod = await setupBillingPeriod({
-      subscriptionId: subscription.id,
-      startDate: now,
-      endDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days later
-      livemode: true,
-    })
+    billingPeriod = (
+      await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: now,
+        endDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days later
+        livemode: true,
+      })
+    ).unwrap()
 
     checkoutSession = (
       await setupCheckoutSession({
