@@ -18,6 +18,7 @@ jobs:
           STATE: ${{ github.event.review.state }}
           TITLE: ${{ github.event.pull_request.title }}
           URL: ${{ github.event.pull_request.html_url }}
+          REVIEWER: ${{ github.event.review.user.login }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "SLACK_WEBHOOK_URL not set; skipping Slack notification."
@@ -36,12 +37,12 @@ jobs:
               ;;
           esac
 
-          PAYLOAD=$(jq -n --arg emoji "$EMOJI" --arg title "$TITLE" --arg url "$URL" '{
+          PAYLOAD=$(jq -n --arg emoji "$EMOJI" --arg title "$TITLE" --arg url "$URL" --arg reviewer "$REVIEWER" '{
             blocks: [{
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: ($emoji + " <" + $url + "|" + $title + ">")
+                text: ($emoji + " <" + $url + "|" + $title + "> - " + $reviewer)
               }
             }]
           }')
