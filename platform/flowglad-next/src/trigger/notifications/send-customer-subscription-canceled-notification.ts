@@ -12,10 +12,7 @@ import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
 import { ValidationError } from '@/errors'
-import {
-  createTriggerIdempotencyKey,
-  testSafeTriggerInvoker,
-} from '@/utils/backendCore'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import {
   formatEmailSubject,
   getBccForLivemode,
@@ -213,7 +210,7 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
 })
 
 export const idempotentSendCustomerSubscriptionCanceledNotification =
-  testSafeTriggerInvoker(async (subscriptionId: string) => {
+  async (subscriptionId: string) => {
     await sendCustomerSubscriptionCanceledNotificationTask.trigger(
       {
         subscriptionId,
@@ -224,4 +221,4 @@ export const idempotentSendCustomerSubscriptionCanceledNotification =
         ),
       }
     )
-  })
+  }
