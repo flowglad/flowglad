@@ -86,6 +86,40 @@ if (process.env.STRIPE_MOCK_HOST) {
 // (due to script name starting with "test"), but integration tests need real Stripe
 delete process.env.STRIPE_MOCK_HOST
 
+// Guard against mock server hosts being set - integration tests should use real APIs
+const mockHostVars = [
+  'SVIX_MOCK_HOST',
+  'UNKEY_MOCK_HOST',
+  'TRIGGER_API_URL',
+] as const
+
+// Check for localhost variants: hostname, IPv4 loopback, IPv6 loopback
+const isLocalhostUrl = (url: string): boolean => {
+  const lower = url.toLowerCase()
+  return (
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1') ||
+    lower.includes('[::1]')
+  )
+}
+
+for (const envVar of mockHostVars) {
+  const value = process.env[envVar]
+  if (value && isLocalhostUrl(value)) {
+    console.error(
+      `\n❌ ${envVar} is set to a local URL (${value}) but integration tests require real APIs.\n`
+    )
+    console.error(
+      'Integration tests should not use mock servers. Either:'
+    )
+    console.error(`  1. Remove ${envVar} from .env.integration, or`)
+    console.error(
+      '  2. Use *.db.test.ts pattern instead for tests that need mock servers.\n'
+    )
+    process.exit(1)
+  }
+}
+
 // Set FORCE_TEST_MODE so IS_TEST=true in core.ts
 // This is needed because we use NODE_ENV=integration (not 'test')
 process.env.FORCE_TEST_MODE = '1'
