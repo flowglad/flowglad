@@ -59,7 +59,9 @@ const deriveFeaturesFromBillingMocks = (
 
   // Filter by subscriptionId if provided
   const subscriptions = params?.subscriptionId
-    ? currentSubscriptions.filter(s => s.id === params.subscriptionId)
+    ? currentSubscriptions.filter(
+        (s) => s.id === params.subscriptionId
+      )
     : currentSubscriptions
 
   // Extract toggle features only, deduplicate by slug
@@ -152,7 +154,9 @@ export const useFeatures = (
       )
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText}`
+        )
       }
 
       const json = await response.json()
@@ -167,7 +171,10 @@ export const useFeatures = (
         'FlowgladProvider: __devMode requires billingMocks'
       )
     }
-    const features = deriveFeaturesFromBillingMocks(billingMocks, params)
+    const features = deriveFeaturesFromBillingMocks(
+      billingMocks,
+      params
+    )
 
     return {
       features,
@@ -232,6 +239,7 @@ export const useFeature = (
   params?: GetFeatureAccessParams
 ): UseFeatureResult => {
   const { features, isLoading, error } = useFeatures(params)
-  const feature = features?.find((f) => f.slug === featureSlug) ?? null
+  const feature =
+    features?.find((f) => f.slug === featureSlug) ?? null
   return { feature, hasAccess: feature !== null, isLoading, error }
 }

@@ -217,6 +217,7 @@ describe('useFeatures', () => {
 
   it('returns features after successful fetch', async () => {
     mockFetch.mockResolvedValueOnce({
+      ok: true,
       json: () => Promise.resolve(mockFeatureAccessResponse),
     })
 
@@ -237,6 +238,7 @@ describe('useFeatures', () => {
 
   it('returns error on API error (auth edge case)', async () => {
     mockFetch.mockResolvedValueOnce({
+      ok: true,
       json: () =>
         Promise.resolve({
           error: {
@@ -333,8 +335,8 @@ describe('useFeatures', () => {
 
   it('returns empty array when no toggle features', async () => {
     mockFetch.mockResolvedValueOnce({
-      json: () =>
-        Promise.resolve({ data: { features: [] } }),
+      ok: true,
+      json: () => Promise.resolve({ data: { features: [] } }),
     })
 
     const { result } = renderHook(() => useFeatures(), {
@@ -367,6 +369,7 @@ describe('useFeature', () => {
 
   it('returns feature by slug', async () => {
     mockFetch.mockResolvedValueOnce({
+      ok: true,
       json: () => Promise.resolve(mockFeatureAccessResponse),
     })
 
@@ -388,15 +391,13 @@ describe('useFeature', () => {
 
   it('returns hasAccess: true when feature exists', async () => {
     mockFetch.mockResolvedValueOnce({
+      ok: true,
       json: () => Promise.resolve(mockFeatureAccessResponse),
     })
 
-    const { result } = renderHook(
-      () => useFeature('api-access'),
-      {
-        wrapper: createWrapper(),
-      }
-    )
+    const { result } = renderHook(() => useFeature('api-access'), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -409,15 +410,13 @@ describe('useFeature', () => {
 
   it('returns hasAccess: false when feature not found', async () => {
     mockFetch.mockResolvedValueOnce({
+      ok: true,
       json: () => Promise.resolve(mockFeatureAccessResponse),
     })
 
-    const { result } = renderHook(
-      () => useFeature('nonexistent'),
-      {
-        wrapper: createWrapper(),
-      }
-    )
+    const { result } = renderHook(() => useFeature('nonexistent'), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -431,9 +430,12 @@ describe('useFeature', () => {
   it('uses billingMocks in dev mode', async () => {
     const billingMocks = createMockBillingData()
 
-    const { result } = renderHook(() => useFeature('custom-branding'), {
-      wrapper: createWrapper(true, billingMocks),
-    })
+    const { result } = renderHook(
+      () => useFeature('custom-branding'),
+      {
+        wrapper: createWrapper(true, billingMocks),
+      }
+    )
 
     expect(result.current.isLoading).toBe(false)
     expect(result.current.feature).not.toBe(null)
