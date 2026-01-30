@@ -188,7 +188,17 @@ export const secretApiKeyMetadataSchema = z.object({
   pricingModelId: z.string(),
 })
 
-export const apiKeyMetadataSchema = secretApiKeyMetadataSchema
+export const cliSessionApiKeyMetadataSchema = z.object({
+  type: z.literal(FlowgladApiKeyType.CliSession),
+  userId: z.string(),
+  organizationId: z.string().optional(),
+  pricingModelId: z.string(),
+})
+
+export const apiKeyMetadataSchema = z.discriminatedUnion('type', [
+  secretApiKeyMetadataSchema,
+  cliSessionApiKeyMetadataSchema,
+])
 
 export namespace ApiKey {
   // Base types
@@ -217,6 +227,9 @@ export namespace ApiKey {
   >
   export type SecretMetadata = z.infer<
     typeof secretApiKeyMetadataSchema
+  >
+  export type CliSessionMetadata = z.infer<
+    typeof cliSessionApiKeyMetadataSchema
   >
   // Publishable API Key types
   export type PublishableInsert = z.infer<

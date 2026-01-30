@@ -309,7 +309,8 @@ export const parseUnkeyMeta =
       throw new Error('No unkey metadata provided')
     }
 
-    // First, try to parse with the schema directly
+    // First, try to parse with the discriminated union schema directly
+    // This handles both Secret and CliSession types
     const firstUnkeyMetaResult =
       apiKeyMetadataSchema.safeParse(rawUnkeyMeta)
     if (firstUnkeyMetaResult.success) {
@@ -318,10 +319,17 @@ export const parseUnkeyMeta =
 
     const metaType = (rawUnkeyMeta as { type?: string }).type
 
-    // If there's an explicit type that's not Secret, reject it
-    if (metaType && metaType !== FlowgladApiKeyType.Secret) {
+    // If there's an explicit type that's not a valid type, reject it
+    const validTypes = [
+      FlowgladApiKeyType.Secret,
+      FlowgladApiKeyType.CliSession,
+    ]
+    if (
+      metaType &&
+      !validTypes.includes(metaType as FlowgladApiKeyType)
+    ) {
       throw new Error(
-        `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${FlowgladApiKeyType.Secret}`
+        `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${validTypes.join(' or ')}`
       )
     }
 
