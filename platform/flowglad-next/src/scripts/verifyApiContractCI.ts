@@ -14,9 +14,6 @@
  *   bunx tsx src/scripts/verifyApiContractCI.ts
  */
 
-// Make this file a module for top-level await
-export {}
-
 const requiredEnvVars = [
   'TELEMETRY_TEST_API_KEY',
   'FLOWGLAD_PROD_API_URL',
@@ -43,17 +40,18 @@ const logger = {
   error: console.error,
 }
 
-// Use dynamic import so env vars are set before modules load
-const { default: verifyApiContract } = await import(
-  '@/api-contract/verify'
-)
+// Use async IIFE with dynamic import so env vars are set before modules load
+;(async () => {
+  const { default: verifyApiContract } = await import(
+    '@/api-contract/verify'
+  )
 
-verifyApiContract(logger)
-  .then(() => {
+  try {
+    await verifyApiContract(logger)
     console.log('✅ API contract verification passed')
     process.exit(0)
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('❌ API contract verification failed:', error)
     process.exit(1)
-  })
+  }
+})()
