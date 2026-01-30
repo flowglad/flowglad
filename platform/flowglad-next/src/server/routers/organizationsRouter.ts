@@ -585,7 +585,9 @@ const updateFocusedPricingModel = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    if (!ctx.organizationId || !ctx.user?.id) {
+    const organizationId = ctx.organizationId
+    const userId = ctx.user?.id
+    if (!organizationId || !userId) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message: 'User and organization context required',
@@ -596,8 +598,8 @@ const updateFocusedPricingModel = protectedProcedure
       return updateFocusedPricingModelTransaction(
         {
           pricingModelId: input.pricingModelId,
-          userId: ctx.user!.id,
-          organizationId: ctx.organizationId!,
+          userId,
+          organizationId,
         },
         transaction
       )
