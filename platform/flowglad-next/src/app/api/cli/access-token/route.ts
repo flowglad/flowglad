@@ -187,6 +187,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     )
   }
 
+  // Check for API error response or missing key
+  if (!createKeyResult.data?.key) {
+    console.error('Unkey API error: missing key in response')
+    return NextResponse.json(
+      {
+        error: 'Internal Server Error',
+        message: 'Failed to create access token',
+      },
+      { status: 500 }
+    )
+  }
+
   const response: AccessTokenResponse = {
     accessToken: createKeyResult.data.key,
     expiresAt: expiresAt.toISOString(),
