@@ -82,3 +82,11 @@ describe('REST route configs ↔ OpenAPI document unity', () => {
     expect(missingInRest).toEqual([])
   })
 })
+
+describe('/api/v1 with CLI session token', () => {
+  it.skip('authenticates with CLI session token', () => {
+    // PENDING: Patch 5
+    // Test that a CLI session token (type: 'cli_session') can authenticate
+    // to /api/v1/customers and return data scoped to the org/PM
+  })
+})

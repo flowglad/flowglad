@@ -174,4 +174,12 @@ describe('parseUnkeyMeta', () => {
       'Invalid unkey metadata'
     )
   })
+
+  it.skip('parses CliSession type metadata', () => {
+    // PENDING: Patch 5
+  })
+
+  it.skip('parses Secret type metadata', () => {
+    // PENDING: Patch 5
+  })
 })
