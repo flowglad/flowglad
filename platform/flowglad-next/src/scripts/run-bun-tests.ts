@@ -169,12 +169,32 @@ const nodeEnv = setupFile.includes('integration')
   ? 'integration'
   : 'test'
 
-// Run bun test with appropriate NODE_ENV so correct .env file is loaded
+// Build environment for child process
+// For non-integration tests, explicitly set mock server URLs to ensure tests
+// don't accidentally use real services even if parent process has different values
+const childEnv: Record<string, string | undefined> = {
+  ...process.env,
+  NODE_ENV: nodeEnv,
+}
+
+if (nodeEnv === 'test') {
+  // Explicitly set mock server URLs for test environment
+  // This overrides any values inherited from the parent process
+  childEnv.UPSTASH_REDIS_REST_URL = 'http://localhost:9004'
+  childEnv.UPSTASH_REDIS_REST_TOKEN = 'mock_token'
+  childEnv.TRIGGER_API_URL = 'http://localhost:9003'
+  childEnv.SVIX_MOCK_HOST = 'http://localhost:9001'
+  childEnv.UNKEY_MOCK_HOST = 'http://localhost:9002'
+  childEnv.RESEND_BASE_URL = 'http://localhost:9005'
+  childEnv.CLOUDFLARE_R2_ENDPOINT = 'http://localhost:9006'
+}
+
+// Run bun test with appropriate environment
 const proc = Bun.spawn(
   ['bun', 'test', ...preloadArgs, ...extraArgs, ...filePaths],
   {
     stdio: ['inherit', 'inherit', 'inherit'],
-    env: { ...process.env, NODE_ENV: nodeEnv },
+    env: childEnv,
   }
 )
 
