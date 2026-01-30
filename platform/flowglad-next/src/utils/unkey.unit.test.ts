@@ -134,19 +134,17 @@ describe('parseUnkeyMeta', () => {
     })
   })
 
-  it('should parse CliSession metadata without optional organizationId', () => {
+  it('should throw error for CliSession metadata missing organizationId', () => {
     const rawMeta = {
       type: FlowgladApiKeyType.CliSession,
       userId: 'user_123',
       pricingModelId: 'pricing_model_abc123',
+      // Missing organizationId - required for CliSession
     }
-    const result = parseUnkeyMeta(rawMeta)
 
-    expect(result).toEqual({
-      type: FlowgladApiKeyType.CliSession,
-      userId: 'user_123',
-      pricingModelId: 'pricing_model_abc123',
-    })
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      'Invalid unkey metadata'
+    )
   })
 
   it('should throw error for metadata missing pricingModelId', () => {

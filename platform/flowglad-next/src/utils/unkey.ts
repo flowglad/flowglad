@@ -330,6 +330,11 @@ export const parseUnkeyMeta =
       )
     }
 
+    // If there's an explicit type and it failed validation, don't fallback
+    if (metaType) {
+      throw new Error('Invalid unkey metadata')
+    }
+
     // Try adding the Secret type for legacy keys that don't have a type field
     const secondUnkeyMetaResult = apiKeyMetadataSchema.safeParse({
       ...rawUnkeyMeta,

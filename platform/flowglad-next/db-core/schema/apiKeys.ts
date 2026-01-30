@@ -191,7 +191,7 @@ export const secretApiKeyMetadataSchema = z.object({
 export const cliSessionApiKeyMetadataSchema = z.object({
   type: z.literal(FlowgladApiKeyType.CliSession),
   userId: z.string(),
-  organizationId: z.string().optional(),
+  organizationId: z.string(),
   pricingModelId: z.string(),
 })
 
