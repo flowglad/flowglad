@@ -16,47 +16,18 @@
 
 import { $ } from 'bun'
 import { dirname, resolve } from 'path'
+import { parseArgs } from 'util'
 import { DOCKER_CONFIG } from '../docker-config'
 
-interface Args {
-  tag: string
-  push: boolean
-  help: boolean
-}
-
-const parseArgs = (): Args => {
-  const args = process.argv.slice(2)
-  const result: Args = {
-    tag: 'latest',
-    push: false,
-    help: false,
-  }
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    switch (arg) {
-      case '--tag': {
-        const nextArg = args[i + 1]
-        if (!nextArg || nextArg.startsWith('-')) {
-          console.error('Error: --tag requires a value')
-          process.exit(1)
-        }
-        result.tag = nextArg
-        i++
-        break
-      }
-      case '--push':
-        result.push = true
-        break
-      case '--help':
-      case '-h':
-        result.help = true
-        break
-    }
-  }
-
-  return result
-}
+const { values: args } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    tag: { type: 'string', default: 'latest' },
+    push: { type: 'boolean', default: false },
+    help: { type: 'boolean', short: 'h', default: false },
+  },
+  strict: true,
+})
 
 const printHelp = () => {
   console.log(`
@@ -83,8 +54,6 @@ Image: ${DOCKER_CONFIG.fullImage}
 }
 
 const main = async () => {
-  const args = parseArgs()
-
   if (args.help) {
     printHelp()
     process.exit(0)
