@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   BillingPeriodStatus,
   CurrencyCode,
@@ -18,7 +19,7 @@ import type { ProductFeature } from '@db-core/schema/productFeatures'
 import type { Product } from '@db-core/schema/products'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -35,8 +36,9 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import type { ComprehensiveAdminTransactionParams } from '@/db/types'
 import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   createCapturingEffectsContext,
@@ -64,7 +66,7 @@ const setupTestFeaturesAndProductFeatures = async (
     productFeature: ProductFeature.Record
   }>
 > => {
-  return adminTransaction(async ({ transaction }) => {
+  return adminTransaction(async (ctx) => {
     const createdData: Array<{
       feature: Feature.Record
       productFeature: ProductFeature.Record
@@ -121,10 +123,7 @@ const setupTestFeaturesAndProductFeatures = async (
         )
       }
 
-      const feature = await insertFeature(
-        featureInsertData,
-        transaction
-      )
+      const feature = await insertFeature(featureInsertData, ctx)
       const productFeature = await insertProductFeature(
         {
           organizationId,
@@ -132,7 +131,7 @@ const setupTestFeaturesAndProductFeatures = async (
           productId,
           featureId: feature.id,
         },
-        transaction
+        ctx
       )
       createdData.push({ feature, productFeature })
     }
@@ -210,14 +209,16 @@ describe('addFeatureToSubscription mutation', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const result = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         expect(result.subscriptionItemFeature.featureId).toBe(
           toggleFeature.id
@@ -244,18 +245,20 @@ describe('addFeatureToSubscription mutation', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: toggleFeature.id,
-              grantCreditsImmediately: true,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          'grantCreditsImmediately is only supported for usage credit features.'
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: true,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect((result.error as Error).message).toBe(
+            'grantCreditsImmediately is only supported for usage credit features.'
+          )
+        }
       })
     })
   })
@@ -281,14 +284,16 @@ describe('addFeatureToSubscription mutation', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageCreditFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const result = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageCreditFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         expect(result.subscriptionItemFeature.featureId).toBe(
           usageCreditFeature.id
@@ -348,14 +353,16 @@ describe('addFeatureToSubscription mutation', () => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
 
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageCreditFeature.id,
-            grantCreditsImmediately: true,
-          },
-          ctx
-        )
+        ;(
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageCreditFeature.id,
+              grantCreditsImmediately: true,
+            },
+            ctx
+          )
+        ).unwrap()
 
         // Verify ledger command was enqueued
         expect(effects.ledgerCommands.length).toBe(1)
@@ -471,54 +478,60 @@ describe('addFeatureToSubscription mutation', () => {
           transaction
         )
 
-        await expect(
-          addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: toggleFeature.id,
-              grantCreditsImmediately: false,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          `Subscription item ${subscriptionItem.id} is expired and cannot accept new features.`
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect((result.error as Error).message).toBe(
+            `Subscription item ${subscriptionItem.id} is expired and cannot accept new features.`
+          )
+        }
       })
     })
 
     it('should throw error when feature is inactive', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create an inactive feature directly
-        const inactiveFeature = await insertFeature(
-          {
-            organizationId: orgData.organization.id,
-            pricingModelId: orgData.pricingModel.id,
-            name: 'Inactive Feature',
-            slug: `inactive-feature-${core.nanoid(6)}`,
-            description: 'An inactive feature',
-            type: FeatureType.Toggle,
-            amount: null,
-            renewalFrequency: null,
-            usageMeterId: null,
-            livemode: true,
-            active: false,
-          },
-          transaction
-        )
+      await adminTransaction(
+        async (ctx: ComprehensiveAdminTransactionParams) => {
+          // Create an inactive feature directly
+          const inactiveFeature = await insertFeature(
+            {
+              organizationId: orgData.organization.id,
+              pricingModelId: orgData.pricingModel.id,
+              name: 'Inactive Feature',
+              slug: `inactive-feature-${core.nanoid(6)}`,
+              description: 'An inactive feature',
+              type: FeatureType.Toggle,
+              amount: null,
+              renewalFrequency: null,
+              usageMeterId: null,
+              livemode: true,
+              active: false,
+            },
+            ctx
+          )
 
-        await expect(
-          addFeatureToSubscriptionItem(
+          const result = await addFeatureToSubscriptionItem(
             {
               subscriptionItemId: subscriptionItem.id,
               featureId: inactiveFeature.id,
               grantCreditsImmediately: false,
             },
-            createDiscardingEffectsContext(transaction)
+            createDiscardingEffectsContext(ctx.transaction)
           )
-        ).rejects.toThrow(
-          `Feature ${inactiveFeature.id} is inactive and cannot be added to subscriptions.`
-        )
-      })
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
+            expect((result.error as Error).message).toBe(
+              `Feature ${inactiveFeature.id} is inactive and cannot be added to subscriptions.`
+            )
+          }
+        }
+      )
     })
 
     it('should throw error when feature belongs to different organization', async () => {
@@ -541,18 +554,20 @@ describe('addFeatureToSubscription mutation', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: otherOrgFeature.id,
-              grantCreditsImmediately: false,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          `Feature ${otherOrgFeature.id} does not belong to the same organization as subscription ${subscription.id}.`
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: otherOrgFeature.id,
+            grantCreditsImmediately: false,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect((result.error as Error).message).toBe(
+            `Feature ${otherOrgFeature.id} does not belong to the same organization as subscription ${subscription.id}.`
+          )
+        }
       })
     })
 
@@ -574,18 +589,20 @@ describe('addFeatureToSubscription mutation', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: testmodeFeature.id,
-              grantCreditsImmediately: false,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          'Feature livemode does not match subscription item livemode.'
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: testmodeFeature.id,
+            grantCreditsImmediately: false,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect((result.error as Error).message).toBe(
+            'Feature livemode does not match subscription item livemode.'
+          )
+        }
       })
     })
   })
@@ -607,23 +624,27 @@ describe('addFeatureToSubscription mutation', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
-        const firstResult = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const firstResult = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
-        const secondResult = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const secondResult = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         // Should return the same subscription item feature
         expect(secondResult.subscriptionItemFeature.id).toBe(
