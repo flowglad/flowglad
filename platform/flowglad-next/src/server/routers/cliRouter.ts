@@ -1,16 +1,15 @@
-import { TRPCError } from '@trpc/server'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import { auth } from '@/utils/auth'
-import core from '@/utils/core'
-import { protectedProcedure, publicProcedure, router } from '../trpc'
+import { protectedProcedure, router } from '../trpc'
 
 /**
  * Verify a device user code is valid and not expired.
  *
  * This is used to display the authorization form with confidence that the code is valid.
+ * Uses protectedProcedure to prevent unauthenticated users from probing valid device codes.
  */
-const verifyDeviceCode = publicProcedure
+const verifyDeviceCode = protectedProcedure
   .input(
     z.object({
       userCode: z.string().min(1).describe('The user code to verify'),
@@ -23,8 +22,11 @@ const verifyDeviceCode = publicProcedure
     })
   )
   .query(async ({ input }) => {
+    // Use BETTER_AUTH_URL (server-only env var) instead of NEXT_PUBLIC_APP_URL
+    const baseUrl =
+      process.env.BETTER_AUTH_URL || 'http://localhost:3000'
     const response = await fetch(
-      `${core.NEXT_PUBLIC_APP_URL}/api/auth/device?user_code=${encodeURIComponent(input.userCode)}`
+      `${baseUrl}/api/auth/device?user_code=${encodeURIComponent(input.userCode)}`
     )
 
     if (!response.ok) {

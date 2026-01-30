@@ -49,21 +49,6 @@ const createAuthenticatedCaller = (user: User.Record) => {
   return cliRouter.createCaller(ctx)
 }
 
-// Helper to create a caller without auth (for public procedures)
-const createPublicCaller = () => {
-  const ctx: TRPCContext = {
-    user: undefined,
-    path: '/cli',
-    environment: 'test',
-    livemode: false,
-    organizationId: undefined,
-    organization: undefined,
-    isApi: false,
-    apiKey: undefined,
-  }
-  return cliRouter.createCaller(ctx)
-}
-
 beforeEach(async () => {
   globalThis.__mockedAuthSession = null
 
@@ -84,7 +69,7 @@ afterEach(() => {
 })
 
 describe('cli.verifyDeviceCode', () => {
-  it('returns valid true for valid user code', async () => {
+  it('returns valid true for valid user code when authenticated', async () => {
     // Mock the fetch call to the device verification endpoint
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
@@ -95,7 +80,8 @@ describe('cli.verifyDeviceCode', () => {
     )
 
     try {
-      const caller = createPublicCaller()
+      // verifyDeviceCode requires authentication to prevent code probing
+      const caller = createAuthenticatedCaller(user)
       const result = await caller.verifyDeviceCode({
         userCode: 'ABCD-1234',
       })
@@ -107,7 +93,7 @@ describe('cli.verifyDeviceCode', () => {
     }
   })
 
-  it('returns valid false for invalid user code', async () => {
+  it('returns valid false for invalid user code when authenticated', async () => {
     // Mock the fetch call to return a 404/error
     const originalFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
@@ -118,7 +104,8 @@ describe('cli.verifyDeviceCode', () => {
     )
 
     try {
-      const caller = createPublicCaller()
+      // verifyDeviceCode requires authentication to prevent code probing
+      const caller = createAuthenticatedCaller(user)
       const result = await caller.verifyDeviceCode({
         userCode: 'INVALID-CODE',
       })
