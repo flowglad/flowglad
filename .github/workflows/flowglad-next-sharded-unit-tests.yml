@@ -14,6 +14,11 @@ name: Flowglad Next Unit Tests
 on:
   workflow_call:
 
+# Explicit permissions for GHCR access (required for private org packages)
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   # Unit tests are fast and don't need a database - run in a single job
   flowglad-next-unit-tests:
