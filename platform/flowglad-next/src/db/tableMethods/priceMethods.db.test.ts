@@ -681,7 +681,8 @@ describe('priceMethods.ts', () => {
 
     it('allows inserting active price with slug different from existing active prices slugs', async () => {
       const slug1 = 'active-slug-1'
-      const slug2 = 'active-slug-2'(
+      const slug2 = 'active-slug-2'
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
@@ -811,7 +812,8 @@ describe('priceMethods.ts', () => {
     })
 
     it('allows inserting inactive price with slug that exists on active price in same pricing model', async () => {
-      const slug = 'shared-slug'(
+      const slug = 'shared-slug'
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
@@ -868,7 +870,8 @@ describe('priceMethods.ts', () => {
     })
 
     it('allows inserting active price with slug that exists on inactive price in same pricing model', async () => {
-      const slug = 'reusable-slug'(
+      const slug = 'reusable-slug'
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
@@ -925,7 +928,8 @@ describe('priceMethods.ts', () => {
     })
 
     it('allows updating price from active to inactive even when another active price has same slug', async () => {
-      const slug = 'shared-slug'(
+      const slug = 'shared-slug'
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
@@ -1057,7 +1061,8 @@ describe('priceMethods.ts', () => {
     })
 
     it('allows multiple inactive prices with the same slug in same pricing model', async () => {
-      const slug = 'inactive-slug'(
+      const slug = 'inactive-slug'
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
@@ -1116,7 +1121,8 @@ describe('priceMethods.ts', () => {
     })
 
     it('allows updating inactive price slug to match another inactive price slug', async () => {
-      const slug = 'shared-inactive-slug'(
+      const slug = 'shared-inactive-slug'
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
