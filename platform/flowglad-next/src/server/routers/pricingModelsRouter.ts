@@ -374,6 +374,17 @@ const getAllForSwitcherProcedure = protectedProcedure
     })
   })
 
+/**
+ * Setup a pricing model from a template.
+ *
+ * Note: Like createPricingModelProcedure, new pricing models are always created
+ * in testmode (livemode: false) because only one livemode pricing model is
+ * allowed per organization.
+ *
+ * Uses adminTransaction to bypass RLS policies that would otherwise prevent
+ * creating resources (usage meters, products, features, prices) for the new
+ * pricing model when the user's focused pricing model is different.
+ */
 const setupPricingModelProcedure = protectedProcedure
   .meta({
     openapi: {
@@ -390,37 +401,40 @@ const setupPricingModelProcedure = protectedProcedure
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        if (!ctx.organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
-        const { transaction } = transactionCtx
-        const result = await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: ctx.organizationId,
-            livemode: ctx.livemode,
-          },
-          transactionCtx
-        )
-        const setupResult = result.unwrap()
-        const [pricingModelWithProductsAndUsageMeters] =
-          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-            { id: setupResult.pricingModel.id },
-            transaction
+  .mutation(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    // Always create in testmode - only one livemode pricing model is allowed
+    // per organization. Uses adminTransaction to bypass livemode and pricing
+    // model scope RLS policies.
+    const pricingModelWithProductsAndUsageMeters =
+      await adminTransaction(
+        async (transactionCtx) => {
+          const { transaction } = transactionCtx
+          const result = await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: ctx.organizationId!,
+              livemode: false, // Force testmode for new PMs
+            },
+            transactionCtx
           )
-        return Result.ok({
-          pricingModel: pricingModelWithProductsAndUsageMeters,
-        })
-      }
-    )
-  )
+          const setupResult = result.unwrap()
+          const [pricingModel] =
+            await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+              { id: setupResult.pricingModel.id },
+              transaction
+            )
+          return pricingModel
+        },
+        { livemode: false }
+      )
+    return { pricingModel: pricingModelWithProductsAndUsageMeters }
+  })
 
 const exportPricingModelProcedure = protectedProcedure
   .input(idInputSchema)
