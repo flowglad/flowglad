@@ -74,6 +74,12 @@ export class DeviceFlowAccessDeniedError extends Error {
 const CLIENT_ID = 'flowglad-cli'
 
 /**
+ * Type guard to check if a value is a record (non-null object).
+ */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+/**
  * Waits for the specified number of milliseconds.
  */
 const sleep = (ms: number): Promise<void> =>
@@ -142,11 +148,11 @@ const pollTokenOnce = async (
     }),
   })
 
-  const data = await response.json()
+  const data: unknown = await response.json()
 
   // Check for OAuth2 error responses
-  if (data.error) {
-    switch (data.error as DeviceFlowError) {
+  if (isRecord(data) && typeof data.error === 'string') {
+    switch (data.error) {
       case 'authorization_pending':
         throw new DeviceFlowAuthorizationPendingError()
       case 'slow_down':
@@ -164,7 +170,23 @@ const pollTokenOnce = async (
     throw new Error(`Failed to poll for token: ${response.status}`)
   }
 
-  return data as DeviceTokenResponse
+  // Validate token response structure
+  if (
+    !isRecord(data) ||
+    typeof data.access_token !== 'string' ||
+    typeof data.token_type !== 'string' ||
+    typeof data.expires_in !== 'number' ||
+    typeof data.scope !== 'string'
+  ) {
+    throw new Error('Invalid device token response')
+  }
+
+  return {
+    access_token: data.access_token,
+    token_type: data.token_type,
+    expires_in: data.expires_in,
+    scope: data.scope,
+  }
 }
 
 /**
