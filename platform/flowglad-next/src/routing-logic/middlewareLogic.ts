@@ -11,10 +11,10 @@ type MiddlewareLogicResponse =
     }
 
 interface MiddlewareLogicParams {
-  sessionCookie: string | null | undefined
+  merchantSessionCookie: string | null | undefined
+  customerSessionCookie: string | null | undefined
   isProtectedRoute: boolean
   pathName: string
-  customerBillingPortalOrganizationId: string | null | undefined
   req: {
     nextUrl: string
   }
@@ -24,13 +24,20 @@ export const middlewareLogic = (
   params: MiddlewareLogicParams
 ): MiddlewareLogicResponse => {
   const {
-    sessionCookie,
+    merchantSessionCookie,
+    customerSessionCookie,
     isProtectedRoute,
     pathName,
-    customerBillingPortalOrganizationId,
   } = params
-  if (!sessionCookie && isProtectedRoute) {
-    if (pathName.startsWith('/billing-portal/')) {
+
+  // Determine which session to check based on the route
+  const isBillingPortalRoute = pathName.startsWith('/billing-portal/')
+  const relevantSessionCookie = isBillingPortalRoute
+    ? customerSessionCookie
+    : merchantSessionCookie
+
+  if (!relevantSessionCookie && isProtectedRoute) {
+    if (isBillingPortalRoute) {
       const pathParts = pathName.split('/').filter(Boolean)
       // pathParts: ['billing-portal', 'org_xxx', 'cust_xxx', ...]
       const organizationId = pathParts[1]
@@ -78,21 +85,5 @@ export const middlewareLogic = (
     }
   }
 
-  if (
-    customerBillingPortalOrganizationId &&
-    !pathName.startsWith(
-      `/billing-portal/${customerBillingPortalOrganizationId}`
-    ) &&
-    isProtectedRoute &&
-    !pathName.startsWith('/api/trpc/customerBillingPortal.')
-  ) {
-    return {
-      proceed: false,
-      redirect: {
-        url: `/billing-portal/${customerBillingPortalOrganizationId}`,
-        status: 307,
-      },
-    }
-  }
   return { proceed: true }
 }
