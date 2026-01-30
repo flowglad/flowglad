@@ -2348,29 +2348,27 @@ describe('Subscription Cancellation Test Suite', async () => {
           return Result.ok(await result.canceledAt)
         })
       ).unwrap()
+      // Verify subscription items are expired
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const items = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          expect(items).toHaveLength(1)
+          expect(items[0].expiredAt).toBe(canceledAt)
 
-        ;(
-          // Verify subscription items are expired
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            const items = await selectSubscriptionItems(
-              { subscriptionId: subscription.id },
-              transaction
-            )
-            expect(items).toHaveLength(1)
-            expect(items[0].expiredAt).toBe(canceledAt)
-
-            // Verify features are expired
-            const features = await selectSubscriptionItemFeatures(
-              { subscriptionItemId: subscriptionItem.id },
-              transaction
-            )
-            expect(features).toHaveLength(1)
-            expect(features[0].expiredAt).toBe(canceledAt)
-            return Result.ok(undefined)
-          })
-        )
-        .unwrap()
+          // Verify features are expired
+          const features = await selectSubscriptionItemFeatures(
+            { subscriptionItemId: subscriptionItem.id },
+            transaction
+          )
+          expect(features).toHaveLength(1)
+          expect(features[0].expiredAt).toBe(canceledAt)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should expire multiple subscription items and features when canceling immediately', async () => {
@@ -2516,37 +2514,35 @@ describe('Subscription Cancellation Test Suite', async () => {
           return Result.ok(await result.canceledAt)
         })
       ).unwrap()
+      // Verify all subscription items are expired
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const items = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          expect(items).toHaveLength(2)
+          expect(items[0].expiredAt).toBe(canceledAt)
+          expect(items[1].expiredAt).toBe(canceledAt)
 
-        ;(
-          // Verify all subscription items are expired
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            const items = await selectSubscriptionItems(
-              { subscriptionId: subscription.id },
-              transaction
-            )
-            expect(items).toHaveLength(2)
-            expect(items[0].expiredAt).toBe(canceledAt)
-            expect(items[1].expiredAt).toBe(canceledAt)
+          // Verify all features are expired
+          const features1 = await selectSubscriptionItemFeatures(
+            { subscriptionItemId: subscriptionItem1.id },
+            transaction
+          )
+          expect(features1).toHaveLength(1)
+          expect(features1[0].expiredAt).toBe(canceledAt)
 
-            // Verify all features are expired
-            const features1 = await selectSubscriptionItemFeatures(
-              { subscriptionItemId: subscriptionItem1.id },
-              transaction
-            )
-            expect(features1).toHaveLength(1)
-            expect(features1[0].expiredAt).toBe(canceledAt)
-
-            const features2 = await selectSubscriptionItemFeatures(
-              { subscriptionItemId: subscriptionItem2.id },
-              transaction
-            )
-            expect(features2).toHaveLength(1)
-            expect(features2[0].expiredAt).toBe(canceledAt)
-            return Result.ok(undefined)
-          })
-        )
-        .unwrap()
+          const features2 = await selectSubscriptionItemFeatures(
+            { subscriptionItemId: subscriptionItem2.id },
+            transaction
+          )
+          expect(features2).toHaveLength(1)
+          expect(features2[0].expiredAt).toBe(canceledAt)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 

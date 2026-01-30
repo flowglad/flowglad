@@ -882,24 +882,23 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            const selected = (
-              await selectSubscriptionItemFeatureById(
-                inserted.id,
-                transaction
-              )
-            ).unwrap()
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const selected = (
+            await selectSubscriptionItemFeatureById(
+              inserted.id,
+              transaction
+            )
+          ).unwrap()
 
-            expect(selected.id).toBe(inserted.id)
-            expect(selected.type).toBe(FeatureType.Resource)
-            expect(selected.resourceId).toBe(resource.id)
-            expect(selected.amount).toBe(5)
-            return Result.ok(undefined)
-          })
-        )
-        .unwrap()
+          expect(selected.id).toBe(inserted.id)
+          expect(selected.type).toBe(FeatureType.Resource)
+          expect(selected.resourceId).toBe(resource.id)
+          expect(selected.amount).toBe(5)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 

@@ -533,20 +533,19 @@ describe('clonePricingModelTransaction', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(async (ctx) => {
-            return Result.ok(
-              await clonePricingModelTransaction(
-                {
-                  id: sourcePricingModel.id,
-                  name: 'Cloned PricingModel',
-                },
-                ctx
-              )
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await clonePricingModelTransaction(
+              {
+                id: sourcePricingModel.id,
+                name: 'Cloned PricingModel',
+              },
+              ctx
             )
-          })
-        )
-        .unwrap()
+          )
+        })
+      ).unwrap()
 
       const pricingModelAfterClone = (
         await adminTransactionWithResult(async (ctx) => {

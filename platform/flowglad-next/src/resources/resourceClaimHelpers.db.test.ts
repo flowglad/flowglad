@@ -580,28 +580,26 @@ describe('resourceClaimHelpers', () => {
           )
         })
       ).unwrap()
-
-        ;(
-          // Create 2 named claims
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: 'seats',
-                    subscriptionId: subscription.id,
-                    externalIds: ['named_user_1', 'named_user_2'],
-                  },
+      // Create 2 named claims
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: ['named_user_1', 'named_user_2'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
-          })
-        )
-        .unwrap()
+          )
+        })
+      ).unwrap()
 
       // Release 2 anonymous claims
       const result = (
@@ -888,26 +886,25 @@ describe('resourceClaimHelpers', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: 'seats',
-                    subscriptionId: subscription.id,
-                    externalIds: ['named_1', 'named_2'],
-                  },
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: ['named_1', 'named_2'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
-          })
-        )
-        .unwrap()
+          )
+        })
+      ).unwrap()
 
       // Release all claims
       const result = (
@@ -1046,26 +1043,25 @@ describe('resourceClaimHelpers', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: 'seats',
-                    subscriptionId: subscription.id,
-                    externalId: 'named_user_1',
-                  },
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalId: 'named_user_1',
                 },
-                transaction
-              )
+              },
+              transaction
             )
-          })
-        )
-        .unwrap()
+          )
+        })
+      ).unwrap()
 
       // Fetch claims using array-based resourceId filtering (as the router does)
       const claims = (

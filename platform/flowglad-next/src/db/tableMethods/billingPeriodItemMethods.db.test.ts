@@ -99,27 +99,25 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 2,
-            unitPrice: 100,
-            name: 'Test Item 1',
-          })
-
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 50,
-            name: 'Test Item 2',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 2,
+          unitPrice: 100,
+          name: 'Test Item 1',
         })
-      )
-      .unwrap()
+
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 50,
+          name: 'Test Item 2',
+        })
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range that overlaps with the billing period
     const startDate = new Date('2023-06-01T05:00:00.000Z')
@@ -198,20 +196,18 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Test Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item',
         })
-      )
-      .unwrap()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range that does NOT overlap with the billing period
     const startDate = new Date('2023-06-01T05:00:00.000Z')
@@ -273,20 +269,18 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Test Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item',
         })
-      )
-      .unwrap()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range that partially overlaps with the billing period
     const startDate = new Date('2023-06-01T05:00:00.000Z')
@@ -351,20 +345,18 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Test Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item',
         })
-      )
-      .unwrap()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range that is completely contained within the billing period
     const startDate = new Date('2023-06-01T05:00:00.000Z')
@@ -442,27 +434,25 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod1.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Test Item 1',
-          })
-
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod2.id,
-            quantity: 2,
-            unitPrice: 50,
-            name: 'Test Item 2',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod1.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item 1',
         })
-      )
-      .unwrap()
+
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod2.id,
+          quantity: 2,
+          unitPrice: 50,
+          name: 'Test Item 2',
+        })
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range that overlaps with both billing periods
     const startDate = new Date('2023-06-01T05:00:00.000Z')
@@ -535,34 +525,32 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create multiple billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Test Item 1',
-          })
-
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 2,
-            unitPrice: 50,
-            name: 'Test Item 2',
-          })
-
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 3,
-            unitPrice: 25,
-            name: 'Test Item 3',
-          })
-          return Result.ok(undefined)
+    // Create multiple billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item 1',
         })
-      )
-      .unwrap()
+
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 2,
+          unitPrice: 50,
+          name: 'Test Item 2',
+        })
+
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 3,
+          unitPrice: 25,
+          name: 'Test Item 3',
+        })
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range
     const startDate = new Date('2023-06-01T05:00:00.000Z')
@@ -675,27 +663,25 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: monthlyBillingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Monthly Item',
-          })
-
-          await setupBillingPeriodItem({
-            billingPeriodId: yearlyBillingPeriod.id,
-            quantity: 1,
-            unitPrice: 1200,
-            name: 'Yearly Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: monthlyBillingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Monthly Item',
         })
-      )
-      .unwrap()
+
+        await setupBillingPeriodItem({
+          billingPeriodId: yearlyBillingPeriod.id,
+          quantity: 1,
+          unitPrice: 1200,
+          name: 'Yearly Item',
+        })
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range
     const startDate = new Date('2023-06-01T05:00:00.000Z')
@@ -782,27 +768,25 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: activeBillingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Active Item',
-          })
-
-          await setupBillingPeriodItem({
-            billingPeriodId: canceledBillingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Canceled Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: activeBillingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Active Item',
         })
-      )
-      .unwrap()
+
+        await setupBillingPeriodItem({
+          billingPeriodId: canceledBillingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Canceled Item',
+        })
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Test date range
     const startDate = new Date('2023-06-01T05:00:00.000Z')

@@ -149,21 +149,16 @@ describe('resourceClaimMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction }) => {
-            const selected = (
-              await selectResourceClaimById(
-                inserted.id,
-                transaction
-              )
-            ).unwrap()
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const selected = (
+            await selectResourceClaimById(inserted.id, transaction)
+          ).unwrap()
 
-            expect(selected.id).toBe(inserted.id)
-            expect(selected.externalId).toBe('pet-2')
-            expect(selected.resourceId).toBe(resource.id)
-            return Result.ok(undefined)
-          }
-        )
+          expect(selected.id).toBe(inserted.id)
+          expect(selected.externalId).toBe('pet-2')
+          expect(selected.resourceId).toBe(resource.id)
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
   })
@@ -515,21 +510,19 @@ describe('resourceClaimMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction }) => {
-            const found = await selectActiveClaimByExternalId(
-              {
-                resourceId: resource.id,
-                subscriptionId: subscription.id,
-                externalId: 'released-claim',
-              },
-              transaction
-            )
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const found = await selectActiveClaimByExternalId(
+            {
+              resourceId: resource.id,
+              subscriptionId: subscription.id,
+              externalId: 'released-claim',
+            },
+            transaction
+          )
 
-            expect(found).toBeNull()
-            return Result.ok(undefined)
-          }
-        )
+          expect(found).toBeNull()
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
   })

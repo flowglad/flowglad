@@ -230,7 +230,7 @@ describe('doNotCharge subscription creation', () => {
       doNotCharge: true,
     }
 
-      ;(
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await createSubscriptionWorkflow(
           params,
@@ -291,29 +291,27 @@ describe('doNotCharge subscription creation', () => {
         )
       })
     )
-      .unwrap().unwrap()
-
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const canceledFree = (
-            await selectSubscriptionById(
-              existingFreeSubscription.id,
-              transaction
-            )
-          ).unwrap()
-          expect(canceledFree.status).toBe(
-            SubscriptionStatus.Canceled
-          )
-          expect(canceledFree.cancellationReason).toBe(
-            CancellationReason.UpgradedToPaid
-          )
-          expect(canceledFree.replacedBySubscriptionId).toBe(
-            newSubscription.id
-          )
-          return Result.ok(undefined)
-        })
-      )
       .unwrap()
+      .unwrap()
+
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const canceledFree = (
+          await selectSubscriptionById(
+            existingFreeSubscription.id,
+            transaction
+          )
+        ).unwrap()
+        expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+        expect(canceledFree.cancellationReason).toBe(
+          CancellationReason.UpgradedToPaid
+        )
+        expect(canceledFree.replacedBySubscriptionId).toBe(
+          newSubscription.id
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should set subscription item unitPrice to price.unitPrice when doNotCharge is false', async () => {

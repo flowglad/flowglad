@@ -63,7 +63,7 @@ describe('memberships notificationPreferences', () => {
         subscriptionCreated: false,
       }
 
-        ;(
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateMembership(
             {
@@ -131,7 +131,7 @@ describe('memberships notificationPreferences', () => {
         paymentFailed: false,
       }
 
-        ;(
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateMembership(
             {

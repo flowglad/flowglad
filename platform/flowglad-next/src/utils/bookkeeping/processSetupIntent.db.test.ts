@@ -567,18 +567,15 @@ describe('Process setup intent', async () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await processAddPaymentMethodSetupIntentSucceeded(
-                addPaymentMethodSetupIntent,
-                createDiscardingEffectsContext(transaction)
-              )
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await processAddPaymentMethodSetupIntentSucceeded(
+            addPaymentMethodSetupIntent,
+            createDiscardingEffectsContext(transaction)
           )
-        )
-        .unwrap()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the subscription was not updated
       const updatedSubscription = (

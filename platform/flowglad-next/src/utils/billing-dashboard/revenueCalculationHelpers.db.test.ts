@@ -504,27 +504,25 @@ describe('getBillingPeriodsForDateRange', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 2,
-            unitPrice: 100,
-            name: 'Test Item 1',
-          })
-
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 50,
-            name: 'Test Item 2',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 2,
+          unitPrice: 100,
+          name: 'Test Item 1',
         })
-      )
-      .unwrap()
+
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 50,
+          name: 'Test Item 2',
+        })
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-06-01T05:00:00.000Z')
     const endDate = new Date('2023-06-30T05:00:00.000Z')
@@ -660,20 +658,18 @@ describe('calculateMRRByMonth', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Test Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item',
         })
-      )
-      .unwrap()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
@@ -738,20 +734,18 @@ describe('calculateMRRByMonth', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 1200,
-            name: 'Test Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 1200,
+          name: 'Test Item',
         })
-      )
-      .unwrap()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
@@ -821,20 +815,18 @@ describe('calculateMRRByMonth', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Create billing period items
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await setupBillingPeriodItem({
-            billingPeriodId: billingPeriod.id,
-            quantity: 1,
-            unitPrice: 100,
-            name: 'Test Item',
-          })
-          return Result.ok(undefined)
+    // Create billing period items
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item',
         })
-      )
-      .unwrap()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {

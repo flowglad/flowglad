@@ -73,24 +73,21 @@ describe('resourceMethods', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const selected = (
-                await selectResourceById(inserted.id, transaction)
-              ).unwrap()
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const selected = (
+            await selectResourceById(inserted.id, transaction)
+          ).unwrap()
 
-              expect(selected.id).toBe(inserted.id)
-              expect(selected.slug).toBe(inserted.slug)
-              expect(selected.name).toBe(inserted.name)
-              expect(selected.pricingModelId).toBe(
-                inserted.pricingModelId
-              )
-              return Result.ok(undefined)
-            }
+          expect(selected.id).toBe(inserted.id)
+          expect(selected.slug).toBe(inserted.slug)
+          expect(selected.name).toBe(inserted.name)
+          expect(selected.pricingModelId).toBe(
+            inserted.pricingModelId
           )
-        )
-        .unwrap()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should return an error when selecting a non-existent resource', async () => {
@@ -179,22 +176,19 @@ describe('resourceMethods', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const updated = await updateResource(
-                { id: inserted.id, name: 'Team Seats' },
-                transaction
-              )
-
-              expect(updated.id).toBe(inserted.id)
-              expect(updated.name).toBe('Team Seats')
-              expect(updated.slug).toBe('seats')
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const updated = await updateResource(
+            { id: inserted.id, name: 'Team Seats' },
+            transaction
           )
-        )
-        .unwrap()
+
+          expect(updated.id).toBe(inserted.id)
+          expect(updated.name).toBe('Team Seats')
+          expect(updated.slug).toBe('seats')
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should deactivate a resource', async () => {
@@ -206,20 +200,17 @@ describe('resourceMethods', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const updated = await updateResource(
-                { id: inserted.id, active: false },
-                transaction
-              )
-
-              expect(updated.active).toBe(false)
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const updated = await updateResource(
+            { id: inserted.id, active: false },
+            transaction
           )
-        )
-        .unwrap()
+
+          expect(updated.active).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -330,34 +321,31 @@ describe('resourceMethods', () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // The upsert with onConflictDoNothing returns empty array when conflict occurs
-              const upsertedArray =
-                await upsertResourceByPricingModelIdAndSlug(
-                  {
-                    ...createResourceInsert({
-                      slug: 'seats',
-                      name: 'Updated Seats',
-                    }),
-                  },
-                  transaction
-                )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // The upsert with onConflictDoNothing returns empty array when conflict occurs
+          const upsertedArray =
+            await upsertResourceByPricingModelIdAndSlug(
+              {
+                ...createResourceInsert({
+                  slug: 'seats',
+                  name: 'Updated Seats',
+                }),
+              },
+              transaction
+            )
 
-              // onConflictDoNothing returns empty array on conflict
-              expect(upsertedArray.length).toBe(0)
+          // onConflictDoNothing returns empty array on conflict
+          expect(upsertedArray.length).toBe(0)
 
-              // Verify original record is unchanged
-              const original = (
-                await selectResourceById(inserted.id, transaction)
-              ).unwrap()
-              expect(original.name).toBe('Original Seats')
-              return Result.ok(undefined)
-            }
-          )
-        )
-        .unwrap()
+          // Verify original record is unchanged
+          const original = (
+            await selectResourceById(inserted.id, transaction)
+          ).unwrap()
+          expect(original.name).toBe('Original Seats')
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 

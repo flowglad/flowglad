@@ -195,16 +195,13 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Process the setup intent
       const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            return Result.ok(
-              await processSetupIntentSucceeded(
-                setupIntent,
-                createDiscardingEffectsContext(transaction)
-              )
-            )
-          }
-        )
-      ).unwrap()
+        async ({ transaction }) => {
+          return processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        }
+      )
 
       // Verify free subscription was canceled
       const updatedFreeSubscription = (
@@ -218,6 +215,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
             ).unwrap()
           )
         })
+      ).unwrap()
       expect(updatedFreeSubscription.status).toBe(
         SubscriptionStatus.Canceled
       )

@@ -1474,17 +1474,16 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-        ;(
-          await adminTransactionWithResult(({ transaction }) =>
-            Result.ok(
-              executeBillingRunCalculationAndBookkeepingSteps(
-                billingRun,
-                transaction
-              )
+      ;(
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
             )
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // Check the billing run status after the function call
       const updatedBillingRun = (
@@ -2047,19 +2046,17 @@ describe('billingRunHelpers', async () => {
           return Result.ok(undefined)
         })
       ).unwrap()
-
-        ;(
-          // 2. Action
-          await adminTransactionWithResult(({ transaction }) =>
-            Result.ok(
-              executeBillingRunCalculationAndBookkeepingSteps(
-                billingRun,
-                transaction
-              )
+      // 2. Action
+      ;(
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
             )
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // 3. Assert: The ledger entry should now be "claimed" by the billing run
       const [updatedEntry] = (

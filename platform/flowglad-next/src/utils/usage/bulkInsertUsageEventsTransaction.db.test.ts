@@ -929,20 +929,20 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Create a billing period for the subscription
       const now = new Date()
       const billingPeriodEndDate = new Date(now)
-      billingPeriodEndDate.setDate(billingPeriodEndDate.getDate() + 30)
+      billingPeriodEndDate.setDate(
+        billingPeriodEndDate.getDate() + 30
+      )
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction }) => {
-            return Result.ok(
-              await setupBillingPeriod({
-                subscriptionId: subWithBillingPeriod.id,
-                startDate: now,
-                endDate: billingPeriodEndDate,
-              })
-            )
-          }
-        )
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupBillingPeriod({
+              subscriptionId: subWithBillingPeriod.id,
+              startDate: now,
+              endDate: billingPeriodEndDate,
+            })
+          )
+        })
       ).unwrap()
 
       // Test with undefined properties
@@ -1595,17 +1595,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
       endDate.setDate(endDate.getDate() + 30)
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction }) => {
-            return Result.ok(
-              await setupBillingPeriod({
-                subscriptionId: customSubscription.id,
-                startDate: now,
-                endDate,
-              })
-            )
-          }
-        )
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupBillingPeriod({
+              subscriptionId: customSubscription.id,
+              startDate: now,
+              endDate,
+            })
+          )
+        })
       ).unwrap()
 
       // Execute: Create usage event for customer with explicit pricing model
@@ -1688,17 +1686,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
       endDate.setDate(endDate.getDate() + 30)
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction }) => {
-            return Result.ok(
-              await setupBillingPeriod({
-                subscriptionId: defaultSubscription.id,
-                startDate: now,
-                endDate,
-              })
-            )
-          }
-        )
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupBillingPeriod({
+              subscriptionId: defaultSubscription.id,
+              startDate: now,
+              endDate,
+            })
+          )
+        })
       ).unwrap()
 
       // Execute: Create usage event for customer using default pricing model
@@ -2431,20 +2427,18 @@ describe('bulkInsertUsageEventsTransaction', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction }) => {
-            const now = new Date()
-            const endDate = new Date(now)
-            endDate.setDate(endDate.getDate() + 30)
-            return Result.ok(
-              await setupBillingPeriod({
-                subscriptionId: subData.id,
-                startDate: now,
-                endDate,
-              })
-            )
-          }
-        )
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const now = new Date()
+          const endDate = new Date(now)
+          endDate.setDate(endDate.getDate() + 30)
+          return Result.ok(
+            await setupBillingPeriod({
+              subscriptionId: subData.id,
+              startDate: now,
+              endDate,
+            })
+          )
+        })
       ).unwrap()
 
       // Execute: Try to resolve subscription price slug - should fail (only usage prices are considered)

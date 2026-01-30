@@ -685,7 +685,7 @@ describe('Process payment intent status updated', async () => {
         status: PaymentStatus.Succeeded,
       }
 
-        ;(
+      ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -731,7 +731,7 @@ describe('Process payment intent status updated', async () => {
         purchaseId: purchase.id,
       }
 
-        ;(
+      ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -802,7 +802,7 @@ describe('Process payment intent status updated', async () => {
         status: PaymentStatus.Succeeded,
       }
 
-        ;(
+      ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -834,7 +834,7 @@ describe('Process payment intent status updated', async () => {
     it('maintains idempotency when called multiple times with the same charge status', async () => {
       fakePayment.status = PaymentStatus.Succeeded
 
-        ;(
+      ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -874,7 +874,7 @@ describe('Process payment intent status updated', async () => {
     it('updates the payment status to Failed when the charge status is failed', async () => {
       fakePayment.status = PaymentStatus.Processing
 
-        ;(
+      ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -906,7 +906,7 @@ describe('Process payment intent status updated', async () => {
     it('updates the failure message when the charge status is failed', async () => {
       fakePayment.status = PaymentStatus.Processing
 
-        ;(
+      ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -3058,21 +3058,19 @@ describe('Process payment intent status updated', async () => {
           )
         })
       ).unwrap()
-
-        ;(
-          // Create a fee calculation for the anonymous checkout
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            await setupFeeCalculation({
-              checkoutSessionId: anonymousCheckoutSession.id,
-              organizationId: organization.id,
-              priceId: price.id,
-              livemode: true,
-            })
-            return Result.ok(undefined)
+      // Create a fee calculation for the anonymous checkout
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await setupFeeCalculation({
+            checkoutSessionId: anonymousCheckoutSession.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            livemode: true,
           })
-        )
-        .unwrap()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const mockPaymentIntent = {
         id: `pi_${core.nanoid()}`,

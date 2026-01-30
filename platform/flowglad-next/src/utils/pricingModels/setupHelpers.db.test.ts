@@ -678,42 +678,40 @@ describe('getPricingModelSetupData', () => {
         )
       })
     ).unwrap()
-
-      ;(
-        // Now manually expire one of the product-feature associations
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          const product = setupResult.products.find(
-            (p) => p.slug === 'test-product-associations'
+    // Now manually expire one of the product-feature associations
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        const product = setupResult.products.find(
+          (p) => p.slug === 'test-product-associations'
+        )
+        if (!product) {
+          throw new Error('Test setup failed: product not found')
+        }
+        const productFeaturesResult =
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id },
+            transaction
           )
-          if (!product) {
-            throw new Error('Test setup failed: product not found')
-          }
-          const productFeaturesResult =
-            await selectFeaturesByProductFeatureWhere(
-              { productId: product.id },
-              transaction
-            )
 
-          // Find the product feature for 'feature-b' and expire it
-          const featureBAssociation = productFeaturesResult.find(
-            (pf) => pf.feature.slug === 'feature-b'
+        // Find the product feature for 'feature-b' and expire it
+        const featureBAssociation = productFeaturesResult.find(
+          (pf) => pf.feature.slug === 'feature-b'
+        )
+        expect(typeof featureBAssociation).toBe('object')
+
+        if (featureBAssociation) {
+          await updateProductFeature(
+            {
+              id: featureBAssociation.productFeature.id,
+              expiredAt: Date.now() - 1000, // Expired in the past
+            },
+            ctx
           )
-          expect(typeof featureBAssociation).toBe('object')
-
-          if (featureBAssociation) {
-            await updateProductFeature(
-              {
-                id: featureBAssociation.productFeature.id,
-                expiredAt: Date.now() - 1000, // Expired in the past
-              },
-              ctx
-            )
-          }
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+        }
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Fetch the pricing model data
     const fetchedData = (
