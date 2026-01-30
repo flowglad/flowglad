@@ -1,5 +1,5 @@
 import { chmod, mkdir, rm, stat, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -65,6 +65,12 @@ describe('CLI credential storage', () => {
     it('returns the path set by FLOWGLAD_CONFIG_DIR environment variable', () => {
       expect(getConfigDir()).toBe(testConfigDir)
     })
+
+    it('returns ~/.flowglad when FLOWGLAD_CONFIG_DIR is not set', () => {
+      delete process.env.FLOWGLAD_CONFIG_DIR
+
+      expect(getConfigDir()).toBe(join(homedir(), '.flowglad'))
+    })
   })
 
   describe('getCredentialsPath', () => {
@@ -95,6 +101,18 @@ describe('CLI credential storage', () => {
 
       const stats = await stat(testConfigDir)
       expect(stats.mode & 0o777).toBe(0o700)
+    })
+
+    it('throws an error when the config path exists but is a file instead of a directory', async () => {
+      // Remove the test directory and create a file at the same path
+      await rm(testConfigDir, { recursive: true })
+      await writeFile(testConfigDir, 'not a directory', {
+        mode: 0o644,
+      })
+
+      await expect(ensureConfigDir()).rejects.toThrow(
+        `Config path exists and is not a directory: ${testConfigDir}`
+      )
     })
   })
 
@@ -186,6 +204,41 @@ describe('CLI credential storage', () => {
 
       expect(result).toBeNull()
     })
+
+    it('returns null when credentials file has valid JSON but missing required fields', async () => {
+      const credentialsPath = getCredentialsPath()
+
+      // Write JSON missing required fields
+      await writeFile(
+        credentialsPath,
+        JSON.stringify({ email: 'test@example.com' }),
+        { mode: 0o600 }
+      )
+
+      const result = await loadCredentials()
+
+      expect(result).toBeNull()
+    })
+
+    it('returns null when credentials file has valid JSON but wrong field types', async () => {
+      const credentialsPath = getCredentialsPath()
+
+      // Write JSON with wrong types (userId should be string, not number)
+      await writeFile(
+        credentialsPath,
+        JSON.stringify({
+          refreshToken: 'token',
+          refreshTokenExpiresAt: '2025-01-01T00:00:00Z',
+          userId: 12345,
+          email: 'test@example.com',
+        }),
+        { mode: 0o600 }
+      )
+
+      const result = await loadCredentials()
+
+      expect(result).toBeNull()
+    })
   })
 
   describe('clearCredentials', () => {
@@ -209,8 +262,8 @@ describe('CLI credential storage', () => {
       const loaded = await loadCredentials()
       expect(loaded).toBeNull()
 
-      // Should not throw
-      await expect(clearCredentials()).resolves.not.toThrow()
+      // Should complete without throwing
+      await clearCredentials()
     })
   })
 
@@ -260,6 +313,22 @@ describe('CLI credential storage', () => {
 
       // With 15 second buffer, should be expired
       expect(isRefreshTokenExpired(credentials, 15 * 1000)).toBe(true)
+    })
+
+    it('returns true when refreshTokenExpiresAt is an invalid date string', () => {
+      const credentials = createTestCredentials({
+        refreshTokenExpiresAt: 'not-a-valid-date',
+      })
+
+      expect(isRefreshTokenExpired(credentials)).toBe(true)
+    })
+
+    it('returns true when refreshTokenExpiresAt is an empty string', () => {
+      const credentials = createTestCredentials({
+        refreshTokenExpiresAt: '',
+      })
+
+      expect(isRefreshTokenExpired(credentials)).toBe(true)
     })
   })
 })

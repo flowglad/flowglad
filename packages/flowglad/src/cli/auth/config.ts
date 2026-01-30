@@ -56,6 +56,7 @@ export const getCredentialsPath = (): string => {
  * Ensures the config directory exists with 700 permissions.
  * Creates the directory if it doesn't exist.
  * Fixes permissions if they differ from 700.
+ * Throws if the path exists but is not a directory.
  */
 export const ensureConfigDir = async (): Promise<void> => {
   const configDir = getConfigDir()
@@ -63,6 +64,12 @@ export const ensureConfigDir = async (): Promise<void> => {
 
   try {
     const stats = await stat(configDir)
+    // Verify the path is actually a directory
+    if (!stats.isDirectory()) {
+      throw new Error(
+        `Config path exists and is not a directory: ${configDir}`
+      )
+    }
     // Check if permissions match (mask out file type bits)
     const currentMode = stats.mode & 0o777
     if (currentMode !== expectedMode) {
@@ -90,23 +97,67 @@ export const saveCredentials = async (
 
   const credentialsPath = getCredentialsPath()
   // Use same directory as target to ensure atomic rename works across filesystems
+  // Include random suffix to avoid collision if multiple processes write simultaneously
   const tempPath = join(
     getConfigDir(),
-    `.credentials-${Date.now()}.tmp`
+    `.credentials-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`
   )
 
-  // Write to temp file first
-  const content = JSON.stringify(credentials, null, 2)
-  await writeFile(tempPath, content, { mode: 0o600 })
+  try {
+    // Write to temp file first
+    const content = JSON.stringify(credentials, null, 2)
+    await writeFile(tempPath, content, { mode: 0o600 })
 
-  // Ensure temp file has correct permissions
-  await chmod(tempPath, 0o600)
+    // Ensure temp file has correct permissions
+    await chmod(tempPath, 0o600)
 
-  // Atomic rename
-  await rename(tempPath, credentialsPath)
+    // Atomic rename
+    await rename(tempPath, credentialsPath)
 
-  // Ensure final file has correct permissions
-  await chmod(credentialsPath, 0o600)
+    // Ensure final file has correct permissions
+    await chmod(credentialsPath, 0o600)
+  } catch (error) {
+    // Clean up temp file on failure
+    try {
+      await rm(tempPath, { force: true })
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error
+  }
+}
+
+/**
+ * Type guard to validate the shape of stored credentials.
+ */
+const isStoredCredentials = (
+  obj: unknown
+): obj is StoredCredentials => {
+  if (typeof obj !== 'object' || obj === null) {
+    return false
+  }
+  const record = obj as Record<string, unknown>
+  return (
+    typeof record.refreshToken === 'string' &&
+    typeof record.refreshTokenExpiresAt === 'string' &&
+    typeof record.userId === 'string' &&
+    typeof record.email === 'string' &&
+    (record.name === undefined || typeof record.name === 'string') &&
+    (record.accessToken === undefined ||
+      typeof record.accessToken === 'string') &&
+    (record.accessTokenExpiresAt === undefined ||
+      typeof record.accessTokenExpiresAt === 'string') &&
+    (record.organizationId === undefined ||
+      typeof record.organizationId === 'string') &&
+    (record.organizationName === undefined ||
+      typeof record.organizationName === 'string') &&
+    (record.pricingModelId === undefined ||
+      typeof record.pricingModelId === 'string') &&
+    (record.pricingModelName === undefined ||
+      typeof record.pricingModelName === 'string') &&
+    (record.livemode === undefined ||
+      typeof record.livemode === 'boolean')
+  )
 }
 
 /**
@@ -119,7 +170,11 @@ export const loadCredentials =
 
     try {
       const content = await readFile(credentialsPath, 'utf-8')
-      return JSON.parse(content) as StoredCredentials
+      const parsed: unknown = JSON.parse(content)
+      if (!isStoredCredentials(parsed)) {
+        return null
+      }
+      return parsed
     } catch (error) {
       // Return null if file doesn't exist or contains invalid JSON
       if (isNodeError(error) && error.code === 'ENOENT') {
@@ -152,6 +207,7 @@ export const clearCredentials = async (): Promise<void> => {
 
 /**
  * Checks if the refresh token is expired or will expire within the given buffer.
+ * Invalid or missing timestamps are treated as expired to force re-authentication.
  * @param credentials The stored credentials
  * @param bufferMs Buffer time in milliseconds before actual expiration (default: 5 minutes)
  */
@@ -162,6 +218,10 @@ export const isRefreshTokenExpired = (
   const expiresAt = new Date(
     credentials.refreshTokenExpiresAt
   ).getTime()
+  // Treat invalid timestamps (NaN) as expired
+  if (Number.isNaN(expiresAt)) {
+    return true
+  }
   return Date.now() + bufferMs >= expiresAt
 }
 
