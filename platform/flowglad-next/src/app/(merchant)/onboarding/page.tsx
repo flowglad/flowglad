@@ -129,6 +129,13 @@ const OnboardingPage = async () => {
             },
             transaction
           )
+          if (!user) {
+            return Result.err(
+              new Error(
+                `User not found for betterAuthId: ${betterAuthId}`
+              )
+            )
+          }
           const { apiKey } = await createSecretApiKeyTransaction(
             {
               apiKey: {
@@ -140,7 +147,7 @@ const OnboardingPage = async () => {
             {
               transaction,
               livemode: false,
-              userId: user!.id,
+              userId: user.id,
               organizationId: organization.id,
               cacheRecomputationContext,
             }

@@ -15,7 +15,9 @@ const StripeConnectedPage = async () => {
           transaction
         )
         if (!membership || !membership.organization) {
-          throw new Error('No organization found for this user')
+          return Result.err(
+            new Error('No organization found for this user')
+          )
         }
         return Result.ok(membership.organization)
       }
