@@ -15,7 +15,7 @@ const commands: CommandInfo[] = [
   {
     name: 'login',
     description: 'Authenticate via OAuth',
-    status: 'coming-soon',
+    status: 'available',
   },
   {
     name: 'logout',

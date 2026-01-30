@@ -2045,6 +2045,13 @@
       "when": 1769802763362,
       "tag": "0292_sweet_silk_fever",
       "breakpoints": true
+    },
+    {
+      "idx": 293,
+      "version": "7",
+      "when": 1769805748357,
+      "tag": "0293_add-cli-session-api-key-type",
+      "breakpoints": true
     }
   ]
 }
