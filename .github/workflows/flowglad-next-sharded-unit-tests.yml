@@ -87,7 +87,7 @@ jobs:
           - 9002:9002
           - 9003:9003
         options: >-
-          --health-cmd "curl -f http://localhost:9001/health || exit 1"
+          --health-cmd "wget -q --spider http://localhost:9001/health || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
