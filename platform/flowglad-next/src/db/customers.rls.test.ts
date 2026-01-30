@@ -1049,8 +1049,10 @@ describe('Customer Role RLS Policies', () => {
         organizationId: org1.id,
         name: 'Product B',
         pricingModelId: pmB.id,
-      })(
-        // Associate customerA with PM A
+      })
+
+      // Associate customerA with PM A
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateCustomer(
@@ -1470,33 +1472,33 @@ describe('Customer Role RLS Policies', () => {
           )
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          // Refresh the customer objects AFTER the admin transaction commits
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            customerA_Org1 = (
-              await selectCustomerById(customerA_Org1.id, transaction)
-            ).unwrap()
-            customerB_Org1 = (
-              await selectCustomerById(customerB_Org1.id, transaction)
-            ).unwrap()
+      ).unwrap()
 
-            // Verify the pricing models were assigned correctly
-            if (!customerA_Org1.pricingModelId) {
-              throw new Error(
-                'customerA_Org1 pricingModelId not set after refresh'
-              )
-            }
-            if (!customerB_Org1.pricingModelId) {
-              throw new Error(
-                'customerB_Org1 pricingModelId not set after refresh'
-              )
-            }
-            return Result.ok(undefined)
-          })
-        )
-        .unwrap()
+      // Refresh the customer objects AFTER the admin transaction commits
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          customerA_Org1 = (
+            await selectCustomerById(customerA_Org1.id, transaction)
+          ).unwrap()
+          customerB_Org1 = (
+            await selectCustomerById(customerB_Org1.id, transaction)
+          ).unwrap()
+
+          // Verify the pricing models were assigned correctly
+          if (!customerA_Org1.pricingModelId) {
+            throw new Error(
+              'customerA_Org1 pricingModelId not set after refresh'
+            )
+          }
+          if (!customerB_Org1.pricingModelId) {
+            throw new Error(
+              'customerB_Org1 pricingModelId not set after refresh'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     describe('Checkout session creation restrictions', () => {
@@ -2093,19 +2095,19 @@ describe('Customer Role RLS Policies', () => {
       expect(result.archivedCustomers).toHaveLength(1)
       expect(result.archivedCustomers[0].id).toBe(customerA_Org1.id)
       expect(result.otherCustomers).toHaveLength(1)
-      expect(result.otherCustomers[0].id)
-        .toBe(customerA_Org1.id)(
-          // Restore archived status for cleanup
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            await updateCustomer(
-              { id: customerA_Org1.id, archived: false },
-              transaction
-            )
-            return Result.ok(undefined)
-          })
-        )
-        .unwrap()
+      expect(result.otherCustomers[0].id).toBe(customerA_Org1.id)
+
+      // Restore archived status for cleanup
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateCustomer(
+            { id: customerA_Org1.id, archived: false },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should prevent creating new records', async () => {
