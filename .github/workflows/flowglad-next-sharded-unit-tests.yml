@@ -241,6 +241,29 @@ jobs:
           --health-timeout 5s
           --health-retries 5
           --health-start-period 10s
+      stripe-mock:
+        image: stripe/stripe-mock:v0.197.0
+        ports:
+          - 12111:12111
+          - 12112:12112
+      flowglad-mock-server:
+        image: ghcr.io/flowglad/flowglad/mock-server:latest
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 9001:9001  # Svix
+          - 9002:9002  # Unkey
+          - 9003:9003  # Trigger
+          - 9004:9004  # Redis
+          - 9005:9005  # Resend
+          - 9006:9006  # Cloudflare R2
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:9001/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
 
     defaults:
       run:
