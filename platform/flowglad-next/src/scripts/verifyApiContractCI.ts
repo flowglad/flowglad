@@ -14,18 +14,8 @@
  *   bunx tsx src/scripts/verifyApiContractCI.ts
  */
 
-// Map FLOWGLAD_PROD_API_URL to NEXT_PUBLIC_APP_URL for the underlying client
-if (process.env.FLOWGLAD_PROD_API_URL) {
-  process.env.NEXT_PUBLIC_APP_URL = process.env.FLOWGLAD_PROD_API_URL
-}
-
-import verifyApiContract from '@/api-contract/verify'
-
-const logger = {
-  info: console.log,
-  warn: console.warn,
-  error: console.error,
-}
+// Make this file a module for top-level await
+export {}
 
 const requiredEnvVars = [
   'TELEMETRY_TEST_API_KEY',
@@ -42,6 +32,21 @@ if (missingEnvVars.length > 0) {
   )
   process.exit(1)
 }
+
+// Map FLOWGLAD_PROD_API_URL to NEXT_PUBLIC_APP_URL for the underlying client
+// This must happen before importing any modules that read this env var
+process.env.NEXT_PUBLIC_APP_URL = process.env.FLOWGLAD_PROD_API_URL
+
+const logger = {
+  info: console.log,
+  warn: console.warn,
+  error: console.error,
+}
+
+// Use dynamic import so env vars are set before modules load
+const { default: verifyApiContract } = await import(
+  '@/api-contract/verify'
+)
 
 verifyApiContract(logger)
   .then(() => {
