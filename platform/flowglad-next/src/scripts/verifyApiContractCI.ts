@@ -8,11 +8,16 @@
  *
  * Required environment variables:
  * - TELEMETRY_TEST_API_KEY: API key for the Flowglad instance
- * - NEXT_PUBLIC_APP_URL: Base URL of the Flowglad instance to test against
+ * - FLOWGLAD_PROD_API_URL: Base URL of the Flowglad instance to test against
  *
  * Usage:
  *   bunx tsx src/scripts/verifyApiContractCI.ts
  */
+
+// Map FLOWGLAD_PROD_API_URL to NEXT_PUBLIC_APP_URL for the underlying client
+if (process.env.FLOWGLAD_PROD_API_URL) {
+  process.env.NEXT_PUBLIC_APP_URL = process.env.FLOWGLAD_PROD_API_URL
+}
 
 import verifyApiContract from '@/api-contract/verify'
 
@@ -24,7 +29,7 @@ const logger = {
 
 const requiredEnvVars = [
   'TELEMETRY_TEST_API_KEY',
-  'NEXT_PUBLIC_APP_URL',
+  'FLOWGLAD_PROD_API_URL',
 ]
 
 const missingEnvVars = requiredEnvVars.filter(
