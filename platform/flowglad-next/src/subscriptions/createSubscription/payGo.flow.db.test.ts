@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, spyOn } from 'bun:test'
 import {
   CheckoutSessionType,
   FeatureUsageGrantFrequency,
@@ -41,6 +41,7 @@ import {
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
+import * as stripeUtils from '@/utils/stripe'
 import { IntentMetadataType } from '@/utils/stripe'
 import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 
@@ -383,12 +384,39 @@ describe('Pay as You Go Workflow E2E', () => {
       }
     )
 
+    // Create IDs for the payment
+    const paymentIntentId = 'pi_' + core.nanoid()
+    const chargeId = 'ch_' + core.nanoid()
+
+    // Spy on getStripeCharge to return a properly structured charge
+    // stripe-mock returns charges with payment_intent: null, but we need it set
+    const getStripeChargeSpy = spyOn(
+      stripeUtils,
+      'getStripeCharge'
+    ).mockResolvedValue({
+      id: chargeId,
+      amount: 1000,
+      status: 'succeeded',
+      created: Math.floor(Date.now() / 1000),
+      payment_intent: paymentIntentId,
+      billing_details: {
+        address: { country: 'US' },
+      },
+      payment_method_details: {
+        type: 'card',
+        card: {
+          brand: 'visa',
+          last4: '4242',
+        },
+      },
+    } as any)
+
     await comprehensiveAdminTransaction(async (ctx) => {
-      // 4. Call @processSetupIntentSucceeded with a stubbed paymentIntent
+      // 4. Call @processPaymentIntentStatusUpdated with a stubbed paymentIntent
       const paymentIntent: CoreStripePaymentIntent = {
-        id: 'si_123',
+        id: paymentIntentId,
         status: 'succeeded',
-        latest_charge: 'ch_123' + core.nanoid(),
+        latest_charge: chargeId,
         metadata: {
           type: IntentMetadataType.CheckoutSession,
           checkoutSessionId: checkoutSession.id,
@@ -399,8 +427,18 @@ describe('Pay as You Go Workflow E2E', () => {
         paymentIntent,
         ctx
       )
+      // Check that payment processing succeeded
+      if (result.status === 'error') {
+        console.error('Payment processing error:', result.error)
+      }
+      expect(result.status).toBe('ok')
+      const payment = result.unwrap().payment
+      expect(payment.customerId).toBe(customer.id)
       return Result.ok(result)
     })
+
+    // Restore the spy
+    getStripeChargeSpy.mockRestore()
 
     await comprehensiveAdminTransaction(async (ctx) => {
       const { transaction, livemode } = ctx

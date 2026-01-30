@@ -78,11 +78,13 @@ describe('handleGetApp', () => {
     )
   })
 
-  it('generates a mock app ID if provided ID does not start with "app_"', async () => {
+  it('returns the provided ID as-is for non-app_ IDs', async () => {
     const response = handleGetApp('some-other-id')
     const body = await response.json()
 
-    expect(body.id).toMatch(/^app_mock_/)
+    // The mock returns the ID as-is for consistency with sentinel value testing
+    expect(body.id).toBe('some-other-id')
+    expect(body.uid).toBe('some-other-id')
   })
 })
 

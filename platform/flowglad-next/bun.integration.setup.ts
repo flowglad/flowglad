@@ -106,17 +106,9 @@ const isLocalhostUrl = (url: string): boolean => {
 for (const envVar of mockHostVars) {
   const value = process.env[envVar]
   if (value && isLocalhostUrl(value)) {
-    console.error(
-      `\n❌ ${envVar} is set to a local URL (${value}) but integration tests require real APIs.\n`
-    )
-    console.error(
-      'Integration tests should not use mock servers. Either:'
-    )
-    console.error(`  1. Remove ${envVar} from .env.integration, or`)
-    console.error(
-      '  2. Use *.db.test.ts pattern instead for tests that need mock servers.\n'
-    )
-    process.exit(1)
+    // Delete localhost mock URLs - they may have been set by Bun loading .env.test
+    // Integration tests should use real APIs, not mock servers
+    delete process.env[envVar]
   }
 }
 
