@@ -6,22 +6,33 @@
  *
  * IMPORTANT: This file must be imported AFTER bun.mocks.ts in db test setup.
  *
- * It does two things:
- * 1. Blocks direct SDK access (Stripe, Unkey, Svix, Redis, Resend, Trigger)
- * 2. Mocks @/utils/unkey with working implementations (since SDK is blocked)
+ * Services that passthrough to mock server containers (NOT mocked):
+ * - Stripe SDK → stripe-mock (localhost:12111)
+ * - Svix SDK → flowglad-mock-server (localhost:9001)
+ * - Unkey SDK → flowglad-mock-server (localhost:9002)
+ * - Trigger.dev SDK → flowglad-mock-server (localhost:9003)
+ *
+ * Services that are blocked (no mock container available):
+ * - Redis (@upstash/redis) - use mocked @/utils/redis
+ * - Resend - mock at test level if needed
  *
  * If a test legitimately needs real external services, use *.integration.test.ts instead.
  */
 import { mock } from 'bun:test'
 
-// Import and register SDK blockers
+// Import and register SDK blockers (only Redis and Resend are blocked)
 import './mocks/db-blockers'
 
-// Import and register @/utils/unkey mock (needed since @unkey/api is blocked)
-import { unkeyUtilsMockExports } from './mocks/unkey-utils-mock'
+// Import and register Redis utility mock (since @upstash/redis is blocked)
+import { redisMockExports } from './mocks/redis-mock'
 
-mock.module('@/utils/unkey', () => unkeyUtilsMockExports)
+mock.module('@/utils/redis', () => redisMockExports)
 
-// NOTE: Stripe is NOT mocked in db tests.
-// DB tests use stripe-mock (Docker container) for Stripe API calls.
-// Tests that need to mock Stripe functions should use *.stripe.test.ts instead.
+// NOTE: Stripe, Svix, Unkey, and Trigger.dev are NOT mocked in db tests.
+// DB tests use mock server containers for these services:
+// - Stripe → stripe-mock (localhost:12111)
+// - Svix → flowglad-mock-server (localhost:9001)
+// - Unkey → flowglad-mock-server (localhost:9002)
+// - Trigger.dev → flowglad-mock-server (localhost:9003)
+//
+// Tests that need to mock specific functions should use *.stripe.test.ts pattern.

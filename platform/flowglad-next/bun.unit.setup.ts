@@ -56,6 +56,8 @@ mock.module('@/db/recomputeTransaction', () => {
 
 // Import standard mocks (after db blockers)
 import './bun.mocks'
+// Import unit-test-only mocks (Svix, Unkey, Redis - no network calls)
+import './bun.unit.mocks'
 
 // Now import isolation utilities and other modules
 import { cleanup } from '@testing-library/react'

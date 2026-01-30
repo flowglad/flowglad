@@ -13,6 +13,12 @@
  * - Spies auto-restored via globalSpyManager
  * - Global mock state reset after each test
  *
+ * External Services (via mock server containers):
+ * - Stripe → stripe-mock (localhost:12111)
+ * - Svix → flowglad-mock-server (localhost:9001)
+ * - Unkey → flowglad-mock-server (localhost:9002)
+ * - Trigger.dev → flowglad-mock-server (localhost:9003)
+ *
  * Note: Tests share the database state. Use unique identifiers (nanoid)
  * to avoid collisions between tests.
  */
@@ -22,7 +28,8 @@
 // IMPORTANT: Import mocks first, before any other imports
 // This also sets test environment variable defaults (UNKEY_*, BETTER_AUTH_URL)
 import './bun.mocks'
-// Block external services (Redis, Stripe, Unkey, etc.) - must come after bun.mocks
+// Block external services (Redis, Resend) - must come after bun.mocks
+// Note: Svix, Unkey, Trigger.dev passthrough to flowglad-mock-server
 import './bun.db.mocks'
 
 // Import consolidated global type declarations (after mocks)
@@ -47,9 +54,74 @@ const envTracker = createAutoEnvTracker()
 // Initialize global state once at setup load time
 initializeGlobalMockState()
 
+/**
+ * Check if a mock server is healthy by hitting its health endpoint.
+ * Returns true if healthy, false if not reachable.
+ */
+async function checkMockServerHealth(url: string): Promise<boolean> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 1000)
+    const response = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeout)
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Verify all required mock servers are running.
+ * Throws descriptive error if any are missing.
+ */
+async function verifyMockServers(): Promise<void> {
+  const servers = [
+    {
+      name: 'stripe-mock',
+      url: 'http://localhost:12111/v1/customers',
+      envVar: 'STRIPE_MOCK_HOST',
+    },
+    {
+      name: 'flowglad-mock-server (Svix)',
+      url: 'http://localhost:9001/health',
+      envVar: 'SVIX_MOCK_HOST',
+    },
+    {
+      name: 'flowglad-mock-server (Unkey)',
+      url: 'http://localhost:9002/health',
+      envVar: 'UNKEY_MOCK_HOST',
+    },
+    {
+      name: 'flowglad-mock-server (Trigger)',
+      url: 'http://localhost:9003/health',
+      envVar: 'TRIGGER_API_URL',
+    },
+  ]
+
+  const results = await Promise.all(
+    servers.map(async (s) => ({
+      ...s,
+      healthy: await checkMockServerHealth(s.url),
+    }))
+  )
+
+  const unhealthy = results.filter((r) => !r.healthy)
+  if (unhealthy.length > 0) {
+    const missing = unhealthy.map((r) => `  - ${r.name}`).join('\n')
+    throw new Error(
+      `Mock server(s) not running:\n${missing}\n\n` +
+        `Start them with: bun run test:setup\n` +
+        `Or: docker-compose -f docker-compose.test.yml up -d`
+    )
+  }
+}
+
 beforeAll(async () => {
   // MSW STRICT mode - fail on unhandled external requests
   server.listen({ onUnhandledRequest: 'error' })
+
+  // Verify mock servers are running before proceeding
+  await verifyMockServers()
 
   // Seed database once
   await seedDatabase()
