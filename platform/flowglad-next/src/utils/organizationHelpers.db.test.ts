@@ -6,7 +6,8 @@ import {
   StripeConnectContractType,
 } from '@db-core/enums'
 import type { CreateOrganizationInput } from '@db-core/schema/organizations'
-import { adminTransaction } from '@/db/adminTransaction'
+import { Result } from 'better-result'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
@@ -114,334 +115,373 @@ const getBothEligibleCountry = async (
 describe('createOrganizationTransaction', () => {
   it('should create an organization', async () => {
     const organizationName = core.nanoid()
-    await adminTransaction(async ({ transaction }) => {
-      const countryId =
-        await getPlatformEligibleCountryId(transaction)
-      const input: CreateOrganizationInput = {
-        organization: {
-          name: organizationName,
-          countryId,
-        },
-      }
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
-      )
-    })
-    await adminTransaction(async ({ transaction }) => {
-      const [organization] = await selectOrganizations(
-        {
-          name: organizationName,
-        },
-        transaction
-      )
-      expect(typeof organization).toBe('object')
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const countryId =
+          await getPlatformEligibleCountryId(transaction)
+        const input: CreateOrganizationInput = {
+          organization: {
+            name: organizationName,
+            countryId,
+          },
+        }
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const [organization] = await selectOrganizations(
+          {
+            name: organizationName,
+          },
+          transaction
+        )
+        expect(typeof organization).toBe('object')
 
-      const testmodeKeys = await selectApiKeys(
-        {
-          organizationId: organization.id,
-          livemode: false,
-        },
-        transaction
-      )
-      /**
-       * Assert that no publishable keys are created
-       * - we don't support the type right now.
-       */
-      expect(
-        testmodeKeys.some(
-          (key) => key.type === FlowgladApiKeyType.Publishable
+        const testmodeKeys = await selectApiKeys(
+          {
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
         )
-      ).toBe(false)
-      /**
-       * Assert that a secret key is created
-       */
-      expect(
-        testmodeKeys.some(
-          (key) => key.type === FlowgladApiKeyType.Secret
+        /**
+         * Assert that no publishable keys are created
+         * - we don't support the type right now.
+         */
+        expect(
+          testmodeKeys.some(
+            (key) => key.type === FlowgladApiKeyType.Publishable
+          )
+        ).toBe(false)
+        /**
+         * Assert that a secret key is created
+         */
+        expect(
+          testmodeKeys.some(
+            (key) => key.type === FlowgladApiKeyType.Secret
+          )
+        ).toBe(true)
+        const livemodeKeys = await selectApiKeys(
+          {
+            organizationId: organization.id,
+            livemode: true,
+          },
+          transaction
         )
-      ).toBe(true)
-      const livemodeKeys = await selectApiKeys(
-        {
-          organizationId: organization.id,
-          livemode: true,
-        },
-        transaction
-      )
-      /**
-       * Assert that no livemode keys are created -
-       * they can only be created once the organization has payouts enabled.
-       */
-      expect(livemodeKeys.length).toBe(0)
-    })
+        /**
+         * Assert that no livemode keys are created -
+         * they can only be created once the organization has payouts enabled.
+         */
+        expect(livemodeKeys.length).toBe(0)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('sets the creator membership role to owner', async () => {
     const organizationName = `org_${core.nanoid()}`
     const userId = core.nanoid()
 
-    await adminTransaction(async ({ transaction }) => {
-      const countryId =
-        await getPlatformEligibleCountryId(transaction)
-      const input: CreateOrganizationInput = {
-        organization: {
-          name: organizationName,
-          countryId,
-        },
-      }
-      return createOrganizationTransaction(
-        input,
-        {
-          id: userId,
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const countryId =
+          await getPlatformEligibleCountryId(transaction)
+        const input: CreateOrganizationInput = {
+          organization: {
+            name: organizationName,
+            countryId,
+          },
+        }
+        await createOrganizationTransaction(
+          input,
+          {
+            id: userId,
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      const [organization] = await selectOrganizations(
-        { name: organizationName },
-        transaction
-      )
-      expect(typeof organization).toBe('object')
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const [organization] = await selectOrganizations(
+          { name: organizationName },
+          transaction
+        )
+        expect(typeof organization).toBe('object')
 
-      const [membership] = await selectMemberships(
-        { organizationId: organization.id, userId },
-        transaction
-      )
-      expect(typeof membership).toBe('object')
+        const [membership] = await selectMemberships(
+          { organizationId: organization.id, userId },
+          transaction
+        )
+        expect(typeof membership).toBe('object')
 
-      expect(membership.role).toBe(MembershipRole.Owner)
-    })
+        expect(membership.role).toBe(MembershipRole.Owner)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should create default Free Plan products and prices for live and testmode', async () => {
     const organizationName = `org_${core.nanoid()}`
-    await adminTransaction(async ({ transaction }) => {
-      const countryId =
-        await getPlatformEligibleCountryId(transaction)
-      const input: CreateOrganizationInput = {
-        organization: {
-          name: organizationName,
-          countryId,
-        },
-      }
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const countryId =
+          await getPlatformEligibleCountryId(transaction)
+        const input: CreateOrganizationInput = {
+          organization: {
+            name: organizationName,
+            countryId,
+          },
+        }
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      const [organization] = await selectOrganizations(
-        { name: organizationName },
-        transaction
-      )
-      expect(typeof organization).toBe('object')
-
-      // Live default pricing model and Free Plan
-      const [liveDefaultPricingModel] = await selectPricingModels(
-        {
-          organizationId: organization.id,
-          livemode: true,
-          isDefault: true,
-        },
-        transaction
-      )
-      expect(liveDefaultPricingModel?.id).toMatch(/^pricing_model_/)
-
-      const [liveDefaultProduct] = await selectProducts(
-        {
-          pricingModelId: liveDefaultPricingModel.id,
-          default: true,
-        },
-        transaction
-      )
-      expect(typeof liveDefaultProduct?.id).toBe('string')
-      expect(liveDefaultProduct.name).toBe('Free Plan')
-      expect(liveDefaultProduct.organizationId).toBe(organization.id)
-      expect(liveDefaultProduct.livemode).toBe(true)
-
-      const liveProductWithPrices =
-        await selectPricesAndProductByProductId(
-          liveDefaultProduct.id,
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const [organization] = await selectOrganizations(
+          { name: organizationName },
           transaction
         )
-      expect(typeof liveProductWithPrices.defaultPrice?.id).toBe(
-        'string'
-      )
-      expect(
-        liveProductWithPrices.defaultPrice?.id.length
-      ).toBeGreaterThan(0)
-      expect(liveProductWithPrices.defaultPrice.name).toBe(
-        'Free Plan'
-      )
-      expect(liveProductWithPrices.defaultPrice.unitPrice).toBe(0)
-      expect(liveProductWithPrices.defaultPrice.livemode).toBe(true)
-      expect(liveProductWithPrices.defaultPrice.currency).toBe(
-        organization.defaultCurrency
-      )
+        expect(typeof organization).toBe('object')
 
-      // Testmode default pricing model and Free Plan
-      const [testDefaultPricingModel] = await selectPricingModels(
-        {
-          organizationId: organization.id,
-          livemode: false,
-          isDefault: true,
-        },
-        transaction
-      )
-      expect(testDefaultPricingModel?.id).toMatch(/^pricing_model_/)
-
-      const [testDefaultProduct] = await selectProducts(
-        {
-          pricingModelId: testDefaultPricingModel.id,
-          default: true,
-        },
-        transaction
-      )
-      expect(typeof testDefaultProduct?.id).toBe('string')
-      expect(testDefaultProduct?.id.length).toBeGreaterThan(0)
-      expect(testDefaultProduct.name).toBe('Free Plan')
-      expect(testDefaultProduct.organizationId).toBe(organization.id)
-      expect(testDefaultProduct.livemode).toBe(false)
-
-      const testProductWithPrices =
-        await selectPricesAndProductByProductId(
-          testDefaultProduct.id,
+        // Live default pricing model and Free Plan
+        const [liveDefaultPricingModel] = await selectPricingModels(
+          {
+            organizationId: organization.id,
+            livemode: true,
+            isDefault: true,
+          },
           transaction
         )
-      expect(typeof testProductWithPrices.defaultPrice?.id).toBe(
-        'string'
-      )
-      expect(
-        testProductWithPrices.defaultPrice?.id.length
-      ).toBeGreaterThan(0)
-      expect(testProductWithPrices.defaultPrice.name).toBe(
-        'Free Plan'
-      )
-      expect(testProductWithPrices.defaultPrice.unitPrice).toBe(0)
-      expect(testProductWithPrices.defaultPrice.livemode).toBe(false)
-      expect(testProductWithPrices.defaultPrice.currency).toBe(
-        organization.defaultCurrency
-      )
-    })
+        expect(liveDefaultPricingModel?.id).toMatch(/^pricing_model_/)
+
+        const [liveDefaultProduct] = await selectProducts(
+          {
+            pricingModelId: liveDefaultPricingModel.id,
+            default: true,
+          },
+          transaction
+        )
+        expect(typeof liveDefaultProduct?.id).toBe('string')
+        expect(liveDefaultProduct.name).toBe('Free Plan')
+        expect(liveDefaultProduct.organizationId).toBe(
+          organization.id
+        )
+        expect(liveDefaultProduct.livemode).toBe(true)
+
+        const liveProductWithPrices =
+          await selectPricesAndProductByProductId(
+            liveDefaultProduct.id,
+            transaction
+          )
+        expect(typeof liveProductWithPrices.defaultPrice?.id).toBe(
+          'string'
+        )
+        expect(
+          liveProductWithPrices.defaultPrice?.id.length
+        ).toBeGreaterThan(0)
+        expect(liveProductWithPrices.defaultPrice.name).toBe(
+          'Free Plan'
+        )
+        expect(liveProductWithPrices.defaultPrice.unitPrice).toBe(0)
+        expect(liveProductWithPrices.defaultPrice.livemode).toBe(true)
+        expect(liveProductWithPrices.defaultPrice.currency).toBe(
+          organization.defaultCurrency
+        )
+
+        // Testmode default pricing model and Free Plan
+        const [testDefaultPricingModel] = await selectPricingModels(
+          {
+            organizationId: organization.id,
+            livemode: false,
+            isDefault: true,
+          },
+          transaction
+        )
+        expect(testDefaultPricingModel?.id).toMatch(/^pricing_model_/)
+
+        const [testDefaultProduct] = await selectProducts(
+          {
+            pricingModelId: testDefaultPricingModel.id,
+            default: true,
+          },
+          transaction
+        )
+        expect(typeof testDefaultProduct?.id).toBe('string')
+        expect(testDefaultProduct?.id.length).toBeGreaterThan(0)
+        expect(testDefaultProduct.name).toBe('Free Plan')
+        expect(testDefaultProduct.organizationId).toBe(
+          organization.id
+        )
+        expect(testDefaultProduct.livemode).toBe(false)
+
+        const testProductWithPrices =
+          await selectPricesAndProductByProductId(
+            testDefaultProduct.id,
+            transaction
+          )
+        expect(typeof testProductWithPrices.defaultPrice?.id).toBe(
+          'string'
+        )
+        expect(
+          testProductWithPrices.defaultPrice?.id.length
+        ).toBeGreaterThan(0)
+        expect(testProductWithPrices.defaultPrice.name).toBe(
+          'Free Plan'
+        )
+        expect(testProductWithPrices.defaultPrice.unitPrice).toBe(0)
+        expect(testProductWithPrices.defaultPrice.livemode).toBe(
+          false
+        )
+        expect(testProductWithPrices.defaultPrice.currency).toBe(
+          organization.defaultCurrency
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should persist stripeConnectContractType when provided', async () => {
     const organizationName = `org_${core.nanoid()}`
 
-    await adminTransaction(async ({ transaction }) => {
-      const countryId = await getMoROnlyCountryId(transaction)
-      const input: CreateOrganizationInput = {
-        organization: {
-          name: organizationName,
-          countryId,
-          stripeConnectContractType:
-            StripeConnectContractType.MerchantOfRecord,
-        },
-      }
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const countryId = await getMoROnlyCountryId(transaction)
+        const input: CreateOrganizationInput = {
+          organization: {
+            name: organizationName,
+            countryId,
+            stripeConnectContractType:
+              StripeConnectContractType.MerchantOfRecord,
+          },
+        }
 
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
-      )
-    })
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      const [organization] = await selectOrganizations(
-        { name: organizationName },
-        transaction
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const [organization] = await selectOrganizations(
+          { name: organizationName },
+          transaction
+        )
 
-      expect(organization.stripeConnectContractType).toBe(
-        StripeConnectContractType.MerchantOfRecord
-      )
-    })
+        expect(organization.stripeConnectContractType).toBe(
+          StripeConnectContractType.MerchantOfRecord
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should default to MerchantOfRecord for MoR-only countries', async () => {
     const organizationName = `org_${core.nanoid()}`
 
-    await adminTransaction(async ({ transaction }) => {
-      const countryId = await getMoROnlyCountryId(transaction)
-      const input: CreateOrganizationInput = {
-        organization: {
-          name: organizationName,
-          countryId,
-        },
-      }
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const countryId = await getMoROnlyCountryId(transaction)
+        const input: CreateOrganizationInput = {
+          organization: {
+            name: organizationName,
+            countryId,
+          },
+        }
 
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
-      )
-    })
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      const [organization] = await selectOrganizations(
-        { name: organizationName },
-        transaction
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const [organization] = await selectOrganizations(
+          { name: organizationName },
+          transaction
+        )
 
-      expect(organization.stripeConnectContractType).toBe(
-        StripeConnectContractType.MerchantOfRecord
-      )
-    })
+        expect(organization.stripeConnectContractType).toBe(
+          StripeConnectContractType.MerchantOfRecord
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should reject Platform contract type for MoR-only countries', async () => {
     const organizationName = `org_${core.nanoid()}`
 
-    const promise = adminTransaction(async ({ transaction }) => {
-      const countryId = await getMoROnlyCountryId(transaction)
-      const input: CreateOrganizationInput = {
-        organization: {
-          name: organizationName,
-          countryId,
-          stripeConnectContractType:
-            StripeConnectContractType.Platform,
-        },
-      }
+    const promise = adminTransactionWithResult(
+      async ({ transaction }) => {
+        const countryId = await getMoROnlyCountryId(transaction)
+        const input: CreateOrganizationInput = {
+          organization: {
+            name: organizationName,
+            countryId,
+            stripeConnectContractType:
+              StripeConnectContractType.Platform,
+          },
+        }
 
-      return createOrganizationTransaction(
-        input,
-        {
-          id: core.nanoid(),
-          email: `test+${core.nanoid()}@test.com`,
-          fullName: 'Test User',
-        },
-        transaction,
-        { type: 'admin', livemode: true }
-      )
-    })
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        return Result.ok(undefined)
+      }
+    )
 
     await expect(promise).rejects.toThrow(
       /The selected payment configuration is not available in .+\. See supported countries/
@@ -452,213 +492,237 @@ describe('createOrganizationTransaction', () => {
     it('should set defaultCurrency to USD for MoR organizations regardless of country', async () => {
       const organizationName = `org_${core.nanoid()}`
 
-      await adminTransaction(async ({ transaction }) => {
-        const countryId = await getMoROnlyCountryId(transaction)
-        const input: CreateOrganizationInput = {
-          organization: {
-            name: organizationName,
-            countryId,
-            stripeConnectContractType:
-              StripeConnectContractType.MerchantOfRecord,
-          },
-        }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const countryId = await getMoROnlyCountryId(transaction)
+          const input: CreateOrganizationInput = {
+            organization: {
+              name: organizationName,
+              countryId,
+              stripeConnectContractType:
+                StripeConnectContractType.MerchantOfRecord,
+            },
+          }
 
-        return createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
-        )
-      })
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const [organization] = await selectOrganizations(
-          { name: organizationName },
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [organization] = await selectOrganizations(
+            { name: organizationName },
+            transaction
+          )
 
-        expect(organization.stripeConnectContractType).toBe(
-          StripeConnectContractType.MerchantOfRecord
-        )
-        expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
-      })
+          expect(organization.stripeConnectContractType).toBe(
+            StripeConnectContractType.MerchantOfRecord
+          )
+          expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should set defaultCurrency to USD for MoR orgs even when country is Platform-eligible', async () => {
       const organizationName = `org_${core.nanoid()}`
 
-      await adminTransaction(async ({ transaction }) => {
-        const bothEligibleCountry =
-          await getBothEligibleCountry(transaction)
-        const input: CreateOrganizationInput = {
-          organization: {
-            name: organizationName,
-            countryId: bothEligibleCountry.id,
-            stripeConnectContractType:
-              StripeConnectContractType.MerchantOfRecord,
-          },
-        }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const bothEligibleCountry =
+            await getBothEligibleCountry(transaction)
+          const input: CreateOrganizationInput = {
+            organization: {
+              name: organizationName,
+              countryId: bothEligibleCountry.id,
+              stripeConnectContractType:
+                StripeConnectContractType.MerchantOfRecord,
+            },
+          }
 
-        return createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
-        )
-      })
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const [organization] = await selectOrganizations(
-          { name: organizationName },
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [organization] = await selectOrganizations(
+            { name: organizationName },
+            transaction
+          )
 
-        expect(organization.stripeConnectContractType).toBe(
-          StripeConnectContractType.MerchantOfRecord
-        )
-        // MoR orgs always get USD, even if the country has a different default currency
-        expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
-      })
+          expect(organization.stripeConnectContractType).toBe(
+            StripeConnectContractType.MerchantOfRecord
+          )
+          // MoR orgs always get USD, even if the country has a different default currency
+          expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should set defaultCurrency based on country for Platform organizations', async () => {
       const organizationName = `org_${core.nanoid()}`
 
-      await adminTransaction(async ({ transaction }) => {
-        const nonUSPlatformCountry =
-          await getNonUSPlatformEligibleCountry(transaction)
-        const expectedCurrency = defaultCurrencyForCountry(
-          nonUSPlatformCountry
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const nonUSPlatformCountry =
+            await getNonUSPlatformEligibleCountry(transaction)
+          const expectedCurrency = defaultCurrencyForCountry(
+            nonUSPlatformCountry
+          )
 
-        const input: CreateOrganizationInput = {
-          organization: {
-            name: organizationName,
-            countryId: nonUSPlatformCountry.id,
-            stripeConnectContractType:
-              StripeConnectContractType.Platform,
-          },
-        }
+          const input: CreateOrganizationInput = {
+            organization: {
+              name: organizationName,
+              countryId: nonUSPlatformCountry.id,
+              stripeConnectContractType:
+                StripeConnectContractType.Platform,
+            },
+          }
 
-        await createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
-        )
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
 
-        const [organization] = await selectOrganizations(
-          { name: organizationName },
-          transaction
-        )
+          const [organization] = await selectOrganizations(
+            { name: organizationName },
+            transaction
+          )
 
-        expect(organization.stripeConnectContractType).toBe(
-          StripeConnectContractType.Platform
-        )
-        // Platform orgs get the country's default currency
-        expect(organization.defaultCurrency).toBe(expectedCurrency)
-        // Verify it's not USD (unless the country's default happens to be USD)
-        // This test uses a non-US country, so it should have a different currency
-        expect(expectedCurrency).not.toBe(CurrencyCode.USD)
-      })
+          expect(organization.stripeConnectContractType).toBe(
+            StripeConnectContractType.Platform
+          )
+          // Platform orgs get the country's default currency
+          expect(organization.defaultCurrency).toBe(expectedCurrency)
+          // Verify it's not USD (unless the country's default happens to be USD)
+          // This test uses a non-US country, so it should have a different currency
+          expect(expectedCurrency).not.toBe(CurrencyCode.USD)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should set defaultCurrency to USD for US Platform organizations', async () => {
       const organizationName = `org_${core.nanoid()}`
 
-      await adminTransaction(async ({ transaction }) => {
-        const countries = await selectCountries({}, transaction)
-        const usCountry = countries.find(
-          (country) => country.code === 'US'
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const countries = await selectCountries({}, transaction)
+          const usCountry = countries.find(
+            (country) => country.code === 'US'
+          )
 
-        if (!usCountry) {
-          throw new Error('Expected US country in the database.')
-        }
+          if (!usCountry) {
+            throw new Error('Expected US country in the database.')
+          }
 
-        const input: CreateOrganizationInput = {
-          organization: {
-            name: organizationName,
-            countryId: usCountry.id,
-            stripeConnectContractType:
-              StripeConnectContractType.Platform,
-          },
-        }
+          const input: CreateOrganizationInput = {
+            organization: {
+              name: organizationName,
+              countryId: usCountry.id,
+              stripeConnectContractType:
+                StripeConnectContractType.Platform,
+            },
+          }
 
-        await createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
-        )
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
 
-        const [organization] = await selectOrganizations(
-          { name: organizationName },
-          transaction
-        )
+          const [organization] = await selectOrganizations(
+            { name: organizationName },
+            transaction
+          )
 
-        expect(organization.stripeConnectContractType).toBe(
-          StripeConnectContractType.Platform
-        )
-        // US Platform orgs should also have USD (via defaultCurrencyForCountry)
-        expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
-      })
+          expect(organization.stripeConnectContractType).toBe(
+            StripeConnectContractType.Platform
+          )
+          // US Platform orgs should also have USD (via defaultCurrencyForCountry)
+          expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should default MoR-only countries to USD currency when contract type is auto-selected', async () => {
       const organizationName = `org_${core.nanoid()}`
 
-      await adminTransaction(async ({ transaction }) => {
-        const countryId = await getMoROnlyCountryId(transaction)
-        // Don't explicitly set stripeConnectContractType - let it auto-select MoR
-        const input: CreateOrganizationInput = {
-          organization: {
-            name: organizationName,
-            countryId,
-          },
-        }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const countryId = await getMoROnlyCountryId(transaction)
+          // Don't explicitly set stripeConnectContractType - let it auto-select MoR
+          const input: CreateOrganizationInput = {
+            organization: {
+              name: organizationName,
+              countryId,
+            },
+          }
 
-        return createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
-        )
-      })
+          await createOrganizationTransaction(
+            input,
+            {
+              id: core.nanoid(),
+              email: `test+${core.nanoid()}@test.com`,
+              fullName: 'Test User',
+            },
+            transaction,
+            { type: 'admin', livemode: true }
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const [organization] = await selectOrganizations(
-          { name: organizationName },
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [organization] = await selectOrganizations(
+            { name: organizationName },
+            transaction
+          )
 
-        // Should auto-select MoR for MoR-only countries
-        expect(organization.stripeConnectContractType).toBe(
-          StripeConnectContractType.MerchantOfRecord
-        )
-        // And should enforce USD as the default currency
-        expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
-      })
+          // Should auto-select MoR for MoR-only countries
+          expect(organization.stripeConnectContractType).toBe(
+            StripeConnectContractType.MerchantOfRecord
+          )
+          // And should enforce USD as the default currency
+          expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })

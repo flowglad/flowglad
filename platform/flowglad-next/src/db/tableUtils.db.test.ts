@@ -1852,23 +1852,27 @@ describe('createPaginatedSelectFunction', () => {
   it('should handle empty result set', async () => {
     // Since createPaginatedSelectFunction uses createdAt for cursor filtering,
     // not parameter filtering in the cursor, we'll test with a far future date
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Use a future date that won't match any records
-      const cursor = encodeCursor({
-        parameters: {},
-        createdAt: new Date('2099-01-01'),
-        id: '0',
-        direction: 'forward',
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        // Use a future date that won't match any records
+        const cursor = encodeCursor({
+          parameters: {},
+          createdAt: new Date('2099-01-01'),
+          id: '0',
+          direction: 'forward',
+        })
+        return Result.ok(
+          await selectCustomersPaginated(
+            {
+              cursor,
+              limit: 10,
+            },
+            transaction
+          )
+        )
       })
-      return selectCustomersPaginated(
-        {
-          cursor,
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    ).unwrap()
 
     expect(result.data.length).toBe(0)
     expect(result.hasMore).toBe(false)

@@ -24,7 +24,7 @@ import {
   setupOrg,
   setupPayment,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import { NotFoundError, ValidationError } from '@/errors'
 import { nanoid } from '@/utils/core'
@@ -247,30 +247,41 @@ describe('refundPaymentTransaction', () => {
       const partialRefundAmount = 3000 // $30.00
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      mockRefundPayment.mockResolvedValue(
-        Result.ok(
-          makeStripeRefundResponse({
-            amount: partialRefundAmount,
-            created: refundCreatedTimestamp,
-          })
-        )
-      )
+      mockRefundPayment
+        .mockResolvedValue(
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: partialRefundAmount,
+              created: refundCreatedTimestamp,
+            })
+          )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const updatedPaymentResult =
+                await refundPaymentTransaction(
+                  {
+                    id: payment.id,
+                    partialAmount: partialRefundAmount,
+                  },
+                  transaction
+                )
+              const updatedPayment = updatedPaymentResult.unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const updatedPaymentResult = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: partialRefundAmount },
-          transaction
+              // Payment should remain Succeeded for partial refunds
+              expect(updatedPayment.status).toBe(
+                PaymentStatus.Succeeded
+              )
+              expect(updatedPayment.refunded).toBe(false)
+              expect(updatedPayment.refundedAmount).toBe(
+                partialRefundAmount
+              )
+              expect(typeof updatedPayment.refundedAt).toBe('number')
+              return Result.ok(undefined)
+            }
+          )
         )
-        const updatedPayment = updatedPaymentResult.unwrap()
-
-        // Payment should remain Succeeded for partial refunds
-        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
-        expect(updatedPayment.refunded).toBe(false)
-        expect(updatedPayment.refundedAmount).toBe(
-          partialRefundAmount
-        )
-        expect(typeof updatedPayment.refundedAt).toBe('number')
-      })
+        .unwrap()
 
       expect(mockRefundPayment).toHaveBeenCalledWith(
         payment.stripePaymentIntentId,
@@ -283,28 +294,38 @@ describe('refundPaymentTransaction', () => {
       const fullRefundAmount = 10000 // $100.00 (full amount)
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      mockRefundPayment.mockResolvedValue(
-        Result.ok(
-          makeStripeRefundResponse({
-            amount: fullRefundAmount,
-            created: refundCreatedTimestamp,
-          })
-        )
-      )
+      mockRefundPayment
+        .mockResolvedValue(
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: fullRefundAmount,
+              created: refundCreatedTimestamp,
+            })
+          )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const updatedPaymentResult =
+                await refundPaymentTransaction(
+                  { id: payment.id, partialAmount: null },
+                  transaction
+                )
+              const updatedPayment = updatedPaymentResult.unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const updatedPaymentResult = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: null },
-          transaction
+              // Payment should be Refunded for full refunds
+              expect(updatedPayment.status).toBe(
+                PaymentStatus.Refunded
+              )
+              expect(updatedPayment.refunded).toBe(true)
+              expect(updatedPayment.refundedAmount).toBe(
+                fullRefundAmount
+              )
+              expect(typeof updatedPayment.refundedAt).toBe('number')
+              return Result.ok(undefined)
+            }
+          )
         )
-        const updatedPayment = updatedPaymentResult.unwrap()
-
-        // Payment should be Refunded for full refunds
-        expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
-        expect(updatedPayment.refunded).toBe(true)
-        expect(updatedPayment.refundedAmount).toBe(fullRefundAmount)
-        expect(typeof updatedPayment.refundedAt).toBe('number')
-      })
+        .unwrap()
     })
 
     it('should use actual refund amount from Stripe, not the payment amount', async () => {
@@ -313,27 +334,40 @@ describe('refundPaymentTransaction', () => {
       const stripeRefundAmount = 3000 // Stripe confirms $30.00
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      mockRefundPayment.mockResolvedValue(
-        Result.ok(
-          makeStripeRefundResponse({
-            // This is what Stripe actually refunded
-            amount: stripeRefundAmount,
-            created: refundCreatedTimestamp,
-          })
-        )
-      )
+      mockRefundPayment
+        .mockResolvedValue(
+          Result.ok(
+            makeStripeRefundResponse({
+              // This is what Stripe actually refunded
+              amount: stripeRefundAmount,
+              created: refundCreatedTimestamp,
+            })
+          )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const updatedPaymentResult =
+                await refundPaymentTransaction(
+                  {
+                    id: payment.id,
+                    partialAmount: requestedPartialAmount,
+                  },
+                  transaction
+                )
+              const updatedPayment = updatedPaymentResult.unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const updatedPaymentResult = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: requestedPartialAmount },
-          transaction
+              // Should record the actual Stripe refund amount, NOT payment.amount (10000)
+              expect(updatedPayment.refundedAmount).toBe(
+                stripeRefundAmount
+              )
+              expect(updatedPayment.refundedAmount).not.toBe(
+                payment.amount
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-        const updatedPayment = updatedPaymentResult.unwrap()
-
-        // Should record the actual Stripe refund amount, NOT payment.amount (10000)
-        expect(updatedPayment.refundedAmount).toBe(stripeRefundAmount)
-        expect(updatedPayment.refundedAmount).not.toBe(payment.amount)
-      })
+        .unwrap()
     })
 
     it('should correctly handle edge case where refund equals payment amount', async () => {
@@ -349,18 +383,21 @@ describe('refundPaymentTransaction', () => {
         )
       )
 
-      await adminTransaction(async ({ transaction }) => {
-        const updatedPaymentResult = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: payment.amount },
-          transaction
-        )
-        const updatedPayment = updatedPaymentResult.unwrap()
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const updatedPaymentResult = await refundPaymentTransaction(
+            { id: payment.id, partialAmount: payment.amount },
+            transaction
+          )
+          const updatedPayment = updatedPaymentResult.unwrap()
 
-        // When refund equals payment, it's a full refund
-        expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
-        expect(updatedPayment.refunded).toBe(true)
-        expect(updatedPayment.refundedAmount).toBe(payment.amount)
-      })
+          // When refund equals payment, it's a full refund
+          expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
+          expect(updatedPayment.refunded).toBe(true)
+          expect(updatedPayment.refundedAmount).toBe(payment.amount)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
     it('should accumulate refundedAmount across multiple partial refunds', async () => {
       const firstRefundCreatedTimestamp = Math.floor(
@@ -385,49 +422,68 @@ describe('refundPaymentTransaction', () => {
               created: secondRefundCreatedTimestamp,
             })
           )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const updatedPaymentResult =
+                await refundPaymentTransaction(
+                  { id: payment.id, partialAmount: 3000 },
+                  transaction
+                )
+              const updatedPayment = updatedPaymentResult.unwrap()
+
+              expect(updatedPayment.status).toBe(
+                PaymentStatus.Succeeded
+              )
+              expect(updatedPayment.refunded).toBe(false)
+              expect(updatedPayment.refundedAmount).toBe(3000)
+              return Result.ok(undefined)
+            }
+          )
         )
+        .unwrap()(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const updatedPaymentResult =
+                await refundPaymentTransaction(
+                  { id: payment.id, partialAmount: 7000 },
+                  transaction
+                )
+              const updatedPayment = updatedPaymentResult.unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const updatedPaymentResult = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: 3000 },
-          transaction
+              expect(updatedPayment.status).toBe(
+                PaymentStatus.Refunded
+              )
+              expect(updatedPayment.refunded).toBe(true)
+              expect(updatedPayment.refundedAmount).toBe(
+                payment.amount
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-        const updatedPayment = updatedPaymentResult.unwrap()
-
-        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
-        expect(updatedPayment.refunded).toBe(false)
-        expect(updatedPayment.refundedAmount).toBe(3000)
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const updatedPaymentResult = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: 7000 },
-          transaction
-        )
-        const updatedPayment = updatedPaymentResult.unwrap()
-
-        expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
-        expect(updatedPayment.refunded).toBe(true)
-        expect(updatedPayment.refundedAmount).toBe(payment.amount)
-      })
+        .unwrap()
     })
   })
 
   describe('validation errors', () => {
     it('returns NotFoundError when payment is not found', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await refundPaymentTransaction(
-          { id: 'non_existent_id', partialAmount: null },
-          transaction
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error).toBeInstanceOf(NotFoundError)
-          expect(result.error.message).toBe(
-            'Payment not found: non_existent_id'
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await refundPaymentTransaction(
+            { id: 'non_existent_id', partialAmount: null },
+            transaction
           )
-        }
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error).toBeInstanceOf(NotFoundError)
+            expect(result.error.message).toBe(
+              'Payment not found: non_existent_id'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns ValidationError when payment is already refunded', async () => {
@@ -444,21 +500,22 @@ describe('refundPaymentTransaction', () => {
         refunded: true,
         refundedAmount: 10000,
         refundedAt: Date.now(),
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await refundPaymentTransaction(
-          { id: refundedPayment.id, partialAmount: null },
-          transaction
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error).toBeInstanceOf(ValidationError)
-          expect(result.error.message).toBe(
-            'Invalid status: Payment has already been refunded'
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await refundPaymentTransaction(
+            { id: refundedPayment.id, partialAmount: null },
+            transaction
           )
-        }
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error).toBeInstanceOf(ValidationError)
+            expect(result.error.message).toBe(
+              'Invalid status: Payment has already been refunded'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns ValidationError when payment is still processing', async () => {
@@ -472,53 +529,60 @@ describe('refundPaymentTransaction', () => {
         organizationId: organization.id,
         invoiceId: invoice.id,
         paymentMethod: PaymentMethodType.Card,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await refundPaymentTransaction(
-          { id: processingPayment.id, partialAmount: null },
-          transaction
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error).toBeInstanceOf(ValidationError)
-          expect(result.error.message).toBe(
-            'Invalid status: Cannot refund a payment that is still processing'
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await refundPaymentTransaction(
+            { id: processingPayment.id, partialAmount: null },
+            transaction
           )
-        }
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error).toBeInstanceOf(ValidationError)
+            expect(result.error.message).toBe(
+              'Invalid status: Cannot refund a payment that is still processing'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns ValidationError when partial amount exceeds payment amount', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: 15000 }, // $150 > $100
-          transaction
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error).toBeInstanceOf(ValidationError)
-          expect(result.error.message).toBe(
-            'Invalid partialAmount: Partial amount cannot be greater than the payment amount'
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await refundPaymentTransaction(
+            { id: payment.id, partialAmount: 15000 }, // $150 > $100
+            transaction
           )
-        }
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error).toBeInstanceOf(ValidationError)
+            expect(result.error.message).toBe(
+              'Invalid partialAmount: Partial amount cannot be greater than the payment amount'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns ValidationError when partial amount is not positive', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await refundPaymentTransaction(
-          { id: payment.id, partialAmount: 0 },
-          transaction
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error).toBeInstanceOf(ValidationError)
-          expect(result.error.message).toBe(
-            'Invalid partialAmount: Partial amount must be greater than 0'
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await refundPaymentTransaction(
+            { id: payment.id, partialAmount: 0 },
+            transaction
           )
-        }
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error).toBeInstanceOf(ValidationError)
+            expect(result.error.message).toBe(
+              'Invalid partialAmount: Partial amount must be greater than 0'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -568,21 +632,26 @@ describe('refundPaymentTransaction', () => {
       const fullRefundAmount = 10800
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      mockRefundPayment.mockResolvedValue(
-        Result.ok(
-          makeStripeRefundResponse({
-            amount: fullRefundAmount,
-            created: refundCreatedTimestamp,
-          })
+      mockRefundPayment
+        .mockResolvedValue(
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: fullRefundAmount,
+              created: refundCreatedTimestamp,
+            })
+          )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await refundPaymentTransaction(
+                { id: morPaymentWithTax.id, partialAmount: null },
+                transaction
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-      )
-
-      await adminTransaction(async ({ transaction }) => {
-        await refundPaymentTransaction(
-          { id: morPaymentWithTax.id, partialAmount: null },
-          transaction
-        )
-      })
+        .unwrap()
 
       expect(mockReverseStripeTaxTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -598,24 +667,29 @@ describe('refundPaymentTransaction', () => {
       const partialRefundAmount = 5000
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      mockRefundPayment.mockResolvedValue(
-        Result.ok(
-          makeStripeRefundResponse({
-            amount: partialRefundAmount,
-            created: refundCreatedTimestamp,
-          })
+      mockRefundPayment
+        .mockResolvedValue(
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: partialRefundAmount,
+              created: refundCreatedTimestamp,
+            })
+          )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await refundPaymentTransaction(
+                {
+                  id: morPaymentWithTax.id,
+                  partialAmount: partialRefundAmount,
+                },
+                transaction
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-      )
-
-      await adminTransaction(async ({ transaction }) => {
-        await refundPaymentTransaction(
-          {
-            id: morPaymentWithTax.id,
-            partialAmount: partialRefundAmount,
-          },
-          transaction
-        )
-      })
+        .unwrap()
 
       expect(mockReverseStripeTaxTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -641,22 +715,30 @@ describe('refundPaymentTransaction', () => {
         )
       )
 
-      mockReverseStripeTaxTransaction.mockRejectedValue(
-        new Error('Stripe API error')
-      )
+      mockReverseStripeTaxTransaction
+        .mockRejectedValue(new Error('Stripe API error'))(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const updatedPaymentResult =
+                await refundPaymentTransaction(
+                  { id: morPaymentWithTax.id, partialAmount: null },
+                  transaction
+                )
+              const updatedPayment = updatedPaymentResult.unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const updatedPaymentResult = await refundPaymentTransaction(
-          { id: morPaymentWithTax.id, partialAmount: null },
-          transaction
+              // Refund should still succeed despite tax reversal failure
+              expect(updatedPayment.status).toBe(
+                PaymentStatus.Refunded
+              )
+              expect(updatedPayment.refunded).toBe(true)
+              expect(updatedPayment.refundedAmount).toBe(
+                fullRefundAmount
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-        const updatedPayment = updatedPaymentResult.unwrap()
-
-        // Refund should still succeed despite tax reversal failure
-        expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
-        expect(updatedPayment.refunded).toBe(true)
-        expect(updatedPayment.refundedAmount).toBe(fullRefundAmount)
-      })
+        .unwrap()
     })
 
     it('does not call reverseStripeTaxTransaction when stripeTaxTransactionId is null', async () => {
@@ -676,21 +758,26 @@ describe('refundPaymentTransaction', () => {
 
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      mockRefundPayment.mockResolvedValue(
-        Result.ok(
-          makeStripeRefundResponse({
-            amount: 10000,
-            created: refundCreatedTimestamp,
-          })
+      mockRefundPayment
+        .mockResolvedValue(
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: 10000,
+              created: refundCreatedTimestamp,
+            })
+          )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await refundPaymentTransaction(
+                { id: paymentWithoutTax.id, partialAmount: null },
+                transaction
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-      )
-
-      await adminTransaction(async ({ transaction }) => {
-        await refundPaymentTransaction(
-          { id: paymentWithoutTax.id, partialAmount: null },
-          transaction
-        )
-      })
+        .unwrap()
 
       expect(mockReverseStripeTaxTransaction).not.toHaveBeenCalled()
     })
@@ -716,21 +803,29 @@ describe('refundPaymentTransaction', () => {
         stripeTaxTransactionId: `tax_txn_${nanoid()}`,
       })
 
-      mockRefundPayment.mockResolvedValue(
-        Result.ok(
-          makeStripeRefundResponse({
-            amount: 10000,
-            created: refundCreatedTimestamp,
-          })
+      mockRefundPayment
+        .mockResolvedValue(
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: 10000,
+              created: refundCreatedTimestamp,
+            })
+          )
+        )(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await refundPaymentTransaction(
+                {
+                  id: platformPaymentWithTaxId.id,
+                  partialAmount: null,
+                },
+                transaction
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-      )
-
-      await adminTransaction(async ({ transaction }) => {
-        await refundPaymentTransaction(
-          { id: platformPaymentWithTaxId.id, partialAmount: null },
-          transaction
-        )
-      })
+        .unwrap()
 
       // Should NOT be called because the org is Platform, not MOR
       expect(mockReverseStripeTaxTransaction).not.toHaveBeenCalled()
@@ -776,20 +871,22 @@ describe('retryPaymentTransaction', () => {
     })
 
     // Update with tax fields that should be propagated
-    const updatedFailedPayment = await adminTransaction(
-      async ({ transaction }) => {
-        return updatePayment(
-          {
-            id: failedPayment.id,
-            subtotal: 800,
-            taxAmount: 123,
-            stripeTaxCalculationId: 'txcalc_test_retry',
-            stripeTaxTransactionId: 'tax_txn_test_retry',
-          },
-          transaction
+    const updatedFailedPayment = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await updatePayment(
+            {
+              id: failedPayment.id,
+              subtotal: 800,
+              taxAmount: 123,
+              stripeTaxCalculationId: 'txcalc_test_retry',
+              stripeTaxTransactionId: 'tax_txn_test_retry',
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Mock getPaymentIntent to return a payment intent with a charge
     mockGetPaymentIntent.mockResolvedValue({
@@ -826,13 +923,17 @@ describe('retryPaymentTransaction', () => {
 
     // Retry the payment
     const retriedPayment = (
-      await adminTransaction(async ({ transaction }) => {
-        return retryPaymentTransaction(
-          { id: updatedFailedPayment.id },
-          transaction
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await retryPaymentTransaction(
+            { id: updatedFailedPayment.id },
+            transaction
+          )
         )
       })
-    ).unwrap()
+    )
+      .unwrap()
+      .unwrap()
 
     // Verify tax fields are propagated to the new payment
     expect(retriedPayment.id).not.toBe(updatedFailedPayment.id)

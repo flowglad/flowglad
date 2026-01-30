@@ -60,7 +60,7 @@ import {
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { type OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   selectBillingPeriodItems,
@@ -254,17 +254,26 @@ describe('billingRunHelpers', async () => {
         organizationId: organization.id,
         priceId: staticPrice.id,
       })
-      const updatedBillingPeriod = await adminTransaction(
-        ({ transaction }) =>
-          processOutstandingBalanceForBillingPeriod(
-            billingPeriod,
-            invoice,
-            transaction
+      const updatedBillingPeriod = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            processOutstandingBalanceForBillingPeriod(
+              billingPeriod,
+              invoice,
+              transaction
+            )
           )
-      )
-      invoice = await adminTransaction(async ({ transaction }) =>
-        (await selectInvoiceById(invoice.id, transaction)).unwrap()
-      )
+        )
+      ).unwrap()
+      invoice = (
+        await adminTransactionWithResult(async ({ transaction }) =>
+          Result.ok(
+            (
+              await selectInvoiceById(invoice.id, transaction)
+            ).unwrap()
+          )
+        )
+      ).unwrap()
 
       expect(invoice.status).toBe(InvoiceStatus.Open)
       expect(updatedBillingPeriod.status).toBe(
@@ -280,8 +289,8 @@ describe('billingRunHelpers', async () => {
         organizationId: organization.id,
         priceId: staticPrice.id,
       })
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const updatedBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
@@ -289,16 +298,18 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-          return processNoMoreDueForBillingPeriod(
-            {
-              billingRun,
-              billingPeriod: updatedBillingPeriod,
-              invoice,
-            },
-            transaction
+          return Result.ok(
+            processNoMoreDueForBillingPeriod(
+              {
+                billingRun,
+                billingPeriod: updatedBillingPeriod,
+                invoice,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.billingPeriod.status).toBe(
         BillingPeriodStatus.Completed
       )
@@ -307,20 +318,23 @@ describe('billingRunHelpers', async () => {
 
   describe('Payment Intent Creation and Confirmation', () => {
     it('should create a payment intent for the correct amount', async () => {
-      const { totalDueAmount } = await adminTransaction(
-        ({ transaction }) =>
-          calculateFeeAndTotalAmountDueForBillingPeriod(
-            {
-              billingPeriod,
-              billingPeriodItems,
-              organization,
-              paymentMethod,
-              usageOverages: [],
-              billingRun,
-            },
-            transaction
+      const { totalDueAmount } = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems,
+                organization,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(totalDueAmount).toBeGreaterThan(0)
       // TODO: check the total due amount is correct
     })
@@ -333,32 +347,39 @@ describe('billingRunHelpers', async () => {
         organizationId: organization.id,
         priceId: staticPrice.id,
       })
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
       expect(result.invoice.status).toBe(InvoiceStatus.Paid)
     })
   })
 
   describe('Fee Calculation and Total Due Amount', () => {
     it('should calculate the correct fee and total due amount', async () => {
-      const { feeCalculation, totalDueAmount } =
-        await adminTransaction(({ transaction }) =>
-          calculateFeeAndTotalAmountDueForBillingPeriod(
-            {
-              billingPeriod,
-              billingPeriodItems,
-              organization,
-              paymentMethod,
-              usageOverages: [],
-              billingRun,
-            },
-            transaction
+      const { feeCalculation, totalDueAmount } = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems,
+                organization,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
           )
         )
+      ).unwrap()
       expect(typeof feeCalculation).toBe('object')
       expect(totalDueAmount).toBeGreaterThan(0)
     })
@@ -366,31 +387,37 @@ describe('billingRunHelpers', async () => {
     it('should handle different currencies correctly', async () => {
       // Create an organization with a different default currency
       const originalOrg = await setupOrg()
-      const orgWithDifferentCurrency = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateOrganization(
-            {
-              id: originalOrg.organization.id,
-              defaultCurrency: CurrencyCode.EUR,
-            },
-            transaction
+      const orgWithDifferentCurrency = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await updateOrganization(
+              {
+                id: originalOrg.organization.id,
+                defaultCurrency: CurrencyCode.EUR,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod,
-            billingPeriodItems,
-            organization: orgWithDifferentCurrency,
-            paymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems,
+                organization: orgWithDifferentCurrency,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.currency).toBe(CurrencyCode.EUR)
@@ -404,19 +431,23 @@ describe('billingRunHelpers', async () => {
         unitPrice: 150,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod,
-            billingPeriodItems: [testBillingPeriodItem],
-            organization,
-            paymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems: [testBillingPeriodItem],
+                organization,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.totalDueAmount).toBe(300) // 2 * 150
     })
@@ -431,19 +462,23 @@ describe('billingRunHelpers', async () => {
         livemode: true, // Set to true for testing
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod: testBillingPeriod,
-            billingPeriodItems,
-            organization,
-            paymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod: testBillingPeriod,
+                billingPeriodItems,
+                organization,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.livemode).toBe(true)
@@ -457,19 +492,23 @@ describe('billingRunHelpers', async () => {
         type: PaymentMethodType.Card,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod,
-            billingPeriodItems,
-            organization,
-            paymentMethod: testPaymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems,
+                organization,
+                paymentMethod: testPaymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.paymentMethodType).toBe(
@@ -480,18 +519,21 @@ describe('billingRunHelpers', async () => {
 
   describe('Invoice Creation and Line Items', () => {
     it('should create an invoice with the correct invoice number', async () => {
-      const invoiceInsert = await adminTransaction(
-        ({ transaction }) =>
-          createInvoiceInsertForBillingRun(
-            {
-              billingPeriod,
-              organization,
-              customer,
-              currency: staticPrice.currency,
-            },
-            transaction
+      const invoiceInsert = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            createInvoiceInsertForBillingRun(
+              {
+                billingPeriod,
+                organization,
+                customer,
+                currency: staticPrice.currency,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(typeof invoiceInsert.invoiceNumber).toBe('string')
       expect(invoiceInsert.invoiceNumber.length).toBeGreaterThan(0)
     })
@@ -523,18 +565,21 @@ describe('billingRunHelpers', async () => {
 
   describe('createInvoiceInsertForBillingRun', () => {
     it('should create an invoice with the correct properties', async () => {
-      const invoiceInsert = await adminTransaction(
-        ({ transaction }) =>
-          createInvoiceInsertForBillingRun(
-            {
-              billingPeriod,
-              organization,
-              customer,
-              currency: staticPrice.currency,
-            },
-            transaction
+      const invoiceInsert = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            createInvoiceInsertForBillingRun(
+              {
+                billingPeriod,
+                organization,
+                customer,
+                currency: staticPrice.currency,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
 
       // Check all required properties are set correctly
       expect(invoiceInsert.customerId).toBe(customer.id)
@@ -582,18 +627,21 @@ describe('billingRunHelpers', async () => {
         priceId: staticPrice.id,
       })
 
-      const invoiceInsert = await adminTransaction(
-        ({ transaction }) =>
-          createInvoiceInsertForBillingRun(
-            {
-              billingPeriod,
-              organization,
-              customer: testCustomer,
-              currency: staticPrice.currency,
-            },
-            transaction
+      const invoiceInsert = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            createInvoiceInsertForBillingRun(
+              {
+                billingPeriod,
+                organization,
+                customer: testCustomer,
+                currency: staticPrice.currency,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
 
       // The invoice number should be based on the customer's invoice number base and the count of existing invoices
       expect(invoiceInsert.invoiceNumber).toContain(invoiceNumberBase)
@@ -603,18 +651,21 @@ describe('billingRunHelpers', async () => {
     it('should handle different currencies', async () => {
       const testCurrency = CurrencyCode.EUR
 
-      const invoiceInsert = await adminTransaction(
-        ({ transaction }) =>
-          createInvoiceInsertForBillingRun(
-            {
-              billingPeriod,
-              organization,
-              customer,
-              currency: testCurrency,
-            },
-            transaction
+      const invoiceInsert = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            createInvoiceInsertForBillingRun(
+              {
+                billingPeriod,
+                organization,
+                customer,
+                currency: testCurrency,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
 
       expect(invoiceInsert.currency).toBe(testCurrency)
     })
@@ -629,18 +680,21 @@ describe('billingRunHelpers', async () => {
         livemode: true, // Set to true for testing
       })
 
-      const invoiceInsert = await adminTransaction(
-        ({ transaction }) =>
-          createInvoiceInsertForBillingRun(
-            {
-              billingPeriod: testBillingPeriod,
-              organization,
-              customer,
-              currency: staticPrice.currency,
-            },
-            transaction
+      const invoiceInsert = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            createInvoiceInsertForBillingRun(
+              {
+                billingPeriod: testBillingPeriod,
+                organization,
+                customer,
+                currency: staticPrice.currency,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
 
       expect(invoiceInsert.livemode).toBe(true)
     })
@@ -657,18 +711,21 @@ describe('billingRunHelpers', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      const invoiceInsert = await adminTransaction(
-        ({ transaction }) =>
-          createInvoiceInsertForBillingRun(
-            {
-              billingPeriod: testBillingPeriod,
-              organization,
-              customer,
-              currency: staticPrice.currency,
-            },
-            transaction
+      const invoiceInsert = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            createInvoiceInsertForBillingRun(
+              {
+                billingPeriod: testBillingPeriod,
+                organization,
+                customer,
+                currency: staticPrice.currency,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
 
       expect(invoiceInsert.billingPeriodStartDate).toEqual(
         startDate.getTime()
@@ -693,19 +750,23 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should calculate fee and total due correctly, ommitting billing period items that do not have any usage attached to them ', async () => {
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod,
-            billingPeriodItems,
-            organization,
-            paymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems,
+                organization,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation).toMatchObject({})
       expect(result.totalDueAmount).toBeGreaterThan(0)
@@ -721,31 +782,37 @@ describe('billingRunHelpers', async () => {
     it('should handle different currencies correctly', async () => {
       // Create an organization with a different default currency
       const originalOrg = await setupOrg()
-      const orgWithDifferentCurrency = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateOrganization(
-            {
-              id: originalOrg.organization.id,
-              defaultCurrency: CurrencyCode.EUR,
-            },
-            transaction
+      const orgWithDifferentCurrency = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await updateOrganization(
+              {
+                id: originalOrg.organization.id,
+                defaultCurrency: CurrencyCode.EUR,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod,
-            billingPeriodItems,
-            organization: orgWithDifferentCurrency,
-            paymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems,
+                organization: orgWithDifferentCurrency,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.currency).toBe(CurrencyCode.EUR)
@@ -759,19 +826,23 @@ describe('billingRunHelpers', async () => {
         unitPrice: 150,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod,
-            billingPeriodItems: [testBillingPeriodItem],
-            organization,
-            paymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems: [testBillingPeriodItem],
+                organization,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.totalDueAmount).toBe(300) // 2 * 150
     })
@@ -786,19 +857,23 @@ describe('billingRunHelpers', async () => {
         livemode: true, // Set to true for testing
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod: testBillingPeriod,
-            billingPeriodItems,
-            organization,
-            paymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod: testBillingPeriod,
+                billingPeriodItems,
+                organization,
+                paymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.livemode).toBe(true)
@@ -812,19 +887,23 @@ describe('billingRunHelpers', async () => {
         type: PaymentMethodType.Card,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        calculateFeeAndTotalAmountDueForBillingPeriod(
-          {
-            billingPeriod,
-            billingPeriodItems,
-            organization,
-            paymentMethod: testPaymentMethod,
-            usageOverages: [],
-            billingRun,
-          },
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            calculateFeeAndTotalAmountDueForBillingPeriod(
+              {
+                billingPeriod,
+                billingPeriodItems,
+                organization,
+                paymentMethod: testPaymentMethod,
+                usageOverages: [],
+                billingRun,
+              },
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation).toMatchObject({})
       expect(result.feeCalculation.paymentMethodType).toBe(
@@ -865,10 +944,11 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should schedule a billing run retry 3 days after the initial attempt', async () => {
-      const retryBillingRunResult = await adminTransaction(
-        ({ transaction }) =>
-          scheduleBillingRunRetry(billingRun, transaction)
-      )
+      const retryBillingRunResult = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(scheduleBillingRunRetry(billingRun, transaction))
+        )
+      ).unwrap()
       const retryBillingRun = retryBillingRunResult?.unwrap()
       expect(typeof retryBillingRun).toBe('object')
       expect(retryBillingRun?.scheduledFor).toBeGreaterThan(
@@ -884,8 +964,8 @@ describe('billingRunHelpers', async () => {
         organizationId: organization.id,
         priceId: staticPrice.id,
       })
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const futureBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
@@ -893,16 +973,18 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-          return processNoMoreDueForBillingPeriod(
-            {
-              billingRun,
-              billingPeriod: futureBillingPeriod,
-              invoice,
-            },
-            transaction
+          return Result.ok(
+            processNoMoreDueForBillingPeriod(
+              {
+                billingRun,
+                billingPeriod: futureBillingPeriod,
+                invoice,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.billingPeriod.status).toBe(
         BillingPeriodStatus.Upcoming
       )
@@ -910,20 +992,24 @@ describe('billingRunHelpers', async () => {
 
     it('returns ValidationError when trying to create a retry billing run for a canceled subscription', async () => {
       // Update the subscription status to canceled
-      const canceledSubscription = await adminTransaction(
-        async ({ transaction }) => {
-          return safelyUpdateSubscriptionStatus(
-            subscription,
-            SubscriptionStatus.Canceled,
-            transaction
+      const canceledSubscription = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            safelyUpdateSubscriptionStatus(
+              subscription,
+              SubscriptionStatus.Canceled,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // The database-level protection should return a ValidationError
-      const result = await adminTransaction(({ transaction }) =>
-        scheduleBillingRunRetry(billingRun, transaction)
-      )
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(scheduleBillingRunRetry(billingRun, transaction))
+        )
+      ).unwrap()
       if (!result) {
         throw new Error('Expected result to be defined')
       }
@@ -938,20 +1024,23 @@ describe('billingRunHelpers', async () => {
 
     it('should schedule a retry billing run if the subscription is not canceled', async () => {
       // Ensure the subscription is active
-      const activeSubscription = await adminTransaction(
-        async ({ transaction }) => {
-          return safelyUpdateSubscriptionStatus(
-            subscription,
-            SubscriptionStatus.Active,
-            transaction
+      const activeSubscription = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            safelyUpdateSubscriptionStatus(
+              subscription,
+              SubscriptionStatus.Active,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const retryBillingRunResult = await adminTransaction(
-        ({ transaction }) =>
-          scheduleBillingRunRetry(billingRun, transaction)
-      )
+      const retryBillingRunResult = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(scheduleBillingRunRetry(billingRun, transaction))
+        )
+      ).unwrap()
       const retryBillingRun = retryBillingRunResult?.unwrap()
 
       expect(retryBillingRun).toMatchObject({
@@ -964,56 +1053,68 @@ describe('billingRunHelpers', async () => {
 
   describe('Edge Cases and Error Handling', () => {
     it('should throw an error if the customer does not have a Stripe customer ID', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            stripeCustomerId: null,
-          },
-          transaction
-        )
-      })
-      await executeBillingRun(billingRun.id)
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              stripeCustomerId: null,
+            },
+            transaction
           )
-      )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+      await executeBillingRun(billingRun.id)
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
+          )
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     })
 
     it('should throw an error if the payment method does not have a Stripe payment method ID', async () => {
-      await adminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          await safelyUpdatePaymentMethod(
-            {
-              id: paymentMethod.id,
-              stripePaymentMethodId: null,
-            },
-            {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache: invalidateCache!,
-              emitEvent: emitEvent!,
-              enqueueLedgerCommand: enqueueLedgerCommand!,
-            }
-          )
-        }
-      )
+      ;(
+        await adminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            await safelyUpdatePaymentMethod(
+              {
+                id: paymentMethod.id,
+                stripePaymentMethodId: null,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+            return Result.ok(undefined)
+          }
+        )
+      ).unwrap()
       await executeBillingRun(billingRun.id)
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     })
   })
@@ -1036,15 +1137,18 @@ describe('billingRunHelpers', async () => {
         executeBillingRun(testBillingRun.id)
       ).resolves.toBeUndefined()
     }
-    await adminTransaction(async ({ transaction }) => {
-      await updateBillingRun(
-        {
-          id: billingRun.id,
-          status: BillingRunStatus.Failed,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await updateBillingRun(
+          {
+            id: billingRun.id,
+            status: BillingRunStatus.Failed,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     await expect(
       executeBillingRun(billingRun.id)
@@ -1058,12 +1162,16 @@ describe('billingRunHelpers', async () => {
 
   describe('executeBillingRunCalculationAndBookkeepingSteps', () => {
     it('should create a new invoice when none exists for the billing period', async () => {
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.invoice.id).toMatch(/^inv_/)
       expect(result.invoice.billingPeriodId).toBe(billingPeriod.id)
@@ -1081,12 +1189,16 @@ describe('billingRunHelpers', async () => {
         priceId: staticPrice.id,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.invoice.id).toBe(existingInvoice.id)
     })
@@ -1097,33 +1209,39 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 0,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriodItem(
-          {
-            ...staticBillingPeriodItem,
-            unitPrice: 0,
-            quantity: 1,
-          },
-          transaction
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateBillingPeriodItem(
+            {
+              ...staticBillingPeriodItem,
+              unitPrice: 0,
+              quantity: 1,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      })
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
-        )
-      )
+      ).unwrap()
 
       // Check the billing run status after the function call
-      const { updatedBillingRun } = await adminTransaction(
-        async ({ transaction }) => {
+      const { updatedBillingRun } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const updatedBillingRun = (
             await selectBillingRunById(billingRun.id, transaction)
           ).unwrap()
-          return { updatedBillingRun }
-        }
-      )
+          return Result.ok({ updatedBillingRun })
+        })
+      ).unwrap()
       expect(result.invoice.status).toBe(InvoiceStatus.Paid)
       // expect(result.billingPeriod.status).toBe(
       //   BillingPeriodStatus.Completed
@@ -1142,24 +1260,31 @@ describe('billingRunHelpers', async () => {
         status: InvoiceStatus.Paid,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.invoice.id).toBe(paidInvoice.id)
       expect(result.invoice.status).toBe(InvoiceStatus.Paid)
       expect(result.payment).toBeUndefined()
 
       // Check the billing run status after the function call
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
@@ -1172,31 +1297,38 @@ describe('billingRunHelpers', async () => {
         customerId: customer.id,
         organizationId: organization.id,
         priceId: staticPrice.id,
-      })
-
-      // Create some initial line items
-      await adminTransaction(async ({ transaction }) => {
-        const initialLineItems =
-          billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
-            invoiceId: invoice.id,
-            billingPeriodItems: [
+      })(
+        // Create some initial line items
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const initialLineItems =
+            billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts(
               {
-                ...billingPeriodItems[0],
-                unitPrice: 50, // Different price to verify recreation
-              },
-            ],
-            usageOverages: [],
-            billingRunId: billingRun.id,
-          })
-        await insertInvoiceLineItems(initialLineItems, transaction)
-      })
+                invoiceId: invoice.id,
+                billingPeriodItems: [
+                  {
+                    ...billingPeriodItems[0],
+                    unitPrice: 50, // Different price to verify recreation
+                  },
+                ],
+                usageOverages: [],
+                billingRunId: billingRun.id,
+              }
+            )
+          await insertInvoiceLineItems(initialLineItems, transaction)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       // Verify the line items were recreated with the correct price
       expect(result.invoice.id).toBe(invoice.id)
@@ -1210,12 +1342,16 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should create payment with correct properties', async () => {
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.payment).toMatchObject({})
       if (result.payment) {
@@ -1243,23 +1379,30 @@ describe('billingRunHelpers', async () => {
     })
 
     it('copies Stripe Tax calculation fields from fee calculation onto payment (MoR)', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        organization = await updateOrganization(
-          {
-            id: organization.id,
-            stripeConnectContractType:
-              StripeConnectContractType.MerchantOfRecord,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          organization = await updateOrganization(
+            {
+              id: organization.id,
+              stripeConnectContractType:
+                StripeConnectContractType.MerchantOfRecord,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation.stripeTaxCalculationId).toMatch(
         /^testtaxcalc_/
@@ -1279,20 +1422,27 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should update billing run status to AwaitingPaymentConfirmation', async () => {
-      await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      ;(
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       // Check the billing run status after the function call
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.AwaitingPaymentConfirmation
       )
@@ -1304,32 +1454,41 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 0,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriodItem(
-          {
-            ...staticBillingPeriodItem,
-            unitPrice: 0,
-            quantity: 1,
-          },
-          transaction
-        )
-      })
-
-      await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
-        )
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateBillingPeriodItem(
+            {
+              ...staticBillingPeriodItem,
+              unitPrice: 0,
+              quantity: 1,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
       )
+        .unwrap()(
+          await adminTransactionWithResult(({ transaction }) =>
+            Result.ok(
+              executeBillingRunCalculationAndBookkeepingSteps(
+                billingRun,
+                transaction
+              )
+            )
+          )
+        )
+        .unwrap()
 
       // Check the billing run status after the function call
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
@@ -1345,12 +1504,16 @@ describe('billingRunHelpers', async () => {
         status: InvoiceStatus.Paid,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       // If the billing period is in the past, it should be marked as Completed
       if (Date.now() > billingPeriod.endDate) {
@@ -1361,24 +1524,32 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should create fee calculation with correct properties', async () => {
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.feeCalculation.id).toMatch(/^feec_/)
       expect(typeof result.feeCalculation.currency).toBe('string')
     })
 
     it('should return all expected properties in the result object', async () => {
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.invoice.id).toMatch(/^inv_/)
       expect(result.payment!.id).toMatch(/^pym_/)
@@ -1395,34 +1566,44 @@ describe('billingRunHelpers', async () => {
 
     it('should handle nested billing details address for tax country', async () => {
       const billingAddress: PaymentMethod.BillingDetails =
-        paymentMethod.billingDetails
-      // Update payment method with nested address
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentMethod(
-          {
-            id: paymentMethod.id,
-            billingDetails: {
-              ...billingAddress,
-              address: {
-                country: 'US',
-                line1: null,
-                line2: null,
-                city: null,
-                state: null,
-                postal_code: null,
-              },
-            },
-          },
-          transaction
-        )
-      })
+        paymentMethod
+          .billingDetails(
+            // Update payment method with nested address
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                await updatePaymentMethod(
+                  {
+                    id: paymentMethod.id,
+                    billingDetails: {
+                      ...billingAddress,
+                      address: {
+                        country: 'US',
+                        line1: null,
+                        line2: null,
+                        city: null,
+                        state: null,
+                        postal_code: null,
+                      },
+                    },
+                  },
+                  transaction
+                )
+                return Result.ok(undefined)
+              }
+            )
+          )
+          .unwrap()
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       if (result.payment) {
         expect(result.payment.taxCountry).toBe(CountryCode.US)
@@ -1431,33 +1612,40 @@ describe('billingRunHelpers', async () => {
 
     it('should handle non-nested billing details address for tax country', async () => {
       // Update payment method with non-nested address
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentMethod(
-          {
-            id: paymentMethod.id,
-            billingDetails: {
-              name: 'Test Name',
-              email: 'test@test.com',
-              address: {
-                country: 'CA',
-                line1: null,
-                line2: null,
-                city: null,
-                state: null,
-                postal_code: null,
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              billingDetails: {
+                name: 'Test Name',
+                email: 'test@test.com',
+                address: {
+                  country: 'CA',
+                  line1: null,
+                  line2: null,
+                  city: null,
+                  state: null,
+                  postal_code: null,
+                },
               },
             },
-          },
-          transaction
-        )
-      })
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       if (result.payment) {
         expect(result.payment.taxCountry).toBe(CountryCode.CA)
@@ -1488,12 +1676,16 @@ describe('billingRunHelpers', async () => {
         paymentMethodId: paymentMethod.id,
       })
 
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.totalAmountPaid).toBe(50)
       expect(result.payments.length).toBeGreaterThan(0)
@@ -1502,16 +1694,19 @@ describe('billingRunHelpers', async () => {
     it('payment.amount equals amountToCharge (not totalDueAmount) when existing payments reduce amount owed', async () => {
       // Setup: Create a billing period item with a known price
       const knownPrice = 10000 // $100 in cents
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriodItem(
-          {
-            id: staticBillingPeriodItem.id,
-            unitPrice: knownPrice,
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateBillingPeriodItem(
+            {
+              id: staticBillingPeriodItem.id,
+              unitPrice: knownPrice,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create an existing payment of $50 for this billing period
       const existingPaymentAmount = 5000 // $50 in cents
@@ -1538,12 +1733,16 @@ describe('billingRunHelpers', async () => {
       })
 
       // Execute the billing run
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       // Verify the amounts are calculated correctly
       expect(result.totalAmountPaid).toBe(existingPaymentAmount)
@@ -1569,16 +1768,19 @@ describe('billingRunHelpers', async () => {
     it('does not create a payment record when amountToCharge is 0 due to existing payments fully covering totalDueAmount', async () => {
       // Setup: Create a billing period item with a known price
       const knownPrice = 10000 // $100 in cents
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriodItem(
-          {
-            id: staticBillingPeriodItem.id,
-            unitPrice: knownPrice,
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateBillingPeriodItem(
+            {
+              id: staticBillingPeriodItem.id,
+              unitPrice: knownPrice,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create an invoice for this billing period
       const testInvoice = await setupInvoice({
@@ -1607,12 +1809,16 @@ describe('billingRunHelpers', async () => {
       })
 
       // Execute the billing run
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       // Verify the scenario: totalDueAmount > 0 but amountToCharge = 0
       expect(result.totalDueAmount).toBeGreaterThan(0)
@@ -1627,12 +1833,15 @@ describe('billingRunHelpers', async () => {
       expect(result.invoice.status).toBe(InvoiceStatus.Paid)
 
       // Verify the billing run is marked as succeeded
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
@@ -1641,16 +1850,19 @@ describe('billingRunHelpers', async () => {
     it('succeeds without Stripe IDs when amountToCharge is 0 (prior payments fully cover amount)', async () => {
       // Setup: Create a billing period item with a known price
       const knownPrice = 10000 // $100 in cents
-      await adminTransaction(async ({ transaction }) => {
-        await updateBillingPeriodItem(
-          {
-            id: staticBillingPeriodItem.id,
-            unitPrice: knownPrice,
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateBillingPeriodItem(
+            {
+              id: staticBillingPeriodItem.id,
+              unitPrice: knownPrice,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create an invoice for this billing period
       const testInvoice = await setupInvoice({
@@ -1675,28 +1887,33 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         subscriptionId: billingPeriod.subscriptionId,
         paymentMethodId: paymentMethod.id,
-      })
-
-      // Remove Stripe IDs - this should NOT cause failure when amountToCharge is 0
-      // This is the key difference from the previous test: we're verifying that
-      // the amountToCharge <= 0 guard comes BEFORE Stripe ID validation
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentMethod(
-          {
-            id: paymentMethod.id,
-            stripePaymentMethodId: null,
-          },
-          transaction
-        )
-      })
+      })(
+        // Remove Stripe IDs - this should NOT cause failure when amountToCharge is 0
+        // This is the key difference from the previous test: we're verifying that
+        // the amountToCharge <= 0 guard comes BEFORE Stripe ID validation
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Execute the billing run - should succeed, not throw
-      const result = await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
+      const result = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
 
       // Verify the scenario worked correctly
       expect(result.totalDueAmount).toBeGreaterThan(0)
@@ -1705,12 +1922,15 @@ describe('billingRunHelpers', async () => {
       expect(result.invoice.status).toBe(InvoiceStatus.Paid)
 
       // Verify the billing run is marked as succeeded
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
@@ -1718,21 +1938,26 @@ describe('billingRunHelpers', async () => {
 
     it('should throw an error if customer has no stripe customer ID', async () => {
       // Update customer to remove stripe customer ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            stripeCustomerId: null,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              stripeCustomerId: null,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       await expect(
-        adminTransaction(({ transaction }) =>
-          executeBillingRunCalculationAndBookkeepingSteps(
-            billingRun,
-            transaction
+        adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
           )
         )
       ).rejects.toThrow(
@@ -1742,21 +1967,26 @@ describe('billingRunHelpers', async () => {
 
     it('should throw an error if payment method has no stripe payment method ID', async () => {
       // Update payment method to remove stripe payment method ID
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentMethod(
-          {
-            id: paymentMethod.id,
-            stripePaymentMethodId: null,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       await expect(
-        adminTransaction(({ transaction }) =>
-          executeBillingRunCalculationAndBookkeepingSteps(
-            billingRun,
-            transaction
+        adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
           )
         )
       ).rejects.toThrow(
@@ -1793,38 +2023,46 @@ describe('billingRunHelpers', async () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         claimedByBillingRunId: null, // Explicitly unclaimed
-      })
-
-      // Verify it's picked up by tabulation
-      await adminTransaction(async ({ transaction }) => {
-        const { rawOutstandingUsageCosts } =
-          await tabulateOutstandingUsageCosts(
-            subscription.id,
-            billingPeriod.endDate,
-            transaction
-          )
-        expect(rawOutstandingUsageCosts.length).toBe(1)
-      })
-
-      // 2. Action
-      await adminTransaction(({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
-        )
+      })(
+        // Verify it's picked up by tabulation
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const { rawOutstandingUsageCosts } =
+            await tabulateOutstandingUsageCosts(
+              subscription.id,
+              billingPeriod.endDate,
+              transaction
+            )
+          expect(rawOutstandingUsageCosts.length).toBe(1)
+          return Result.ok(undefined)
+        })
       )
+        .unwrap()(
+          // 2. Action
+          await adminTransactionWithResult(({ transaction }) =>
+            Result.ok(
+              executeBillingRunCalculationAndBookkeepingSteps(
+                billingRun,
+                transaction
+              )
+            )
+          )
+        )
+        .unwrap()
 
       // 3. Assert: The ledger entry should now be "claimed" by the billing run
-      const [updatedEntry] = await adminTransaction(
-        ({ transaction }) =>
-          selectLedgerEntries(
-            {
-              sourceUsageEventId: usageEvent.id,
-              entryType: LedgerEntryType.UsageCost,
-            },
-            transaction
+      const [updatedEntry] = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectLedgerEntries(
+              {
+                sourceUsageEventId: usageEvent.id,
+                entryType: LedgerEntryType.UsageCost,
+              },
+              transaction
+            )
           )
-      )
+        )
+      ).unwrap()
       expect(updatedEntry).toMatchObject({
         claimedByBillingRunId: billingRun.id,
       })
@@ -1861,20 +2099,25 @@ describe('billingRunHelpers', async () => {
       await executeBillingRun(billingRun.id)
 
       // 3. Assert
-      const finalBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
-          )
-      )
-      const finalInvoice = (
-        await adminTransaction(({ transaction }) =>
-          selectInvoices(
-            { billingPeriodId: billingPeriod.id },
-            transaction
+      const finalBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
           )
         )
-      )[0]
+      ).unwrap()
+      const finalInvoice = (
+        await adminTransactionWithResult(({ transaction }) =>
+          Result.ok(
+            selectInvoices(
+              { billingPeriodId: billingPeriod.id },
+              transaction
+            )
+          )
+        )
+      ).unwrap()[0]
 
       expect(finalBillingRun.status).toBe(BillingRunStatus.Succeeded)
       expect(finalInvoice.status).toBe(InvoiceStatus.Paid)
@@ -2043,20 +2286,23 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should return empty results when no ledger accounts are provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerAccountIds: string[] = []
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const ledgerAccountIds: string[] = []
 
-        const result = await tabulateOutstandingUsageCosts(
-          subscription.id,
-          billingPeriod.endDate,
-          transaction
-        )
+          const result = await tabulateOutstandingUsageCosts(
+            subscription.id,
+            billingPeriod.endDate,
+            transaction
+          )
 
-        expect(
-          result.outstandingUsageCostsByLedgerAccountId.size
-        ).toBe(0)
-        expect(result.rawOutstandingUsageCosts.length).toBe(0)
-      })
+          expect(
+            result.outstandingUsageCostsByLedgerAccountId.size
+          ).toBe(0)
+          expect(result.rawOutstandingUsageCosts.length).toBe(0)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should return empty results when ledger accounts exist but have no outstanding costs', async () => {
@@ -2065,19 +2311,21 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        const result = await tabulateOutstandingUsageCosts(
-          subscription.id,
-          billingPeriod.endDate,
-          transaction
-        )
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await tabulateOutstandingUsageCosts(
+            subscription.id,
+            billingPeriod.endDate,
+            transaction
+          )
 
-        expect(
-          result.outstandingUsageCostsByLedgerAccountId.size
-        ).toBe(0)
-        expect(result.rawOutstandingUsageCosts.length).toBe(0)
-      })
+          expect(
+            result.outstandingUsageCostsByLedgerAccountId.size
+          ).toBe(0)
+          expect(result.rawOutstandingUsageCosts.length).toBe(0)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should correctly tabulate a single outstanding usage cost for one ledger account', async () => {
@@ -2086,70 +2334,74 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerTransaction = await setupLedgerTransaction({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          type: LedgerTransactionType.UsageEventProcessed,
-        })
-        const billingPeriod = await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: new Date(Date.now() - 1000),
-          endDate: new Date(Date.now() + 1000),
-          status: BillingPeriodStatus.Active,
-          livemode: true,
-        })
-        const usageEvent = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          amount: 5,
-          priceId: usageBasedPrice.id,
-          billingPeriodId: billingPeriod.id,
-          transactionId: 'dummy_txn_1' + Math.random(),
-          customerId: customer.id,
-          usageDate: Date.now(),
-        })
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const ledgerTransaction = await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
+          const billingPeriod = await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: new Date(Date.now() - 1000),
+            endDate: new Date(Date.now() + 1000),
+            status: BillingPeriodStatus.Active,
+            livemode: true,
+          })
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            amount: 5,
+            priceId: usageBasedPrice.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: 'dummy_txn_1' + Math.random(),
+            customerId: customer.id,
+            usageDate: Date.now(),
+          })
 
-        const costEntry = await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: 100,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-        })
+          const costEntry = await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: 100,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+          })
 
-        const result = await tabulateOutstandingUsageCosts(
-          subscription.id,
-          billingPeriod.endDate,
-          transaction
-        )
-        expect(result.rawOutstandingUsageCosts.length).toBe(1)
-        const rawCost = result.rawOutstandingUsageCosts[0]
-        expect(rawCost.ledgerAccountId).toBe(ledgerAccount.id)
-        expect(rawCost.usageMeterId).toBe(usageMeter.id)
-        expect(rawCost.balance).toBe(100)
+          const result = await tabulateOutstandingUsageCosts(
+            subscription.id,
+            billingPeriod.endDate,
+            transaction
+          )
+          expect(result.rawOutstandingUsageCosts.length).toBe(1)
+          const rawCost = result.rawOutstandingUsageCosts[0]
+          expect(rawCost.ledgerAccountId).toBe(ledgerAccount.id)
+          expect(rawCost.usageMeterId).toBe(usageMeter.id)
+          expect(rawCost.balance).toBe(100)
 
-        expect(
-          result.outstandingUsageCostsByLedgerAccountId.size
-        ).toBe(1)
-        const aggregatedCost =
-          result.outstandingUsageCostsByLedgerAccountId.get(
+          expect(
+            result.outstandingUsageCostsByLedgerAccountId.size
+          ).toBe(1)
+          const aggregatedCost =
+            result.outstandingUsageCostsByLedgerAccountId.get(
+              ledgerAccount.id
+            )
+          expect(aggregatedCost).toMatchObject({
+            ledgerAccountId: ledgerAccount.id,
+          })
+          expect(aggregatedCost?.ledgerAccountId).toBe(
             ledgerAccount.id
           )
-        expect(aggregatedCost).toMatchObject({
-          ledgerAccountId: ledgerAccount.id,
+          expect(aggregatedCost?.usageMeterId).toBe(usageMeter.id)
+          expect(aggregatedCost?.subscriptionId).toBe(subscription.id)
+          expect(aggregatedCost?.outstandingBalance).toBe(100)
+          return Result.ok(undefined)
         })
-        expect(aggregatedCost?.ledgerAccountId).toBe(ledgerAccount.id)
-        expect(aggregatedCost?.usageMeterId).toBe(usageMeter.id)
-        expect(aggregatedCost?.subscriptionId).toBe(subscription.id)
-        expect(aggregatedCost?.outstandingBalance).toBe(100)
-      })
+      ).unwrap()
     })
 
     it('should handle multiple outstanding usage costs for one ledger account (map behavior)', async () => {
@@ -2158,96 +2410,98 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerTransaction = await setupLedgerTransaction({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          type: LedgerTransactionType.UsageEventProcessed,
-        })
-        const billingPeriod = await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: new Date(Date.now() - 1000),
-          endDate: new Date(Date.now() + 1000),
-          status: BillingPeriodStatus.Active,
-          livemode: true,
-        })
-        const usageEvent1 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          amount: 10,
-          priceId: usageBasedPrice.id,
-          billingPeriodId: billingPeriod.id,
-          transactionId: 'dummy_txn_1' + Math.random(),
-          customerId: customer.id,
-          usageDate: Date.now() - 2000,
-        })
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const ledgerTransaction = await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
+          const billingPeriod = await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: new Date(Date.now() - 1000),
+            endDate: new Date(Date.now() + 1000),
+            status: BillingPeriodStatus.Active,
+            livemode: true,
+          })
+          const usageEvent1 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            amount: 10,
+            priceId: usageBasedPrice.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: 'dummy_txn_1' + Math.random(),
+            customerId: customer.id,
+            usageDate: Date.now() - 2000,
+          })
 
-        const usageEvent2 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          amount: 5,
-          priceId: usageBasedPrice.id,
-          billingPeriodId: billingPeriod.id,
-          transactionId: 'dummy_txn_2' + Math.random(),
-          customerId: customer.id,
-          usageDate: Date.now() - 1000,
-        })
+          const usageEvent2 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            amount: 5,
+            priceId: usageBasedPrice.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: 'dummy_txn_2' + Math.random(),
+            customerId: customer.id,
+            usageDate: Date.now() - 1000,
+          })
 
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: usageEvent1.amount,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent1.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: usageEvent1.usageDate,
-        })
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: usageEvent1.amount,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent1.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: usageEvent1.usageDate,
+          })
 
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: usageEvent2.amount,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent2.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: usageEvent2.usageDate,
-        })
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: usageEvent2.amount,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent2.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: usageEvent2.usageDate,
+          })
 
-        const result = await tabulateOutstandingUsageCosts(
-          subscription.id,
-          billingPeriod.endDate,
-          transaction
-        )
-
-        expect(result.rawOutstandingUsageCosts.length).toBe(1)
-        expect(result.rawOutstandingUsageCosts[0].balance).toBe(
-          usageEvent1.amount + usageEvent2.amount
-        )
-
-        expect(
-          result.outstandingUsageCostsByLedgerAccountId.size
-        ).toBe(1)
-        const aggregatedCost =
-          result.outstandingUsageCostsByLedgerAccountId.get(
-            ledgerAccount.id
+          const result = await tabulateOutstandingUsageCosts(
+            subscription.id,
+            billingPeriod.endDate,
+            transaction
           )
-        expect(aggregatedCost).toMatchObject({
-          usageMeterId: usageMeter.id,
+
+          expect(result.rawOutstandingUsageCosts.length).toBe(1)
+          expect(result.rawOutstandingUsageCosts[0].balance).toBe(
+            usageEvent1.amount + usageEvent2.amount
+          )
+
+          expect(
+            result.outstandingUsageCostsByLedgerAccountId.size
+          ).toBe(1)
+          const aggregatedCost =
+            result.outstandingUsageCostsByLedgerAccountId.get(
+              ledgerAccount.id
+            )
+          expect(aggregatedCost).toMatchObject({
+            usageMeterId: usageMeter.id,
+          })
+          expect(aggregatedCost?.outstandingBalance).toBe(
+            usageEvent1.amount + usageEvent2.amount
+          )
+          expect(aggregatedCost?.usageMeterId).toBe(usageMeter.id)
+          return Result.ok(undefined)
         })
-        expect(aggregatedCost?.outstandingBalance).toBe(
-          usageEvent1.amount + usageEvent2.amount
-        )
-        expect(aggregatedCost?.usageMeterId).toBe(usageMeter.id)
-      })
+      ).unwrap()
     })
 
     it('should correctly tabulate costs for multiple ledger accounts, some with and some without costs', async () => {
@@ -2335,63 +2589,68 @@ describe('billingRunHelpers', async () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
-      })
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await tabulateOutstandingUsageCosts(
+            subscription.id,
+            billingPeriod.endDate,
+            transaction
+          )
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await tabulateOutstandingUsageCosts(
-          subscription.id,
-          billingPeriod.endDate,
-          transaction
-        )
+          expect(result.rawOutstandingUsageCosts.length).toBe(2)
+          expect(
+            result.outstandingUsageCostsByLedgerAccountId.size
+          ).toBe(2)
 
-        expect(result.rawOutstandingUsageCosts.length).toBe(2)
-        expect(
-          result.outstandingUsageCostsByLedgerAccountId.size
-        ).toBe(2)
+          const costLa1Raw = result.rawOutstandingUsageCosts.find(
+            (c) => c.ledgerAccountId === la1.id
+          )
+          const costLa3Raw = result.rawOutstandingUsageCosts.find(
+            (c) => c.ledgerAccountId === la3.id
+          )
+          expect(costLa1Raw?.balance).toBe(100)
+          expect(costLa3Raw?.balance).toBe(200)
 
-        const costLa1Raw = result.rawOutstandingUsageCosts.find(
-          (c) => c.ledgerAccountId === la1.id
-        )
-        const costLa3Raw = result.rawOutstandingUsageCosts.find(
-          (c) => c.ledgerAccountId === la3.id
-        )
-        expect(costLa1Raw?.balance).toBe(100)
-        expect(costLa3Raw?.balance).toBe(200)
+          const aggCostLa1 =
+            result.outstandingUsageCostsByLedgerAccountId.get(la1.id)
+          expect(aggCostLa1).toEqual<OutstandingUsageCostAggregation>(
+            {
+              ledgerAccountId: la1.id,
+              usageMeterId: usageMeter.id,
+              subscriptionId: subscription.id,
+              outstandingBalance: 100,
+              priceId: usageBasedPrice.id,
+              usageEventsPerUnit: 1,
+              unitPrice: 10,
+              livemode: true,
+              name: expect.stringContaining('Usage: '),
+              description: expect.stringContaining('usageEventId'),
+            }
+          )
 
-        const aggCostLa1 =
-          result.outstandingUsageCostsByLedgerAccountId.get(la1.id)
-        expect(aggCostLa1).toEqual<OutstandingUsageCostAggregation>({
-          ledgerAccountId: la1.id,
-          usageMeterId: usageMeter.id,
-          subscriptionId: subscription.id,
-          outstandingBalance: 100,
-          priceId: usageBasedPrice.id,
-          usageEventsPerUnit: 1,
-          unitPrice: 10,
-          livemode: true,
-          name: expect.stringContaining('Usage: '),
-          description: expect.stringContaining('usageEventId'),
+          const aggCostLa3 =
+            result.outstandingUsageCostsByLedgerAccountId.get(la3.id)
+          expect(aggCostLa3).toEqual<OutstandingUsageCostAggregation>(
+            {
+              ledgerAccountId: la3.id,
+              usageMeterId: usageMeter.id,
+              subscriptionId: subscription.id,
+              outstandingBalance: 200,
+              priceId: usageBasedPrice.id,
+              usageEventsPerUnit: 1,
+              unitPrice: 10,
+              livemode: true,
+              name: expect.stringContaining('Usage: '),
+              description: expect.stringContaining('usageEventId'),
+            }
+          )
+
+          expect(
+            result.outstandingUsageCostsByLedgerAccountId.has(la2.id)
+          ).toBe(false)
+          return Result.ok(undefined)
         })
-
-        const aggCostLa3 =
-          result.outstandingUsageCostsByLedgerAccountId.get(la3.id)
-        expect(aggCostLa3).toEqual<OutstandingUsageCostAggregation>({
-          ledgerAccountId: la3.id,
-          usageMeterId: usageMeter.id,
-          subscriptionId: subscription.id,
-          outstandingBalance: 200,
-          priceId: usageBasedPrice.id,
-          usageEventsPerUnit: 1,
-          unitPrice: 10,
-          livemode: true,
-          name: expect.stringContaining('Usage: '),
-          description: expect.stringContaining('usageEventId'),
-        })
-
-        expect(
-          result.outstandingUsageCostsByLedgerAccountId.has(la2.id)
-        ).toBe(false)
-      })
+      ).unwrap()
     })
 
     it('should only include usage costs up to the billingPeriodEndDate', async () => {
@@ -2400,96 +2659,98 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const billingPeriodEndDate = new Date()
+          const billingPeriod = await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: new Date(
+              billingPeriodEndDate.getTime() -
+                30 * 24 * 60 * 60 * 1000
+            ),
+            endDate: billingPeriodEndDate,
+            status: BillingPeriodStatus.Active,
+            livemode: true,
+          })
+          const ledgerTransaction = await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
 
-      await adminTransaction(async ({ transaction }) => {
-        const billingPeriodEndDate = new Date()
-        const billingPeriod = await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: new Date(
-            billingPeriodEndDate.getTime() - 30 * 24 * 60 * 60 * 1000
-          ),
-          endDate: billingPeriodEndDate,
-          status: BillingPeriodStatus.Active,
-          livemode: true,
-        })
-        const ledgerTransaction = await setupLedgerTransaction({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          type: LedgerTransactionType.UsageEventProcessed,
-        })
+          // Cost included: timestamp is on the end date
+          const usageEvent1 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            amount: 10,
+            priceId: usageBasedPrice.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: 'dummy_txn_included_' + Math.random(),
+            customerId: customer.id,
+            usageDate: billingPeriodEndDate.getTime() - 1000, // within period
+          })
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: 150,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent1.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: billingPeriodEndDate.getTime() - 1000, // on the boundary
+          })
 
-        // Cost included: timestamp is on the end date
-        const usageEvent1 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          amount: 10,
-          priceId: usageBasedPrice.id,
-          billingPeriodId: billingPeriod.id,
-          transactionId: 'dummy_txn_included_' + Math.random(),
-          customerId: customer.id,
-          usageDate: billingPeriodEndDate.getTime() - 1000, // within period
-        })
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: 150,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent1.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: billingPeriodEndDate.getTime() - 1000, // on the boundary
-        })
+          // Cost excluded: timestamp is after the end date
+          const usageEvent2 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            amount: 5,
+            priceId: usageBasedPrice.id,
+            billingPeriodId: billingPeriod.id,
+            transactionId: 'dummy_txn_excluded_' + Math.random(),
+            customerId: customer.id,
+            usageDate: billingPeriodEndDate.getTime() + 1000, // outside period
+          })
+          await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: ledgerAccount.id,
+            amount: 250,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: usageEvent2.id,
+            status: LedgerEntryStatus.Posted,
+            usageMeterId: usageMeter.id,
+            entryTimestamp: billingPeriodEndDate.getTime() + 1, // after the boundary
+          })
 
-        // Cost excluded: timestamp is after the end date
-        const usageEvent2 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          amount: 5,
-          priceId: usageBasedPrice.id,
-          billingPeriodId: billingPeriod.id,
-          transactionId: 'dummy_txn_excluded_' + Math.random(),
-          customerId: customer.id,
-          usageDate: billingPeriodEndDate.getTime() + 1000, // outside period
-        })
-        await setupDebitLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          ledgerTransactionId: ledgerTransaction.id,
-          ledgerAccountId: ledgerAccount.id,
-          amount: 250,
-          entryType: LedgerEntryType.UsageCost,
-          sourceUsageEventId: usageEvent2.id,
-          status: LedgerEntryStatus.Posted,
-          usageMeterId: usageMeter.id,
-          entryTimestamp: billingPeriodEndDate.getTime() + 1, // after the boundary
-        })
-
-        const result = await tabulateOutstandingUsageCosts(
-          subscription.id,
-          billingPeriod.endDate,
-          transaction
-        )
-
-        expect(result.rawOutstandingUsageCosts.length).toBe(1)
-        expect(result.rawOutstandingUsageCosts[0].balance).toBe(150)
-
-        expect(
-          result.outstandingUsageCostsByLedgerAccountId.size
-        ).toBe(1)
-        const aggregatedCost =
-          result.outstandingUsageCostsByLedgerAccountId.get(
-            ledgerAccount.id
+          const result = await tabulateOutstandingUsageCosts(
+            subscription.id,
+            billingPeriod.endDate,
+            transaction
           )
-        expect(aggregatedCost).toMatchObject({
-          outstandingBalance: 150,
+
+          expect(result.rawOutstandingUsageCosts.length).toBe(1)
+          expect(result.rawOutstandingUsageCosts[0].balance).toBe(150)
+
+          expect(
+            result.outstandingUsageCostsByLedgerAccountId.size
+          ).toBe(1)
+          const aggregatedCost =
+            result.outstandingUsageCostsByLedgerAccountId.get(
+              ledgerAccount.id
+            )
+          expect(aggregatedCost).toMatchObject({
+            outstandingBalance: 150,
+          })
+          expect(aggregatedCost?.outstandingBalance).toBe(150)
+          return Result.ok(undefined)
         })
-        expect(aggregatedCost?.outstandingBalance).toBe(150)
-      })
+      ).unwrap()
     })
   })
 
@@ -2707,30 +2968,35 @@ describe('billingRunHelpers', async () => {
   describe('safelyInsertBillingRun Protection', () => {
     it('returns ValidationError when attempting ALL billing run creation methods for canceled subscriptions', async () => {
       // Cancel the subscription
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdateSubscriptionStatus(
-          subscription,
-          SubscriptionStatus.Canceled,
-          transaction
-        )
-      })
-
-      // Test 1: Direct safelyInsertBillingRun call should return ValidationError
-      const result1 = await adminTransaction(
-        async ({ transaction }) => {
-          return safelyInsertBillingRun(
-            {
-              billingPeriodId: billingPeriod.id,
-              scheduledFor: Date.now(),
-              status: BillingRunStatus.Scheduled,
-              subscriptionId: subscription.id,
-              paymentMethodId: paymentMethod.id,
-              livemode: billingPeriod.livemode,
-            },
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await safelyUpdateSubscriptionStatus(
+            subscription,
+            SubscriptionStatus.Canceled,
             transaction
           )
-        }
-      )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+
+      // Test 1: Direct safelyInsertBillingRun call should return ValidationError
+      const result1 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            safelyInsertBillingRun(
+              {
+                billingPeriodId: billingPeriod.id,
+                scheduledFor: Date.now(),
+                status: BillingRunStatus.Scheduled,
+                subscriptionId: subscription.id,
+                paymentMethodId: paymentMethod.id,
+                livemode: billingPeriod.livemode,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       expect(result1.status).toBe('error')
       if (result1.status === 'error') {
         expect(result1.error).toBeInstanceOf(ValidationError)
@@ -2740,18 +3006,20 @@ describe('billingRunHelpers', async () => {
       }
 
       // Test 2: createBillingRun should return ValidationError
-      const result2 = await adminTransaction(
-        async ({ transaction }) => {
-          return createBillingRun(
-            {
-              billingPeriod,
-              paymentMethod,
-              scheduledFor: Date.now(),
-            },
-            transaction
+      const result2 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            createBillingRun(
+              {
+                billingPeriod,
+                paymentMethod,
+                scheduledFor: Date.now(),
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result2.status).toBe('error')
       if (result2.status === 'error') {
         expect(result2.error).toBeInstanceOf(ValidationError)
@@ -2761,11 +3029,13 @@ describe('billingRunHelpers', async () => {
       }
 
       // Test 3: scheduleBillingRunRetry should return ValidationError
-      const result3 = await adminTransaction(
-        async ({ transaction }) => {
-          return scheduleBillingRunRetry(billingRun, transaction)
-        }
-      )
+      const result3 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            scheduleBillingRunRetry(billingRun, transaction)
+          )
+        })
+      ).unwrap()
       if (!result3) {
         throw new Error('Expected result3 to be defined')
       }
@@ -2780,51 +3050,60 @@ describe('billingRunHelpers', async () => {
 
     it('should allow billing run creation for active subscriptions', async () => {
       // Ensure subscription is active
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdateSubscriptionStatus(
-          subscription,
-          SubscriptionStatus.Active,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await safelyUpdateSubscriptionStatus(
+            subscription,
+            SubscriptionStatus.Active,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // All billing run creation methods should work
-      const directInsert = await adminTransaction(
-        async ({ transaction }) => {
-          return safelyInsertBillingRun(
-            {
-              billingPeriodId: billingPeriod.id,
-              scheduledFor: Date.now(),
-              status: BillingRunStatus.Scheduled,
-              subscriptionId: subscription.id,
-              paymentMethodId: paymentMethod.id,
-              livemode: billingPeriod.livemode,
-            },
-            transaction
+      const directInsert = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            safelyInsertBillingRun(
+              {
+                billingPeriodId: billingPeriod.id,
+                scheduledFor: Date.now(),
+                status: BillingRunStatus.Scheduled,
+                subscriptionId: subscription.id,
+                paymentMethodId: paymentMethod.id,
+                livemode: billingPeriod.livemode,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(typeof directInsert).toBe('object')
 
-      const createBillingRunResult = await adminTransaction(
-        async ({ transaction }) => {
-          return createBillingRun(
-            {
-              billingPeriod,
-              paymentMethod,
-              scheduledFor: Date.now(),
-            },
-            transaction
+      const createBillingRunResult = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            createBillingRun(
+              {
+                billingPeriod,
+                paymentMethod,
+                scheduledFor: Date.now(),
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(typeof createBillingRunResult).toBe('object')
 
-      const retryResult = await adminTransaction(
-        async ({ transaction }) => {
-          return scheduleBillingRunRetry(billingRun, transaction)
-        }
-      )
+      const retryResult = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            scheduleBillingRunRetry(billingRun, transaction)
+          )
+        })
+      ).unwrap()
       expect(typeof retryResult).toBe('object')
     })
   })
@@ -2876,21 +3155,23 @@ describe('billingRunHelpers', async () => {
     })
 
     it('returns ValidationError for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return safelyInsertBillingRun(
-            {
-              billingPeriodId: doNotChargeBillingPeriod.id,
-              scheduledFor: Date.now(),
-              status: BillingRunStatus.Scheduled,
-              subscriptionId: doNotChargeSubscription.id,
-              paymentMethodId: paymentMethod.id,
-              livemode: doNotChargeBillingPeriod.livemode,
-            },
-            transaction
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            safelyInsertBillingRun(
+              {
+                billingPeriodId: doNotChargeBillingPeriod.id,
+                scheduledFor: Date.now(),
+                status: BillingRunStatus.Scheduled,
+                subscriptionId: doNotChargeSubscription.id,
+                paymentMethodId: paymentMethod.id,
+                livemode: doNotChargeBillingPeriod.livemode,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error).toBeInstanceOf(ValidationError)
@@ -2901,18 +3182,20 @@ describe('billingRunHelpers', async () => {
     })
 
     it('returns ValidationError for doNotCharge subscriptions via createBillingRun', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createBillingRun(
-            {
-              billingPeriod: doNotChargeBillingPeriod,
-              paymentMethod,
-              scheduledFor: Date.now(),
-            },
-            transaction
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            createBillingRun(
+              {
+                billingPeriod: doNotChargeBillingPeriod,
+                paymentMethod,
+                scheduledFor: Date.now(),
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error).toBeInstanceOf(ValidationError)
@@ -2947,14 +3230,16 @@ describe('billingRunHelpers', async () => {
         isAdjustment: false,
       } as BillingRun.Record
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return scheduleBillingRunRetry(
-            mockBillingRunForRetry,
-            transaction
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            scheduleBillingRunRetry(
+              mockBillingRunForRetry,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       if (!result) {
         throw new Error('Expected result to be defined')
       }
@@ -3073,13 +3358,15 @@ describe('billingRunHelpers', async () => {
         isAdjustment: false,
         pricingModelId: pricingModel.id,
       }) as BillingRun.Insert & { pricingModelId: string }
-      billingRun = await adminTransaction(async ({ transaction }) => {
-        const [inserted] = await transaction
-          .insert(billingRuns)
-          .values(billingRunInsert)
-          .returning()
-        return billingRunsSelectSchema.parse(inserted)
-      })
+      billingRun = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [inserted] = await transaction
+            .insert(billingRuns)
+            .values(billingRunInsert)
+            .returning()
+          return Result.ok(billingRunsSelectSchema.parse(inserted))
+        })
+      ).unwrap()
 
       ledgerAccount = await setupLedgerAccount({
         organizationId: organization.id,
@@ -3126,54 +3413,62 @@ describe('billingRunHelpers', async () => {
         usageMeterId: usageMeter.id,
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return executeBillingRunCalculationAndBookkeepingSteps(
-            billingRun,
-            transaction
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify subscription has doNotCharge flag
       expect(result?.subscription?.doNotCharge).toBe(true)
 
       // Verify invoice line items don't include usage items
-      const invoiceLineItems = await adminTransaction(
-        async ({ transaction }) => {
-          return selectInvoiceLineItems(
-            { invoiceId: result.invoice.id },
-            transaction
+      const invoiceLineItems = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            selectInvoiceLineItems(
+              { invoiceId: result.invoice.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       const usageLineItems = invoiceLineItems.filter(
         (item) => item.type === SubscriptionItemType.Usage
       )
       expect(usageLineItems.length).toBe(0)
 
       // Usage events should be recorded in ledger
-      const entries = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerEntries(
-            { ledgerAccountId: ledgerAccount.id },
-            transaction
+      const entries = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            selectLedgerEntries(
+              { ledgerAccountId: ledgerAccount.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(entries.length).toBe(1)
       expect(entries[0].amount).toBe(1000)
 
       // Verify usage costs exist but were excluded from billing
-      const { rawOutstandingUsageCosts } = await adminTransaction(
-        async ({ transaction }) => {
-          return tabulateOutstandingUsageCosts(
-            doNotChargeSubscription.id,
-            billingPeriod.endDate,
-            transaction
+      const { rawOutstandingUsageCosts } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            tabulateOutstandingUsageCosts(
+              doNotChargeSubscription.id,
+              billingPeriod.endDate,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(rawOutstandingUsageCosts.length).toBe(1)
       // Check the individual cost entry (we set up 1000 in the test)

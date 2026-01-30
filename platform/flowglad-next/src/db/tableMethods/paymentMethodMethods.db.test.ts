@@ -10,7 +10,7 @@ import {
   setupOrg,
   setupPaymentMethod,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { createCapturingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
@@ -47,24 +47,27 @@ describe('selectPaymentMethodsByCustomerId', () => {
   })
 
   it('should return payment method records for a customer', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const paymentMethods = await selectPaymentMethodsByCustomerId(
-        customer.id,
-        transaction,
-        true
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const paymentMethods = await selectPaymentMethodsByCustomerId(
+          customer.id,
+          transaction,
+          true
+        )
 
-      expect(paymentMethods.length).toBeGreaterThanOrEqual(1)
-      const foundPaymentMethod = paymentMethods.find(
-        (pm) => pm.id === paymentMethod.id
-      )
-      expect(foundPaymentMethod).toMatchObject({
-        id: paymentMethod.id,
-        customerId: customer.id,
-        type: PaymentMethodType.Card,
-        pricingModelId: pricingModel.id,
+        expect(paymentMethods.length).toBeGreaterThanOrEqual(1)
+        const foundPaymentMethod = paymentMethods.find(
+          (pm) => pm.id === paymentMethod.id
+        )
+        expect(foundPaymentMethod).toMatchObject({
+          id: paymentMethod.id,
+          customerId: customer.id,
+          type: PaymentMethodType.Card,
+          pricingModelId: pricingModel.id,
+        })
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 
   it('should return empty array when customer has no payment methods', async () => {
@@ -72,17 +75,18 @@ describe('selectPaymentMethodsByCustomerId', () => {
       organizationId: organization.id,
       email: `empty+${core.nanoid()}@test.com`,
       livemode: true,
-    })
+    })(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const paymentMethods = await selectPaymentMethodsByCustomerId(
+          customerWithNoPaymentMethods.id,
+          transaction,
+          true
+        )
 
-    await adminTransaction(async ({ transaction }) => {
-      const paymentMethods = await selectPaymentMethodsByCustomerId(
-        customerWithNoPaymentMethods.id,
-        transaction,
-        true
-      )
-
-      expect(paymentMethods).toEqual([])
-    })
+        expect(paymentMethods).toEqual([])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should only return payment methods for the specified customer', async () => {
@@ -97,19 +101,20 @@ describe('selectPaymentMethodsByCustomerId', () => {
       customerId: otherCustomer.id,
       livemode: true,
       type: PaymentMethodType.Card,
-    })
+    })(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const paymentMethods = await selectPaymentMethodsByCustomerId(
+          customer.id,
+          transaction,
+          true
+        )
 
-    await adminTransaction(async ({ transaction }) => {
-      const paymentMethods = await selectPaymentMethodsByCustomerId(
-        customer.id,
-        transaction,
-        true
-      )
-
-      const paymentMethodIds = paymentMethods.map((pm) => pm.id)
-      expect(paymentMethodIds).toContain(paymentMethod.id)
-      expect(paymentMethodIds).not.toContain(otherPaymentMethod.id)
-    })
+        const paymentMethodIds = paymentMethods.map((pm) => pm.id)
+        expect(paymentMethodIds).toContain(paymentMethod.id)
+        expect(paymentMethodIds).not.toContain(otherPaymentMethod.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -157,98 +162,113 @@ describe('safelyUpdatePaymentMethod', () => {
   })
 
   it('clears existing default on new customer when moving a payment method to a different customer and setting it as default', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } =
-        createCapturingEffectsContext(transaction)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
 
-      // Verify initial state: paymentMethodB is the default for customerB
-      const initialPaymentMethodB = (
-        await selectPaymentMethodById(paymentMethodB.id, transaction)
-      ).unwrap()
-      expect(initialPaymentMethodB.default).toBe(true)
+        // Verify initial state: paymentMethodB is the default for customerB
+        const initialPaymentMethodB = (
+          await selectPaymentMethodById(
+            paymentMethodB.id,
+            transaction
+          )
+        ).unwrap()
+        expect(initialPaymentMethodB.default).toBe(true)
 
-      // Move paymentMethodA from customerA to customerB AND set it as default
-      const updatedPaymentMethod = await safelyUpdatePaymentMethod(
-        {
-          id: paymentMethodA.id,
-          customerId: customerB.id,
-          default: true,
-        },
-        ctx
-      )
+        // Move paymentMethodA from customerA to customerB AND set it as default
+        const updatedPaymentMethod = await safelyUpdatePaymentMethod(
+          {
+            id: paymentMethodA.id,
+            customerId: customerB.id,
+            default: true,
+          },
+          ctx
+        )
 
-      // Verify the moved payment method is now on customerB and is default
-      expect(updatedPaymentMethod.customerId).toBe(customerB.id)
-      expect(updatedPaymentMethod.default).toBe(true)
+        // Verify the moved payment method is now on customerB and is default
+        expect(updatedPaymentMethod.customerId).toBe(customerB.id)
+        expect(updatedPaymentMethod.default).toBe(true)
 
-      // Verify the old default on customerB (paymentMethodB) is no longer default
-      const updatedPaymentMethodB = (
-        await selectPaymentMethodById(paymentMethodB.id, transaction)
-      ).unwrap()
-      expect(updatedPaymentMethodB.default).toBe(false)
+        // Verify the old default on customerB (paymentMethodB) is no longer default
+        const updatedPaymentMethodB = (
+          await selectPaymentMethodById(
+            paymentMethodB.id,
+            transaction
+          )
+        ).unwrap()
+        expect(updatedPaymentMethodB.default).toBe(false)
 
-      // Verify customerA has no payment methods left (since the only one was moved)
-      const customerAPaymentMethods = await selectPaymentMethods(
-        { customerId: customerA.id },
-        transaction
-      )
-      expect(customerAPaymentMethods).toHaveLength(0)
+        // Verify customerA has no payment methods left (since the only one was moved)
+        const customerAPaymentMethods = await selectPaymentMethods(
+          { customerId: customerA.id },
+          transaction
+        )
+        expect(customerAPaymentMethods).toHaveLength(0)
 
-      // Verify cache invalidations include both customers' set membership keys
-      expect(effects.cacheInvalidations).toContain(
-        CacheDependency.customerPaymentMethods(customerA.id)
-      )
-      expect(effects.cacheInvalidations).toContain(
-        CacheDependency.customerPaymentMethods(customerB.id)
-      )
+        // Verify cache invalidations include both customers' set membership keys
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerPaymentMethods(customerA.id)
+        )
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerPaymentMethods(customerB.id)
+        )
 
-      // Verify cache invalidations include content keys for both payment methods
-      // (paymentMethodA was moved, paymentMethodB lost its default status)
-      expect(effects.cacheInvalidations).toContain(
-        CacheDependency.paymentMethod(paymentMethodA.id)
-      )
-      expect(effects.cacheInvalidations).toContain(
-        CacheDependency.paymentMethod(paymentMethodB.id)
-      )
-    })
+        // Verify cache invalidations include content keys for both payment methods
+        // (paymentMethodA was moved, paymentMethodB lost its default status)
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.paymentMethod(paymentMethodA.id)
+        )
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.paymentMethod(paymentMethodB.id)
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('invalidates cache for both old and new customer when moving a payment method without changing default status', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } =
-        createCapturingEffectsContext(transaction)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
 
-      // Move paymentMethodA from customerA to customerB (NOT setting as default)
-      const updatedPaymentMethod = await safelyUpdatePaymentMethod(
-        {
-          id: paymentMethodA.id,
-          customerId: customerB.id,
-        },
-        ctx
-      )
+        // Move paymentMethodA from customerA to customerB (NOT setting as default)
+        const updatedPaymentMethod = await safelyUpdatePaymentMethod(
+          {
+            id: paymentMethodA.id,
+            customerId: customerB.id,
+          },
+          ctx
+        )
 
-      // Verify the moved payment method is now on customerB but not default
-      expect(updatedPaymentMethod.customerId).toBe(customerB.id)
-      expect(updatedPaymentMethod.default).toBe(false)
+        // Verify the moved payment method is now on customerB but not default
+        expect(updatedPaymentMethod.customerId).toBe(customerB.id)
+        expect(updatedPaymentMethod.default).toBe(false)
 
-      // Verify paymentMethodB is still the default for customerB
-      const paymentMethodBAfter = (
-        await selectPaymentMethodById(paymentMethodB.id, transaction)
-      ).unwrap()
-      expect(paymentMethodBAfter.default).toBe(true)
+        // Verify paymentMethodB is still the default for customerB
+        const paymentMethodBAfter = (
+          await selectPaymentMethodById(
+            paymentMethodB.id,
+            transaction
+          )
+        ).unwrap()
+        expect(paymentMethodBAfter.default).toBe(true)
 
-      // Verify cache invalidations include both customers' set membership keys
-      expect(effects.cacheInvalidations).toContain(
-        CacheDependency.customerPaymentMethods(customerA.id)
-      )
-      expect(effects.cacheInvalidations).toContain(
-        CacheDependency.customerPaymentMethods(customerB.id)
-      )
+        // Verify cache invalidations include both customers' set membership keys
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerPaymentMethods(customerA.id)
+        )
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.customerPaymentMethods(customerB.id)
+        )
 
-      // Verify the moved payment method's content key is invalidated
-      expect(effects.cacheInvalidations).toContain(
-        CacheDependency.paymentMethod(paymentMethodA.id)
-      )
-    })
+        // Verify the moved payment method's content key is invalidated
+        expect(effects.cacheInvalidations).toContain(
+          CacheDependency.paymentMethod(paymentMethodA.id)
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })

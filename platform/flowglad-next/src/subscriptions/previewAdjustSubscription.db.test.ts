@@ -6,6 +6,7 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 import {
   setupBillingPeriod,
@@ -16,7 +17,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
@@ -90,139 +91,151 @@ describe('previewAdjustSubscription', () => {
 
   describe('when subscription is in invalid state', () => {
     it('returns canAdjust: false for terminal state subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Cancel the subscription to put it in terminal state
-        await updateSubscription(
-          {
-            id: subscription.id,
-            status: SubscriptionStatus.Canceled,
-            renews: true,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: price.id,
-                  quantity: 2,
-                },
-              ],
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Cancel the subscription to put it in terminal state
+          await updateSubscription(
+            {
+              id: subscription.id,
+              status: SubscriptionStatus.Canceled,
+              renews: true,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        expect(result.canAdjust).toBe(false)
-        if (!result.canAdjust) {
-          expect(result.reason).toContain('terminal state')
-        }
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain('terminal state')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns canAdjust: false for non-renewing subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscription.id,
-            renews: false,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: price.id,
-                  quantity: 2,
-                },
-              ],
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              renews: false,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        expect(result.canAdjust).toBe(false)
-        if (!result.canAdjust) {
-          expect(result.reason).toContain('Non-renewing')
-        }
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain('Non-renewing')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns canAdjust: false for doNotCharge subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscription.id,
-            doNotCharge: true,
-            renews: true,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: price.id,
-                  quantity: 2,
-                },
-              ],
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              doNotCharge: true,
+              renews: true,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        expect(result.canAdjust).toBe(false)
-        if (!result.canAdjust) {
-          expect(result.reason).toContain('doNotCharge')
-        }
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain('doNotCharge')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns canAdjust: false for free plan subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscription.id,
-            isFreePlan: true,
-            renews: true,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: price.id,
-                  quantity: 2,
-                },
-              ],
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              isFreePlan: true,
+              renews: true,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        expect(result.canAdjust).toBe(false)
-        if (!result.canAdjust) {
-          expect(result.reason).toContain('free plan')
-        }
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain('free plan')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -239,39 +252,40 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: higherPrice.id,
-                  quantity: 1,
-                },
-              ],
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: higherPrice.id,
+                    quantity: 1,
+                  },
+                ],
+              },
             },
-          },
-          transaction
-        )
-
-        expect(result.canAdjust).toBe(true)
-        if (result.canAdjust) {
-          expect(result.isUpgrade).toBe(true)
-          expect(result.prorationAmount).toBeGreaterThan(0)
-          expect(result.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.Immediately
+            transaction
           )
-          expect(result.paymentMethodId).toBe(paymentMethod.id)
-          expect(result.currentSubscriptionItems.length).toBe(1)
-          expect(result.resolvedNewSubscriptionItems.length).toBe(1)
-          expect(result.currentPlanTotal).toBe(price.unitPrice)
-          expect(result.newPlanTotal).toBe(higherPrice.unitPrice)
-        }
-      })
+
+          expect(result.canAdjust).toBe(true)
+          if (result.canAdjust) {
+            expect(result.isUpgrade).toBe(true)
+            expect(result.prorationAmount).toBeGreaterThan(0)
+            expect(result.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.Immediately
+            )
+            expect(result.paymentMethodId).toBe(paymentMethod.id)
+            expect(result.currentSubscriptionItems.length).toBe(1)
+            expect(result.resolvedNewSubscriptionItems.length).toBe(1)
+            expect(result.currentPlanTotal).toBe(price.unitPrice)
+            expect(result.newPlanTotal).toBe(higherPrice.unitPrice)
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns downgrade preview with zero proration for end-of-period', async () => {
@@ -286,36 +300,37 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              newSubscriptionItems: [
-                {
-                  priceId: lowerPrice.id,
-                  quantity: 1,
-                },
-              ],
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                newSubscriptionItems: [
+                  {
+                    priceId: lowerPrice.id,
+                    quantity: 1,
+                  },
+                ],
+              },
             },
-          },
-          transaction
-        )
-
-        expect(result.canAdjust).toBe(true)
-        if (result.canAdjust) {
-          expect(result.isUpgrade).toBe(false)
-          expect(result.prorationAmount).toBe(0) // End-of-period means no proration
-          expect(result.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+            transaction
           )
-          expect(result.effectiveDate).toBe(billingPeriod.endDate)
-        }
-      })
+
+          expect(result.canAdjust).toBe(true)
+          if (result.canAdjust) {
+            expect(result.isUpgrade).toBe(false)
+            expect(result.prorationAmount).toBe(0) // End-of-period means no proration
+            expect(result.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+            )
+            expect(result.effectiveDate).toBe(billingPeriod.endDate)
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('resolves auto timing to Immediately for upgrades', async () => {
@@ -330,32 +345,33 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Auto,
-              newSubscriptionItems: [
-                {
-                  priceId: higherPrice.id,
-                  quantity: 1,
-                },
-              ],
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Auto,
+                newSubscriptionItems: [
+                  {
+                    priceId: higherPrice.id,
+                    quantity: 1,
+                  },
+                ],
+              },
             },
-          },
-          transaction
-        )
-
-        expect(result.canAdjust).toBe(true)
-        if (result.canAdjust) {
-          expect(result.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.Immediately
+            transaction
           )
-        }
-      })
+
+          expect(result.canAdjust).toBe(true)
+          if (result.canAdjust) {
+            expect(result.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.Immediately
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('resolves auto timing to AtEndOfCurrentBillingPeriod for downgrades', async () => {
@@ -370,32 +386,33 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Auto,
-              newSubscriptionItems: [
-                {
-                  priceId: lowerPrice.id,
-                  quantity: 1,
-                },
-              ],
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Auto,
+                newSubscriptionItems: [
+                  {
+                    priceId: lowerPrice.id,
+                    quantity: 1,
+                  },
+                ],
+              },
             },
-          },
-          transaction
-        )
-
-        expect(result.canAdjust).toBe(true)
-        if (result.canAdjust) {
-          expect(result.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+            transaction
           )
-        }
-      })
+
+          expect(result.canAdjust).toBe(true)
+          if (result.canAdjust) {
+            expect(result.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('resolves priceSlug to priceId in newSubscriptionItems', async () => {
@@ -411,33 +428,34 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceSlug: 'slugged-plan-test',
-                  quantity: 1,
-                },
-              ],
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceSlug: 'slugged-plan-test',
+                    quantity: 1,
+                  },
+                ],
+              },
             },
-          },
-          transaction
-        )
-
-        expect(result.canAdjust).toBe(true)
-        if (result.canAdjust) {
-          expect(result.resolvedNewSubscriptionItems.length).toBe(1)
-          expect(result.resolvedNewSubscriptionItems[0].priceId).toBe(
-            sluggedPrice.id
+            transaction
           )
-        }
-      })
+
+          expect(result.canAdjust).toBe(true)
+          if (result.canAdjust) {
+            expect(result.resolvedNewSubscriptionItems.length).toBe(1)
+            expect(
+              result.resolvedNewSubscriptionItems[0].priceId
+            ).toBe(sluggedPrice.id)
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -454,41 +472,42 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })
-
-      // Remove payment method from subscription and test
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscription.id,
-            defaultPaymentMethodId: null,
-            backupPaymentMethodId: null,
-            renews: true,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: higherPrice.id,
-                  quantity: 1,
-                },
-              ],
+      })(
+        // Remove payment method from subscription and test
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              defaultPaymentMethodId: null,
+              backupPaymentMethodId: null,
+              renews: true,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        expect(result.canAdjust).toBe(false)
-        if (!result.canAdjust) {
-          expect(result.reason).toContain('payment method')
-        }
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: higherPrice.id,
+                    quantity: 1,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain('payment method')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns canAdjust: true for end-of-period downgrade without payment method', async () => {
@@ -506,37 +525,40 @@ describe('previewAdjustSubscription', () => {
       })
 
       // Remove payment method from subscription and test
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscription.id,
-            defaultPaymentMethodId: null,
-            backupPaymentMethodId: null,
-            renews: true,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              newSubscriptionItems: [
-                {
-                  priceId: lowerPrice.id,
-                  quantity: 1,
-                },
-              ],
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              defaultPaymentMethodId: null,
+              backupPaymentMethodId: null,
+              renews: true,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        // End-of-period downgrade doesn't require payment method since no immediate charge
-        expect(result.canAdjust).toBe(true)
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                newSubscriptionItems: [
+                  {
+                    priceId: lowerPrice.id,
+                    quantity: 1,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          // End-of-period downgrade doesn't require payment method since no immediate charge
+          expect(result.canAdjust).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 

@@ -807,18 +807,22 @@ describe('grantEntitlementUsageCredits', () => {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
     } = (
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         // The ledgerAccountsByUsageMeterId passed here is the original one from beforeEach
-        return await grantEntitlementUsageCredits(
-          {
-            ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
-            ledgerTransaction: testLedgerTransaction,
-            command,
-          },
-          transaction
+        return Result.ok(
+          await grantEntitlementUsageCredits(
+            {
+              ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
+              ledgerTransaction: testLedgerTransaction,
+              command,
+            },
+            transaction
+          )
         )
       })
-    ).unwrap()
+    )
+      .unwrap()
+      .unwrap()
 
     // Assertions:
     // 1. Ledger Accounts

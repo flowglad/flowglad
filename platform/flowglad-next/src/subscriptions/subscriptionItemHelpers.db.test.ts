@@ -42,7 +42,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
@@ -531,24 +531,28 @@ describe('subscriptionItemHelpers', () => {
 
       it('should preserve manual subscription items during adjustments', async () => {
         // Create a manual subscription item
-        const manualItem = await adminTransaction(
-          async ({ transaction }) => {
-            return insertSubscriptionItem(
-              {
-                subscriptionId: subscription.id,
-                name: 'Manual Item',
-                quantity: 0,
-                unitPrice: 0,
-                priceId: null,
-                livemode: true,
-                addedDate: now - oneDayInMs,
-                manuallyCreated: true,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
-            )
-          }
-        )
+        const manualItem = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await insertSubscriptionItem(
+                  {
+                    subscriptionId: subscription.id,
+                    name: 'Manual Item',
+                    quantity: 0,
+                    unitPrice: 0,
+                    priceId: null,
+                    livemode: true,
+                    addedDate: now - oneDayInMs,
+                    manuallyCreated: true,
+                    type: SubscriptionItemType.Static,
+                  },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -734,24 +738,28 @@ describe('subscriptionItemHelpers', () => {
 
       it('should expire manual features that overlap with plan features (plan takes precedence)', async () => {
         // Create a manual subscription item with a feature
-        const manualItem = await adminTransaction(
-          async ({ transaction }) => {
-            return insertSubscriptionItem(
-              {
-                subscriptionId: subscription.id,
-                name: 'Manual Item',
-                quantity: 0,
-                unitPrice: 0,
-                priceId: null,
-                livemode: true,
-                addedDate: now - oneDayInMs,
-                manuallyCreated: true,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
-            )
-          }
-        )
+        const manualItem = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await insertSubscriptionItem(
+                  {
+                    subscriptionId: subscription.id,
+                    name: 'Manual Item',
+                    quantity: 0,
+                    unitPrice: 0,
+                    priceId: null,
+                    livemode: true,
+                    addedDate: now - oneDayInMs,
+                    manuallyCreated: true,
+                    type: SubscriptionItemType.Static,
+                  },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         // Add a manual feature to the manual item (same featureId as the product's feature)
         const manualFeature = await setupSubscriptionItemFeature({
