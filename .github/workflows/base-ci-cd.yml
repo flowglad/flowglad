@@ -317,7 +317,7 @@ jobs:
       - name: Verify API contract
         env:
           TELEMETRY_TEST_API_KEY: ${{ secrets.TELEMETRY_TEST_API_KEY }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.FLOWGLAD_PROD_API_URL }}
+          FLOWGLAD_PROD_API_URL: ${{ secrets.FLOWGLAD_PROD_API_URL }}
         run: bun run verify:api-contract
         
   all-jobs-succeed:
