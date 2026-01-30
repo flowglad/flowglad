@@ -10,7 +10,9 @@ interface TestModeBannerProps {
 
 /**
  * Full-width amber banner that appears when the user is in a test pricing model.
- * Displays above the sidebar and main content area, in document flow (not sticky/overlay).
+ * Displays above the sidebar and main content area, sticky at the top of the viewport.
+ *
+ * Uses amber-200 (#fde68a) background per Figma design system.
  */
 export const TestModeBanner: React.FC<TestModeBannerProps> = ({
   pricingModelName,
@@ -19,19 +21,20 @@ export const TestModeBanner: React.FC<TestModeBannerProps> = ({
   return (
     <div
       className={cn(
-        'w-full bg-citrine-background border-b border-citrine-border',
+        'w-full bg-amber-200 border-b border-border',
         'flex items-center justify-center gap-2 px-4 py-2',
+        'sticky top-0 z-50',
         className
       )}
       role="status"
       aria-live="polite"
       data-testid="test-mode-banner"
     >
-      <Info className="h-4 w-4 shrink-0 text-citrine-foreground" />
-      <span className="text-sm font-medium text-citrine-foreground">
+      <Info className="h-4 w-4 shrink-0 text-foreground" />
+      <span className="text-sm font-medium text-foreground">
         You're in a test pricing model
         {pricingModelName && (
-          <span className="text-citrine-muted-foreground">
+          <span className="text-muted-foreground">
             {' '}
             ({pricingModelName})
           </span>
