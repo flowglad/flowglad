@@ -85,57 +85,58 @@ async function verifyMockServers(): Promise<void> {
   const servers = [
     {
       name: 'stripe-mock',
-      url: 'http://localhost:12111/v1/customers',
+      defaultUrl: 'http://localhost:12111',
       envVar: 'STRIPE_MOCK_HOST',
-      // stripe-mock requires authentication
-      headers: { Authorization: 'Bearer sk_test_xxx' },
+      // Use root path - stripe-mock returns version info at /
+      healthPath: '/',
     },
     {
       name: 'flowglad-mock-server (Svix)',
-      url: 'http://localhost:9001/health',
+      defaultUrl: 'http://localhost:9001',
       envVar: 'SVIX_MOCK_HOST',
+      healthPath: '/health',
     },
     {
       name: 'flowglad-mock-server (Unkey)',
-      url: 'http://localhost:9002/health',
+      defaultUrl: 'http://localhost:9002',
       envVar: 'UNKEY_MOCK_HOST',
+      healthPath: '/health',
     },
     {
       name: 'flowglad-mock-server (Trigger)',
-      url: 'http://localhost:9003/health',
+      defaultUrl: 'http://localhost:9003',
       envVar: 'TRIGGER_API_URL',
+      healthPath: '/health',
     },
     {
       name: 'flowglad-mock-server (Redis)',
-      url: 'http://localhost:9004/health',
+      defaultUrl: 'http://localhost:9004',
       envVar: 'UPSTASH_REDIS_REST_URL',
+      healthPath: '/health',
     },
     {
       name: 'flowglad-mock-server (Resend)',
-      url: 'http://localhost:9005/health',
+      defaultUrl: 'http://localhost:9005',
       envVar: 'RESEND_BASE_URL',
+      healthPath: '/health',
     },
     {
       name: 'flowglad-mock-server (Cloudflare)',
-      url: 'http://localhost:9006/health',
+      defaultUrl: 'http://localhost:9006',
       envVar: 'CLOUDFLARE_R2_ENDPOINT',
+      healthPath: '/health',
     },
   ]
 
   const results = await Promise.all(
     servers.map(async (s) => {
-      // Use environment variable if set to construct health check URL,
-      // otherwise fall back to the hardcoded URL directly
-      const envValue = process.env[s.envVar]
-      const effectiveUrl = envValue
-        ? s.envVar === 'STRIPE_MOCK_HOST'
-          ? `${envValue}/v1/customers`
-          : `${envValue}/health`
-        : s.url
+      // Use environment variable if set, otherwise fall back to default URL
+      const baseUrl = process.env[s.envVar] || s.defaultUrl
+      const effectiveUrl = `${baseUrl}${s.healthPath}`
       return {
         ...s,
         effectiveUrl,
-        healthy: await checkMockServerHealth(effectiveUrl, s.headers),
+        healthy: await checkMockServerHealth(effectiveUrl),
       }
     })
   )
