@@ -2,7 +2,7 @@ import { InvoiceStatus } from '@db-core/enums'
 import type { Invoice } from '@db-core/schema/invoices'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -35,35 +35,17 @@ export const invoiceUpdatedTask = task({
     const { old_record: oldRecord, record: newRecord } = payload
 
     if (invoiceStatusChangedToPaid({ oldRecord, newRecord })) {
-      const {
-        invoiceLineItems,
-        customer,
-        organization,
-        paymentForInvoice,
-      } = await comprehensiveAdminTransaction(
+      const transactionResult = await adminTransactionWithResult(
         async ({ transaction }) => {
           const invoiceLineItems = await selectInvoiceLineItems(
             { invoiceId: newRecord.id },
             transaction
           )
 
-          const customerRows =
-            await selectCustomerAndCustomerTableRows(
-              {
-                id: newRecord.customerId,
-              },
-              transaction
-            )
-          const customer = customerRows[0]?.customer
-          if (!customer) {
-            return Result.err(
-              new NotFoundError('Customer', newRecord.customerId)
-            )
-          }
-
+          // First get the organization for the invoice to scope the customer query
           const organization = (
             await selectOrganizationById(
-              customer.organizationId,
+              newRecord.organizationId,
               transaction
             )
           ).unwrap()
@@ -71,8 +53,23 @@ export const invoiceUpdatedTask = task({
             return Result.err(
               new NotFoundError(
                 'Organization',
-                customer.organizationId
+                newRecord.organizationId
               )
+            )
+          }
+
+          const customerRows =
+            await selectCustomerAndCustomerTableRows(
+              {
+                id: newRecord.customerId,
+              },
+              newRecord.organizationId,
+              transaction
+            )
+          const customer = customerRows[0]?.customer
+          if (!customer) {
+            return Result.err(
+              new NotFoundError('Customer', newRecord.customerId)
             )
           }
           logger.info(
@@ -92,6 +89,12 @@ export const invoiceUpdatedTask = task({
           })
         }
       )
+      const {
+        invoiceLineItems,
+        customer,
+        organization,
+        paymentForInvoice,
+      } = transactionResult.unwrap()
       if (paymentForInvoice) {
         await generatePaymentReceiptPdfTask.triggerAndWait({
           paymentId: paymentForInvoice.id,

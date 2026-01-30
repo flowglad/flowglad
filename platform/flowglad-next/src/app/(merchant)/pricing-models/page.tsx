@@ -1,5 +1,32 @@
+import { redirect } from 'next/navigation'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { selectFocusedMembershipAndOrganizationAndPricingModel } from '@/db/tableMethods/membershipMethods'
 import InnerPricingModelsPage from './InnerPricingModelsPage'
 
+/**
+ * Pricing Models list page that redirects to the focused pricing model's detail page.
+ *
+ * The redirect ensures users land directly on their current pricing model context,
+ * providing a more contextual experience. Falls back to the list view if no focused
+ * pricing model is found (edge case during onboarding or data inconsistency).
+ */
 export default async function PricingModelsPage() {
-  return <InnerPricingModelsPage />
+  try {
+    const focusedMembership = await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        return selectFocusedMembershipAndOrganizationAndPricingModel(
+          userId,
+          transaction
+        )
+      }
+    )
+
+    if (focusedMembership?.pricingModel?.id) {
+      redirect(`/pricing-models/${focusedMembership.pricingModel.id}`)
+    }
+  } catch {
+    redirect('/dashboard')
+  }
+
+  return redirect('/dashboard')
 }

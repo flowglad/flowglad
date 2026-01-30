@@ -26,6 +26,7 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { usePricingModelList } from '@/hooks/usePricingModelList'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'
@@ -51,6 +52,7 @@ const CreatePricingModelModal: React.FC<
 > = ({ isOpen, setIsOpen }) => {
   const router = useRouter()
   const trpcUtils = trpc.useUtils()
+  const { switchPricingModel } = usePricingModelList()
 
   // Single modal with different views
   const [currentView, setCurrentView] = useState<ModalView>('choice')
@@ -72,11 +74,13 @@ const CreatePricingModelModal: React.FC<
   // TRPC mutations
   const createPricingModelMutation =
     trpc.pricingModels.create.useMutation({
-      onSuccess: ({ pricingModel }) => {
+      onSuccess: async ({ pricingModel }) => {
         toast.success('Pricing model created successfully')
         // Invalidate to refresh the count for "can create" check
         trpcUtils.pricingModels.getTableRows.invalidate()
         setIsOpen(false)
+        // Switch focused PM to the new one so banner/nav shows correct name
+        await switchPricingModel(pricingModel.id)
         router.push(`/pricing-models/${pricingModel.id}`)
         resetState()
       },
@@ -88,13 +92,15 @@ const CreatePricingModelModal: React.FC<
 
   const setupPricingModelMutation =
     trpc.pricingModels.setup.useMutation({
-      onSuccess: ({ pricingModel }) => {
+      onSuccess: async ({ pricingModel }) => {
         toast.success(
           'Pricing model created from template successfully'
         )
         // Invalidate to refresh the count for "can create" check
         trpcUtils.pricingModels.getTableRows.invalidate()
         setIsOpen(false)
+        // Switch focused PM to the new one so banner/nav shows correct name
+        await switchPricingModel(pricingModel.id)
         router.push(`/pricing-models/${pricingModel.id}`)
         resetState()
       },

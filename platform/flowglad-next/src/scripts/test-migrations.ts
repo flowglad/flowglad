@@ -43,6 +43,7 @@ import { loadEnvConfig } from '@next/env'
 import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as readline from 'readline'
+import { parseArgs } from 'util'
 
 const TEST_CONTAINER_PREFIX = 'flowglad-migration-test'
 const DEFAULT_PORT_STAGING = 5433
@@ -50,42 +51,32 @@ const DEFAULT_PORT_PROD = 5434
 const POSTGRES_IMAGE = 'postgres:15'
 
 /**
- * Parses a port argument from command-line args.
- * Supports both --port=5440 and --port 5440 formats.
+ * Parses and validates the port argument.
  * @returns The parsed port number, or undefined if not provided
  */
-function parsePortArg(args: string[]): number | undefined {
-  // Check for --port=5440 format
-  const equalsArg = args.find((arg) => arg.startsWith('--port='))
-  if (equalsArg) {
-    const portStr = equalsArg.split('=')[1]
-    const port = Number.parseInt(portStr, 10)
-    if (Number.isNaN(port) || port < 1 || port > 65535) {
-      throw new Error(
-        `Invalid port number: ${portStr}. Must be between 1 and 65535.`
-      )
-    }
-    return port
+function validatePort(
+  portStr: string | undefined
+): number | undefined {
+  if (!portStr) return undefined
+  const port = Number.parseInt(portStr, 10)
+  if (Number.isNaN(port) || port < 1 || port > 65535) {
+    throw new Error(
+      `Invalid port number: ${portStr}. Must be between 1 and 65535.`
+    )
   }
-
-  // Check for --port 5440 format (space-separated)
-  const argIndex = args.indexOf('--port')
-  if (argIndex !== -1 && argIndex < args.length - 1) {
-    const portStr = args[argIndex + 1]
-    // Make sure it's not another flag
-    if (!portStr.startsWith('-')) {
-      const port = Number.parseInt(portStr, 10)
-      if (Number.isNaN(port) || port < 1 || port > 65535) {
-        throw new Error(
-          `Invalid port number: ${portStr}. Must be between 1 and 65535.`
-        )
-      }
-      return port
-    }
-  }
-
-  return undefined
+  return port
 }
+
+const { values: cliArgs } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    staging: { type: 'boolean', default: false },
+    prod: { type: 'boolean', default: false },
+    inspect: { type: 'boolean', default: false },
+    port: { type: 'string' },
+  },
+  strict: true,
+})
 
 interface TestResult {
   environment: 'staging' | 'production'
@@ -656,13 +647,12 @@ function getDatabaseUrls(): { staging: string; prod: string } {
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2)
-  const stagingOnly = args.includes('--staging')
-  const prodOnly = args.includes('--prod')
-  const inspect = args.includes('--inspect')
+  const stagingOnly = cliArgs.staging
+  const prodOnly = cliArgs.prod
+  const inspect = cliArgs.inspect
 
   // Parse custom port if provided
-  const customPort = parsePortArg(args)
+  const customPort = validatePort(cliArgs.port)
 
   // Validate --port usage: must be used with --staging or --prod (single environment)
   if (customPort && !stagingOnly && !prodOnly) {

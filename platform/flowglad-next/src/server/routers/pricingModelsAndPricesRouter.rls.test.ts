@@ -208,6 +208,19 @@ describe('pricesRouter.create', () => {
       .create({
         pricingModel: { name: 'PM for Product' } as any,
       })
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId: orgData.organization.id,
+      livemode: false,
+      pricingModelId: pricingModel.id,
+    })
+    const priceCtx = {
+      organizationId: orgData.organization.id,
+      apiKey: apiKey.token!,
+      livemode: false,
+      environment: 'test' as const,
+      isApi: true as const,
+      path: '',
+    }
     const product = await adminTransaction(async (txCtx) => {
       return insertProduct(
         {
@@ -227,7 +240,7 @@ describe('pricesRouter.create', () => {
         txCtx
       )
     })
-    const result = await pricesRouter.createCaller(ctx).create({
+    const result = await pricesRouter.createCaller(priceCtx).create({
       price: {
         productId: product.id,
         unitPrice: 1000,
@@ -266,6 +279,19 @@ describe('pricesRouter.create', () => {
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
       .create({ pricingModel: { name: 'PM constraints' } as any })
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId: orgData.organization.id,
+      livemode: false,
+      pricingModelId: pricingModel.id,
+    })
+    const priceCtx = {
+      organizationId: orgData.organization.id,
+      apiKey: apiKey.token!,
+      livemode: false,
+      environment: 'test' as const,
+      isApi: true as const,
+      path: '',
+    }
 
     // Create a non-default product under the pricing model
     const product = await adminTransaction(async (ctx) => {
@@ -290,36 +316,40 @@ describe('pricesRouter.create', () => {
     })
 
     // Create the first default price
-    const firstPrice = await pricesRouter.createCaller(ctx).create({
-      price: {
-        productId: product.id,
-        unitPrice: 0,
-        isDefault: true,
-        type: PriceType.Subscription,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        name: 'Initial Default',
-        trialPeriodDays: 0,
-        slug: 'initial-default',
-        active: true,
-      },
-    })
+    const firstPrice = await pricesRouter
+      .createCaller(priceCtx)
+      .create({
+        price: {
+          productId: product.id,
+          unitPrice: 0,
+          isDefault: true,
+          type: PriceType.Subscription,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          name: 'Initial Default',
+          trialPeriodDays: 0,
+          slug: 'initial-default',
+          active: true,
+        },
+      })
 
     // Create a second default price for the same product (should succeed)
-    const secondPrice = await pricesRouter.createCaller(ctx).create({
-      price: {
-        productId: product.id,
-        unitPrice: 1000,
-        isDefault: true,
-        type: PriceType.Subscription,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        name: 'New Default',
-        trialPeriodDays: 0,
-        slug: 'new-default',
-        active: true,
-      },
-    })
+    const secondPrice = await pricesRouter
+      .createCaller(priceCtx)
+      .create({
+        price: {
+          productId: product.id,
+          unitPrice: 1000,
+          isDefault: true,
+          type: PriceType.Subscription,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          name: 'New Default',
+          trialPeriodDays: 0,
+          slug: 'new-default',
+          active: true,
+        },
+      })
 
     // Verify the second price is created as default and active
     expect(secondPrice.price.isDefault).toBe(true)
@@ -401,6 +431,19 @@ describe('pricesRouter.create', () => {
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
       .create({ pricingModel: { name: 'PM with Default' } as any })
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId: orgData.organization.id,
+      livemode: false,
+      pricingModelId: pricingModel.id,
+    })
+    const priceCtx = {
+      organizationId: orgData.organization.id,
+      apiKey: apiKey.token!,
+      livemode: false,
+      environment: 'test' as const,
+      isApi: true as const,
+      path: '',
+    }
     const productAndPrices = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return selectPricesAndProductsByProductWhere(
@@ -410,7 +453,7 @@ describe('pricesRouter.create', () => {
     })
     const defaultProduct = productAndPrices[0]
     try {
-      await pricesRouter.createCaller(ctx).create({
+      await pricesRouter.createCaller(priceCtx).create({
         price: {
           productId: defaultProduct.id,
           unitPrice: 500,
@@ -455,6 +498,19 @@ describe('pricesRouter.create', () => {
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
       .create({ pricingModel: { name: 'PM Currency' } as any })
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId: orgData.organization.id,
+      livemode: false,
+      pricingModelId: pricingModel.id,
+    })
+    const priceCtx = {
+      organizationId: orgData.organization.id,
+      apiKey: apiKey.token!,
+      livemode: false,
+      environment: 'test' as const,
+      isApi: true as const,
+      path: '',
+    }
     // Create a regular (non-default) product to test currency and livemode
     const product = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -476,7 +532,7 @@ describe('pricesRouter.create', () => {
         ctx
       )
     })
-    const created = await pricesRouter.createCaller(ctx).create({
+    const created = await pricesRouter.createCaller(priceCtx).create({
       price: {
         productId: product.id,
         unitPrice: 2500,

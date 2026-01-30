@@ -1,8 +1,9 @@
 import { CheckoutSessionStatus, PriceType } from '@db-core/enums'
+import { Result } from 'better-result'
 import { notFound, redirect } from 'next/navigation'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   type CheckoutInfoCore,
   checkoutInfoSchema,
@@ -29,9 +30,13 @@ const CheckoutSessionPage = async ({
     maybeCurrentSubscriptions,
     discount,
     isEligibleForTrial,
-  } = await adminTransaction(async ({ transaction }) => {
-    return checkoutInfoForCheckoutSession(id, transaction)
-  })
+  } = (
+    await adminTransactionWithResult(async ({ transaction }) => {
+      return Result.ok(
+        await checkoutInfoForCheckoutSession(id, transaction)
+      )
+    })
+  ).unwrap()
 
   if (!checkoutSession) {
     notFound()

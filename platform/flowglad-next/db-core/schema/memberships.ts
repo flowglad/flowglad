@@ -23,6 +23,7 @@ import {
   timestampWithTimezoneColumn,
 } from '../tableUtils'
 import { organizations } from './organizations'
+import { pricingModels } from './pricingModels'
 import { users, usersSelectSchema } from './users'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
@@ -48,6 +49,16 @@ export const memberships = pgTable(
       organizations
     ),
     focused: boolean('focused').notNull().default(false),
+    /**
+     * The pricing model this membership is currently focused on.
+     * Determines:
+     * 1. Which pricing model's data the user sees in the dashboard
+     * 2. The livemode context (derived from PM's livemode)
+     * 3. The pricing_model_id in JWT claims for RLS scoping
+     */
+    focusedPricingModelId: text('focused_pricing_model_id')
+      .references(() => pricingModels.id)
+      .notNull(),
     notificationPreferences: jsonb(
       'notification_preferences'
     ).default({}),
@@ -64,6 +75,9 @@ export const memberships = pgTable(
       constructIndex(MEMBERSHIPS_TABLE_NAME, [
         table.userId,
         table.focused,
+      ]),
+      constructIndex(MEMBERSHIPS_TABLE_NAME, [
+        table.focusedPricingModelId,
       ]),
       constructUniqueIndex(MEMBERSHIPS_TABLE_NAME, [
         table.userId,
@@ -157,6 +171,7 @@ export const {
       livemode: true,
       role: true,
       deactivatedAt: true,
+      focusedPricingModelId: true,
     },
     createOnlyColumns: {},
   },

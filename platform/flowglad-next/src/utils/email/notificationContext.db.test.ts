@@ -335,13 +335,19 @@ describe('buildNotificationContext', () => {
 
   describe('organization members context', () => {
     it('returns usersAndMemberships when include contains usersAndMemberships', async () => {
-      const { organization } = await setupOrg()
+      const { organization, pricingModel } = await setupOrg()
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
       // Create memberships for the organization
-      await setupMemberships({ organizationId: organization.id })
-      await setupMemberships({ organizationId: organization.id })
+      await setupMemberships({
+        organizationId: organization.id,
+        focusedPricingModelId: pricingModel.id,
+      })
+      await setupMemberships({
+        organizationId: organization.id,
+        focusedPricingModelId: pricingModel.id,
+      })
 
       const ctx = await adminTransaction(async ({ transaction }) => {
         return buildNotificationContext(
