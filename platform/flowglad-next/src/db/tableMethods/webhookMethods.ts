@@ -1,11 +1,15 @@
-import { eq } from 'drizzle-orm'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import { pricingModels } from '@db-core/schema/pricingModels'
 import {
   webhooks,
   webhooksInsertSchema,
   webhooksSelectSchema,
   webhooksTableRowDataSchema,
   webhooksUpdateSchema,
-} from '@/db/schema/webhooks'
+} from '@db-core/schema/webhooks'
 import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
@@ -13,11 +17,8 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
+} from '@db-core/tableUtils'
+import { eq, inArray } from 'drizzle-orm'
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
@@ -68,9 +69,33 @@ export const selectWebhooksTableRowData =
     webhooks,
     config,
     webhooksTableRowDataSchema,
-    async (data) => {
+    async (data, transaction) => {
+      // Get unique pricing model IDs from webhooks
+      const pricingModelIds = [
+        ...new Set(data.map((w) => w.pricingModelId)),
+      ]
+
+      // Fetch pricing model names in bulk
+      const pricingModelRecords =
+        pricingModelIds.length > 0
+          ? await transaction
+              .select({
+                id: pricingModels.id,
+                name: pricingModels.name,
+              })
+              .from(pricingModels)
+              .where(inArray(pricingModels.id, pricingModelIds))
+          : []
+
+      // Create a map for quick lookup
+      const pricingModelNameMap = new Map(
+        pricingModelRecords.map((pm) => [pm.id, pm.name])
+      )
+
       return data.map((webhook) => ({
         webhook,
+        pricingModelName:
+          pricingModelNameMap.get(webhook.pricingModelId) ?? null,
       }))
     }
   )

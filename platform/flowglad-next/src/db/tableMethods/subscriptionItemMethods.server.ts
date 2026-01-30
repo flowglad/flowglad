@@ -9,20 +9,29 @@
  * will cause build failures due to postgres/node.js dependencies.
  */
 
-import { eq, inArray } from 'drizzle-orm'
-import { z } from 'zod'
+import type { SubscriptionStatus } from '@db-core/enums'
+import {
+  type Price,
+  prices,
+  pricesClientSelectSchema,
+} from '@db-core/schema/prices'
 import {
   type SubscriptionItem,
   subscriptionItems,
   subscriptionItemsSelectSchema,
-} from '@/db/schema/subscriptionItems'
-import { type SelectConditions } from '@/db/tableUtils'
+} from '@db-core/schema/subscriptionItems'
+import {
+  type Subscription,
+  subscriptions,
+} from '@db-core/schema/subscriptions'
+import { type SelectConditions } from '@db-core/tableUtils'
+import { eq, inArray } from 'drizzle-orm'
+import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import {
   type RichSubscription,
   richSubscriptionClientSelectSchema,
 } from '@/subscriptions/schemas'
-import type { SubscriptionStatus } from '@/types'
 import {
   CacheDependency,
   type CacheRecomputationContext,
@@ -31,15 +40,6 @@ import {
 import { cachedRecomputable } from '@/utils/cache-recomputable'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
-import {
-  type Price,
-  prices,
-  pricesClientSelectSchema,
-} from '../schema/prices'
-import {
-  type Subscription,
-  subscriptions,
-} from '../schema/subscriptions'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItems,
@@ -223,12 +223,17 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
   }
 
 /**
- * Determines if a subscription item is currently active based on its expiry date.
+ * Determines if a subscription item is currently active based on its added date and expiry date.
+ * An item is active if it has already started (addedDate <= now) and hasn't expired yet.
  */
 const isSubscriptionItemActive = (item: {
+  addedDate: number
   expiredAt?: number | null
 }): boolean => {
-  return !item.expiredAt || item.expiredAt > Date.now()
+  const now = Date.now()
+  return (
+    item.addedDate <= now && (!item.expiredAt || item.expiredAt > now)
+  )
 }
 
 /**

@@ -1,5 +1,9 @@
 'use client'
 
+import { IntervalUnit, PriceType } from '@db-core/enums'
+import { createPriceFormSchema } from '@db-core/schema/prices'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Info } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -16,10 +20,15 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { createPriceFormSchema } from '@/db/schema/prices'
-import type { UsageMeter } from '@/db/schema/usageMeters'
-import { IntervalUnit, PriceType } from '@/types'
 import {
   isCurrencyZeroDecimal,
   rawStringAmountToCountableCurrencyAmount,
@@ -98,6 +107,62 @@ function NameAndSlugFields() {
   )
 }
 
+/**
+ * Toggle field for setting whether this price is the default for the usage meter.
+ */
+function IsDefaultField() {
+  const { control } = useFormContext<CreateUsagePriceFormSchema>()
+
+  return (
+    <FormField
+      control={control}
+      name="price.isDefault"
+      render={({ field }) => (
+        <FormItem>
+          <FormControl>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="price-isDefault"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                aria-label="Set as default price"
+              />
+              <Label
+                htmlFor="price-isDefault"
+                className="cursor-pointer"
+              >
+                Make Default
+              </Label>
+              <TooltipProvider>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="More information"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    variant="muted"
+                    side="top"
+                    className="max-w-xs text-sm px-3 py-2"
+                  >
+                    The default price is used when usage events are
+                    created with just the meter identifier.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+}
+
 interface CreateUsagePriceModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
@@ -130,7 +195,7 @@ export const CreateUsagePriceModal = ({
 
   // Default values for usage price form
   // Note: currency and pricingModelId are read-only and derived server-side
-  const defaultValues: CreateUsagePriceFormSchema = {
+  const getDefaultValues = (): CreateUsagePriceFormSchema => ({
     price: {
       type: PriceType.Usage,
       name: '',
@@ -145,13 +210,13 @@ export const CreateUsagePriceModal = ({
       productId: null, // Usage prices belong to meters, not products
     },
     __rawPriceString: zeroDecimal ? '0' : '0.00',
-  }
+  })
 
   return (
     <FormModal
       title="Create Usage Price"
       formSchema={createUsagePriceFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (input) => {
         const unitPrice = rawStringAmountToCountableCurrencyAmount(
           organization.defaultCurrency,
@@ -185,6 +250,7 @@ export const CreateUsagePriceModal = ({
       }}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
+      submitButtonText="Create Price"
     >
       <NameAndSlugFields />
       <PriceFormFields
@@ -195,6 +261,7 @@ export const CreateUsagePriceModal = ({
         hidePriceName={true}
         hidePriceType={true}
       />
+      <IsDefaultField />
     </FormModal>
   )
 }

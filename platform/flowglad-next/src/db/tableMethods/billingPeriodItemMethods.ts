@@ -1,4 +1,41 @@
 import {
+  type BillingPeriodItem,
+  billingPeriodItems,
+  billingPeriodItemsInsertSchema,
+  billingPeriodItemsSelectSchema,
+  billingPeriodItemsUpdateSchema,
+} from '@db-core/schema/billingPeriodItems'
+import {
+  type BillingPeriod,
+  billingPeriods,
+  billingPeriodsSelectSchema,
+} from '@db-core/schema/billingPeriods'
+import {
+  customers,
+  customersSelectSchema,
+} from '@db-core/schema/customers'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import {
+  type Subscription,
+  standardSubscriptionSelectSchema,
+  subscriptions,
+  subscriptionsSelectSchema,
+} from '@db-core/schema/subscriptions'
+import {
+  createBulkInsertFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  type SelectConditions,
+  whereClauseFromObject,
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import {
   and,
   asc,
   between,
@@ -9,44 +46,13 @@ import {
   or,
   SQL,
 } from 'drizzle-orm'
-import {
-  type BillingPeriodItem,
-  billingPeriodItems,
-  billingPeriodItemsInsertSchema,
-  billingPeriodItemsSelectSchema,
-  billingPeriodItemsUpdateSchema,
-} from '@/db/schema/billingPeriodItems'
-import {
-  createBulkInsertFunction,
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  type ORMMethodCreatorConfig,
-  type SelectConditions,
-  whereClauseFromObject,
-} from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import {
-  type BillingPeriod,
-  billingPeriods,
-  billingPeriodsSelectSchema,
-} from '../schema/billingPeriods'
-import { customers, customersSelectSchema } from '../schema/customers'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import {
-  type Subscription,
-  standardSubscriptionSelectSchema,
-  subscriptions,
-  subscriptionsSelectSchema,
-} from '../schema/subscriptions'
+import { NotFoundError } from '@/errors'
 import {
   derivePricingModelIdFromBillingPeriod,
   derivePricingModelIdsFromBillingPeriods,
 } from './billingPeriodMethods'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriodItems,
@@ -107,7 +113,7 @@ const baseBulkInsertBillingPeriodItems = createBulkInsertFunction(
 export const bulkInsertBillingPeriodItems = async (
   inserts: BillingPeriodItem.Insert[],
   transaction: DbTransaction
-): Promise<BillingPeriodItem.Record[]> => {
+): Promise<Result<BillingPeriodItem.Record[], NotFoundError>> => {
   // Collect unique billingPeriodIds that need pricingModelId derivation
   const billingPeriodIdsNeedingDerivation = Array.from(
     new Set(
@@ -125,25 +131,31 @@ export const bulkInsertBillingPeriodItems = async (
     )
 
   // Derive pricingModelId using the batch-fetched map
-  const insertsWithPricingModelId = inserts.map((insert) => {
-    const pricingModelId =
-      insert.pricingModelId ??
-      pricingModelIdMap.get(insert.billingPeriodId)
-    if (!pricingModelId) {
-      throw new Error(
-        `Could not derive pricingModelId for billing period ${insert.billingPeriodId}`
-      )
+  const insertsWithPricingModelId: BillingPeriodItem.Insert[] = []
+  for (const insert of inserts) {
+    if (insert.pricingModelId) {
+      insertsWithPricingModelId.push(insert)
+    } else {
+      const pricingModelIdResult = derivePricingModelIdFromMap({
+        entityId: insert.billingPeriodId,
+        entityType: 'billingPeriod',
+        pricingModelIdMap,
+      })
+      if (Result.isError(pricingModelIdResult)) {
+        return Result.err(pricingModelIdResult.error)
+      }
+      insertsWithPricingModelId.push({
+        ...insert,
+        pricingModelId: pricingModelIdResult.value,
+      })
     }
-    return {
-      ...insert,
-      pricingModelId,
-    }
-  })
+  }
 
-  return baseBulkInsertBillingPeriodItems(
+  const result = await baseBulkInsertBillingPeriodItems(
     insertsWithPricingModelId,
     transaction
   )
+  return Result.ok(result)
 }
 
 export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId =

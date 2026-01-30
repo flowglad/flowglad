@@ -1,6 +1,6 @@
+import type { CurrencyCode } from '@db-core/enums'
 import * as React from 'react'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
-import type { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
 import { EmailButton } from './components/EmailButton'
@@ -80,7 +80,7 @@ export const OrderReceiptEmail = ({
     <EmailLayout previewText={previewText}>
       <TestModeBanner livemode={livemode} />
       <Header
-        title="Thanks for your order!"
+        title="Your Order is Confirmed"
         organizationLogoUrl={sellerLogo}
       />
 

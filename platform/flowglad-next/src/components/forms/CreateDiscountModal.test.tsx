@@ -1,52 +1,97 @@
-/**
- * @vitest-environment jsdom
- */
+/// <reference lib="dom" />
 
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { trpc } from '@/app/_trpc/client'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import { DiscountAmountType, DiscountDuration } from '@/types'
-import CreateDiscountModal from './CreateDiscountModal'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
+import type { ReactNode } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
 
-// Mock the auth context
-vi.mock('@/contexts/authContext', () => ({
-  useAuthenticatedContext: vi.fn(),
+// Create mock functions
+const mockMutateAsync = mock(() => Promise.resolve({}))
+const mockUseMutation = mock(() => ({
+  mutateAsync: mockMutateAsync,
+}))
+const mockUseAuthenticatedContext = mock(() => ({
+  organization: {
+    id: 'org_123',
+    name: 'Test Org',
+    defaultCurrency: 'USD',
+  },
+  user: undefined,
+  apiKey: undefined,
+}))
+const mockRawStringAmountToCountableCurrencyAmount = mock(
+  (_currency: string, amount: string) =>
+    Math.round(Number.parseFloat(amount) * 100)
+)
+
+// Mock modules (compatible with DiscountFormFields.test.tsx)
+mock.module('@/contexts/authContext', () => ({
+  useAuthenticatedContext: mockUseAuthenticatedContext,
+  useAuthContext: mock(() => ({
+    organization: {
+      id: 'org_123',
+      name: 'Test Org',
+      defaultCurrency: 'USD',
+    },
+    user: undefined,
+    apiKey: undefined,
+  })),
 }))
 
-// Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     discounts: {
       create: {
-        useMutation: vi.fn(),
+        useMutation: mockUseMutation,
       },
     },
   },
 }))
 
-// Mock the stripe utils
-vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn(
-    (currency, amount) => {
-      // Mock conversion: "10.50" -> 1050 (cents)
-      return Math.round(parseFloat(amount) * 100)
-    }
+// Combined stripe mock with all needed functions
+mock.module('@/utils/stripe', () => ({
+  rawStringAmountToCountableCurrencyAmount:
+    mockRawStringAmountToCountableCurrencyAmount,
+  isCurrencyZeroDecimal: mock(() => false),
+}))
+
+// Mock PricingModelSelect (needed by DiscountFormFields)
+mock.module('@/components/forms/PricingModelSelect', () => ({
+  default: () => (
+    <div data-testid="pricing-model-select">
+      Mocked PricingModelSelect
+    </div>
   ),
 }))
 
-// Mock the form modal and provide FormProvider context so inner fields can use useFormContext
-vi.mock('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
-  const React = await import('react')
-  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
-  const { useForm, FormProvider } = await import('react-hook-form')
-  function FormModalMock({ children, onSubmit, defaultValues }: any) {
+// Mock currency character (needed by DiscountFormFields)
+mock.module('@/registry/lib/currency', () => ({
+  currencyCharacter: mock(() => '$'),
+}))
+
+// Mock currency input (needed by DiscountFormFields)
+mock.module('@/components/ui/currency-input', () => ({
+  CurrencyInput: ({ value, onValueChange, allowDecimals }: any) => (
+    <input
+      data-testid="currency-input"
+      value={value ?? ''}
+      onChange={(e) => onValueChange?.(e.target.value)}
+      data-allow-decimals={allowDecimals}
+    />
+  ),
+}))
+
+// Mock FormModal with FormProvider context
+mock.module('@/components/forms/FormModal', () => {
+  function FormModalMock({
+    children,
+    onSubmit,
+    defaultValues,
+  }: {
+    children: ReactNode
+    onSubmit: (data: unknown) => Promise<void>
+    defaultValues?: Record<string, unknown>
+  }) {
     const form = useForm({ defaultValues })
     return (
       <FormProvider {...form}>
@@ -55,6 +100,7 @@ vi.mock('@/components/forms/FormModal', async () => {
             {JSON.stringify(defaultValues)}
           </div>
           <button
+            type="button"
             data-testid="submit-button"
             onClick={async () => {
               const mockInput = {
@@ -71,7 +117,9 @@ vi.mock('@/components/forms/FormModal', async () => {
               }
               try {
                 await onSubmit(mockInput)
-              } catch {}
+              } catch {
+                // Swallow
+              }
             }}
           >
             Submit
@@ -84,74 +132,45 @@ vi.mock('@/components/forms/FormModal', async () => {
   return { default: FormModalMock }
 })
 
-// Mock the discount form fields
-vi.mock('./DiscountFormFields', () => ({
-  default: () => (
-    <div data-testid="discount-form-fields">Form Fields</div>
-  ),
-}))
+// Import after mocks
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import CreateDiscountModal from './CreateDiscountModal'
 
 describe('CreateDiscountModal', () => {
-  const mockOrganization = {
-    id: 'org_123',
-    name: 'Test Org',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    domain: null,
-    countryId: 'US',
-    logoURL: null,
-    tagline: null,
-    subdomainSlug: null,
-    defaultCurrency: 'USD',
-    hasCompletedStripeConnectOnboarding: false,
-    stripeAccountId: null,
-    stripeConnectContractType: 'platform',
-    clerkOrganizationId: 'org_123',
-    payoutsEnabled: false,
-    tld: 'com',
-    autoAcceptUsersFromEmailDomain: false,
-    passkeyAuthEnabled: false,
-    duesEnabled: false,
-    feePercentage: '0',
-    delayDays: 0,
-    enableSubscriptions: true,
-    emailsEnabled: false,
-    displayName: 'Test Org',
-    contactEmail: null,
-  }
-
-  const mockMutateAsync = vi.fn()
-  const mockCreateDiscount = {
-    mutateAsync: mockMutateAsync,
-  }
-
   beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(useAuthenticatedContext).mockReturnValue({
-      organization: mockOrganization as any,
-      user: undefined as any,
-      apiKey: undefined as any,
-    } as any)
-    vi.mocked(trpc.discounts.create.useMutation).mockReturnValue(
-      mockCreateDiscount as any
-    )
+    mockMutateAsync.mockClear()
+    mockUseMutation.mockClear()
+    mockRawStringAmountToCountableCurrencyAmount.mockClear()
+    mockUseMutation.mockReturnValue({
+      mutateAsync: mockMutateAsync,
+    })
   })
 
   describe('Modal Rendering', () => {
-    it('should render the modal with correct props', () => {
+    it('renders the modal with form fields', () => {
       render(
-        <CreateDiscountModal isOpen={true} setIsOpen={vi.fn()} />
+        <CreateDiscountModal
+          isOpen={true}
+          setIsOpen={mock(() => {})}
+        />
       )
 
       expect(screen.getByTestId('form-modal')).toBeInTheDocument()
-      expect(
-        screen.getByTestId('discount-form-fields')
-      ).toBeInTheDocument()
+      // DiscountFormFields renders real component with mocked dependencies
+      expect(screen.getByTestId('currency-input')).toBeInTheDocument()
     })
 
-    it('should render with correct default values', () => {
+    it('renders with correct default values', () => {
       render(
-        <CreateDiscountModal isOpen={true} setIsOpen={vi.fn()} />
+        <CreateDiscountModal
+          isOpen={true}
+          setIsOpen={mock(() => {})}
+        />
       )
 
       const defaultValues = JSON.parse(
@@ -162,7 +181,6 @@ describe('CreateDiscountModal', () => {
           name: '',
           code: '',
           amountType: DiscountAmountType.Fixed,
-          // amount omitted for fixed form defaults
           duration: DiscountDuration.Once,
           active: true,
           numberOfPayments: null,
@@ -173,13 +191,12 @@ describe('CreateDiscountModal', () => {
   })
 
   describe('Form Submission - Fixed Amount', () => {
-    it('should calculate amount correctly for fixed discount type', async () => {
-      const { rawStringAmountToCountableCurrencyAmount } =
-        // biome-ignore lint/plugin: dynamic import required to access mocked module
-        await import('@/utils/stripe')
-
+    it('converts amount and calls create mutation', async () => {
       render(
-        <CreateDiscountModal isOpen={true} setIsOpen={vi.fn()} />
+        <CreateDiscountModal
+          isOpen={true}
+          setIsOpen={mock(() => {})}
+        />
       )
 
       const submitButton = screen.getByTestId('submit-button')
@@ -187,14 +204,14 @@ describe('CreateDiscountModal', () => {
 
       await waitFor(() => {
         expect(
-          rawStringAmountToCountableCurrencyAmount
+          mockRawStringAmountToCountableCurrencyAmount
         ).toHaveBeenCalledWith('USD', '10.50')
         expect(mockMutateAsync).toHaveBeenCalledWith({
           discount: {
             name: 'Test Discount',
             code: 'TEST10',
             amountType: DiscountAmountType.Fixed,
-            amount: 1050, // 10.50 * 100
+            amount: 1050,
             duration: DiscountDuration.Once,
             active: true,
             numberOfPayments: null,
@@ -205,12 +222,15 @@ describe('CreateDiscountModal', () => {
   })
 
   describe('Error Handling', () => {
-    it('should handle mutation errors gracefully', async () => {
+    it('handles mutation errors without crashing', async () => {
       const mockError = new Error('Failed to create discount')
       mockMutateAsync.mockRejectedValue(mockError)
 
       render(
-        <CreateDiscountModal isOpen={true} setIsOpen={vi.fn()} />
+        <CreateDiscountModal
+          isOpen={true}
+          setIsOpen={mock(() => {})}
+        />
       )
 
       const submitButton = screen.getByTestId('submit-button')
@@ -223,8 +243,8 @@ describe('CreateDiscountModal', () => {
   })
 
   describe('Modal State Management', () => {
-    it('should call setIsOpen when modal state changes', () => {
-      const mockSetIsOpen = vi.fn()
+    it('renders modal when isOpen is true', () => {
+      const mockSetIsOpen = mock(() => {})
       render(
         <CreateDiscountModal
           isOpen={true}
@@ -232,11 +252,7 @@ describe('CreateDiscountModal', () => {
         />
       )
 
-      // The modal should be rendered
       expect(screen.getByTestId('form-modal')).toBeInTheDocument()
-
-      // If the modal has close functionality, it would call setIsOpen(false)
-      // This would be tested through the FormModal component's behavior
     })
   })
 })

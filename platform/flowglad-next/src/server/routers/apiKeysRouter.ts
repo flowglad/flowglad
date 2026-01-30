@@ -1,23 +1,23 @@
+import { FlowgladApiKeyType } from '@db-core/enums'
+import {
+  apiKeysClientSelectSchema,
+  createApiKeyInputSchema,
+} from '@db-core/schema/apiKeys'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  apiKeysClientSelectSchema,
-  createApiKeyInputSchema,
-} from '@/db/schema/apiKeys'
-import {
   selectApiKeyById,
   selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
-import { FlowgladApiKeyType } from '@/types'
 import {
   createSecretApiKeyTransaction,
   deleteSecretApiKeyTransaction,
@@ -40,7 +40,9 @@ const getApiKeyProcedure = protectedProcedure
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const apiKey = await selectApiKeyById(input.id, transaction)
+        const apiKey = (
+          await selectApiKeyById(input.id, transaction)
+        ).unwrap()
         return {
           apiKey,
         }
@@ -64,6 +66,10 @@ const getTableRowsProcedure = protectedProcedure
       z.object({
         apiKey: apiKeysClientSelectSchema,
         organization: z.object({
+          id: z.string(),
+          name: z.string(),
+        }),
+        pricingModel: z.object({
           id: z.string(),
           name: z.string(),
         }),

@@ -1,31 +1,30 @@
-import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
   createWebhookInputSchema,
   editWebhookInputSchema,
   webhookClientSelectSchema,
   webhooksTableRowDataSchema,
-} from '@/db/schema/webhooks'
+} from '@db-core/schema/webhooks'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
+import { z } from 'zod'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
-  insertWebhook,
   selectWebhookAndOrganizationByWebhookId,
   selectWebhookById,
   selectWebhooksTableRowData,
   updateWebhook as updateWebhookDB,
 } from '@/db/tableMethods/webhookMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
-  createSvixEndpoint,
   getSvixSigningSecret,
   updateSvixEndpoint,
 } from '@/utils/svix'
+import { createWebhookTransaction } from '@/utils/webhooks'
 import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -53,23 +52,13 @@ export const createWebhook = protectedProcedure
         if (!organization) {
           throw new Error('Organization not found')
         }
-        const webhook = await insertWebhook(
-          {
-            ...input.webhook,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-        await createSvixEndpoint({
-          webhook,
+
+        return createWebhookTransaction({
+          webhook: input.webhook,
           organization,
+          livemode,
+          transaction,
         })
-        const secret = await getSvixSigningSecret({
-          webhook,
-          organization,
-        })
-        return { webhook, secret: secret.key }
       }
     )
   )
@@ -89,10 +78,12 @@ export const updateWebhook = protectedProcedure
           },
           transaction
         )
-        const organization = await selectOrganizationById(
-          webhook.organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            webhook.organizationId,
+            transaction
+          )
+        ).unwrap()
         await updateSvixEndpoint({
           webhook,
           organization,
@@ -110,7 +101,9 @@ export const getWebhook = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const webhook = await selectWebhookById(input.id, transaction)
+        const webhook = (
+          await selectWebhookById(input.id, transaction)
+        ).unwrap()
         return { webhook }
       }
     )

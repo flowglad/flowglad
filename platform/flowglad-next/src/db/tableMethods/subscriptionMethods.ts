@@ -1,3 +1,41 @@
+import { SubscriptionStatus } from '@db-core/enums'
+import {
+  customerClientSelectSchema,
+  customers,
+} from '@db-core/schema/customers'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import {
+  Price,
+  prices,
+  pricesClientSelectSchema,
+} from '@db-core/schema/prices'
+import {
+  products,
+  productsClientSelectSchema,
+} from '@db-core/schema/products'
+import {
+  nonRenewingStatusSchema,
+  type Subscription,
+  standardSubscriptionSelectSchema,
+  subscriptions,
+  subscriptionsInsertSchema,
+  subscriptionsSelectSchema,
+  subscriptionsTableRowDataSchema,
+  subscriptionsUpdateSchema,
+} from '@db-core/schema/subscriptions'
+import {
+  createCursorPaginatedSelectFunction,
+  createDateNotPassedFilter,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  type SelectConditions,
+} from '@db-core/tableUtils'
 import {
   and,
   count,
@@ -13,47 +51,11 @@ import {
   sql,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import {
-  nonRenewingStatusSchema,
-  type Subscription,
-  standardSubscriptionSelectSchema,
-  subscriptions,
-  subscriptionsInsertSchema,
-  subscriptionsSelectSchema,
-  subscriptionsTableRowDataSchema,
-  subscriptionsUpdateSchema,
-} from '@/db/schema/subscriptions'
-import {
-  createCursorPaginatedSelectFunction,
-  createDateNotPassedFilter,
-  createDerivePricingModelId,
-  createDerivePricingModelIds,
-  createInsertFunction,
-  createPaginatedSelectFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  type ORMMethodCreatorConfig,
-  type SelectConditions,
-} from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { CancellationReason, SubscriptionStatus } from '@/types'
+import { SubscriptionTerminalStateError } from '@/errors'
+import { CancellationReason } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import {
-  customerClientSelectSchema,
-  customers,
-} from '../schema/customers'
-import type { PaymentMethod } from '../schema/paymentMethods'
-import {
-  Price,
-  prices,
-  pricesClientSelectSchema,
-} from '../schema/prices'
-import {
-  products,
-  productsClientSelectSchema,
-} from '../schema/products'
 import {
   derivePricingModelIdFromPrice,
   pricingModelIdsForPrices,
@@ -163,13 +165,39 @@ export const selectSubscriptionsByCustomerId = cached<
   }
 )
 
+/**
+ * Terminal subscription states - subscriptions in these states cannot be mutated.
+ * Used to guard archived customer subscriptions since archiving cancels them.
+ */
+export const TERMINAL_SUBSCRIPTION_STATES = [
+  SubscriptionStatus.Canceled,
+  SubscriptionStatus.IncompleteExpired,
+] as const
+
 export const isSubscriptionInTerminalState = (
   status: SubscriptionStatus
 ) => {
-  return [
-    SubscriptionStatus.Canceled,
-    SubscriptionStatus.IncompleteExpired,
-  ].includes(status)
+  return (
+    TERMINAL_SUBSCRIPTION_STATES as readonly SubscriptionStatus[]
+  ).includes(status)
+}
+
+/**
+ * Guard function that throws if the subscription is in a terminal state.
+ * Use this to block mutations on subscriptions that have been canceled or expired.
+ *
+ * @param subscription - The subscription to check
+ * @throws SubscriptionTerminalStateError if subscription is in a terminal state
+ */
+export const assertSubscriptionNotTerminal = (
+  subscription: Subscription.Record
+): void => {
+  if (isSubscriptionInTerminalState(subscription.status)) {
+    throw new SubscriptionTerminalStateError(
+      subscription.id,
+      subscription.status
+    )
+  }
 }
 
 export const safelyUpdateSubscriptionStatus = async (
@@ -631,7 +659,10 @@ export const derivePricingModelIdFromSubscription =
   createDerivePricingModelId(
     subscriptions,
     config,
-    selectSubscriptionById
+    async (id, transaction) => {
+      const result = await selectSubscriptionById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

@@ -57,6 +57,7 @@
               "features/prices",
               "features/discounts",
               "features/subscriptions",
+              "features/customers",
               "features/checkout-sessions",
               "features/invoices",
               "features/usage",
@@ -120,6 +121,12 @@
             "pages": [
               "guides/tanstack-start/generation-based-subscription"
             ]
+          },
+          {
+            "group": "React + Vite",
+            "pages": [
+              "guides/react-vite/generation-based-subscription"
+            ]
           }
         ]
       },
@@ -135,6 +142,10 @@
             "pages": ["api-reference/introduction"]
           }
         ]
+      },
+      {
+        "tab": "Changelog",
+        "pages": ["changelog"]
       }
     ],
     "global": {

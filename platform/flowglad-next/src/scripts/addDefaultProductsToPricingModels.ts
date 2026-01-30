@@ -3,9 +3,10 @@ Run the following in the terminal to add default products to all pricing models:
 NODE_ENV=production bunx tsx src/scripts/addDefaultProductsToPricingModels.ts
 */
 
+import { IntervalUnit, PriceType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
@@ -13,7 +14,7 @@ import {
   bulkInsertProducts,
   selectProducts,
 } from '@/db/tableMethods/productMethods'
-import { IntervalUnit, PriceType } from '@/types'
+import { createTransactionEffectsContext } from '@/db/types'
 import {
   createFreePlanPriceInsert,
   createFreePlanProductInsert,
@@ -30,6 +31,12 @@ async function addDefaultProductsToPricingModels(
   )
 
   await db.transaction(async (tx) => {
+    // Create transaction context with noop callbacks for scripts
+    const ctx = createTransactionEffectsContext(tx, {
+      type: 'admin',
+      livemode: true,
+    })
+
     // Get all organizations
     const organizations = await selectOrganizations({}, tx)
     console.log(`📦 Found ${organizations.length} organizations`)
@@ -89,7 +96,7 @@ async function addDefaultProductsToPricingModels(
       let products: Product.Record[]
       // Bulk insert products for this organization
       if (productsToInsert.length > 0) {
-        products = await bulkInsertProducts(productsToInsert, tx)
+        products = await bulkInsertProducts(productsToInsert, ctx)
         totalProductsCreated += productsToInsert.length
         console.log(
           `  📦 Created ${productsToInsert.length} default products`
@@ -105,7 +112,7 @@ async function addDefaultProductsToPricingModels(
 
       // Bulk insert prices for this organization
       if (pricesToInsert.length > 0) {
-        await bulkInsertPrices(pricesToInsert, tx)
+        await bulkInsertPrices(pricesToInsert, ctx)
         totalPricesCreated += pricesToInsert.length
         console.log(
           `  💰 Created ${pricesToInsert.length} default prices`

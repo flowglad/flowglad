@@ -1,12 +1,12 @@
 'use client'
 
-import { z } from 'zod'
-import { trpc } from '@/app/_trpc/client'
-import FormModal from '@/components/forms/FormModal'
 import {
   type NotificationPreferences,
   notificationPreferencesSchema,
-} from '@/db/schema/memberships'
+} from '@db-core/schema/memberships'
+import { z } from 'zod'
+import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
 import NotificationPreferencesFormFields from './NotificationPreferencesFormFields'
 
 const editNotificationPreferencesSchema = z.object({
@@ -34,9 +34,9 @@ const EditNotificationPreferencesModal: React.FC<
       },
     })
 
-  const defaultValues: EditNotificationPreferencesInput = {
+  const getDefaultValues = (): EditNotificationPreferencesInput => ({
     preferences: currentPreferences,
-  }
+  })
 
   return (
     <FormModal<EditNotificationPreferencesInput>
@@ -44,7 +44,7 @@ const EditNotificationPreferencesModal: React.FC<
       setIsOpen={setIsOpen}
       title="Edit Notification Preferences"
       formSchema={editNotificationPreferencesSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (data) => {
         await updateNotificationPreferencesMutation.mutateAsync(data)
       }}

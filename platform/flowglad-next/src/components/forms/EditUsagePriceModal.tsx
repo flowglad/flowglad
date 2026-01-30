@@ -1,12 +1,16 @@
 'use client'
 
+import { PriceType } from '@db-core/enums'
+import {
+  editUsagePriceFormSchema as baseEditUsagePriceFormSchema,
+  type Price,
+} from '@db-core/schema/prices'
 import { useFormContext } from 'react-hook-form'
 import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import FormModal from '@/components/forms/FormModal'
 import UsageMetersSelect from '@/components/forms/UsageMetersSelect'
-import StatusBadge from '@/components/StatusBadge'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   FormControl,
@@ -25,14 +29,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  editUsagePriceFormSchema as baseEditUsagePriceFormSchema,
-  type Price,
-} from '@/db/schema/prices'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { PriceType } from '@/types'
 import {
   countableCurrencyAmountToRawStringAmount,
   isCurrencyZeroDecimal,
@@ -168,8 +171,10 @@ const UsagePriceFormFields = ({
                           htmlFor="price-active"
                           className="cursor-pointer w-full"
                         >
-                          <StatusBadge
-                            active={field.value ?? false}
+                          <ActiveStatusTag
+                            status={booleanToActiveStatus(
+                              field.value ?? false
+                            )}
                           />
                         </Label>
                       </div>
@@ -359,9 +364,9 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Usage Price"
       formSchema={editUsagePriceFormSchema}
-      defaultValues={{
+      defaultValues={() => ({
         price: {
-          type: PriceType.Usage,
+          type: PriceType.Usage as const,
           id: price.id,
           isDefault: price.isDefault,
           active: price.active,
@@ -375,7 +380,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
           price.unitPrice
         ),
         usageEventsPerUnit: price.usageEventsPerUnit ?? 1,
-      }}
+      })}
       onSubmit={async (input) => {
         const newUnitPrice = rawStringAmountToCountableCurrencyAmount(
           organization.defaultCurrency,

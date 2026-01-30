@@ -1,7 +1,13 @@
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-subscription-adjusted'
-import type { IntervalUnit } from '@/types'
+import { PaymentError, ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
@@ -31,6 +37,148 @@ export interface SendCustomerSubscriptionAdjustedNotificationPayload {
   effectiveDate: number // timestamp in ms
 }
 
+/**
+ * Core run function for send-customer-subscription-adjusted-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendCustomerSubscriptionAdjustedNotification = async (
+  payload: SendCustomerSubscriptionAdjustedNotificationPayload
+) => {
+  logger.log('Sending customer subscription adjusted notification', {
+    payload,
+  })
+
+  let dataResult: Result<
+    {
+      organization: Organization.Record
+      customer: Customer.Record
+      subscription: Subscription.Record
+      price: Price.Record | null
+    },
+    NotFoundError | ValidationError
+  >
+  try {
+    const data = await adminTransaction(async ({ transaction }) => {
+      return buildNotificationContext(
+        {
+          organizationId: payload.organizationId,
+          customerId: payload.customerId,
+          subscriptionId: payload.subscriptionId,
+          include: ['price'],
+        },
+        transaction
+      )
+    })
+    dataResult = Result.ok(data)
+  } catch (error) {
+    // Only convert NotFoundError to Result.err; rethrow other errors
+    // for Trigger.dev to retry (e.g., transient DB failures)
+    if (error instanceof NotFoundError) {
+      dataResult = Result.err(error)
+    } else if (
+      error instanceof Error &&
+      error.message.includes('not found')
+    ) {
+      // Handle errors from buildNotificationContext
+      dataResult = Result.err(
+        new NotFoundError('Resource', error.message)
+      )
+    } else {
+      throw error
+    }
+  }
+
+  if (Result.isError(dataResult)) {
+    return dataResult
+  }
+  const { organization, customer, subscription, price } =
+    dataResult.value
+
+  if (!price) {
+    return Result.err(
+      new NotFoundError('Price', subscription.priceId ?? 'unknown')
+    )
+  }
+
+  // Validate customer email - return ValidationError per PR spec
+  if (!customer.email || customer.email.trim() === '') {
+    logger.log(
+      'Customer subscription adjusted notification failed: customer email is missing or empty',
+      {
+        customerId: customer.id,
+        subscriptionId: subscription.id,
+      }
+    )
+    return Result.err(
+      new ValidationError(
+        'email',
+        'customer email is missing or empty'
+      )
+    )
+  }
+
+  // Calculate totals from items
+  const previousTotalPrice = payload.previousItems.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0
+  )
+  const newTotalPrice = payload.newItems.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0
+  )
+
+  // Get next billing date from subscription's current period end
+  const nextBillingDate = subscription.currentBillingPeriodEnd
+    ? new Date(subscription.currentBillingPeriodEnd)
+    : undefined
+
+  // Unified subject line for all Paid → Paid adjustments (regardless of direction)
+  // per Apple-inspired patterns in subscription-email-improvements.md
+  const result = await safeSend({
+    from: getFromAddress({
+      recipientType: 'customer',
+      organizationName: organization.name,
+    }),
+    bcc: getBccForLivemode(subscription.livemode),
+    to: [customer.email],
+    subject: formatEmailSubject(
+      'Your Subscription has been Updated',
+      subscription.livemode
+    ),
+    react: await CustomerSubscriptionAdjustedEmail({
+      customerName: customer.name,
+      organizationName: organization.name,
+      organizationLogoUrl: organization.logoURL || undefined,
+      organizationId: organization.id,
+      adjustmentType: payload.adjustmentType,
+      previousItems: payload.previousItems,
+      newItems: payload.newItems,
+      previousTotalPrice,
+      newTotalPrice,
+      currency: price.currency,
+      interval: subscription.interval ?? undefined,
+      prorationAmount: payload.prorationAmount,
+      effectiveDate: new Date(payload.effectiveDate),
+      nextBillingDate,
+    }),
+  })
+
+  if (result?.error) {
+    logger.error(
+      'Error sending customer subscription adjusted email',
+      {
+        error: result.error,
+      }
+    )
+    return Result.err(new PaymentError('Failed to send email'))
+  }
+
+  return Result.ok({
+    message:
+      'Customer subscription adjusted notification sent successfully',
+  })
+}
+
 const sendCustomerSubscriptionAdjustedNotificationTask = task({
   id: 'send-customer-subscription-adjusted-notification',
   maxDuration: 60,
@@ -39,101 +187,8 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
     payload: SendCustomerSubscriptionAdjustedNotificationPayload,
     { ctx }
   ) => {
-    logger.log(
-      'Sending customer subscription adjusted notification',
-      {
-        payload,
-        attempt: ctx.attempt,
-      }
-    )
-
-    const { organization, customer, subscription, price } =
-      await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
-          {
-            organizationId: payload.organizationId,
-            customerId: payload.customerId,
-            subscriptionId: payload.subscriptionId,
-            include: ['price'],
-          },
-          transaction
-        )
-      })
-
-    if (!price) {
-      throw new Error('Price not found for subscription')
-    }
-
-    if (!customer.email) {
-      logger.warn('Customer has no email address', {
-        customerId: customer.id,
-      })
-      return {
-        message:
-          'Customer has no email address - skipping notification',
-      }
-    }
-
-    // Calculate totals from items
-    const previousTotalPrice = payload.previousItems.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0
-    )
-    const newTotalPrice = payload.newItems.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0
-    )
-
-    // Get next billing date from subscription's current period end
-    const nextBillingDate = subscription.currentBillingPeriodEnd
-      ? new Date(subscription.currentBillingPeriodEnd)
-      : undefined
-
-    // Unified subject line for all Paid → Paid adjustments (regardless of direction)
-    // per Apple-inspired patterns in subscription-email-improvements.md
-    const result = await safeSend({
-      from: getFromAddress({
-        recipientType: 'customer',
-        organizationName: organization.name,
-      }),
-      bcc: getBccForLivemode(subscription.livemode),
-      to: [customer.email],
-      subject: formatEmailSubject(
-        'Your Subscription has been Updated',
-        subscription.livemode
-      ),
-      react: await CustomerSubscriptionAdjustedEmail({
-        customerName: customer.name,
-        organizationName: organization.name,
-        organizationLogoUrl: organization.logoURL || undefined,
-        organizationId: organization.id,
-        adjustmentType: payload.adjustmentType,
-        previousItems: payload.previousItems,
-        newItems: payload.newItems,
-        previousTotalPrice,
-        newTotalPrice,
-        currency: price.currency,
-        interval: subscription.interval ?? undefined,
-        prorationAmount: payload.prorationAmount,
-        effectiveDate: new Date(payload.effectiveDate),
-        nextBillingDate,
-      }),
-    })
-
-    if (result?.error) {
-      logger.error(
-        'Error sending customer subscription adjusted email',
-        {
-          error: result.error,
-        }
-      )
-      throw new Error('Failed to send email')
-    }
-
-    return {
-      message:
-        'Customer subscription adjusted notification sent successfully',
-    }
+    logger.log('Task context', { ctx, attempt: ctx.attempt })
+    return runSendCustomerSubscriptionAdjustedNotification(payload)
   },
 })
 

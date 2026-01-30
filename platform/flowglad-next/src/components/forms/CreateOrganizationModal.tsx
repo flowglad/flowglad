@@ -1,14 +1,14 @@
 'use client'
 
+import {
+  type CreateOrganizationInput,
+  createOrganizationSchema,
+} from '@db-core/schema/organizations'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
 import { useAuthContext } from '@/contexts/authContext'
-import {
-  type CreateOrganizationInput,
-  createOrganizationSchema,
-} from '@/db/schema/organizations'
 
 interface CreateOrganizationModalProps {
   isOpen: boolean
@@ -23,12 +23,12 @@ const CreateOrganizationModal: React.FC<
   const router = useRouter()
   const trpcContext = trpc.useContext()
 
-  const defaultValues: CreateOrganizationInput = {
+  const getDefaultValues = (): CreateOrganizationInput => ({
     organization: {
       name: '',
       countryId: '',
     },
-  }
+  })
 
   return (
     <FormModal
@@ -36,7 +36,7 @@ const CreateOrganizationModal: React.FC<
       setIsOpen={setIsOpen}
       title="Create Organization"
       formSchema={createOrganizationSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (data) => {
         const { organization } =
           await createOrganization.mutateAsync(data)

@@ -1,5 +1,5 @@
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import { useEffect, useMemo, useState } from 'react'
-import { RevenueChartIntervalUnit } from '@/types'
 import {
   getDefaultInterval,
   getIntervalConfig,

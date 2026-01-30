@@ -1,14 +1,22 @@
-import { eq } from 'drizzle-orm'
-import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
+import {
+  PaymentStatus,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { BillingPeriodItem } from '@db-core/schema/billingPeriodItems'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
 import {
   type SubscriptionItem,
   subscriptionItems,
-} from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
-import { standardSubscriptionSelectSchema } from '@/db/schema/subscriptions'
+} from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import { standardSubscriptionSelectSchema } from '@db-core/schema/subscriptions'
+import { NotFoundError as DbNotFoundError } from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { eq } from 'drizzle-orm'
 import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
@@ -32,16 +40,16 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import {
+  ConflictError,
+  NotFoundError,
+  TerminalStateError,
+  ValidationError,
+} from '@/errors'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
-import {
-  PaymentStatus,
-  PriceType,
-  SubscriptionAdjustmentTiming,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
+import { SubscriptionAdjustmentTiming } from '@/types'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -252,10 +260,9 @@ export const syncSubscriptionWithActiveItems = async (
     // No currently active items - this can happen for "AtEndOfCurrentBillingPeriod" timing
     // where old items are expired but new items haven't started yet.
     // In this case, don't update the subscription record and return current state.
-    const currentSubscription = (await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )) as Subscription.StandardRecord
+    const currentSubscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap() as Subscription.StandardRecord
     return currentSubscription
   }
 
@@ -283,10 +290,9 @@ export const syncSubscriptionWithActiveItems = async (
     )
   }
   // Get current subscription to preserve required fields
-  const currentSubscription = await selectSubscriptionById(
-    subscriptionId,
-    transaction
-  )
+  const currentSubscription = (
+    await selectSubscriptionById(subscriptionId, transaction)
+  ).unwrap()
 
   // Update subscription record with primary item info
   const subscriptionUpdate: Subscription.Update = {
@@ -329,81 +335,155 @@ export interface AdjustSubscriptionResult {
 }
 
 /**
- * Adjusts a subscription by changing its subscription items and handling proration.
- *
- * For adjustments with a net charge (> 0) and proration enabled:
- * - Calculates proration based on fair value (old plan for time used + new plan for time remaining)
- * - Creates billing period items for the proration amount
- * - Creates and executes a billing run immediately to charge the customer
- * - Subscription items are updated in processOutcomeForBillingRun after payment succeeds
- *
- * For adjustments with proration disabled (prorateCurrentBillingPeriod: false):
- * - Applies subscription item changes immediately without mid-period charge
- * - New pricing takes effect immediately but customer is not charged until next billing period
- *
- * For zero-amount adjustments (downgrades with no refund):
- * - Handles subscription item changes directly via handleSubscriptionItemAdjustment
- * - Syncs the subscription record with updated items
- * - No billing run is created since no payment is needed
- *
- * Supports:
- * - priceSlug resolution: Use priceSlug instead of priceId to reference prices
- * - Terse subscription items: Just specify priceId/priceSlug and quantity
- * - Auto timing: Automatically determines timing based on upgrade vs downgrade
- * - prorateCurrentBillingPeriod: Control whether mid-period charges are applied (default: true)
- *
- * @param input - The adjustment parameters including new subscription items and timing
- * @param organization - The organization making the adjustment
- * @param ctx - Transaction context with database transaction and effect callbacks
- * @returns The updated subscription, subscription items, and metadata about the adjustment
+ * Result of successful adjustment calculation preview.
+ * Contains all the information needed to display a preview to the user.
  */
-export const adjustSubscription = async (
+export interface AdjustmentCalculationResult {
+  canAdjust: true
+  /** Epoch milliseconds when this preview was generated - for staleness detection */
+  previewGeneratedAt: number
+  /** The proration amount that will be charged (capped at 0 for downgrades) */
+  prorationAmount: number
+  /** The raw net charge before capping (can be negative for downgrades) */
+  rawNetCharge: number
+  /** Total price of the current plan */
+  currentPlanTotal: number
+  /** Total price of the new plan */
+  newPlanTotal: number
+  /** The resolved timing (immediate or end-of-period) */
+  resolvedTiming:
+    | SubscriptionAdjustmentTiming.Immediately
+    | SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+  /** Epoch milliseconds when the adjustment will take effect */
+  effectiveDate: number
+  /** Whether this is an upgrade (new plan total > current plan total) */
+  isUpgrade: boolean
+  /** Percentage through the current billing period (0-1) */
+  percentThroughBillingPeriod: number
+  /** Epoch milliseconds when the current billing period ends */
+  billingPeriodEnd: number
+  /** ID of the payment method that will be charged, if applicable */
+  paymentMethodId: string | null
+  /** Current subscription items */
+  currentSubscriptionItems: SubscriptionItem.Record[]
+  /** Resolved new subscription items with priceId and all fields populated */
+  resolvedNewSubscriptionItems: SubscriptionItem.ClientInsert[]
+}
+
+/**
+ * Result of failed adjustment calculation preview.
+ * Contains the reason the adjustment cannot be made.
+ */
+export interface AdjustmentCalculationFailure {
+  canAdjust: false
+  /** Epoch milliseconds when this preview was generated - for consistency */
+  previewGeneratedAt: number
+  /** Human-readable reason the adjustment cannot be made */
+  reason: string
+}
+
+/**
+ * Union type for adjustment calculation output.
+ * Either a successful calculation with all details, or a failure with reason.
+ */
+export type AdjustmentCalculationOutput =
+  | AdjustmentCalculationResult
+  | AdjustmentCalculationFailure
+
+/**
+ * Calculates a preview of a subscription adjustment without making any changes.
+ * Returns all the information needed to display a preview to the user,
+ * including whether the adjustment can be made and why not if it can't.
+ *
+ * This function contains the validation and calculation logic extracted from
+ * `adjustSubscription` so that both the preview and actual adjustment use
+ * the same logic.
+ *
+ * @param input - The adjustment parameters
+ * @param transaction - Database transaction
+ * @returns Either a successful calculation result or a failure with reason
+ */
+export const calculateAdjustmentPreview = async (
   input: AdjustSubscriptionParams,
-  organization: Organization.Record,
-  ctx: TransactionEffectsContext
-): Promise<AdjustSubscriptionResult> => {
-  const { transaction } = ctx
+  transaction: DbTransaction
+): Promise<AdjustmentCalculationOutput> => {
+  const previewGeneratedAt = Date.now()
   const { adjustment, id } = input
   const { newSubscriptionItems } = adjustment
   const requestedTiming = adjustment.timing
-  // Extract prorateCurrentBillingPeriod - defaults to true if not provided
-  const shouldProrate =
-    'prorateCurrentBillingPeriod' in adjustment
-      ? adjustment.prorateCurrentBillingPeriod
-      : true
-  const subscription = await selectSubscriptionById(id, transaction)
+
+  // Fetch subscription
+  const subscriptionResult = await selectSubscriptionById(
+    id,
+    transaction
+  )
+  if (Result.isError(subscriptionResult)) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason: `Subscription not found: ${id}`,
+    }
+  }
+  const subscription = subscriptionResult.value
+
+  // Validate subscription state
   if (isSubscriptionInTerminalState(subscription.status)) {
-    throw new Error('Subscription is in terminal state')
-  }
-  if (subscription.status === SubscriptionStatus.CreditTrial) {
-    throw new Error('Credit trial subscriptions cannot be adjusted.')
-  }
-  if (!subscription.renews) {
-    throw new Error(
-      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
-    )
-  }
-  if (subscription.doNotCharge) {
-    throw new Error(
-      'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
-    )
-  }
-  if (subscription.isFreePlan) {
-    throw new Error(
-      'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
-    )
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason: `Subscription is in terminal state: ${subscription.status}`,
+    }
   }
 
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason: 'Credit trial subscriptions cannot be adjusted.',
+    }
+  }
+
+  if (!subscription.renews) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason: `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`,
+    }
+  }
+
+  if (subscription.doNotCharge) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.',
+    }
+  }
+
+  if (subscription.isFreePlan) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.',
+    }
+  }
+
+  // Get current billing period
   const currentBillingPeriodForSubscription =
     await selectCurrentBillingPeriodForSubscription(
       subscription.id,
       transaction
     )
   if (!currentBillingPeriodForSubscription) {
-    throw new Error('Current billing period not found')
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason: 'No current billing period found for subscription.',
+    }
   }
 
-  // Get the subscription's pricing model for resolving priceSlug
+  // Resolve prices
   const pricingModelId = subscription.pricingModelId
 
   // Collect all slugs and price IDs that need resolution
@@ -414,7 +494,7 @@ export const adjustSubscription = async (
   const priceIdsToResolve = newSubscriptionItems
     .filter((item) => isTerseSubscriptionItem(item) && !hasSlug(item))
     .map((item) => (item as TerseSubscriptionItem).priceId)
-    .filter((id): id is string => !!id)
+    .filter((priceId): priceId is string => !!priceId)
 
   // Batch fetch prices by slug (scoped to pricing model)
   const pricesBySlug = new Map<string, Price.Record>()
@@ -461,14 +541,16 @@ export const adjustSubscription = async (
   for (const item of newSubscriptionItems) {
     if (hasSlug(item)) {
       // Try slug first, then fall back to ID lookup
-      let resolvedPrice =
+      const resolvedPrice =
         pricesBySlug.get(item.priceSlug) ??
         pricesById.get(item.priceSlug)
 
       if (!resolvedPrice) {
-        throw new Error(
-          `Price "${item.priceSlug}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
-        )
+        return {
+          canAdjust: false,
+          previewGeneratedAt,
+          reason: `Price not found: ${item.priceSlug}`,
+        }
       }
 
       // Check if this is a terse item or a full item with priceSlug
@@ -495,9 +577,11 @@ export const adjustSubscription = async (
       // Terse item with priceId: expand to full subscription item
       const price = pricesById.get(item.priceId)
       if (!price) {
-        throw new Error(
-          `Price "${item.priceId}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
-        )
+        return {
+          canAdjust: false,
+          previewGeneratedAt,
+          reason: `Price not found: ${item.priceId}`,
+        }
       }
       resolvedSubscriptionItems.push({
         name: price.name,
@@ -516,43 +600,54 @@ export const adjustSubscription = async (
     }
   }
 
-  // Users should not be passing in manuallyCreated items here
-  // Just in case, we will filter them out
+  // Filter out manually created items
   const nonManualSubscriptionItems = resolvedSubscriptionItems.filter(
     isNonManualSubscriptionItem
   )
 
   // Validate quantity and unitPrice for non-manual items
-  nonManualSubscriptionItems.forEach((item) => {
+  for (const item of nonManualSubscriptionItems) {
     if (item.quantity <= 0) {
-      throw new Error(
-        `Subscription item quantity must be greater than zero. Received: ${item.quantity}`
-      )
+      return {
+        canAdjust: false,
+        previewGeneratedAt,
+        reason: `Subscription item quantity must be greater than zero. Received: ${item.quantity}`,
+      }
     }
     if (item.unitPrice < 0) {
-      throw new Error(
-        `Subscription item unit price cannot be negative. Received: ${item.unitPrice}`
-      )
+      return {
+        canAdjust: false,
+        previewGeneratedAt,
+        reason: `Subscription item unit price cannot be negative. Received: ${item.unitPrice}`,
+      }
     }
-  })
+  }
 
+  // Validate price types
   const priceIds = nonManualSubscriptionItems
     .map((item) => item.priceId)
     .filter((priceId): priceId is string => priceId != null)
   const prices = await selectPrices({ id: priceIds }, transaction)
   const priceMap = new Map(prices.map((price) => [price.id, price]))
-  nonManualSubscriptionItems.forEach((item) => {
+  for (const item of nonManualSubscriptionItems) {
     const price = priceMap.get(item.priceId!)
     if (!price) {
-      throw new Error(`Price ${item.priceId} not found`)
+      return {
+        canAdjust: false,
+        previewGeneratedAt,
+        reason: `Price not found: ${item.priceId}`,
+      }
     }
     if (price.type !== PriceType.Subscription) {
-      throw new Error(
-        `Only recurring prices can be used in subscriptions. Price ${price.id} is of type ${price.type}`
-      )
+      return {
+        canAdjust: false,
+        previewGeneratedAt,
+        reason: `Only recurring prices can be used in subscriptions. Price ${price.id} is of type ${price.type}`,
+      }
     }
-  })
+  }
 
+  // Get existing subscription items
   const existingSubscriptionItems =
     await selectCurrentlyActiveSubscriptionItems(
       { subscriptionId: subscription.id },
@@ -560,7 +655,7 @@ export const adjustSubscription = async (
       transaction
     )
 
-  // Calculate total prices for old and new plans to determine if this is an upgrade
+  // Calculate total prices for old and new plans
   const oldPlanTotalPrice = existingSubscriptionItems.reduce(
     (sum, item) => sum + item.unitPrice * item.quantity,
     0
@@ -571,10 +666,9 @@ export const adjustSubscription = async (
   )
 
   // Validate resource capacity for downgrades
-  // Batch fetch all resource features and claim counts to avoid N+1 queries
   const itemPriceIds = nonManualSubscriptionItems
     .map((item) => item.priceId)
-    .filter((id): id is string => id != null)
+    .filter((priceId): priceId is string => priceId != null)
 
   if (itemPriceIds.length > 0) {
     // Batch fetch resource features for all prices
@@ -602,7 +696,6 @@ export const adjustSubscription = async (
         : new Map<string, number>()
 
     // Aggregate capacity by resourceId across all subscription items
-    // Multiple items may provide capacity for the same resource
     const resourceCapacityMap = new Map<
       string,
       { totalCapacity: number; featureSlug: string }
@@ -614,7 +707,6 @@ export const adjustSubscription = async (
         priceToResourceFeatures.get(newItem.priceId) ?? []
 
       for (const feature of resourceFeatures) {
-        // Calculate capacity contribution: feature.amount (per unit) * item quantity
         const capacityContribution = feature.amount * newItem.quantity
         const existing = resourceCapacityMap.get(feature.resourceId)
         if (existing) {
@@ -636,11 +728,14 @@ export const adjustSubscription = async (
       const activeClaims = resourceClaimCounts.get(resourceId) ?? 0
 
       if (activeClaims > totalCapacity) {
-        throw new Error(
-          `Cannot reduce ${featureSlug} capacity to ${totalCapacity}. ` +
+        return {
+          canAdjust: false,
+          previewGeneratedAt,
+          reason:
+            `Cannot reduce capacity to ${totalCapacity}. ` +
             `${activeClaims} resources are currently claimed. ` +
-            `Release ${activeClaims - totalCapacity} claims before downgrading.`
-        )
+            `Release ${activeClaims - totalCapacity} claims before downgrading.`,
+        }
       }
     }
   }
@@ -665,7 +760,7 @@ export const adjustSubscription = async (
     currentBillingPeriodForSubscription
   )
 
-  // Use the new correct proration calculation
+  // Calculate proration
   const { rawNetCharge, netChargeAmount } =
     await calculateCorrectProrationAmount(
       currentBillingPeriodForSubscription,
@@ -675,32 +770,251 @@ export const adjustSubscription = async (
       transaction
     )
 
-  // Validate: End-of-period adjustments should only be used for downgrades (zero or negative net charge)
-  //
-  // IMPORTANT:
-  // `rawNetCharge` is derived from "fair value - already paid". It can be positive even for a downgrade
-  // if the current billing period hasn't been paid yet. For timing validation, we only care whether
-  // this adjustment is an upgrade in plan price (newPlanTotalPrice > oldPlanTotalPrice).
+  // Validate: End-of-period adjustments should only be used for downgrades
   if (
     resolvedTiming ===
       SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod &&
     newPlanTotalPrice > oldPlanTotalPrice
   ) {
-    throw new Error(
-      'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades (zero or negative net charge). ' +
-        'For upgrades or adjustments with a positive charge, use Immediately timing instead.'
-    )
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades (zero or negative net charge). ' +
+        'For upgrades or adjustments with a positive charge, use Immediately timing instead.',
+    }
   }
 
-  // End-of-period adjustments never create mid-period proration charges or billing runs.
-  // Even if `calculateCorrectProrationAmount` yields a positive `netChargeAmount` (e.g. the
-  // current period hasn't been paid yet), we still should not charge immediately when the
-  // change is scheduled for the end of the current billing period.
+  // End-of-period adjustments never create mid-period proration charges
   const effectiveNetChargeAmount =
     resolvedTiming ===
     SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
       ? 0
       : netChargeAmount
+
+  // Determine if we need a payment method for immediate proration
+  const shouldProrate =
+    'prorateCurrentBillingPeriod' in adjustment
+      ? adjustment.prorateCurrentBillingPeriod
+      : true
+
+  const paymentMethodId: string | null =
+    subscription.defaultPaymentMethodId ??
+    subscription.backupPaymentMethodId ??
+    null
+
+  // Validate payment method for immediate prorated adjustments
+  if (
+    effectiveNetChargeAmount > 0 &&
+    shouldProrate &&
+    !paymentMethodId
+  ) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'No payment method found for subscription. A payment method is required for immediate adjustments with proration.',
+    }
+  }
+
+  // Proration amount is the effective net charge amount (or 0 if proration is disabled)
+  const prorationAmount =
+    effectiveNetChargeAmount > 0 && shouldProrate
+      ? effectiveNetChargeAmount
+      : 0
+
+  return {
+    canAdjust: true,
+    previewGeneratedAt,
+    prorationAmount,
+    rawNetCharge,
+    currentPlanTotal: oldPlanTotalPrice,
+    newPlanTotal: newPlanTotalPrice,
+    resolvedTiming,
+    effectiveDate: adjustmentDate,
+    isUpgrade,
+    percentThroughBillingPeriod: split.beforePercentage,
+    billingPeriodEnd: currentBillingPeriodForSubscription.endDate,
+    paymentMethodId,
+    currentSubscriptionItems: existingSubscriptionItems,
+    resolvedNewSubscriptionItems: nonManualSubscriptionItems,
+  }
+}
+
+/**
+ * Converts a preview failure reason to an appropriate domain error.
+ *
+ * IMPORTANT: This function relies on string matching against reason text from
+ * calculateAdjustmentPreview. If reason message formats change, update the
+ * matching logic here. Falls back to ValidationError which preserves the
+ * full reason text, so functionality is not broken on mismatch.
+ */
+const convertPreviewFailureToError = (
+  reason: string,
+  subscriptionId: string
+): AdjustSubscriptionError => {
+  // Check for terminal state
+  if (reason.includes('terminal state')) {
+    const statusMatch = reason.match(/terminal state: (\w+)/)
+    const status = statusMatch ? statusMatch[1] : 'unknown'
+    return new TerminalStateError(
+      'Subscription',
+      subscriptionId,
+      status
+    )
+  }
+
+  // Check for not found errors (explicit "not found" phrase)
+  if (reason.includes('not found')) {
+    if (reason.includes('Subscription')) {
+      return new NotFoundError('Subscription', subscriptionId)
+    }
+    if (
+      reason.includes('billing period') ||
+      reason.includes('BillingPeriod')
+    ) {
+      return new NotFoundError(
+        'BillingPeriod',
+        `subscription:${subscriptionId}`
+      )
+    }
+    if (reason.includes('Price')) {
+      const priceMatch = reason.match(/Price not found: (.+)/)
+      const priceId = priceMatch ? priceMatch[1] : 'unknown'
+      return new NotFoundError('Price', priceId)
+    }
+    return new NotFoundError('Resource', 'unknown')
+  }
+
+  // Check for billing period issues (e.g., "No current billing period found")
+  // These are effectively "not found" errors
+  if (
+    reason.includes('billing period') &&
+    (reason.toLowerCase().includes('no ') || reason.includes('found'))
+  ) {
+    return new NotFoundError(
+      'BillingPeriod',
+      `subscription:${subscriptionId}`
+    )
+  }
+
+  // Check for resource capacity conflicts
+  if (reason.includes('Cannot reduce capacity')) {
+    return new ConflictError('resource', reason)
+  }
+
+  // Default to validation error
+  return new ValidationError('subscription', reason)
+}
+
+/**
+ * Adjusts a subscription by changing its subscription items and handling proration.
+ *
+ * For adjustments with a net charge (> 0) and proration enabled:
+ * - Calculates proration based on fair value (old plan for time used + new plan for time remaining)
+ * - Creates billing period items for the proration amount
+ * - Creates and executes a billing run immediately to charge the customer
+ * - Subscription items are updated in processOutcomeForBillingRun after payment succeeds
+ *
+ * For adjustments with proration disabled (prorateCurrentBillingPeriod: false):
+ * - Applies subscription item changes immediately without mid-period charge
+ * - New pricing takes effect immediately but customer is not charged until next billing period
+ *
+ * For zero-amount adjustments (downgrades with no refund):
+ * - Handles subscription item changes directly via handleSubscriptionItemAdjustment
+ * - Syncs the subscription record with updated items
+ * - No billing run is created since no payment is needed
+ *
+ * Supports:
+ * - priceSlug resolution: Use priceSlug instead of priceId to reference prices
+ * - Terse subscription items: Just specify priceId/priceSlug and quantity
+ * - Auto timing: Automatically determines timing based on upgrade vs downgrade
+ * - prorateCurrentBillingPeriod: Control whether mid-period charges are applied (default: true)
+ *
+ * @param input - The adjustment parameters including new subscription items and timing
+ * @param organization - The organization making the adjustment
+ * @param ctx - Transaction context with database transaction and effect callbacks
+ * @returns The updated subscription, subscription items, and metadata about the adjustment
+ */
+export type AdjustSubscriptionError =
+  | TerminalStateError
+  | ValidationError
+  | NotFoundError
+  | ConflictError
+
+export const adjustSubscription = async (
+  input: AdjustSubscriptionParams,
+  organization: Organization.Record,
+  ctx: TransactionEffectsContext
+): Promise<
+  Result<AdjustSubscriptionResult, AdjustSubscriptionError>
+> => {
+  const { transaction } = ctx
+  const { adjustment, id } = input
+
+  // Extract prorateCurrentBillingPeriod - defaults to true if not provided
+  const shouldProrate =
+    'prorateCurrentBillingPeriod' in adjustment
+      ? adjustment.prorateCurrentBillingPeriod
+      : true
+
+  // Step 1: Calculate the adjustment preview (validation + calculation)
+  const previewResult = await calculateAdjustmentPreview(
+    input,
+    transaction
+  )
+
+  // Step 2: If adjustment cannot be made, convert to appropriate error
+  if (!previewResult.canAdjust) {
+    return Result.err(
+      convertPreviewFailureToError(previewResult.reason, id)
+    )
+  }
+
+  // Step 3: Use the calculation results to proceed with the mutation
+  const {
+    resolvedTiming,
+    effectiveDate: adjustmentDate,
+    isUpgrade,
+    prorationAmount,
+    percentThroughBillingPeriod,
+    billingPeriodEnd,
+    resolvedNewSubscriptionItems: nonManualSubscriptionItems,
+    currentSubscriptionItems: existingSubscriptionItems,
+    paymentMethodId,
+  } = previewResult
+
+  // Fetch subscription and billing period for mutation
+  // (we need the full records for the mutation logic)
+  const subscriptionResult = await selectSubscriptionById(
+    id,
+    transaction
+  )
+  if (Result.isError(subscriptionResult)) {
+    return Result.err(new NotFoundError('Subscription', id))
+  }
+  const subscription = subscriptionResult.value
+
+  const currentBillingPeriodForSubscription =
+    await selectCurrentBillingPeriodForSubscription(
+      subscription.id,
+      transaction
+    )
+  if (!currentBillingPeriodForSubscription) {
+    return Result.err(
+      new NotFoundError(
+        'BillingPeriod',
+        `subscription:${subscription.id}`
+      )
+    )
+  }
+
+  // Calculate effective net charge (0 for end-of-period, prorationAmount for immediate)
+  const effectiveNetChargeAmount =
+    resolvedTiming ===
+    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+      ? 0
+      : prorationAmount
 
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
@@ -710,15 +1024,13 @@ export const adjustSubscription = async (
 
   if (effectiveNetChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
-    const prorationPercentage = (split.afterPercentage * 100).toFixed(
-      1
-    )
+    // afterPercentage = 1 - beforePercentage (percentThroughBillingPeriod)
+    const afterPercentage = 1 - percentThroughBillingPeriod
+    const prorationPercentage = (afterPercentage * 100).toFixed(1)
     const adjustmentDateStr = new Date(adjustmentDate)
       .toISOString()
       .split('T')[0]
-    const periodEndStr = new Date(
-      currentBillingPeriodForSubscription.endDate
-    )
+    const periodEndStr = new Date(billingPeriodEnd)
       .toISOString()
       .split('T')[0]
 
@@ -737,24 +1049,23 @@ export const adjustSubscription = async (
       prorationAdjustments,
       transaction
     )
-    const paymentMethodId: string | null =
-      subscription.defaultPaymentMethodId ??
-      subscription.backupPaymentMethodId ??
-      null
+
     /**
      * FIXME: create a more helpful message for adjustment subscriptions on trial
      */
     if (!paymentMethodId) {
-      throw new Error(
-        `Proration adjust for subscription ${subscription.id} failed. No default or backup payment method was found for the subscription`
+      return Result.err(
+        new ValidationError(
+          'paymentMethod',
+          `Proration adjust for subscription ${subscription.id} failed. No default or backup payment method was found for the subscription`
+        )
       )
     }
-    const paymentMethod = await selectPaymentMethodById(
-      paymentMethodId,
-      transaction
-    )
+    const paymentMethod = (
+      await selectPaymentMethodById(paymentMethodId, transaction)
+    ).unwrap()
     // TODO: maybe only create billing run if prorationAdjustments.length > 0
-    const billingRun = await createBillingRun(
+    const billingRunResult = await createBillingRun(
       {
         billingPeriod: currentBillingPeriodForSubscription,
         paymentMethod,
@@ -763,6 +1074,10 @@ export const adjustSubscription = async (
       },
       transaction
     )
+    if (Result.isError(billingRunResult)) {
+      return Result.err(billingRunResult.error)
+    }
+    const billingRun = billingRunResult.value
 
     // Execute billing run immediately after creation
     // executeBillingRun uses its own transactions internally
@@ -794,7 +1109,7 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    await handleSubscriptionItemAdjustment(
+    const adjustmentResult = await handleSubscriptionItemAdjustment(
       {
         subscriptionId: id,
         newSubscriptionItems: preparedItems,
@@ -802,6 +1117,9 @@ export const adjustSubscription = async (
       },
       ctx
     )
+    if (Result.isError(adjustmentResult)) {
+      return Result.err(adjustmentResult.error)
+    }
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
     // Sync using current time to preserve the current subscription state
@@ -821,16 +1139,16 @@ export const adjustSubscription = async (
     )
 
     // Send adjustment notifications (no proration - either downgrade or upgrade with proration disabled)
-    const price = await selectPriceById(
+    const priceResult = await selectPriceById(
       subscription.priceId,
       transaction
     )
-
-    if (!price) {
-      throw new Error(
-        `Price ${subscription.priceId} not found for subscription ${subscription.id}`
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new NotFoundError('Price', subscription.priceId)
       )
     }
+    const price = priceResult.unwrap()
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({
       subscriptionId: id,
@@ -881,15 +1199,14 @@ export const adjustSubscription = async (
       transaction
     )
 
-  const updatedSubscription = await selectSubscriptionById(
-    id,
-    transaction
-  )
+  const updatedSubscription = (
+    await selectSubscriptionById(id, transaction)
+  ).unwrap()
   // Note: For billing run path, cache invalidation happens in
   // handleSubscriptionItemAdjustment (called by processOutcomeForBillingRun)
   // after the actual subscription item changes are applied.
 
-  return {
+  return Result.ok({
     subscription: standardSubscriptionSelectSchema.parse(
       updatedSubscription
     ),
@@ -897,5 +1214,5 @@ export const adjustSubscription = async (
     resolvedTiming,
     isUpgrade,
     pendingBillingRunId,
-  }
+  })
 }

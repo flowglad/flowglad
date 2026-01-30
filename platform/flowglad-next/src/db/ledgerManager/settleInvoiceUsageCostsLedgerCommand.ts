@@ -17,20 +17,33 @@
  * This final step zeroes out the usage debt for the period, completing the settlement.
  */
 
-import type {
-  LedgerCommandResult,
-  SettleInvoiceUsageCostsLedgerCommand,
-} from '@/db/ledgerManager/ledgerManagerTypes'
-import type { Invoice } from '@/db/schema/invoices'
-import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import {
+  LedgerEntryDirection,
+  LedgerEntryStatus,
+  LedgerEntryType,
+  LedgerTransactionType,
+  SubscriptionItemType,
+  UsageCreditApplicationStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+  UsageCreditType,
+} from '@db-core/enums'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { LedgerAccount } from '@db-core/schema/ledgerAccounts'
 import {
   type LedgerEntry,
   ledgerEntryNulledSourceIdColumns,
   usageCostSelectSchema,
-} from '@/db/schema/ledgerEntries'
-import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
-import type { UsageCreditApplication } from '@/db/schema/usageCreditApplications'
-import type { UsageCredit } from '@/db/schema/usageCredits'
+} from '@db-core/schema/ledgerEntries'
+import type { LedgerTransaction } from '@db-core/schema/ledgerTransactions'
+import type { UsageCreditApplication } from '@db-core/schema/usageCreditApplications'
+import type { UsageCredit } from '@db-core/schema/usageCredits'
+import { Result } from 'better-result'
+import type {
+  LedgerCommandResult,
+  SettleInvoiceUsageCostsLedgerCommand,
+} from '@/db/ledgerManager/ledgerManagerTypes'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import {
   bulkInsertLedgerEntries,
@@ -40,20 +53,9 @@ import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMeth
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
-import {
-  LedgerEntryDirection,
-  LedgerEntryStatus,
-  LedgerEntryType,
-  LedgerTransactionInitiatingSourceType,
-  LedgerTransactionType,
-  SubscriptionItemType,
-  UsageCreditApplicationStatus,
-  UsageCreditSourceReferenceType,
-  UsageCreditStatus,
-  UsageCreditType,
-} from '@/types'
+import { NotFoundError } from '@/errors'
+import { LedgerTransactionInitiatingSourceType } from '@/types'
 import core from '@/utils/core'
-import type { InvoiceLineItem } from '../schema/invoiceLineItems'
 import { selectBillingRunById } from '../tableMethods/billingRunMethods'
 
 /**
@@ -126,11 +128,12 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
       `Invoice ${invoice.id} does not have a billing run ID.`
     )
   }
-  const billingRun = await selectBillingRunById(
+  // Validate billing run exists
+  const billingRunResult = await selectBillingRunById(
     invoice.billingRunId,
     transaction
   )
-  if (!billingRun) {
+  if (Result.isError(billingRunResult)) {
     throw new Error(`Billing run ${invoice.billingRunId} not found.`)
   }
   const ledgerAccountIds = invoiceLineItems
@@ -352,24 +355,27 @@ const createUsageCreditsForInvoiceLineItems = async (
   invoiceLineItems: InvoiceLineItem.Record[],
   ledgerAccountsById: Map<string, LedgerAccount.Record>,
   transaction: DbTransaction
-): Promise<UsageCredit.Record[]> => {
+): Promise<Result<UsageCredit.Record[], NotFoundError>> => {
   const usageCreditInserts: UsageCredit.Insert[] = []
   const usageCostLineItems = invoiceLineItems.filter(
     (lineItem) => lineItem.type === SubscriptionItemType.Usage
   )
-  usageCostLineItems.forEach((lineItem) => {
+  for (const lineItem of usageCostLineItems) {
     const ledgerAccount = ledgerAccountsById.get(
       lineItem.ledgerAccountId!
     )
     if (!ledgerAccount) {
-      throw new Error(
-        `Ledger account not found for line item ${lineItem.id}.`
+      return Result.err(
+        new NotFoundError(
+          'ledgerAccount',
+          `not found for line item ${lineItem.id}`
+        )
       )
     }
     usageCreditInserts.push(
       usageCreditInsertFromInvoiceLineItem(lineItem, ledgerAccount)
     )
-  })
+  }
   return await bulkInsertUsageCredits(usageCreditInserts, transaction)
 }
 
@@ -385,7 +391,7 @@ const createUsageCreditsForInvoiceLineItems = async (
 export const processSettleInvoiceUsageCostsLedgerCommand = async (
   command: SettleInvoiceUsageCostsLedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   // 1. Create the parent LedgerTransaction. All subsequent ledger entries created
   // in this command will be linked to this single transaction, providing a clear
   // audit trail for the entire settlement operation.
@@ -422,14 +428,11 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
     (ili) => ili.type === SubscriptionItemType.Usage
   )
   if (ledgerAccounts.length !== usageLineItems.length) {
-    throw new Error(
-      `Expected ${
-        command.payload.invoiceLineItems.filter(
-          (ili) => ili.type === SubscriptionItemType.Usage
-        ).length
-      } ledger accounts for usage line items, but got ${
-        ledgerAccounts.length
-      }. One of the invoice line items is attempting to settle usage costs for a ledger account that is not within its organization + subscription + livemode scope.`
+    return Result.err(
+      new NotFoundError(
+        'ledgerAccounts',
+        `Expected ${usageLineItems.length} ledger accounts for usage line items, but got ${ledgerAccounts.length}. One of the invoice line items is attempting to settle usage costs for a ledger account that is not within its organization + subscription + livemode scope.`
+      )
     )
   }
   // 3. Create maps for efficient lookups. This avoids nested loops and improves performance.
@@ -451,11 +454,16 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
       ])
   )
   // 4. Create the `UsageCredit` grant records from the paid invoice line items.
-  const usageCredits = await createUsageCreditsForInvoiceLineItems(
-    command.payload.invoiceLineItems,
-    ledgerAccountsById,
-    transaction
-  )
+  const usageCreditsResult =
+    await createUsageCreditsForInvoiceLineItems(
+      command.payload.invoiceLineItems,
+      ledgerAccountsById,
+      transaction
+    )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const usageCredits = usageCreditsResult.value
   const usageCreditsById = new Map<string, UsageCredit.Record>(
     usageCredits.map((uc) => [uc.id, uc])
   )
@@ -492,12 +500,15 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
   ]
   // 7. Bulk insert all created ledger entries into the database. This is the final
   // step that atomically records the entire settlement in the ledger.
-  const ledgerEntries = await bulkInsertLedgerEntries(
+  const ledgerEntriesResult = await bulkInsertLedgerEntries(
     allLedgerEntryInserts,
     transaction
   )
-  return {
-    ledgerTransaction,
-    ledgerEntries,
+  if (Result.isError(ledgerEntriesResult)) {
+    return Result.err(ledgerEntriesResult.error)
   }
+  return Result.ok({
+    ledgerTransaction,
+    ledgerEntries: ledgerEntriesResult.value,
+  })
 }

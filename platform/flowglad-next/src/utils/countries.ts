@@ -1,4 +1,7 @@
-import { CountryCode, StripeConnectContractType } from '@/types'
+import {
+  CountryCode,
+  StripeConnectContractType,
+} from '@db-core/enums'
 
 // Country data mapping ISO 3166-1 alpha-2 codes to country names
 export const countryNameByCountryCode: Record<CountryCode, string> = {

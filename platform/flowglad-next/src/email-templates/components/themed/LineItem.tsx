@@ -1,31 +1,37 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { Column, Row, Section, Text } from '@react-email/components'
-import * as React from 'react'
-import type { CurrencyCode } from '@/types'
+import type * as React from 'react'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
-const productDetails = {
-  marginBottom: '30px',
+const rowStyle: React.CSSProperties = {
+  width: '100%',
+  marginBottom: '12px',
 }
 
-const productNameStyle = {
+const nameStyle: React.CSSProperties = {
   fontSize: '14px',
-  fontWeight: 'bold',
-  margin: '0',
+  fontWeight: 600,
   color: '#333',
+  margin: 0,
 }
 
-const productPriceStyle = {
+const priceStyle: React.CSSProperties = {
   fontSize: '14px',
-  margin: '4px 0 0',
+  fontWeight: 600,
   color: '#333',
+  margin: 0,
+  textAlign: 'right',
 }
 
-const productQuantityStyle = {
-  fontSize: '14px',
-  margin: '4px 0 0',
-  color: '#333',
-}
-
+/**
+ * Two-column line item for invoice/receipt displays.
+ * Renders product name on left, price on right.
+ *
+ * Visual result:
+ * ```
+ * Product Name (×2)                                    $9.98
+ * ```
+ */
 export const LineItem = ({
   name,
   price,
@@ -39,34 +45,28 @@ export const LineItem = ({
   currency: CurrencyCode
   index: number
 }) => {
+  const formattedPrice =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
+  // Include quantity in display name if more than 1
+  const displayName = quantity > 1 ? `${name} (×${quantity})` : name
+
   return (
-    <Section
-      style={productDetails}
-      key={index}
-      data-testid={`line-item-${index}`}
-    >
+    <Section style={rowStyle} data-testid={`line-item-${index}`}>
       <Row>
         <Column>
           <Text
-            style={productNameStyle}
+            style={nameStyle}
             data-testid={`line-item-name-${index}`}
           >
-            {name}
+            {displayName}
           </Text>
+        </Column>
+        <Column align="right">
           <Text
-            style={productPriceStyle}
+            style={priceStyle}
             data-testid={`line-item-price-${index}`}
           >
-            {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              currency,
-              price
-            )}
-          </Text>
-          <Text
-            style={productQuantityStyle}
-            data-testid={`line-item-quantity-${index}`}
-          >
-            Quantity: {quantity}
+            {formattedPrice}
           </Text>
         </Column>
       </Row>

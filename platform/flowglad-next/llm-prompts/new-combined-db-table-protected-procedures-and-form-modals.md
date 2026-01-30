@@ -28,7 +28,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     constructUniqueIndex,
     enhancedCreateInsertSchema,
     livemodePolicy,
-  } from '@/db/tableUtils'
+  } from '@db-core/tableUtils'
   import { organizations } from '@/db/schema/organizations'
   import { createSelectSchema } from 'drizzle-zod'
   import { UnicornRiderStatus } from '@/types'
@@ -97,7 +97,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     - Also export the update, as well as the createUnicornRiderInputSchema and editUnicornRiderInputSchema schemas:
       ```ts
       import { createSelectSchema } from 'drizzle-zod'
-      import { enhancedCreateInsertSchema } from '@/db/tableUtils' // merge this with other imports from the same file
+      import { enhancedCreateInsertSchema } from '@db-core/tableUtils' // merge this with other imports from the same file
       import core from '@/utils/core'
       // rest of the file...
 
@@ -190,7 +190,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       createUpdateFunction,
       createSelectFunction,
       ORMMethodCreatorConfig,
-    } from '@/db/tableUtils'
+    } from '@db-core/tableUtils'
     import {
       unicornRiders,
       unicornRidersInsertSchema,
@@ -350,7 +350,7 @@ import {
   insertUnicornRider,
   selectUnicornRidersPaginated,
 } from '@/db/tableMethods/unicornRiderMethods'
-import { idInputSchema } from '@/db/tableUtils'
+import { idInputSchema } from '@db-core/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
 

@@ -1,10 +1,3 @@
-import { Result } from 'better-result'
-import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
 import {
   bulkInsertUsageEventsSchema,
   usageEventPaginatedListSchema,
@@ -12,13 +5,19 @@ import {
   usageEventsClientSelectSchema,
   usageEventsPaginatedTableRowInputSchema,
   usageEventsPaginatedTableRowOutputSchema,
-} from '@/db/schema/usageEvents'
+} from '@db-core/schema/usageEvents'
+import { idInputSchema } from '@db-core/tableUtils'
+import { z } from 'zod'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   selectUsageEventById,
   selectUsageEventsPaginated,
   selectUsageEventsTableRowData,
 } from '@/db/tableMethods/usageEventMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import {
   generateOpenApiMetas,
@@ -62,12 +61,16 @@ export const createUsageEvent = protectedProcedure
           invalidateCache,
           enqueueLedgerCommand,
         } = transactionCtx
-        const resolvedInput = await resolveUsageEventInput(
+        const resolvedInputResult = await resolveUsageEventInput(
           input,
           transaction
         )
 
-        const result = await ingestAndProcessUsageEvent(
+        // Unwrap at router boundary - converts Result errors to thrown errors for TRPC
+        const resolvedInput = resolvedInputResult.unwrap()
+
+        // Return Result directly - wrapper handles error conversion
+        return ingestAndProcessUsageEvent(
           { input: resolvedInput, livemode: ctx.livemode },
           {
             transaction,
@@ -77,7 +80,6 @@ export const createUsageEvent = protectedProcedure
             enqueueLedgerCommand,
           }
         )
-        return Result.ok(result)
       }
     )
   )
@@ -89,7 +91,9 @@ export const getUsageEvent = protectedProcedure
   .query(async ({ input, ctx }) => {
     const usageEvent = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectUsageEventById(input.id, transaction)
+        return (
+          await selectUsageEventById(input.id, transaction)
+        ).unwrap()
       },
       { apiKey: ctx.apiKey }
     )
@@ -138,9 +142,10 @@ const listUsageEventsProcedure = protectedProcedure
           transaction
         )
         return {
-          items: result.data,
+          data: result.data,
           total: result.total,
           hasMore: result.hasMore,
+          currentCursor: result.currentCursor,
           nextCursor: result.nextCursor,
         }
       },

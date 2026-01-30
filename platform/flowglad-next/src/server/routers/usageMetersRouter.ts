@@ -1,9 +1,3 @@
-import { Result } from 'better-result'
-import { z } from 'zod'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
 import {
   createUsageMeterSchema,
   editUsageMeterSchema,
@@ -11,18 +5,25 @@ import {
   usageMeterPaginatedSelectSchema,
   usageMetersClientSelectSchema,
   usageMetersTableRowDataSchema,
-} from '@/db/schema/usageMeters'
+} from '@db-core/schema/usageMeters'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
+import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
+import { z } from 'zod'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   selectUsageMeterById,
   selectUsageMetersCursorPaginated,
   selectUsageMetersPaginated,
   updateUsageMeter as updateUsageMeterDB,
 } from '@/db/tableMethods/usageMeterMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createUsageMeterTransaction } from '@/utils/usage'
@@ -49,16 +50,12 @@ export const createUsageMeter = protectedProcedure
           invalidateCache,
         } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
-        if (!userId) {
-          throw new Error(
-            'userId is required to create a usage meter'
-          )
-        }
         if (!organizationId) {
-          throw new Error(
-            'organizationId is required to create a usage meter'
-          )
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
         }
         try {
           const { usageMeter } = await createUsageMeterTransaction(
@@ -69,7 +66,6 @@ export const createUsageMeter = protectedProcedure
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode,
               organizationId,
               invalidateCache,
@@ -106,14 +102,14 @@ const updateUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+        const { invalidateCache } = transactionCtx
         try {
           const usageMeter = await updateUsageMeterDB(
             {
               ...input.usageMeter,
               id: input.id,
             },
-            transaction
+            transactionCtx
           )
 
           // Invalidate cache for this specific meter's content change
@@ -140,10 +136,9 @@ const getUsageMeter = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const usageMeter = await selectUsageMeterById(
-          input.id,
-          transaction
-        )
+        const usageMeter = (
+          await selectUsageMeterById(input.id, transaction)
+        ).unwrap()
         return { usageMeter }
       }
     )

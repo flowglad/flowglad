@@ -1,25 +1,27 @@
-import BigNumber from 'bignumber.js'
-import Stripe from 'stripe'
-import { z } from 'zod'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Country } from '@/db/schema/countries'
-import type { Customer } from '@/db/schema/customers'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type {
-  BillingAddress,
-  Organization,
-} from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import type { Purchase } from '@/db/schema/purchases'
 import {
   BusinessOnboardingStatus,
   CountryCode,
   CurrencyCode,
-  type Nullish,
   PaymentMethodType,
   StripeConnectContractType,
-} from '@/types'
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Country } from '@db-core/schema/countries'
+import type { Customer } from '@db-core/schema/customers'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type {
+  BillingAddress,
+  Organization,
+} from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
+import { Result } from 'better-result'
+import BigNumber from 'bignumber.js'
+import Stripe from 'stripe'
+import { z } from 'zod'
+import { NotFoundError, ValidationError } from '@/errors'
+import { type Nullish } from '@/types'
 import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
@@ -401,33 +403,40 @@ export const rawStringAmountToCountableCurrencyAmount = (
   return Math.round(Number(amount) * 100)
 }
 
+/**
+ * Returns true if we're using stripe-mock instead of real Stripe API.
+ * This is determined by the presence of STRIPE_MOCK_HOST in the environment.
+ */
+export const isUsingStripeMock = () => !!process.env.STRIPE_MOCK_HOST
+
 const stripeApiKey = (livemode: boolean) => {
-  // Allow integration tests to use real Stripe API key
-  // This env var is only set when running integration tests
-  if (process.env.STRIPE_INTEGRATION_TEST_MODE === 'true') {
-    const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
-    if (!key) {
-      throw new Error(
-        'STRIPE_INTEGRATION_TEST_MODE is enabled but STRIPE_TEST_MODE_SECRET_KEY is not set. ' +
-          'Integration tests require a valid Stripe test mode secret key.'
-      )
-    }
-    return key
-  }
-  if (core.IS_TEST) {
-    return 'sk_test_fake_key_1234567890abcdef'
+  // When using stripe-mock, use a dummy key (stripe-mock accepts any sk_test_* format)
+  if (isUsingStripeMock()) {
+    return 'sk_test_mock'
   }
   return livemode
     ? core.envVariable('STRIPE_SECRET_KEY')
     : core.envVariable('STRIPE_TEST_MODE_SECRET_KEY') || ''
 }
 export const stripe = (livemode: boolean) => {
-  return new Stripe(stripeApiKey(livemode), {
+  const config: Stripe.StripeConfig = {
     apiVersion: '2024-09-30.acacia',
-    httpClient: core.IS_TEST
-      ? Stripe.createFetchHttpClient()
-      : undefined,
-  })
+  }
+
+  // Use stripe-mock when STRIPE_MOCK_HOST is configured (via .env.test)
+  // Integration tests use .env.integration which does NOT set STRIPE_MOCK_HOST
+  if (isUsingStripeMock()) {
+    config.host = process.env.STRIPE_MOCK_HOST
+    config.port = 12111
+    config.protocol = 'http'
+  }
+
+  // Bun requires fetch-based HTTP client in test environment
+  if (core.IS_TEST) {
+    config.httpClient = Stripe.createFetchHttpClient()
+  }
+
+  return new Stripe(stripeApiKey(livemode), config)
 }
 
 export const createConnectedAccount = async ({
@@ -736,12 +745,15 @@ const stripeConnectTransferDataForOrganization = ({
 }: {
   organization: Organization.Record
   livemode: boolean
-}): {
-  on_behalf_of: string | undefined
-  transfer_data:
-    | Stripe.PaymentIntentCreateParams['transfer_data']
-    | undefined
-} => {
+}): Result<
+  {
+    on_behalf_of: string | undefined
+    transfer_data:
+      | Stripe.PaymentIntentCreateParams['transfer_data']
+      | undefined
+  },
+  ValidationError
+> => {
   const stripeAccountId = organization.stripeAccountId
   let on_behalf_of: string | undefined
 
@@ -751,13 +763,19 @@ const stripeConnectTransferDataForOrganization = ({
 
   if (livemode) {
     if (!stripeAccountId) {
-      throw new Error(
-        `Organization ${organization.id} does not have a Stripe account ID. Stripe account setup is a prerequisite for live mode payments.`
+      return Result.err(
+        new ValidationError(
+          'organization',
+          `Organization ${organization.id} does not have a Stripe account ID. Stripe account setup is a prerequisite for live mode payments.`
+        )
       )
     }
     if (!organization.payoutsEnabled) {
-      throw new Error(
-        `Organization ${organization.id} does not have payouts enabled.`
+      return Result.err(
+        new ValidationError(
+          'organization',
+          `Organization ${organization.id} does not have payouts enabled.`
+        )
       )
     }
     if (
@@ -770,10 +788,10 @@ const stripeConnectTransferDataForOrganization = ({
       destination: stripeAccountId,
     }
   }
-  return {
+  return Result.ok({
     on_behalf_of,
     transfer_data,
-  }
+  })
 }
 
 export const constructStripeWebhookEvent = (params: {
@@ -849,24 +867,28 @@ export const createStripeCustomer = async (params: {
  * associated with that customer.
  *
  * @param customer - The customer record with stripeCustomerId set
- * @returns The client_secret for the CustomerSession, which should be passed to the
+ * @returns Result containing the client_secret for the CustomerSession, which should be passed to the
  *          PaymentElement's options.customerSessionClientSecret
- * @throws {Error} If customer.stripeCustomerId is missing
- * @throws {StripeError} If the Stripe API call fails
  *
  * @example
  * ```typescript
- * const customerSessionClientSecret = await createCustomerSessionForCheckout(customer)
- * // Pass to PaymentElement:
- * // <PaymentElement options={{ customerSessionClientSecret }} />
+ * const result = await createCustomerSessionForCheckout(customer)
+ * if (Result.isOk(result)) {
+ *   const customerSessionClientSecret = result.value
+ *   // Pass to PaymentElement:
+ *   // <PaymentElement options={{ customerSessionClientSecret }} />
+ * }
  * ```
  */
 export const createCustomerSessionForCheckout = async (
   customer: Customer.Record
-): Promise<string> => {
+): Promise<Result<string, NotFoundError>> => {
   if (!customer.stripeCustomerId) {
-    throw new Error(
-      'Missing stripeCustomerId for customer session creation'
+    return Result.err(
+      new NotFoundError(
+        'stripeCustomerId',
+        'Missing stripeCustomerId for customer session creation'
+      )
     )
   }
   const customerSession = await stripeCall(
@@ -888,7 +910,7 @@ export const createCustomerSessionForCheckout = async (
         },
       })
   )
-  return customerSession.client_secret
+  return Result.ok(customerSession.client_secret)
 }
 
 export const createStripeTaxCalculationByPrice = async ({
@@ -904,11 +926,8 @@ export const createStripeTaxCalculationByPrice = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Allow integration tests to use real Stripe Tax API
-  if (
-    core.IS_TEST &&
-    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
-  ) {
+  // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
+  if (isUsingStripeMock()) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -958,11 +977,8 @@ export const createStripeTaxCalculationByPurchase = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Allow integration tests to use real Stripe Tax API
-  if (
-    core.IS_TEST &&
-    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
-  ) {
+  // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
+  if (isUsingStripeMock()) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
       tax_amount_exclusive: 0,
@@ -1021,7 +1037,8 @@ export const createStripeTaxTransactionFromCalculation = async ({
 }): Promise<Stripe.Tax.Transaction | null> => {
   if (
     !stripeTaxCalculationId ||
-    stripeTaxCalculationId.startsWith('notaxoverride_')
+    stripeTaxCalculationId.startsWith('notaxoverride_') ||
+    stripeTaxCalculationId.startsWith('testtaxcalc_')
   ) {
     return null
   }
@@ -1173,19 +1190,30 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
   customer?: Customer.Record
-}) => {
+  /** Direct Stripe customer ID (alternative to passing Customer.Record) */
+  stripeCustomerId?: string
+}): Promise<
+  Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
+> => {
   const {
     price,
     organization,
     checkoutSession,
     feeCalculation,
     customer,
+    stripeCustomerId,
   } = params
   const livemode = checkoutSession.livemode
-  const transferData = stripeConnectTransferDataForOrganization({
-    organization,
-    livemode,
-  })
+  const transferDataResult = stripeConnectTransferDataForOrganization(
+    {
+      organization,
+      livemode,
+    }
+  )
+  if (Result.isError(transferDataResult)) {
+    return Result.err(transferDataResult.error)
+  }
+  const transferData = transferDataResult.value
   const feeMetadata = buildFeeMetadata(feeCalculation)
   const metadata: CheckoutSessionStripeIntentMetadata & FeeMetadata =
     {
@@ -1204,7 +1232,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
         currency: price.currency,
       })
 
-  return stripeCall(
+  const paymentIntent = await stripeCall(
     'paymentIntents.create',
     {
       'stripe.amount': totalDue,
@@ -1218,9 +1246,11 @@ export const createPaymentIntentForCheckoutSession = async (params: {
         application_fee_amount: livemode ? totalFeeAmount : undefined,
         ...transferData,
         metadata,
-        customer: customer?.stripeCustomerId ?? undefined,
+        customer:
+          stripeCustomerId ?? customer?.stripeCustomerId ?? undefined,
       })
   )
+  return Result.ok(paymentIntent)
 }
 
 export const getLatestChargeForPaymentIntent = async (
@@ -1250,27 +1280,35 @@ export const dateFromStripeTimestamp = (timestamp: number) => {
 
 export const paymentMethodFromStripeCharge = (
   charge: Stripe.Charge
-) => {
+): Result<PaymentMethodType, NotFoundError | ValidationError> => {
   const paymentMethodDetails = charge.payment_method_details
   if (!paymentMethodDetails) {
-    throw new Error('No payment method details found for charge')
+    return Result.err(
+      new NotFoundError(
+        'paymentMethodDetails',
+        'No payment method details found for charge'
+      )
+    )
   }
   switch (paymentMethodDetails.type) {
     case 'card':
-      return PaymentMethodType.Card
+      return Result.ok(PaymentMethodType.Card)
     case 'card_present':
-      return PaymentMethodType.Card
+      return Result.ok(PaymentMethodType.Card)
     case 'ach_debit':
-      return PaymentMethodType.USBankAccount
+      return Result.ok(PaymentMethodType.USBankAccount)
     case 'us_bank_account':
-      return PaymentMethodType.USBankAccount
+      return Result.ok(PaymentMethodType.USBankAccount)
     case 'sepa_debit':
-      return PaymentMethodType.SEPADebit
+      return Result.ok(PaymentMethodType.SEPADebit)
     case 'link':
-      return PaymentMethodType.Link
+      return Result.ok(PaymentMethodType.Link)
     default:
-      throw new Error(
-        `Unknown payment method type: ${paymentMethodDetails.type}`
+      return Result.err(
+        new ValidationError(
+          'paymentMethodType',
+          `Unknown payment method type: ${paymentMethodDetails.type}`
+        )
       )
   }
 }
@@ -1419,7 +1457,7 @@ export const refundPayment = async (
   stripePaymentIntentId: string,
   partialAmount: number | null,
   livemode: boolean
-) => {
+): Promise<Result<Stripe.Refund, NotFoundError>> => {
   const paymentIntent = await stripeCall(
     'paymentIntents.retrieve',
     {
@@ -1430,7 +1468,12 @@ export const refundPayment = async (
       stripe(livemode).paymentIntents.retrieve(stripePaymentIntentId)
   )
   if (!paymentIntent.latest_charge) {
-    throw new Error('No charge found for payment intent')
+    return Result.err(
+      new NotFoundError(
+        'charge',
+        'No charge found for payment intent'
+      )
+    )
   }
 
   const chargeId =
@@ -1449,7 +1492,7 @@ export const refundPayment = async (
   )
   const hasTransfer = Boolean(charge.transfer)
 
-  return stripeCall(
+  const refund = await stripeCall(
     'refunds.create',
     {
       'stripe.payment_intent_id': stripePaymentIntentId,
@@ -1466,6 +1509,7 @@ export const refundPayment = async (
         reverse_transfer: hasTransfer ? true : undefined,
       })
   )
+  return Result.ok(refund)
 }
 
 export const listRefundsForCharge = async (
@@ -1536,10 +1580,15 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
   feeCalculation: FeeCalculation.Record
   organization: Organization.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
+> => {
   if (!organization.stripeAccountId && livemode) {
-    throw new Error(
-      `createAndConfirmPaymentIntent: Organization ${organization.id} does not have a Stripe account ID`
+    return Result.err(
+      new ValidationError(
+        'organization',
+        `createAndConfirmPaymentIntent: Organization ${organization.id} does not have a Stripe account ID`
+      )
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
@@ -1550,13 +1599,19 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     billingPeriodId,
     ...feeMetadata,
   }
-  const transferData = stripeConnectTransferDataForOrganization({
-    organization,
-    livemode,
-  })
+  const transferDataResult = stripeConnectTransferDataForOrganization(
+    {
+      organization,
+      livemode,
+    }
+  )
+  if (Result.isError(transferDataResult)) {
+    return Result.err(transferDataResult.error)
+  }
+  const transferData = transferDataResult.value
 
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
-  return stripeCall(
+  const paymentIntent = await stripeCall(
     'paymentIntents.create',
     {
       'stripe.amount': amount,
@@ -1582,6 +1637,7 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
         ...transferData,
       })
   )
+  return Result.ok(paymentIntent)
 }
 
 export const createPaymentIntentForBillingRun = async ({
@@ -1604,10 +1660,15 @@ export const createPaymentIntentForBillingRun = async ({
   feeCalculation: FeeCalculation.Record
   organization: Organization.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
+> => {
   if (!organization.stripeAccountId && livemode) {
-    throw new Error(
-      `createPaymentIntentForBillingRun: Organization ${organization.id} does not have a Stripe account ID`
+    return Result.err(
+      new ValidationError(
+        'organization',
+        `createPaymentIntentForBillingRun: Organization ${organization.id} does not have a Stripe account ID`
+      )
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
@@ -1618,15 +1679,21 @@ export const createPaymentIntentForBillingRun = async ({
     billingPeriodId,
     ...feeMetadata,
   }
-  const transferData = stripeConnectTransferDataForOrganization({
-    organization,
-    livemode,
-  })
+  const transferDataResult = stripeConnectTransferDataForOrganization(
+    {
+      organization,
+      livemode,
+    }
+  )
+  if (Result.isError(transferDataResult)) {
+    return Result.err(transferDataResult.error)
+  }
+  const transferData = transferDataResult.value
 
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
 
   // Create payment intent WITHOUT confirming
-  return stripeCall(
+  const paymentIntent = await stripeCall(
     'paymentIntents.create',
     {
       'stripe.amount': amount,
@@ -1650,6 +1717,7 @@ export const createPaymentIntentForBillingRun = async ({
         ...transferData,
       })
   )
+  return Result.ok(paymentIntent)
 }
 
 export const confirmPaymentIntentForBillingRun = async (

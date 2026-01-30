@@ -1,33 +1,49 @@
-import { TRPCError } from '@trpc/server'
-import { Result } from 'better-result'
-import type { z } from 'zod'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { Price } from '@/db/schema/prices'
-import type { Subscription } from '@/db/schema/subscriptions'
+import { PriceType, UsageMeterAggregationType } from '@db-core/enums'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { Price } from '@db-core/schema/prices'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import {
   bulkInsertUsageEventsSchema,
   type UsageEvent,
-} from '@/db/schema/usageEvents'
-import type { UsageMeter } from '@/db/schema/usageMeters'
+} from '@db-core/schema/usageEvents'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
+import type { z } from 'zod'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import {
+  type CustomerPricingInfo,
+  selectCustomerPricingInfoBatch,
+} from '@/db/tableMethods/customerMethods'
 import {
   selectDefaultPricesForUsageMeters,
   selectPrices,
 } from '@/db/tableMethods/priceMethods'
-import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
+import {
+  type PriceSlugInfo,
+  type PricingModelSlugResolutionData,
+  selectPricingModelSlugResolutionData,
+} from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertOrDoNothingUsageEventsByTransactionId } from '@/db/tableMethods/usageEventMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import type { TransactionEffectsContext } from '@/db/types'
-import { PriceType, UsageMeterAggregationType } from '@/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
+import {
+  ArchivedCustomerError,
+  type DomainError,
+  NotFoundError,
+  panic,
+  ValidationError,
+} from '@/errors'
 import { generateLedgerCommandsForBulkUsageEvents } from '@/utils/usage/usageEventHelpers'
 
 type BulkInsertUsageEventsInput = z.infer<
   typeof bulkInsertUsageEventsSchema
 >
 
-type SlugResolutionEvent = {
+export type SlugResolutionEvent = {
   index: number
   slug: string
   customerId: string
@@ -52,21 +68,16 @@ type WithSubscriptionsContext = BaseContext & {
   subscriptionsMap: Map<string, Subscription.Record>
 }
 
-type WithSlugEventsContext = WithSubscriptionsContext & {
+export type WithSlugEventsContext = WithSubscriptionsContext & {
   eventsWithPriceSlugs: SlugResolutionEvent[]
   eventsWithUsageMeterSlugs: SlugResolutionEvent[]
-  pricingModelCache: Map<
-    string,
-    Awaited<ReturnType<typeof selectPricingModelForCustomer>>
-  >
+  pricingModelCache: Map<string, PricingModelSlugResolutionData>
   getPricingModelForCustomer: (
     customerId: string
-  ) => Promise<
-    Awaited<ReturnType<typeof selectPricingModelForCustomer>>
-  >
+  ) => PricingModelSlugResolutionData
 }
 
-type WithResolvedSlugsContext = WithSlugEventsContext & {
+export type WithResolvedSlugsContext = WithSlugEventsContext & {
   slugToPriceIdMap: Map<string, string>
   slugToUsageMeterIdMap: Map<string, string>
 }
@@ -101,10 +112,159 @@ type WithFinalInsertsContext = WithDefaultPricesContext & {
   usageInsertsWithBillingPeriodId: UsageEvent.Insert[]
 }
 
+/**
+ * Batch fetches and caches pricing model slug resolution data for all customers.
+ * Deduplicates by pricing model ID to avoid redundant queries when customers share models.
+ *
+ * Groups customers into:
+ * 1. Customers with explicit pricingModelId → fetch by ID
+ * 2. Customers without pricingModelId → fetch default model by (organizationId, livemode)
+ *
+ * @param customersInfo - Map of customerId to CustomerPricingInfo
+ * @param transaction - Database transaction
+ * @returns Map of customerId to PricingModelSlugResolutionData
+ * @throws {Error} if customer has no explicit pricingModelId and no default exists
+ */
+export const batchFetchPricingModelsForCustomers = async (
+  customersInfo: Map<string, CustomerPricingInfo>,
+  transaction: DbTransaction
+): Promise<Map<string, PricingModelSlugResolutionData>> => {
+  const customerToPricingModel = new Map<
+    string,
+    PricingModelSlugResolutionData
+  >()
+
+  // Group 1: Customers with explicit pricingModelId
+  const explicitPricingModelIds = new Set<string>()
+  const customersByExplicitPricingModelId = new Map<
+    string,
+    string[]
+  >()
+
+  // Group 2: Customers needing default pricing model (grouped by org+livemode)
+  type DefaultKey = `${string}:${boolean}` // organizationId:livemode
+  const customersByDefaultKey = new Map<DefaultKey, string[]>()
+
+  // Also track which org+livemode combos we need defaults for (including fallbacks)
+  const allDefaultKeysNeeded = new Set<DefaultKey>()
+
+  for (const [customerId, info] of customersInfo) {
+    if (info.pricingModelId) {
+      explicitPricingModelIds.add(info.pricingModelId)
+      const customers =
+        customersByExplicitPricingModelId.get(info.pricingModelId) ??
+        []
+      customers.push(customerId)
+      customersByExplicitPricingModelId.set(
+        info.pricingModelId,
+        customers
+      )
+      // Pre-emptively track this org+livemode for fallback if explicit model doesn't exist
+      allDefaultKeysNeeded.add(
+        `${info.organizationId}:${info.livemode}`
+      )
+    } else {
+      const key: DefaultKey = `${info.organizationId}:${info.livemode}`
+      const customers = customersByDefaultKey.get(key) ?? []
+      customers.push(customerId)
+      customersByDefaultKey.set(key, customers)
+      allDefaultKeysNeeded.add(key)
+    }
+  }
+
+  // Fetch explicit pricing models in batch
+  const explicitPricingModelsPromise =
+    explicitPricingModelIds.size > 0
+      ? selectPricingModelSlugResolutionData(
+          { id: Array.from(explicitPricingModelIds) },
+          transaction
+        )
+      : Promise.resolve([])
+
+  // Fetch ALL default pricing models we might need (including fallbacks for explicit models)
+  const defaultPricingModelsPromises = Array.from(
+    allDefaultKeysNeeded
+  ).map(async (key) => {
+    const [organizationId, livemodeStr] = key.split(':')
+    const livemode = livemodeStr === 'true'
+    const [model] = await selectPricingModelSlugResolutionData(
+      { organizationId, livemode, isDefault: true },
+      transaction
+    )
+    return { key, model }
+  })
+
+  // Await all in parallel
+  const [explicitPricingModels, ...defaultResults] =
+    await Promise.all([
+      explicitPricingModelsPromise,
+      ...defaultPricingModelsPromises,
+    ])
+
+  // Build default pricing models map for easy lookup
+  const defaultPricingModelsByKey = new Map<
+    DefaultKey,
+    PricingModelSlugResolutionData
+  >()
+  for (const { key, model } of defaultResults) {
+    if (model) {
+      defaultPricingModelsByKey.set(key as DefaultKey, model)
+    }
+  }
+
+  // Map explicit pricing models to customers
+  // If explicit model doesn't exist, fall back to default (matches selectPricingModelForCustomer behavior)
+  const explicitPricingModelsMap = new Map(
+    explicitPricingModels.map((pm) => [pm.id, pm])
+  )
+
+  for (const [
+    pricingModelId,
+    customerIds,
+  ] of customersByExplicitPricingModelId) {
+    const explicitModel = explicitPricingModelsMap.get(pricingModelId)
+
+    for (const customerId of customerIds) {
+      const customerInfo = customersInfo.get(customerId)!
+      const defaultKey: DefaultKey = `${customerInfo.organizationId}:${customerInfo.livemode}`
+
+      if (explicitModel) {
+        // Use explicit pricing model
+        customerToPricingModel.set(customerId, explicitModel)
+      } else {
+        // Fall back to default pricing model (matches selectPricingModelForCustomer behavior)
+        const defaultModel = defaultPricingModelsByKey.get(defaultKey)
+        if (!defaultModel) {
+          throw new Error(
+            `No default pricing model found for organization ${customerInfo.organizationId}`
+          )
+        }
+        customerToPricingModel.set(customerId, defaultModel)
+      }
+    }
+  }
+
+  // Map default pricing models to customers who explicitly need them
+  for (const [key, customerIds] of customersByDefaultKey) {
+    const defaultModel = defaultPricingModelsByKey.get(key)
+    if (!defaultModel) {
+      const [organizationId] = key.split(':')
+      throw new Error(
+        `No default pricing model found for organization ${organizationId}`
+      )
+    }
+    for (const customerId of customerIds) {
+      customerToPricingModel.set(customerId, defaultModel)
+    }
+  }
+
+  return customerToPricingModel
+}
+
 // Step 1: Validate and map subscriptions
 async function validateAndMapSubscriptions(
   context: BaseContext
-): Promise<Result<WithSubscriptionsContext, TRPCError>> {
+): Promise<Result<WithSubscriptionsContext, DomainError>> {
   const { input, livemode, ctx } = context
   const { transaction } = ctx
 
@@ -157,9 +317,9 @@ async function validateAndMapSubscriptions(
 }
 
 // Step 2: Collect events that need slug resolution
-function collectSlugResolutionEvents(
+async function collectSlugResolutionEvents(
   context: WithSubscriptionsContext
-): Result<WithSlugEventsContext, TRPCError> {
+): Promise<Result<WithSlugEventsContext, DomainError>> {
   const {
     usageInsertsWithoutBillingPeriodId,
     subscriptionsMap,
@@ -181,10 +341,10 @@ function collectSlugResolutionEvents(
     )
     if (!subscription) {
       return Result.err(
-        new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`,
-        })
+        new NotFoundError(
+          'Subscription',
+          `${usageEvent.subscriptionId} (usage event at index ${index})`
+        )
       )
     }
 
@@ -205,22 +365,55 @@ function collectSlugResolutionEvents(
     }
   }
 
-  // Cache for pricing models
-  const pricingModelCache = new Map<
-    string,
-    Awaited<ReturnType<typeof selectPricingModelForCustomer>>
-  >()
+  // Batch fetch customer pricing info upfront for all unique customers
+  const uniqueCustomerIds = [
+    ...new Set(
+      Array.from(subscriptionsMap.values()).map((s) => s.customerId)
+    ),
+  ]
+  const customersInfo = await selectCustomerPricingInfoBatch(
+    uniqueCustomerIds,
+    transaction
+  )
 
-  const getPricingModelForCustomer = async (customerId: string) => {
-    if (pricingModelCache.has(customerId)) {
-      return pricingModelCache.get(customerId)!
+  // Guard: check for archived customers before proceeding
+  for (const [customerId, customerInfo] of customersInfo.entries()) {
+    if (customerInfo.archived) {
+      return Result.err(
+        new ArchivedCustomerError('create usage event')
+      )
     }
-    const customer = await selectCustomerById(customerId, transaction)
-    const pricingModel = await selectPricingModelForCustomer(
-      customer,
+  }
+
+  // Batch fetch and deduplicate pricing models for all customers upfront
+  let pricingModelCache: Map<string, PricingModelSlugResolutionData>
+  try {
+    pricingModelCache = await batchFetchPricingModelsForCustomers(
+      customersInfo,
       transaction
     )
-    pricingModelCache.set(customerId, pricingModel)
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return Result.err(error)
+    }
+    return Result.err(
+      new NotFoundError(
+        'PricingModel',
+        error instanceof Error
+          ? error.message
+          : 'default pricing model not found'
+      )
+    )
+  }
+
+  const getPricingModelForCustomer = (customerId: string) => {
+    const pricingModel = pricingModelCache.get(customerId)
+    if (!pricingModel) {
+      throw new NotFoundError(
+        'PricingModel',
+        `for customer ${customerId}`
+      )
+    }
     return pricingModel
   }
 
@@ -235,58 +428,47 @@ function collectSlugResolutionEvents(
 
 // Step 3: Resolve price slugs to IDs
 // Uses composite key (customerId:slug) to avoid collisions across customers
-// Looks up both product prices (nested in products) and usage prices (which have productId=null)
-async function resolvePriceSlugs(
+// Uses pre-fetched pricing models with flat prices array
+export async function resolvePriceSlugs(
   context: WithSlugEventsContext
 ): Promise<
   Result<
     WithSlugEventsContext & { slugToPriceIdMap: Map<string, string> },
-    TRPCError
+    DomainError
   >
 > {
-  const { eventsWithPriceSlugs, getPricingModelForCustomer, ctx } =
-    context
-  const { transaction } = ctx
+  const { eventsWithPriceSlugs, getPricingModelForCustomer } = context
 
   const slugToPriceIdMap = new Map<string, string>()
 
   for (const event of eventsWithPriceSlugs) {
-    const pricingModel = await getPricingModelForCustomer(
-      event.customerId
-    )
-    // Prices are nested within products (for subscription/single payment prices)
-    let foundPrice: { id: string; slug?: string | null } | undefined
-    for (const product of pricingModel.products) {
-      foundPrice = product.prices.find(
-        (p: { slug?: string | null }) => p.slug === event.slug
-      )
-      if (foundPrice) break
+    let pricingModel: PricingModelSlugResolutionData
+    try {
+      pricingModel = getPricingModelForCustomer(event.customerId)
+    } catch (error) {
+      // getPricingModelForCustomer only throws NotFoundError
+      return Result.err(error as NotFoundError)
     }
 
-    // If not found in product prices, also look for usage prices
-    // (usage prices have productId=null and belong to usage meters, not products)
-    if (!foundPrice) {
-      const usagePrices = await selectPrices(
-        {
-          pricingModelId: pricingModel.id,
-          slug: event.slug,
-          active: true,
-        },
-        transaction
-      )
-      if (usagePrices.length > 0) {
-        foundPrice = usagePrices[0]
+    // Build a slug->price map for O(1) lookups
+    // Only include usage prices since usage events can only use usage prices
+    const slugToPriceMap = new Map<string, PriceSlugInfo>()
+    for (const price of pricingModel.prices) {
+      if (price.slug && price.type === PriceType.Usage) {
+        slugToPriceMap.set(price.slug, price)
       }
     }
 
+    const foundPrice = slugToPriceMap.get(event.slug)
     if (!foundPrice) {
       return Result.err(
-        new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Price with slug ${event.slug} not found for this customer's pricing model at index ${event.index}`,
-        })
+        new NotFoundError(
+          'Price',
+          `with slug ${event.slug} (not in customer's pricing model)`
+        )
       )
     }
+
     // Use composite key to avoid slug collisions across customers
     slugToPriceIdMap.set(
       `${event.customerId}:${event.slug}`,
@@ -302,11 +484,12 @@ async function resolvePriceSlugs(
 
 // Step 4: Resolve usage meter slugs to IDs
 // Uses composite key (customerId:slug) to avoid collisions across customers
-async function resolveUsageMeterSlugs(
+// Uses pre-fetched pricing models
+export function resolveUsageMeterSlugs(
   context: WithSlugEventsContext & {
     slugToPriceIdMap: Map<string, string>
   }
-): Promise<Result<WithResolvedSlugsContext, TRPCError>> {
+): Result<WithResolvedSlugsContext, DomainError> {
   const {
     eventsWithUsageMeterSlugs,
     getPricingModelForCustomer,
@@ -316,18 +499,19 @@ async function resolveUsageMeterSlugs(
   const slugToUsageMeterIdMap = new Map<string, string>()
 
   for (const event of eventsWithUsageMeterSlugs) {
-    const pricingModel = await getPricingModelForCustomer(
-      event.customerId
-    )
+    let pricingModel: PricingModelSlugResolutionData
+    try {
+      pricingModel = getPricingModelForCustomer(event.customerId)
+    } catch (error) {
+      // getPricingModelForCustomer only throws NotFoundError
+      return Result.err(error as NotFoundError)
+    }
     const meter = pricingModel.usageMeters.find(
-      (m: { slug?: string | null }) => m.slug === event.slug
+      (m) => m.slug === event.slug
     )
     if (!meter) {
       return Result.err(
-        new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Usage meter with slug ${event.slug} not found for this customer's pricing model at index ${event.index}`,
-        })
+        new NotFoundError('UsageMeter', `slug "${event.slug}"`)
       )
     }
     // Use composite key to avoid slug collisions across customers
@@ -348,7 +532,7 @@ async function resolveUsageMeterSlugs(
 // Uses composite key (customerId:slug) to look up IDs from the maps
 function resolveEventIdentifiers(
   context: WithResolvedSlugsContext
-): Result<WithResolvedEventsContext, TRPCError> {
+): Result<WithResolvedEventsContext, DomainError> {
   const {
     usageInsertsWithoutBillingPeriodId,
     slugToPriceIdMap,
@@ -423,7 +607,7 @@ function resolveEventIdentifiers(
 // Step 6: Validate prices and build price map
 async function validatePricesAndBuildMap(
   context: WithResolvedEventsContext
-): Promise<Result<WithValidatedPricesContext, TRPCError>> {
+): Promise<Result<WithValidatedPricesContext, DomainError>> {
   const {
     resolvedUsageEvents,
     getPricingModelForCustomer,
@@ -455,36 +639,57 @@ async function validatePricesAndBuildMap(
     const price = pricesMap.get(event.priceId)
     if (!price) {
       return Result.err(
-        new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Price ${event.priceId} not found at index ${i}`,
-        })
+        new NotFoundError('Price', `${event.priceId} (index ${i})`)
       )
     }
 
     if (price.type !== PriceType.Usage) {
       return Result.err(
-        new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Price ${event.priceId} at index ${i} is type "${price.type}" which is not a usage price`,
-        })
+        new ValidationError(
+          'priceId',
+          `Price ${event.priceId} at index ${i} is type "${price.type}" which is not a usage price`
+        )
       )
     }
 
     // Validate price belongs to customer's pricing model
-    // Use price.pricingModelId directly since usage prices don't have productId
-    // and thus aren't nested within pricingModel.products[].prices[]
+    // Check if price exists in the filtered pricing model's prices array (which only includes active prices)
+    // This ensures inactive prices are rejected even if they have the correct pricingModelId
     const subscription = subscriptionsMap.get(event.subscriptionId)
     if (subscription) {
-      const pricingModel = await getPricingModelForCustomer(
-        subscription.customerId
-      )
+      let pricingModel: PricingModelSlugResolutionData
+      try {
+        pricingModel = getPricingModelForCustomer(
+          subscription.customerId
+        )
+      } catch (error) {
+        // getPricingModelForCustomer only throws NotFoundError
+        return Result.err(
+          new NotFoundError(
+            'PricingModel',
+            `for customer ${subscription.customerId} (index ${i})`
+          )
+        )
+      }
+      // First check pricing model ID matches
       if (price.pricingModelId !== pricingModel.id) {
         return Result.err(
-          new TRPCError({
-            code: 'NOT_FOUND',
-            message: `Price ${event.priceId} not found for this customer's pricing model at index ${i}`,
-          })
+          new NotFoundError(
+            'Price',
+            `${event.priceId} (not in customer's pricing model, index ${i})`
+          )
+        )
+      }
+      // Then check if price exists in the filtered pricing model's prices array
+      const priceInModel = pricingModel.prices.find(
+        (p) => p.id === price.id
+      )
+      if (!priceInModel) {
+        return Result.err(
+          new NotFoundError(
+            'Price',
+            `${event.priceId} (not in customer's pricing model)`
+          )
         )
       }
     }
@@ -499,7 +704,7 @@ async function validatePricesAndBuildMap(
 // Step 7: Validate usage meters
 async function validateUsageMeters(
   context: WithValidatedPricesContext
-): Promise<Result<WithValidatedMetersContext, TRPCError>> {
+): Promise<Result<WithValidatedMetersContext, DomainError>> {
   const {
     resolvedUsageEvents,
     pricesMap,
@@ -551,28 +756,39 @@ async function validateUsageMeters(
     const meter = usageMetersMap.get(usageMeterId)
     if (!meter) {
       return Result.err(
-        new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Usage meter ${usageMeterId} not found for this customer's pricing model at index ${i}`,
-        })
+        new NotFoundError(
+          'UsageMeter',
+          `${usageMeterId} (index ${i})`
+        )
       )
     }
 
     // Validate meter belongs to customer's pricing model
     const subscription = subscriptionsMap.get(event.subscriptionId)
     if (subscription) {
-      const pricingModel = await getPricingModelForCustomer(
-        subscription.customerId
-      )
+      let pricingModel: PricingModelSlugResolutionData
+      try {
+        pricingModel = getPricingModelForCustomer(
+          subscription.customerId
+        )
+      } catch (error) {
+        // getPricingModelForCustomer only throws NotFoundError
+        return Result.err(
+          new NotFoundError(
+            'PricingModel',
+            `for customer ${subscription.customerId} (index ${i})`
+          )
+        )
+      }
       const meterInModel = pricingModel.usageMeters.find(
-        (m: { id: string }) => m.id === usageMeterId
+        (m) => m.id === usageMeterId
       )
       if (!meterInModel) {
         return Result.err(
-          new TRPCError({
-            code: 'NOT_FOUND',
-            message: `Usage meter ${usageMeterId} not found for this customer's pricing model at index ${i}`,
-          })
+          new NotFoundError(
+            'UsageMeter',
+            `${usageMeterId} not in customer's pricing model (index ${i})`
+          )
         )
       }
     }
@@ -587,10 +803,10 @@ async function validateUsageMeters(
       )
       if (!billingPeriod) {
         return Result.err(
-          new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Billing period is required for usage meter "${meter.name}" at index ${i} because it uses "count_distinct_properties" aggregation. This aggregation type requires a billing period for deduplication.`,
-          })
+          new ValidationError(
+            'billingPeriod',
+            `required for usage meter "${meter.name}" at index ${i} (count_distinct_properties aggregation)`
+          )
         )
       }
 
@@ -601,10 +817,10 @@ async function validateUsageMeters(
 
       if (!hasProperties) {
         return Result.err(
-          new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Properties are required for usage meter "${meter.name}" at index ${i} because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`,
-          })
+          new ValidationError(
+            'properties',
+            `required for usage meter "${meter.name}" at index ${i} (count_distinct_properties aggregation)`
+          )
         )
       }
     }
@@ -623,7 +839,7 @@ async function validateUsageMeters(
 // for meters that belong to the customer's pricing model
 async function resolveDefaultPricesForMeterEvents(
   context: WithValidatedMetersContext
-): Promise<Result<WithDefaultPricesContext, TRPCError>> {
+): Promise<Result<WithDefaultPricesContext, DomainError>> {
   const { resolvedUsageEvents, pricesMap, ctx } = context
   const { transaction } = ctx
 
@@ -654,11 +870,8 @@ async function resolveDefaultPricesForMeterEvents(
   )) {
     const defaultPrice = defaultPricesByMeterId.get(usageMeterId)
     if (!defaultPrice) {
-      return Result.err(
-        new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Usage meter ${usageMeterId} has no default price. This should not happen.`,
-        })
+      panic(
+        `Invalid usageMeterId: Usage meter ${usageMeterId} has no default price. This should not happen.`
       )
     }
     defaultPriceByUsageMeterId.set(usageMeterId, defaultPrice.id)
@@ -693,7 +906,7 @@ async function resolveDefaultPricesForMeterEvents(
 // Step 9: Assemble final insert records with billing periods
 function assembleFinalInserts(
   context: WithDefaultPricesContext
-): Result<WithFinalInsertsContext, TRPCError> {
+): Result<WithFinalInsertsContext, DomainError> {
   const {
     resolvedUsageEvents,
     pricesMap,
@@ -712,10 +925,10 @@ function assembleFinalInserts(
     // Validate subscription exists (should have been validated in collectSlugResolutionEvents)
     if (!subscription) {
       return Result.err(
-        new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Subscription ${event.subscriptionId} not found for usage event at index ${i}`,
-        })
+        new NotFoundError(
+          'Subscription',
+          `${event.subscriptionId} (usage event at index ${i})`
+        )
       )
     }
 
@@ -729,10 +942,10 @@ function assembleFinalInserts(
     // usageMeterId is required for insert
     if (!usageMeterId) {
       return Result.err(
-        new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Usage event at index ${i} must have a usageMeterId either directly or via a usage price`,
-        })
+        new ValidationError(
+          'usageMeterId',
+          `required at index ${i} (either directly or via a usage price)`
+        )
       )
     }
 
@@ -748,10 +961,18 @@ function assembleFinalInserts(
     // Validate pricingModelId exists
     if (!pricingModelId) {
       return Result.err(
-        new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Could not determine pricingModelId for usage event at index ${i}. Neither the usage meter nor the price has a pricingModelId.`,
-        })
+        new ValidationError(
+          'pricingModelId',
+          `could not determine for usage event at index ${i}`
+        )
+      )
+    }
+
+    // priceId must be present after default price resolution (either explicit or from meter's default)
+    // This should always be true after resolveDefaultPricesForMeterEvents, but we validate to be safe
+    if (!event.priceId) {
+      panic(
+        `Usage event at index ${i} has no priceId after default price resolution. This should not happen.`
       )
     }
 
@@ -766,7 +987,7 @@ function assembleFinalInserts(
       livemode: event.livemode,
       properties: event.properties ?? {},
       usageDate: event.usageDate ?? Date.now(),
-      billingPeriodId: billingPeriod?.id,
+      billingPeriodId: billingPeriod?.id ?? null,
     })
   }
 
@@ -780,7 +1001,7 @@ function assembleFinalInserts(
 async function insertAndEnqueueLedger(
   context: WithFinalInsertsContext
 ): Promise<
-  Result<{ usageEvents: UsageEvent.ClientRecord[] }, TRPCError>
+  Result<{ usageEvents: UsageEvent.ClientRecord[] }, DomainError>
 > {
   const { usageInsertsWithBillingPeriodId, livemode, ctx } = context
   const { transaction, enqueueLedgerCommand } = ctx
@@ -792,7 +1013,7 @@ async function insertAndEnqueueLedger(
     )
 
   // Generate ledger commands for the inserted usage events and enqueue them
-  const ledgerCommands =
+  const ledgerCommandsResult =
     await generateLedgerCommandsForBulkUsageEvents(
       {
         insertedUsageEvents,
@@ -800,7 +1021,10 @@ async function insertAndEnqueueLedger(
       },
       transaction
     )
-  for (const command of ledgerCommands) {
+  if (ledgerCommandsResult.status === 'error') {
+    return Result.err(ledgerCommandsResult.error)
+  }
+  for (const command of ledgerCommandsResult.value) {
     enqueueLedgerCommand(command)
   }
 
@@ -816,7 +1040,7 @@ async function insertAndEnqueueLedger(
  * @param input.input - Zod-validated input schema (enforces exactly one identifier per event)
  * @param input.livemode - Whether this is a live mode operation
  * @param ctx - Transaction effects context with callbacks
- * @returns Result with inserted usage events or TRPCError
+ * @returns Result with inserted usage events or DomainError
  */
 export const bulkInsertUsageEventsTransaction = async (
   {
@@ -828,19 +1052,20 @@ export const bulkInsertUsageEventsTransaction = async (
   },
   ctx: TransactionEffectsContext
 ): Promise<
-  Result<{ usageEvents: UsageEvent.ClientRecord[] }, TRPCError>
+  Result<{ usageEvents: UsageEvent.ClientRecord[] }, DomainError>
 > => {
   return Result.gen(async function* () {
     const withSubscriptions = yield* Result.await(
       validateAndMapSubscriptions({ input, livemode, ctx })
     )
-    const withSlugEvents =
-      yield* collectSlugResolutionEvents(withSubscriptions)
+    const withSlugEvents = yield* Result.await(
+      collectSlugResolutionEvents(withSubscriptions)
+    )
     const withPriceSlugsResolved = yield* Result.await(
       resolvePriceSlugs(withSlugEvents)
     )
-    const withMeterSlugsResolved = yield* Result.await(
-      resolveUsageMeterSlugs(withPriceSlugsResolved)
+    const withMeterSlugsResolved = yield* resolveUsageMeterSlugs(
+      withPriceSlugsResolved
     )
     const withResolvedIdentifiers = yield* resolveEventIdentifiers(
       withMeterSlugsResolved

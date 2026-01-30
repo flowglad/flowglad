@@ -721,7 +721,73 @@
                 "type": "object",
                 "properties": {
                   "product": {
-                    "$ref": "#/components/schemas/ProductInsert"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "imageURL": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "singularQuantityLabel": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "pluralQuantityLabel": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "pricingModelId": {
+                        "type": "string"
+                      },
+                      "default": {
+                        "type": "boolean"
+                      },
+                      "slug": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": ["name", "active", "pricingModelId"]
                   },
                   "price": {
                     "$ref": "#/components/schemas/CreateProductPriceInput"
@@ -1712,9 +1778,6 @@
                       "name": {
                         "type": "string"
                       },
-                      "archived": {
-                        "type": "boolean"
-                      },
                       "logoURL": {
                         "anyOf": [
                           {
@@ -2071,6 +2134,260 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{externalId}/usage-balances": {
+      "get": {
+        "operationId": "customers-getUsageBalances",
+        "summary": "Get Usage Balances",
+        "tags": ["Customer", "Usage Meters"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalId",
+            "schema": {
+              "description": "The external ID of the customer",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The external ID of the customer"
+          },
+          {
+            "in": "query",
+            "name": "subscriptionId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "usageMeterBalances": {
+                      "type": "array",
+                      "items": {
+                        "description": "A usage meter and the available balance for that meter, scoped to a given subscription.",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "description": "Epoch milliseconds.",
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "description": "Epoch milliseconds.",
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "livemode": {
+                            "type": "boolean"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "description": "The name of the usage meter",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "pricingModelId": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "description": "The slug of the usage meter",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "aggregationType": {
+                            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+                            "type": "string",
+                            "enum": [
+                              "sum",
+                              "count_distinct_properties"
+                            ]
+                          },
+                          "availableBalance": {
+                            "type": "number"
+                          },
+                          "subscriptionId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "updatedAt",
+                          "livemode",
+                          "organizationId",
+                          "name",
+                          "pricingModelId",
+                          "slug",
+                          "aggregationType",
+                          "availableBalance",
+                          "subscriptionId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["usageMeterBalances"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{externalId}/archive": {
+      "post": {
+        "operationId": "customers-archive",
+        "summary": "Archive Customer",
+        "description": "Archives a customer, canceling all active subscriptions and freeing the externalId for reuse.",
+        "tags": ["Customer"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalId",
+            "schema": {
+              "description": "The external ID of the customer to archive, as defined in your application",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The external ID of the customer to archive, as defined in your application"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customer": {
+                      "$ref": "#/components/schemas/CustomerClientSelectSchema"
+                    }
+                  },
+                  "required": ["customer"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
                 }
               }
             }
@@ -4346,6 +4663,116 @@
         }
       }
     },
+    "/api/v1/subscriptions/{id}/preview-adjust": {
+      "post": {
+        "operationId": "subscriptions-previewAdjust",
+        "summary": "Preview Subscription Adjustment",
+        "description": "Returns a preview of what a subscription adjustment would look like, including proration amount, payment method, and whether the adjustment can be made. This endpoint does not make any changes to the subscription. Use this to show users what will happen before they commit to an adjustment.",
+        "tags": ["Subscriptions"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "adjustment": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/AdjustSubscriptionImmediatelyInput"
+                      },
+                      {
+                        "$ref": "#/components/schemas/AdjustSubscriptionAtEndOfCurrentBillingPeriodInput"
+                      },
+                      {
+                        "$ref": "#/components/schemas/AdjustSubscriptionAutoTimingInput"
+                      }
+                    ],
+                    "type": "object",
+                    "discriminator": {
+                      "propertyName": "timing",
+                      "mapping": {
+                        "immediately": "#/components/schemas/AdjustSubscriptionImmediatelyInput",
+                        "at_end_of_current_billing_period": "#/components/schemas/AdjustSubscriptionAtEndOfCurrentBillingPeriodInput",
+                        "auto": "#/components/schemas/AdjustSubscriptionAutoTimingInput"
+                      }
+                    }
+                  }
+                },
+                "required": ["adjustment"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewAdjustSubscriptionOutput"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/subscriptions/{id}/cancel": {
       "post": {
         "operationId": "subscriptions-cancel",
@@ -5765,23 +6192,26 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "items": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/UsageEventClientSelectSchema"
                       }
                     },
-                    "total": {
-                      "type": "number"
+                    "currentCursor": {
+                      "type": "string"
+                    },
+                    "nextCursor": {
+                      "type": "string"
                     },
                     "hasMore": {
                       "type": "boolean"
                     },
-                    "nextCursor": {
-                      "type": "string"
+                    "total": {
+                      "type": "number"
                     }
                   },
-                  "required": ["items", "total", "hasMore"],
+                  "required": ["data", "hasMore", "total"],
                   "additionalProperties": false
                 }
               }
@@ -6053,7 +6483,8 @@
                               "payment.succeeded",
                               "subscription.created",
                               "subscription.updated",
-                              "subscription.canceled"
+                              "subscription.canceled",
+                              "sync.events_available"
                             ]
                           }
                         },
@@ -6069,6 +6500,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6080,7 +6514,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6188,7 +6623,8 @@
                             "payment.succeeded",
                             "subscription.created",
                             "subscription.updated",
-                            "subscription.canceled"
+                            "subscription.canceled",
+                            "sync.events_available"
                           ]
                         }
                       },
@@ -6253,7 +6689,8 @@
                               "payment.succeeded",
                               "subscription.created",
                               "subscription.updated",
-                              "subscription.canceled"
+                              "subscription.canceled",
+                              "sync.events_available"
                             ]
                           }
                         },
@@ -6269,6 +6706,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6280,7 +6720,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6378,7 +6819,8 @@
                             "payment.succeeded",
                             "subscription.created",
                             "subscription.updated",
-                            "subscription.canceled"
+                            "subscription.canceled",
+                            "sync.events_available"
                           ]
                         }
                       },
@@ -6391,9 +6833,17 @@
                       },
                       "active": {
                         "type": "boolean"
+                      },
+                      "pricingModelId": {
+                        "type": "string"
                       }
                     },
-                    "required": ["filterTypes", "url", "name"]
+                    "required": [
+                      "filterTypes",
+                      "url",
+                      "name",
+                      "pricingModelId"
+                    ]
                   }
                 },
                 "required": ["webhook"]
@@ -6443,7 +6893,8 @@
                               "payment.succeeded",
                               "subscription.created",
                               "subscription.updated",
-                              "subscription.canceled"
+                              "subscription.canceled",
+                              "sync.events_available"
                             ]
                           }
                         },
@@ -6459,6 +6910,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6470,7 +6924,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     },
@@ -8968,74 +9423,6 @@
           "type"
         ]
       },
-      "ProductInsert": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "imageURL": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "singularQuantityLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "pluralQuantityLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "pricingModelId": {
-            "type": "string"
-          },
-          "default": {
-            "type": "boolean"
-          },
-          "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": ["name", "active", "pricingModelId"]
-      },
       "CreateProductPriceInput": {
         "oneOf": [
           {
@@ -10887,9 +11274,6 @@
             "type": "null",
             "const": null
           },
-          "pricingModelId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "null",
             "const": null
@@ -10933,9 +11317,6 @@
           "renewalFrequency": {
             "type": "string",
             "enum": ["once", "every_billing_period"]
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "null",
@@ -10987,9 +11368,6 @@
           "renewalFrequency": {
             "type": "null",
             "const": null
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "string"
@@ -18980,6 +19358,9 @@
               "organizationId": {
                 "type": "string"
               },
+              "pricingModelId": {
+                "type": "string"
+              },
               "name": {
                 "type": "string"
               },
@@ -19033,6 +19414,7 @@
               "updatedAt",
               "livemode",
               "organizationId",
+              "pricingModelId",
               "name",
               "token",
               "active",
@@ -19067,6 +19449,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -19122,6 +19507,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "token",
           "active",
@@ -19162,6 +19548,134 @@
           "resolvedTiming",
           "isUpgrade"
         ],
+        "additionalProperties": false
+      },
+      "PreviewAdjustSubscriptionOutput": {
+        "type": "object",
+        "properties": {
+          "canAdjust": {
+            "description": "Whether the adjustment can be made. If false, the reason field will contain the explanation.",
+            "type": "boolean"
+          },
+          "reason": {
+            "description": "The reason the adjustment cannot be made, if canAdjust is false.",
+            "type": "string"
+          },
+          "previewGeneratedAt": {
+            "description": "Epoch milliseconds when this preview was generated. Useful for staleness detection.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "prorationAmount": {
+            "description": "The proration amount that will be charged, if applicable.",
+            "type": "number"
+          },
+          "currentPlanTotal": {
+            "description": "The total price of the current plan (sum of unitPrice * quantity for all items).",
+            "type": "number"
+          },
+          "newPlanTotal": {
+            "description": "The total price of the new plan (sum of unitPrice * quantity for all items).",
+            "type": "number"
+          },
+          "resolvedTiming": {
+            "description": "The resolved timing for the adjustment. When auto timing is requested, this indicates whether it resolved to immediate or end-of-period.",
+            "type": "string",
+            "enum": [
+              "immediately",
+              "at_end_of_current_billing_period"
+            ]
+          },
+          "effectiveDate": {
+            "description": "Epoch milliseconds when the adjustment will take effect.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "isUpgrade": {
+            "description": "Whether this adjustment is an upgrade (true) or downgrade/lateral move (false).",
+            "type": "boolean"
+          },
+          "percentThroughBillingPeriod": {
+            "description": "The percentage through the current billing period (0-1).",
+            "type": "number"
+          },
+          "billingPeriodEnd": {
+            "description": "Epoch milliseconds when the current billing period ends.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "paymentMethod": {
+            "description": "The payment method that will be charged for immediate adjustments with proration.",
+            "$ref": "#/components/schemas/PreviewPaymentMethod"
+          },
+          "currentSubscriptionItems": {
+            "description": "The current subscription items.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreviewSubscriptionItem"
+            }
+          },
+          "newSubscriptionItems": {
+            "description": "The new subscription items that will be applied.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreviewSubscriptionItem"
+            }
+          }
+        },
+        "required": ["canAdjust", "previewGeneratedAt"],
+        "additionalProperties": false,
+        "if": {
+          "required": ["canAdjust"],
+          "properties": {
+            "canAdjust": {
+              "const": false
+            }
+          }
+        },
+        "then": {
+          "required": ["reason"]
+        }
+      },
+      "PreviewPaymentMethod": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "last4": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "type"],
+        "additionalProperties": false
+      },
+      "PreviewSubscriptionItem": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "priceId": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "unitPrice", "quantity", "priceId"],
         "additionalProperties": false
       },
       "UsageMeterClientSelectSchema": {
@@ -19279,14 +19793,7 @@
             "type": "string"
           },
           "priceId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           },
           "properties": {
             "description": "Properties for the usage event. Only required when using the \"count_distinct_properties\" aggregation type.",

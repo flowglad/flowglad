@@ -148,11 +148,12 @@
 
   :root {
     --radius: 0.625rem;
-    --spacing-page: 32px;
+    --onboarding-max-w: 608px;
+    --onboarding-border-gap: 0.5rem; /* 8px on mobile */
     --background: 51 47% 97%;
     --foreground: 30 5.3% 7.5%;
     --card: 0 0% 100%;
-    --muted-card: 60 43% 99%;
+    --card-muted: 60 43% 99%;
     --card-foreground: 30 5.3% 7.5%;
     --popover: 60 43% 99%;
     --popover-foreground: 30 5.3% 7.5%;
@@ -168,6 +169,7 @@
     --destructive: 15 85% 58%;
     --border: 12 9.1% 89.2%;
     --input: 12 9.1% 89.2%;
+    --input-bg: 60 43% 99%;
     --ring: 43 25.5% 73.1%;
     --chart-1: 35 75% 65%;
     --chart-2: 195 40% 60%;
@@ -182,16 +184,57 @@
     --sidebar-accent-foreground: 24 5.9% 16.7%;
     --sidebar-border: 12 9.1% 89.2%;
     --sidebar-ring: 43 25.5% 73.1%;
+
+    /* custom spacing values */
+    --spacing-page: 32px;
+
+    /* custom color values */
     --jade-foreground: 152 41.3% 24.7%;
     --jade-muted-foreground: 152 37.8% 38.4%;
     --jade-background: 153 61% 90%;
+    --jade-border: 152 41.3% 24.7% / 15%;
+
+    --brownstone-foreground: 28 68% 30%;
+    --brownstone-muted-foreground: 28 55% 45%;
+    --brownstone-background: 28 60% 92%;
+    --brownstone-border: 28 68% 30% / 20%;
+
+    --lapis-foreground: 207 100% 29%;
+    --lapis-muted-foreground: 207 70% 42%;
+    --lapis-background: 207 55% 93%;
+    --lapis-border: 207 60% 35% / 18%;
+
+    --amethyst-foreground: 251 47% 45%;
+    --amethyst-muted-foreground: 251 42% 55%;
+    --amethyst-background: 251 45% 94%;
+    --amethyst-border: 251 35% 45% / 18%;
+
+    --citrine-foreground: 49 68% 26%;
+    --citrine-muted-foreground: 49 56% 40%;
+    --citrine-background: 49 61% 88%;
+    --citrine-border: 49 68% 26% / 20%;
+
+    /* Status Badge Colors - Light Mode */
+    --status-destructive-bg: 0 55% 95%;
+    --status-destructive-fg: 0 50% 45%;
+    --status-destructive-border: 0 55% 90%;
+
+    --status-muted-bg: var(--muted);
+    --status-muted-fg: var(--muted-foreground);
+    --status-muted-border: var(--border);
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --onboarding-border-gap: 1rem; /* 16px on sm+ */
+    }
   }
 
   .dark {
     --background: 24 5.9% 16.7%;
     --foreground: 51 47% 97%;
     --card: 25 8.6% 22.8%;
-    --muted-card: 30 5.1% 20.4%;
+    --card-muted: 30 5.1% 20.4%;
     --card-foreground: 51 47% 97%;
     --popover: 30 5.1% 20.4%;
     --popover-foreground: 51 47% 97%;
@@ -207,6 +250,7 @@
     --destructive: 0 90.8% 70.8%;
     --border: 0 0% 100% / 10%;
     --input: 0 0% 100% / 15%;
+    --input-bg: 30 5.1% 20.4%;
     --ring: 39 17% 46.3%;
     --chart-1: 270 85% 49%;
     --chart-2: 155 50% 70%;
@@ -221,9 +265,39 @@
     --sidebar-accent-foreground: 51 47% 97%;
     --sidebar-border: 0 0% 100% / 10%;
     --sidebar-ring: 35 15.2% 40.2%;
+
+    /* custom color values - dark mode */
     --jade-foreground: 153 48% 83%;
     --jade-muted-foreground: 152 45% 66%;
     --jade-background: 152 39% 31% / 33%;
+    --jade-border: 153 48% 83% / 15%;
+
+    --brownstone-foreground: 28 75% 78%;
+    --brownstone-muted-foreground: 28 60% 62%;
+    --brownstone-background: 28 65% 32% / 33%;
+    --brownstone-border: 28 75% 78% / 20%;
+
+    --lapis-foreground: 205 100% 73%;
+    --lapis-muted-foreground: 205 80% 60%;
+    --lapis-background: 207 50% 30% / 28%;
+    --lapis-border: 205 65% 70% / 18%;
+
+    --amethyst-foreground: 251 52% 82%;
+    --amethyst-muted-foreground: 251 47% 68%;
+    --amethyst-background: 251 35% 35% / 28%;
+    --amethyst-border: 251 40% 82% / 18%;
+
+    --citrine-foreground: 49 88% 80%;
+    --citrine-muted-foreground: 49 74% 64%;
+    --citrine-background: 49 86% 32% / 33%;
+    --citrine-border: 49 88% 80% / 20%;
+
+    /* Status Badge Colors - Dark Mode */
+    --status-destructive-bg: 0 45% 40% / 25%;
+    --status-destructive-fg: 0 50% 82%;
+    --status-destructive-border: 0 45% 40%;
+
+    /* muted inherits from existing --muted, --muted-foreground, --border */
   }
 }
 

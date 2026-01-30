@@ -1,8 +1,9 @@
+import { SubscriptionItemType } from '@db-core/enums'
 import {
   type EditInvoiceInput,
   type InvoiceLineItem,
   invoiceLineItemsUpdateSchema,
-} from '@/db/schema/invoiceLineItems'
+} from '@db-core/schema/invoiceLineItems'
 import { deleteIncompleteCheckoutSessionsForInvoice } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   deleteInvoiceLineItems,
@@ -16,7 +17,6 @@ import {
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import type { DbTransaction } from '@/db/types'
-import { SubscriptionItemType } from '@/types'
 
 /**
  * This function updates an invoice and its line items.
@@ -49,7 +49,9 @@ export const updateInvoiceTransaction = async (
       `ID mismatch: parameter id (${id}) does not match invoice.id (${invoice.id})`
     )
   }
-  const existingInvoice = await selectInvoiceById(id, transaction)
+  const existingInvoice = (
+    await selectInvoiceById(id, transaction)
+  ).unwrap()
   if (invoiceIsInTerminalState(existingInvoice)) {
     throw new Error(
       `Invoice ${existingInvoice.id} has status ${existingInvoice.status}, which is terminal. You cannot update invoices that are in a terminal state.`

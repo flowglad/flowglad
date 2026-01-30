@@ -1,7 +1,5 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import type { NotificationPreferences } from '@db-core/schema/memberships'
 import {
   fireEvent,
   render,
@@ -10,10 +8,7 @@ import {
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { trpc } from '@/app/_trpc/client'
-import type { NotificationPreferences } from '@/db/schema/memberships'
-import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 interface FormModalMockProps<T extends FieldValues> {
   children: ReactNode
@@ -27,21 +22,24 @@ interface EditNotificationPreferencesInput {
 }
 
 // Mock tRPC - network calls need to be mocked per testing guidelines
-vi.mock('@/app/_trpc/client', () => ({
+const mockUseMutation = mock()
+const mockUseUtils = mock()
+
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     organizations: {
       updateNotificationPreferences: {
-        useMutation: vi.fn(),
+        useMutation: mockUseMutation,
       },
     },
-    useUtils: vi.fn(),
+    useUtils: mockUseUtils,
   },
 }))
 
 // Mock the form modal and wrap children with FormProvider
 // This mock is consistent with the established pattern in other modal tests (e.g., EditDiscountModal.test.tsx)
-vi.mock('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
+mock.module('@/components/forms/FormModal', async () => {
+  // biome-ignore lint/plugin: dynamic import required for mock.module factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock<T extends FieldValues>({
     children,
@@ -95,13 +93,16 @@ vi.mock('@/components/forms/FormModal', async () => {
 
 // Mock the notification preferences form fields
 // This mock is consistent with the established pattern in other modal tests
-vi.mock('./NotificationPreferencesFormFields', () => ({
+mock.module('./NotificationPreferencesFormFields', () => ({
   default: () => (
     <div data-testid="notification-preferences-form-fields">
       Form Fields
     </div>
   ),
 }))
+
+// Import component AFTER mock.module calls
+import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 describe('EditNotificationPreferencesModal', () => {
   const mockCurrentPreferences: NotificationPreferences = {
@@ -114,8 +115,8 @@ describe('EditNotificationPreferencesModal', () => {
     paymentSuccessful: true,
   }
 
-  const mockMutateAsync = vi.fn()
-  const mockInvalidate = vi.fn()
+  const mockMutateAsync = mock()
+  const mockInvalidate = mock()
   const mockUtils = {
     organizations: {
       getNotificationPreferences: {
@@ -125,35 +126,36 @@ describe('EditNotificationPreferencesModal', () => {
   }
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(trpc.useUtils).mockReturnValue(
+    mockMutateAsync.mockClear()
+    mockInvalidate.mockClear()
+    mockUseMutation.mockClear()
+    mockUseUtils.mockClear()
+
+    mockUseUtils.mockReturnValue(
       mockUtils as unknown as ReturnType<typeof trpc.useUtils>
     )
     // Mock useMutation to capture the onSuccess callback and call it when mutateAsync resolves
-    vi.mocked(
-      trpc.organizations.updateNotificationPreferences.useMutation
-    ).mockImplementation((options) => {
-      const onSuccess = options?.onSuccess
-      const mutateAsyncWithCallback = vi.fn(async (data) => {
-        const result = await mockMutateAsync(data)
-        if (onSuccess) {
-          // onSuccess signature: (data, variables, context, mutation)
-          // We pass undefined for context and mutation since we don't use them
-          onSuccess(
-            result,
-            data,
-            undefined as unknown as Parameters<typeof onSuccess>[2],
-            undefined as unknown as Parameters<typeof onSuccess>[3]
-          )
-        }
-        return result
-      })
-      return {
-        mutateAsync: mutateAsyncWithCallback,
-      } as unknown as ReturnType<
-        typeof trpc.organizations.updateNotificationPreferences.useMutation
-      >
-    })
+    mockUseMutation.mockImplementation(
+      (options: { onSuccess?: (...args: unknown[]) => void }) => {
+        const onSuccess = options?.onSuccess
+        const mutateAsyncWithCallback = mock(
+          async (data: unknown) => {
+            const result = await mockMutateAsync(data)
+            if (onSuccess) {
+              // onSuccess signature: (data, variables, context, mutation)
+              // We pass undefined for context and mutation since we don't use them
+              onSuccess(result, data, undefined, undefined)
+            }
+            return result
+          }
+        )
+        return {
+          mutateAsync: mutateAsyncWithCallback,
+        } as unknown as ReturnType<
+          typeof trpc.organizations.updateNotificationPreferences.useMutation
+        >
+      }
+    )
   })
 
   describe('Modal Rendering', () => {
@@ -161,7 +163,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={mockCurrentPreferences}
         />
       )
@@ -176,7 +178,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={mockCurrentPreferences}
         />
       )
@@ -197,7 +199,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={mockCurrentPreferences}
         />
       )
@@ -223,7 +225,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={mockCurrentPreferences}
         />
       )
@@ -243,7 +245,7 @@ describe('EditNotificationPreferencesModal', () => {
         'Failed to update notification preferences'
       )
       mockMutateAsync.mockRejectedValue(mockError)
-      const mockSetIsOpen = vi.fn()
+      const mockSetIsOpen = mock()
 
       render(
         <EditNotificationPreferencesModal
@@ -268,7 +270,7 @@ describe('EditNotificationPreferencesModal', () => {
   describe('Modal State Management', () => {
     it('closes modal after successful submission', async () => {
       mockMutateAsync.mockResolvedValue({ success: true })
-      const mockSetIsOpen = vi.fn()
+      const mockSetIsOpen = mock()
 
       render(
         <EditNotificationPreferencesModal
@@ -301,7 +303,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={allEnabledPreferences}
         />
       )
@@ -326,7 +328,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={allDisabledPreferences}
         />
       )
@@ -353,7 +355,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={mixedPreferences}
         />
       )
@@ -370,7 +372,7 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={mockCurrentPreferences}
         />
       )
@@ -384,17 +386,17 @@ describe('EditNotificationPreferencesModal', () => {
       render(
         <EditNotificationPreferencesModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock()}
           currentPreferences={mockCurrentPreferences}
         />
       )
 
-      const mutationCalls = vi.mocked(
-        trpc.organizations.updateNotificationPreferences.useMutation
-      ).mock.calls
+      const mutationCalls = mockUseMutation.mock.calls
       expect(mutationCalls.length).toBeGreaterThan(0)
 
-      const firstCallArgs = mutationCalls[0]?.[0]
+      const firstCallArgs = mutationCalls[0]?.[0] as
+        | { onSuccess?: unknown }
+        | undefined
       expect(firstCallArgs).toHaveProperty('onSuccess')
       expect(typeof firstCallArgs?.onSuccess).toBe('function')
     })

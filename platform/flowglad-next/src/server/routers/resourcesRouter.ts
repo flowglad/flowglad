@@ -1,15 +1,21 @@
+import {
+  createResourceSchema,
+  editResourceSchema,
+  resourcesClientSelectSchema,
+} from '@db-core/schema/resources'
+import {
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createResourceSchema,
-  editResourceSchema,
-  resourcesClientSelectSchema,
-} from '@/db/schema/resources'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertResource,
   resourcesTableRowOutputSchema,
@@ -19,13 +25,6 @@ import {
   selectResourcesTableRowData,
   updateResource,
 } from '@/db/tableMethods/resourceMethods'
-import {
-  createPaginatedListQuerySchema,
-  createPaginatedSelectSchema,
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 
@@ -74,10 +73,9 @@ const getProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const resource = await selectResourceById(
-          input.id,
-          transaction
-        )
+        const resource = (
+          await selectResourceById(input.id, transaction)
+        ).unwrap()
         return { resource }
       }
     )
@@ -91,26 +89,18 @@ const createProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, ctx, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const { livemode } = ctx
-        const userId = ctx.user?.id
-        if (!userId) {
+        const { livemode, organizationId } = ctx
+        if (!organizationId) {
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User authentication required',
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
           })
         }
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
         const resource = await insertResource(
           {
             ...input.resource,
-            organizationId: organization.id,
+            organizationId,
             livemode,
           },
           transaction

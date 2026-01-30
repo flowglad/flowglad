@@ -1,13 +1,13 @@
 {
   "name": "@flowglad/server",
-  "version": "0.16.4",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "version": "0.18.0",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.mjs",
   "types": "./dist/types/index.d.ts",
   "typesVersions": {
     "*": {
       "better-auth": [
-        "./dist/types/better-auth.d.ts"
+        "./dist/types/better-auth/index.d.ts"
       ],
       "express": [
         "./dist/types/express/index.d.ts"
@@ -62,23 +62,23 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
+      "import": "./dist/esm/index.mjs",
+      "require": "./dist/cjs/index.cjs"
     },
     "./better-auth": {
-      "types": "./dist/types/better-auth.d.ts",
-      "import": "./dist/esm/better-auth.js",
-      "require": "./dist/cjs/better-auth.js"
+      "types": "./dist/types/better-auth/index.d.ts",
+      "import": "./dist/esm/better-auth/index.mjs",
+      "require": "./dist/cjs/better-auth/index.cjs"
     },
     "./express": {
       "types": "./dist/types/express/index.d.ts",
-      "import": "./dist/esm/express/index.js",
-      "require": "./dist/cjs/express/index.js"
+      "import": "./dist/esm/express/index.mjs",
+      "require": "./dist/cjs/express/index.cjs"
     },
     "./supabase": {
       "types": "./dist/types/supabase/index.d.ts",
-      "import": "./dist/esm/supabase/index.js",
-      "require": "./dist/cjs/supabase/index.js"
+      "import": "./dist/esm/supabase/index.mjs",
+      "require": "./dist/cjs/supabase/index.cjs"
     }
   },
   "repository": {

@@ -1,25 +1,25 @@
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Country } from '@/db/schema/countries'
-import type { Discount } from '@/db/schema/discounts'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type {
-  BillingAddress,
-  Organization,
-} from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Purchase } from '@/db/schema/purchases'
-import { selectCountryById } from '@/db/tableMethods/countryMethods'
-import { selectDiscountById } from '@/db/tableMethods/discountMethods'
-import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import type { DbTransaction } from '@/db/types'
 import {
   type CountryCode,
   type CurrencyCode,
   FeeCalculationType,
   type PaymentMethodType,
   StripeConnectContractType,
-} from '@/types'
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Country } from '@db-core/schema/countries'
+import type { Discount } from '@db-core/schema/discounts'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type {
+  BillingAddress,
+  Organization,
+} from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Purchase } from '@db-core/schema/purchases'
+import { selectCountryById } from '@/db/tableMethods/countryMethods'
+import { selectDiscountById } from '@/db/tableMethods/discountMethods'
+import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import type { DbTransaction } from '@/db/types'
 import {
   calculateDiscountAmount,
   calculateFlowgladFeePercentage,
@@ -169,10 +169,12 @@ export const createFeeCalculationForCheckoutSession = async (
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
   const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
+    ? (
+        await selectDiscountById(
+          checkoutSession.discountId,
+          transaction
+        )
+      ).unwrap()
     : undefined
 
   const [{ price, organization }] =
@@ -184,10 +186,9 @@ export const createFeeCalculationForCheckoutSession = async (
   if (!organizationCountryId) {
     throw new Error('Organization country id is required')
   }
-  const organizationCountry = await selectCountryById(
-    organizationCountryId,
-    transaction
-  )
+  const organizationCountry = (
+    await selectCountryById(organizationCountryId, transaction)
+  ).unwrap()
   return createCheckoutSessionFeeCalculation(
     {
       organization,

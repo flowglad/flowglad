@@ -1,4 +1,6 @@
 'use client'
+import { StripeConnectContractType } from '@db-core/enums'
+import type { CreateOrganizationInput } from '@db-core/schema/organizations'
 import { Copy } from 'lucide-react'
 import type { useState } from 'react'
 import { useEffect } from 'react'
@@ -27,10 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { cn } from '@/lib/utils'
 import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
-import { StripeConnectContractType } from '@/types'
 import core from '@/utils/core'
 import {
   getEligibleFundsFlowsForCountry,

@@ -1,19 +1,4 @@
 import {
-  type BillingPeriodTransitionLedgerCommand,
-  StandardBillingPeriodTransitionPayload,
-} from '@/db/ledgerManager/ledgerManagerTypes'
-import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import {
-  type LedgerEntry,
-  ledgerEntryNulledSourceIdColumns,
-} from '@/db/schema/ledgerEntries'
-import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
-import type { UsageCredit } from '@/db/schema/usageCredits'
-import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
-import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
-import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import type { DbTransaction } from '@/db/types'
-import {
   FeatureUsageGrantFrequency,
   LedgerEntryDirection,
   LedgerEntryStatus,
@@ -21,7 +6,29 @@ import {
   UsageCreditSourceReferenceType,
   UsageCreditStatus,
   UsageCreditType,
-} from '@/types'
+} from '@db-core/enums'
+import type { LedgerAccount } from '@db-core/schema/ledgerAccounts'
+import {
+  type LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '@db-core/schema/ledgerEntries'
+import type { LedgerTransaction } from '@db-core/schema/ledgerTransactions'
+import type { UsageCredit } from '@db-core/schema/usageCredits'
+import { Result } from 'better-result'
+import {
+  type BillingPeriodTransitionLedgerCommand,
+  StandardBillingPeriodTransitionPayload,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
+import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
+import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
+
+interface GrantEntitlementUsageCreditsResult {
+  usageCredits: UsageCredit.Record[]
+  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
+}
 
 export const grantEntitlementUsageCredits = async (
   params: {
@@ -30,10 +37,9 @@ export const grantEntitlementUsageCredits = async (
     command: BillingPeriodTransitionLedgerCommand
   },
   transaction: DbTransaction
-): Promise<{
-  usageCredits: UsageCredit.Record[]
-  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
-}> => {
+): Promise<
+  Result<GrantEntitlementUsageCreditsResult, NotFoundError>
+> => {
   const { ledgerAccountsByUsageMeterId, ledgerTransaction, command } =
     params
   const subscriptionFeatureItemsWithUsageMeters =
@@ -112,16 +118,20 @@ export const grantEntitlementUsageCredits = async (
     })
 
   if (usageCreditInserts.length === 0) {
-    return {
+    return Result.ok({
       usageCredits: [],
       ledgerEntries: [],
-    }
+    })
   }
 
-  const usageCredits = await bulkInsertUsageCredits(
+  const usageCreditsResult = await bulkInsertUsageCredits(
     usageCreditInserts,
     transaction
   )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const usageCredits = usageCreditsResult.value
   const entitlementCreditLedgerInserts: LedgerEntry.CreditGrantRecognizedInsert[] =
     usageCredits.map((usageCredit) => {
       const entitlementCreditLedgerEntry: LedgerEntry.CreditGrantRecognizedInsert =
@@ -152,14 +162,17 @@ export const grantEntitlementUsageCredits = async (
       return entitlementCreditLedgerEntry
     })
 
-  const entitlementCreditLedgerEntries =
+  const entitlementCreditLedgerEntriesResult =
     await bulkInsertLedgerEntries(
       entitlementCreditLedgerInserts,
       transaction
     )
-  return {
+  if (Result.isError(entitlementCreditLedgerEntriesResult)) {
+    return Result.err(entitlementCreditLedgerEntriesResult.error)
+  }
+  return Result.ok({
     usageCredits,
     ledgerEntries:
-      entitlementCreditLedgerEntries as LedgerEntry.CreditGrantRecognizedRecord[],
-  }
+      entitlementCreditLedgerEntriesResult.value as LedgerEntry.CreditGrantRecognizedRecord[],
+  })
 }

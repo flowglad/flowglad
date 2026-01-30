@@ -21,6 +21,13 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
+  type FeatureAccessItem,
+  type GetFeatureAccessParams,
+  type GetFeatureAccessResponse,
+  type GetSubscriptionsParams,
+  type GetSubscriptionsResponse,
+  type GetUsageMeterBalancesParams,
+  type GetUsageMeterBalancesResponse,
   type ListResourceClaimsParams,
   type ReleaseResourceParams,
   type ResourceClaim,
@@ -114,6 +121,37 @@ export class FlowgladServer {
         rawBilling.pricingModel,
         rawBilling.purchases
       ),
+    }
+  }
+
+  /**
+   * Get subscriptions for the authenticated customer.
+   *
+   * By default, returns only current (active) subscriptions.
+   * Set includeHistorical to true to include all subscriptions.
+   *
+   * @param params - Optional parameters for fetching subscriptions
+   * @param params.includeHistorical - Optional. Include non-current subscriptions.
+   *
+   * @returns A promise that resolves to an object containing subscriptions
+   *
+   * @throws {Error} If the customer is not authenticated
+   */
+  public getSubscriptions = async (
+    params?: GetSubscriptionsParams
+  ): Promise<GetSubscriptionsResponse> => {
+    const billing = await this.getBilling()
+    const allSubscriptions = billing.subscriptions ?? []
+    const currentSubscriptions = billing.currentSubscriptions ?? []
+
+    const subscriptions = params?.includeHistorical
+      ? allSubscriptions
+      : currentSubscriptions
+
+    return {
+      subscriptions,
+      currentSubscriptions,
+      currentSubscription: currentSubscriptions[0] ?? null,
     }
   }
 
@@ -574,6 +612,96 @@ export class FlowgladServer {
     return { pricingModel: billing.pricingModel }
   }
 
+  /**
+   * Get usage meter balances for the authenticated customer.
+   *
+   * By default, returns balances for all current subscriptions.
+   * Optionally filter by a specific subscriptionId.
+   *
+   * @param params - Optional parameters for fetching usage balances
+   * @param params.subscriptionId - Optional. Filter to a specific subscription.
+   *
+   * @returns A promise that resolves to an object containing usage meter balances
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all usage meter balances for current subscriptions
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances()
+   *
+   * @example
+   * // Get usage balances for a specific subscription
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances({
+   *   subscriptionId: 'sub_123'
+   * })
+   */
+  public getUsageMeterBalances = async (
+    params?: GetUsageMeterBalancesParams
+  ): Promise<GetUsageMeterBalancesResponse> => {
+    const customer = await this.findOrCreateCustomer()
+    return this.flowgladNode.get(
+      `/api/v1/customers/${customer.externalId}/usage-balances`,
+      {
+        query: params ?? {},
+      }
+    )
+  }
+
+  /**
+   * Get feature access items for the authenticated customer.
+   *
+   * By default, returns toggle features for all current subscriptions.
+   * Optionally filter by a specific subscriptionId.
+   * Features are deduplicated by slug across subscriptions.
+   *
+   * @param params - Optional parameters for fetching feature access
+   * @param params.subscriptionId - Optional. Filter to a specific subscription.
+   *
+   * @returns A promise that resolves to an object containing feature access items
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all feature access items for current subscriptions
+   * const { features } = await flowglad.getFeatureAccessItems()
+   *
+   * @example
+   * // Get features for a specific subscription
+   * const { features } = await flowglad.getFeatureAccessItems({
+   *   subscriptionId: 'sub_123'
+   * })
+   */
+  public getFeatureAccessItems = async (
+    params?: GetFeatureAccessParams
+  ): Promise<GetFeatureAccessResponse> => {
+    const billing = await this.getBilling()
+    const subscriptions = params?.subscriptionId
+      ? billing.currentSubscriptions?.filter(
+          (s) => s.id === params.subscriptionId
+        )
+      : billing.currentSubscriptions
+
+    const featuresBySlug = new Map<string, FeatureAccessItem>()
+    for (const sub of subscriptions ?? []) {
+      const featureItems = sub.experimental?.featureItems ?? []
+      for (const item of featureItems) {
+        if (
+          item.type === 'toggle' &&
+          !featuresBySlug.has(item.slug)
+        ) {
+          featuresBySlug.set(item.slug, {
+            id: item.id,
+            livemode: item.livemode,
+            slug: item.slug,
+            name: item.name,
+          })
+        }
+      }
+    }
+
+    return { features: Array.from(featuresBySlug.values()) }
+  }
+
   private deriveSubscriptionId = async (
     maybeSubscriptionId?: string
   ): Promise<string> => {
@@ -961,5 +1089,38 @@ export class FlowgladServer {
           : undefined,
       }
     )
+  }
+
+  /**
+   * Archives a customer by setting archived=true and canceling all active subscriptions.
+   *
+   * This is a dedicated method for archiving customers because archiving is a significant
+   * state change with cascade effects (subscription cancellation), not just a field update.
+   *
+   * Behavior:
+   * - If customer is already archived, returns immediately (idempotent)
+   * - Cancels all active subscriptions with reason 'customer_archived'
+   * - Sets archived=true on the customer
+   *
+   * After archiving:
+   * - The customer's externalId is freed for reuse by a new customer
+   * - ExternalId lookups will not return this customer by default
+   * - Operations that create records attached to this customer will be blocked
+   *
+   * @param externalId - The external ID of the customer to archive
+   * @returns The archived customer record
+   */
+  public archiveCustomer = async (
+    externalId: string
+  ): Promise<FlowgladNode.Customers.CustomerClientSelectSchema> => {
+    const result = await this.flowgladNode.post<{
+      customer: FlowgladNode.Customers.CustomerClientSelectSchema
+    }>(
+      `/api/v1/customers/${encodeURIComponent(externalId)}/archive`,
+      {
+        body: {},
+      }
+    )
+    return result.customer
   }
 }

@@ -1,4 +1,4 @@
-import { RevenueChartIntervalUnit } from '@/types'
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 
 /**
  * Metadata included in chart data payloads for tooltip rendering.

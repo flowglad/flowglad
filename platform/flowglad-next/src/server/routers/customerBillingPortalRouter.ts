@@ -1,3 +1,13 @@
+import {
+  checkoutSessionClientSelectSchema,
+  customerBillingCreatePricedCheckoutSessionInputSchema,
+} from '@db-core/schema/checkoutSessions'
+import { customerClientSelectSchema } from '@db-core/schema/customers'
+import { invoiceWithLineItemsClientSchema } from '@db-core/schema/invoiceLineItems'
+import { paymentMethodClientSelectSchema } from '@db-core/schema/paymentMethods'
+import { pricingModelWithProductsAndUsageMetersSchema } from '@db-core/schema/prices'
+import { purchaseClientSelectSchema } from '@db-core/schema/purchases'
+import { subscriptionClientSelectSchema } from '@db-core/schema/subscriptions'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { headers } from 'next/headers'
@@ -10,16 +20,6 @@ import {
   authenticatedTransaction,
   comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  checkoutSessionClientSelectSchema,
-  customerBillingCreatePricedCheckoutSessionInputSchema,
-} from '@/db/schema/checkoutSessions'
-import { customerClientSelectSchema } from '@/db/schema/customers'
-import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
-import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
-import { purchaseClientSelectSchema } from '@/db/schema/purchases'
-import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
   selectCustomerById,
@@ -222,10 +222,9 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     await authenticatedTransaction(
       async ({ transaction }) => {
         // Verify the subscription belongs to the customer
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
 
         if (subscription.customerId !== customer.id) {
           throw new TRPCError({
@@ -295,10 +294,9 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           emitEvent,
           enqueueLedgerCommand,
         }
-        const subscription = await scheduleSubscriptionCancellation(
-          input,
-          ctx
-        )
+        const subscriptionResult =
+          await scheduleSubscriptionCancellation(input, ctx)
+        const subscription = subscriptionResult.unwrap()
         return Result.ok({
           subscription: {
             ...subscription,
@@ -335,10 +333,9 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     await authenticatedTransaction(
       async ({ transaction }) => {
         // Verify the subscription belongs to the customer
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
 
         if (subscription.customerId !== customer.id) {
           throw new TRPCError({
@@ -388,10 +385,9 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
           emitEvent,
           enqueueLedgerCommand,
         }
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
         const uncancelResult = await uncancelSubscription(
           subscription,
           ctx
@@ -431,18 +427,19 @@ const requestMagicLinkProcedure = publicProcedure
 
     try {
       // Verify organization exists
-      const organization = await adminTransaction(
+      const organizationResult = await adminTransaction(
         async ({ transaction }) => {
           return selectOrganizationById(organizationId, transaction)
         }
       )
 
-      if (!organization) {
+      if (Result.isError(organizationResult)) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Organization not found',
         })
       }
+      const organization = organizationResult.unwrap()
 
       // Set the organization ID for the billing portal session
       await setCustomerBillingPortalOrganizationId(organizationId)
@@ -450,6 +447,8 @@ const requestMagicLinkProcedure = publicProcedure
       // Check if customers exist and handle user creation/linking in single transaction
       await adminTransaction(async ({ transaction }) => {
         // Find livemode customers by email and organizationId
+        // Note: Intentionally includes archived customers - they should still be able
+        // to access the billing portal to view historical invoices and billing data
         const customers = await selectCustomers(
           {
             email,
@@ -598,10 +597,9 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
         enqueueLedgerCommand,
       }) => {
         // Verify ownership BEFORE making any mutations
-        const existingPaymentMethod = await selectPaymentMethodById(
-          paymentMethodId,
-          transaction
-        )
+        const existingPaymentMethod = (
+          await selectPaymentMethodById(paymentMethodId, transaction)
+        ).unwrap()
         if (existingPaymentMethod.customerId !== customer.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
@@ -665,6 +663,8 @@ const getCustomersForUserAndOrganizationProcedure = protectedProcedure
       })
     }
 
+    // Note: Intentionally includes archived customers - they should still be able
+    // to access the billing portal to view historical invoices and billing data
     const customers = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectCustomers(
@@ -756,17 +756,18 @@ const sendOTPToCustomerProcedure = publicProcedure
       // 1. Fetch customer and organization, verify they match in a single transaction
       const { customer, organization } = await adminTransaction(
         async ({ transaction }) => {
-          const customer = await selectCustomerById(
+          const customerResult = await selectCustomerById(
             customerId,
             transaction
           )
 
-          if (!customer) {
+          if (Result.isError(customerResult)) {
             throw new TRPCError({
               code: 'NOT_FOUND',
               message: 'Customer not found',
             })
           }
+          const customer = customerResult.unwrap()
 
           // Verify customer belongs to organization
           if (customer.organizationId !== organizationId) {
@@ -784,19 +785,22 @@ const sendOTPToCustomerProcedure = publicProcedure
           }
 
           // Fetch and verify organization exists
-          const organization = await selectOrganizationById(
+          const organizationResult = await selectOrganizationById(
             organizationId,
             transaction
           )
 
-          if (!organization) {
+          if (Result.isError(organizationResult)) {
             throw new TRPCError({
               code: 'NOT_FOUND',
               message: 'Organization not found',
             })
           }
 
-          return { customer, organization }
+          return {
+            customer,
+            organization: organizationResult.unwrap(),
+          }
         }
       )
 
@@ -808,6 +812,8 @@ const sendOTPToCustomerProcedure = publicProcedure
         const email = customer.email!
 
         // Find livemode customers by email and organizationId
+        // Note: Intentionally includes archived customers - they should still be able
+        // to access the billing portal to view historical invoices and billing data
         const customers = await selectCustomers(
           {
             email,

@@ -1,13 +1,13 @@
 'use client'
 
+import {
+  editUsageMeterSchema,
+  type UsageMeter,
+} from '@db-core/schema/usageMeters'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
-import {
-  editUsageMeterSchema,
-  type UsageMeter,
-} from '@/db/schema/usageMeters'
 
 interface EditUsageMeterModalProps {
   isOpen: boolean
@@ -43,10 +43,10 @@ const EditUsageMeterModal: React.FC<EditUsageMeterModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Usage Meter"
       formSchema={editUsageMeterSchema}
-      defaultValues={{
+      defaultValues={() => ({
         id: usageMeter.id,
         usageMeter: editableFields,
-      }}
+      })}
       onSubmit={editUsageMeter.mutateAsync}
     >
       <UsageMeterFormFields edit={true} />

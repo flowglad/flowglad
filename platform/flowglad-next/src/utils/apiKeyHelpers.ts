@@ -1,7 +1,8 @@
+import { FlowgladApiKeyType } from '@db-core/enums'
 import type {
   CreateApiKeyInput,
   RotateApiKeyInput,
-} from '@/db/schema/apiKeys'
+} from '@db-core/schema/apiKeys'
 import {
   deleteApiKey as deleteApiKeyMethod,
   insertApiKey,
@@ -10,8 +11,8 @@ import {
 } from '@/db/tableMethods/apiKeyMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
-import { FlowgladApiKeyType } from '@/types'
 import {
   createSecretApiKey,
   deleteApiKey as deleteApiKeyFromUnkey,
@@ -22,7 +23,12 @@ import { deleteApiKeyVerificationResult } from './redis'
 
 export const createSecretApiKeyTransaction = async (
   input: CreateApiKeyInput,
-  { transaction, userId, livemode }: AuthenticatedTransactionParams
+  {
+    transaction,
+    userId,
+    livemode,
+    organizationId,
+  }: AuthenticatedTransactionParams
 ) => {
   if (input.apiKey.type !== FlowgladApiKeyType.Secret) {
     throw new Error(
@@ -30,6 +36,25 @@ export const createSecretApiKeyTransaction = async (
         input.apiKey.type
     )
   }
+
+  // pricingModelId is REQUIRED
+  const pricingModelId = input.apiKey.pricingModelId
+
+  // Validate pricingModelId belongs to org and livemode
+  const pricingModelResult = await selectPricingModelById(
+    pricingModelId,
+    transaction
+  )
+  const pricingModel = pricingModelResult.unwrap()
+  if (
+    pricingModel.organizationId !== organizationId ||
+    pricingModel.livemode !== livemode
+  ) {
+    throw new Error(
+      'Invalid pricing model for this organization and mode'
+    )
+  }
+
   // Get the focused membership and organization
   const focusedMembership =
     await selectFocusedMembershipAndOrganization(userId, transaction)
@@ -45,7 +70,7 @@ export const createSecretApiKeyTransaction = async (
         `Organization ${focusedMembership.organization.name} does not have payouts enabled`
     )
   }
-  // Create the API key
+  // Create the API key with pricingModelId
   const { apiKeyInsert, shownOnlyOnceKey } = await createSecretApiKey(
     {
       name: input.apiKey.name,
@@ -53,6 +78,7 @@ export const createSecretApiKeyTransaction = async (
       organization: focusedMembership.organization,
       userId,
       type: FlowgladApiKeyType.Secret,
+      pricingModelId,
     }
   )
 
@@ -73,11 +99,15 @@ export const rotateSecretApiKeyTransaction = async (
   }: Pick<AuthenticatedTransactionParams, 'transaction' | 'userId'>
 ) => {
   // Get the existing API key
-  const existingApiKey = await selectApiKeyById(input.id, transaction)
-  const organization = await selectOrganizationById(
-    existingApiKey.organizationId,
-    transaction
-  )
+  const existingApiKey = (
+    await selectApiKeyById(input.id, transaction)
+  ).unwrap()
+  const organization = (
+    await selectOrganizationById(
+      existingApiKey.organizationId,
+      transaction
+    )
+  ).unwrap()
   // Rotate the key in Unkey
   const { apiKeyInsert, shownOnlyOnceKey } =
     await replaceSecretApiKey({
@@ -119,7 +149,9 @@ export const deleteSecretApiKeyTransaction = async (
   { transaction, userId }: AuthenticatedTransactionParams
 ): Promise<void> => {
   // Fetch the API key by ID to verify it exists and user has access
-  const apiKey = await selectApiKeyById(input.id, transaction)
+  const apiKey = (
+    await selectApiKeyById(input.id, transaction)
+  ).unwrap()
 
   // Validate it's a secret key
   if (apiKey.type !== FlowgladApiKeyType.Secret) {

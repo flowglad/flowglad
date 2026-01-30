@@ -1,24 +1,31 @@
 // checkoutSessions.ts
 
-import type Stripe from 'stripe'
+import {
+  CheckoutSessionStatus,
+  FeeCalculationType,
+  PriceType,
+  PurchaseStatus,
+  StripeConnectContractType,
+} from '@db-core/enums'
 import {
   type CheckoutSession,
   CreateCheckoutSessionInput,
   CreateCheckoutSessionObject,
   type EditCheckoutSessionInput,
   feeReadyCheckoutSessionSelectSchema,
-} from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import type { Discount } from '@/db/schema/discounts'
-import type { Event } from '@/db/schema/events'
+} from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { DiscountRedemption } from '@db-core/schema/discountRedemptions'
+import type { Discount } from '@db-core/schema/discounts'
+import type { Event } from '@db-core/schema/events'
 import {
   checkoutSessionFeeCalculationParametersChanged,
   type FeeCalculation,
-} from '@/db/schema/feeCalculations'
-import type { Invoice } from '@/db/schema/invoices'
-import type { BillingAddress } from '@/db/schema/organizations'
-import type { Purchase } from '@/db/schema/purchases'
+} from '@db-core/schema/feeCalculations'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { BillingAddress } from '@db-core/schema/organizations'
+import type { Purchase } from '@db-core/schema/purchases'
+import type Stripe from 'stripe'
 import {
   insertCheckoutSession,
   selectCheckoutSessionById,
@@ -50,13 +57,6 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import {
-  CheckoutSessionStatus,
-  FeeCalculationType,
-  PriceType,
-  PurchaseStatus,
-  StripeConnectContractType,
-} from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import {
   createCheckoutSessionFeeCalculation,
@@ -81,14 +81,9 @@ export const editCheckoutSession = async (
 ) => {
   const { transaction, invalidateCache } = ctx
   const { checkoutSession, purchaseId } = input
-  const previousCheckoutSession = await selectCheckoutSessionById(
-    checkoutSession.id,
-    transaction
-  )
-
-  if (!previousCheckoutSession) {
-    throw new Error('Purchase session not found')
-  }
+  const previousCheckoutSession = (
+    await selectCheckoutSessionById(checkoutSession.id, transaction)
+  ).unwrap()
 
   if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
     throw new Error('Checkout session is not open')
@@ -133,10 +128,9 @@ export const editCheckoutSession = async (
   }
   let purchase: Purchase.Record | null = null
   if (purchaseId) {
-    purchase = await selectPurchaseById(purchaseId, transaction)
-    if (!purchase) {
-      throw new Error('Purchase not found')
-    }
+    purchase = (
+      await selectPurchaseById(purchaseId, transaction)
+    ).unwrap()
     if (purchase.status !== PurchaseStatus.Pending) {
       throw new Error('Purchase is not pending')
     }
@@ -202,14 +196,12 @@ export const editCheckoutSessionBillingAddress = async (
   checkoutSession: CheckoutSession.Record
   feeCalculation: FeeCalculation.Record | null
 }> => {
-  const previousCheckoutSession = await selectCheckoutSessionById(
-    input.checkoutSessionId,
-    transaction
-  )
-
-  if (!previousCheckoutSession) {
-    throw new Error('Checkout session not found')
-  }
+  const previousCheckoutSession = (
+    await selectCheckoutSessionById(
+      input.checkoutSessionId,
+      transaction
+    )
+  ).unwrap()
 
   if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
     throw new Error('Checkout session is not open')
@@ -225,10 +217,12 @@ export const editCheckoutSessionBillingAddress = async (
   )
 
   // Check if we should calculate fees (MOR orgs only, and only if fee-ready)
-  const organization = await selectOrganizationById(
-    updatedCheckoutSession.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      updatedCheckoutSession.organizationId,
+      transaction
+    )
+  ).unwrap()
 
   let feeCalculation: FeeCalculation.Record | null = null
 
@@ -352,20 +346,23 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
 
   // Step 1: Try to find existing customer by checkout session customer ID (logged-in user)
   if (checkoutSession.purchaseId) {
-    purchase = await selectPurchaseById(
-      checkoutSession.purchaseId,
-      transaction
-    )
-    customer = await selectCustomerById(
-      purchase.customerId!,
-      transaction
-    )
+    purchase = (
+      await selectPurchaseById(
+        checkoutSession.purchaseId,
+        transaction
+      )
+    ).unwrap()
+    customer = (
+      await selectCustomerById(purchase.customerId!, transaction)
+    ).unwrap()
   }
   if (checkoutSession.customerId) {
-    customer = await selectCustomerById(
-      checkoutSession.customerId,
-      transaction
-    )
+    customer = (
+      await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    ).unwrap()
   }
 
   // Step 2: Validate that provided Stripe customer ID matches existing customer
@@ -505,10 +502,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     transaction
   )
   if (feeCalculation.discountId) {
-    discount = await selectDiscountById(
-      feeCalculation.discountId,
-      transaction
-    )
+    discount = (
+      await selectDiscountById(feeCalculation.discountId, transaction)
+    ).unwrap()
     discountRedemption =
       await upsertDiscountRedemptionForPurchaseAndDiscount(
         purchase,
@@ -578,10 +574,9 @@ export const processStripeChargeForCheckoutSession = async (
 }> => {
   const { transaction } = ctx
   let purchase: Purchase.Record | null = null
-  let checkoutSession = await selectCheckoutSessionById(
-    checkoutSessionId,
-    transaction
-  )
+  let checkoutSession = (
+    await selectCheckoutSessionById(checkoutSessionId, transaction)
+  ).unwrap()
 
   let invoice: Invoice.Record | null = null
 

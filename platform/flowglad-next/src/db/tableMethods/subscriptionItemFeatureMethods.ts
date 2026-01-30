@@ -1,5 +1,7 @@
 // NOTE: Import utilities only - don't import server-only functions from subscriptionItemMethods.server.ts
-import { eq, inArray } from 'drizzle-orm'
+
+import { features } from '@db-core/schema/features'
+import { productFeatures } from '@db-core/schema/productFeatures'
 import {
   type SubscriptionItemFeature,
   subscriptionItemFeatures,
@@ -7,7 +9,11 @@ import {
   subscriptionItemFeaturesInsertSchema,
   subscriptionItemFeaturesSelectSchema,
   subscriptionItemFeaturesUpdateSchema,
-} from '@/db/schema/subscriptionItemFeatures'
+} from '@db-core/schema/subscriptionItemFeatures'
+import {
+  SubscriptionItem,
+  subscriptionItems,
+} from '@db-core/schema/subscriptionItems'
 import {
   createBulkUpsertFunction,
   createInsertFunction,
@@ -17,20 +23,18 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { eq, inArray } from 'drizzle-orm'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   CacheDependency,
   cached,
   cachedBulkLookup,
 } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import { features } from '../schema/features'
-import { productFeatures } from '../schema/productFeatures'
-import {
-  SubscriptionItem,
-  subscriptionItems,
-} from '../schema/subscriptionItems'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscriptionItem,
   derivePricingModelIdsFromSubscriptionItems,
@@ -353,7 +357,9 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
       | SubscriptionItemFeature.Insert
       | SubscriptionItemFeature.Insert[],
     transaction: DbTransaction
-  ): Promise<SubscriptionItemFeature.Record[]> => {
+  ): Promise<
+    Result<SubscriptionItemFeature.Record[], NotFoundError>
+  > => {
     const inserts = Array.isArray(insert) ? insert : [insert]
 
     // Derive pricingModelId for each insert
@@ -374,25 +380,33 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
       )
 
     // Derive pricingModelId using the batch-fetched map
-    const insertsWithPricingModelId = inserts.map((insert) => {
-      const pricingModelId =
-        insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionItemId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription item ${insert.subscriptionItemId}`
-        )
+    const insertsWithPricingModelId: SubscriptionItemFeature.Insert[] =
+      []
+    for (const insert of inserts) {
+      if (insert.pricingModelId) {
+        insertsWithPricingModelId.push(insert)
+      } else {
+        const pricingModelIdResult = derivePricingModelIdFromMap({
+          entityId: insert.subscriptionItemId,
+          entityType: 'subscriptionItem',
+          pricingModelIdMap,
+        })
+        if (Result.isError(pricingModelIdResult)) {
+          return Result.err(pricingModelIdResult.error)
+        }
+        insertsWithPricingModelId.push({
+          ...insert,
+          pricingModelId: pricingModelIdResult.value,
+        })
       }
-      return {
-        ...insert,
-        pricingModelId,
-      }
-    })
+    }
 
-    return baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
-      insertsWithPricingModelId,
-      transaction
-    )
+    const result =
+      await baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
+        insertsWithPricingModelId,
+        transaction
+      )
+    return Result.ok(result)
   }
 
 const baseBulkUpsertSubscriptionItemFeatures =
@@ -402,7 +416,9 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
   async (
     inserts: SubscriptionItemFeature.Insert[],
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    Result<SubscriptionItemFeature.Record[], NotFoundError>
+  > => {
     // Collect unique subscriptionItemIds that need pricingModelId derivation
     const subscriptionItemIdsNeedingDerivation = Array.from(
       new Set(
@@ -420,22 +436,28 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
       )
 
     // Derive pricingModelId using the batch-fetched map
-    const insertsWithPricingModelId = inserts.map((insert) => {
-      const pricingModelId =
-        insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionItemId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription item ${insert.subscriptionItemId}`
-        )
+    const insertsWithPricingModelId: SubscriptionItemFeature.Insert[] =
+      []
+    for (const insert of inserts) {
+      if (insert.pricingModelId) {
+        insertsWithPricingModelId.push(insert)
+      } else {
+        const pricingModelIdResult = derivePricingModelIdFromMap({
+          entityId: insert.subscriptionItemId,
+          entityType: 'subscriptionItem',
+          pricingModelIdMap,
+        })
+        if (Result.isError(pricingModelIdResult)) {
+          return Result.err(pricingModelIdResult.error)
+        }
+        insertsWithPricingModelId.push({
+          ...insert,
+          pricingModelId: pricingModelIdResult.value,
+        })
       }
-      return {
-        ...insert,
-        pricingModelId,
-      }
-    })
+    }
 
-    return baseBulkUpsertSubscriptionItemFeatures(
+    const result = await baseBulkUpsertSubscriptionItemFeatures(
       insertsWithPricingModelId,
       [
         subscriptionItemFeatures.featureId,
@@ -443,6 +465,7 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
       ],
       transaction
     )
+    return Result.ok(result)
   }
 
 export const expireSubscriptionItemFeature = async (

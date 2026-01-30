@@ -1,8 +1,3 @@
-import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
 import {
   createDiscountInputSchema,
   discountClientSelectSchema,
@@ -12,7 +7,17 @@ import {
   discountsTableRowDataSchema,
   discountWithRedemptionsSchema,
   editDiscountInputSchema,
-} from '@/db/schema/discounts'
+} from '@db-core/schema/discounts'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
+import { z } from 'zod'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   deleteDiscount as deleteDiscountMethod,
   enrichDiscountsWithRedemptionCounts,
@@ -23,11 +28,6 @@ import {
   updateDiscount as updateDiscountDB,
 } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { protectedProcedure } from '@/server/trpc'
@@ -183,10 +183,9 @@ export const getDiscount = protectedProcedure
   .query(async ({ input, ctx }) => {
     const discount = await authenticatedTransaction(
       async ({ transaction }) => {
-        const discountRecord = await selectDiscountById(
-          input.id,
-          transaction
-        )
+        const discountRecord = (
+          await selectDiscountById(input.id, transaction)
+        ).unwrap()
         const [enriched] = await enrichDiscountsWithRedemptionCounts(
           [discountRecord],
           transaction

@@ -4,12 +4,12 @@ import {
   countriesInsertSchema,
   countriesSelectSchema,
   countriesUpdateSchema,
-} from '@/db/schema/countries'
+} from '@db-core/schema/countries'
 import {
   createSelectById,
   createSelectFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
 import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<

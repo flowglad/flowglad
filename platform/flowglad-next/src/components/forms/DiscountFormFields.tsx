@@ -1,9 +1,13 @@
 'use client'
 
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
+import {
+  type CreateDiscountFormSchema,
+  CreateDiscountInput,
+} from '@db-core/schema/discounts'
 import { Percent } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
 import PricingModelSelect from '@/components/forms/PricingModelSelect'
-import StatusBadge from '@/components/StatusBadge'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   FormControl,
@@ -21,14 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  type CreateDiscountFormSchema,
-  CreateDiscountInput,
-} from '@/db/schema/discounts'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import { core } from '@/utils/core'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
 
@@ -314,11 +317,11 @@ export default function DiscountFormFields({
                   htmlFor="discount-active"
                   className="cursor-pointer w-full"
                 >
-                  {field.value ? (
-                    <StatusBadge active={true} />
-                  ) : (
-                    <StatusBadge active={false} />
-                  )}
+                  <ActiveStatusTag
+                    status={booleanToActiveStatus(
+                      field.value ?? false
+                    )}
+                  />
                 </Label>
               </div>
             )}

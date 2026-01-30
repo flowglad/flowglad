@@ -1,10 +1,10 @@
-import type { Customer } from '@/db/schema/customers'
-import type { Membership } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { Subscription } from '@/db/schema/subscriptions'
-import type { User } from '@/db/schema/users'
+import type { Customer } from '@db-core/schema/customers'
+import type { Membership } from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import type { User } from '@db-core/schema/users'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -215,28 +215,18 @@ export async function buildNotificationContext(
   | OrganizationOnlyMembersNotificationContext
 > {
   // Fetch organization (required for all contexts)
-  const organization = await selectOrganizationById(
-    params.organizationId,
-    transaction
-  )
-  if (!organization) {
-    throw new Error(
-      `Organization not found: ${params.organizationId}`
-    )
-  }
+  const organization = (
+    await selectOrganizationById(params.organizationId, transaction)
+  ).unwrap()
 
   const include = params.include ?? []
 
   // Fetch customer if customerId provided
   let customer: Customer.Record | undefined
   if (params.customerId) {
-    customer = await selectCustomerById(
-      params.customerId,
-      transaction
-    )
-    if (!customer) {
-      throw new Error(`Customer not found: ${params.customerId}`)
-    }
+    customer = (
+      await selectCustomerById(params.customerId, transaction)
+    ).unwrap()
   }
 
   // Fetch subscription data when subscriptionId is provided (always required for SubscriptionNotificationContext)
@@ -245,19 +235,15 @@ export async function buildNotificationContext(
   let paymentMethod: PaymentMethod.Record | null = null
 
   if (params.subscriptionId) {
-    subscription = await selectSubscriptionById(
-      params.subscriptionId,
-      transaction
-    )
-    if (!subscription) {
-      throw new Error(
-        `Subscription not found: ${params.subscriptionId}`
-      )
-    }
+    subscription = (
+      await selectSubscriptionById(params.subscriptionId, transaction)
+    ).unwrap()
 
     // Fetch price if requested and subscription has priceId
     if (include.includes('price') && subscription.priceId) {
-      price = await selectPriceById(subscription.priceId, transaction)
+      price = (
+        await selectPriceById(subscription.priceId, transaction)
+      ).unwrap()
     }
   }
 

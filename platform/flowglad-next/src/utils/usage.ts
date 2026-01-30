@@ -1,10 +1,13 @@
-import type { Price } from '@/db/schema/prices'
-import type { UsageMeter } from '@/db/schema/usageMeters'
+import { IntervalUnit, PriceType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
-import type { AuthenticatedTransactionParams } from '@/db/types'
-import { IntervalUnit, PriceType } from '@/types'
+import {
+  type AuthenticatedTransactionParams,
+  noopTransactionCallbacks,
+} from '@/db/types'
 import { CacheDependency } from '@/utils/cache'
 import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
 
@@ -35,9 +38,11 @@ export const createUsageMeterTransaction = async (
     transaction,
     livemode,
     organizationId,
-    userId,
     invalidateCache,
-  }: AuthenticatedTransactionParams &
+    cacheRecomputationContext,
+    emitEvent,
+    enqueueLedgerCommand,
+  }: Omit<AuthenticatedTransactionParams, 'userId'> &
     Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
 ): Promise<{
   usageMeter: UsageMeter.Record
@@ -53,10 +58,19 @@ export const createUsageMeterTransaction = async (
   const { usageMeter: usageMeterInput, price: priceInput } = payload
 
   // Get organization's default currency
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
+
+  const ctx = {
+    transaction,
+    cacheRecomputationContext,
+    invalidateCache,
+    emitEvent: emitEvent ?? noopTransactionCallbacks.emitEvent,
+    enqueueLedgerCommand:
+      enqueueLedgerCommand ??
+      noopTransactionCallbacks.enqueueLedgerCommand,
+  }
 
   const usageMeter = await insertUsageMeter(
     {
@@ -64,7 +78,7 @@ export const createUsageMeterTransaction = async (
       organizationId,
       livemode,
     },
-    transaction
+    ctx
   )
 
   // Invalidate the cached usage meters for this pricing model
@@ -117,10 +131,7 @@ export const createUsageMeterTransaction = async (
   // Always add the no-charge price
   priceInserts.push(noChargePriceInsert)
 
-  const insertedPrices = await bulkInsertPrices(
-    priceInserts,
-    transaction
-  )
+  const insertedPrices = await bulkInsertPrices(priceInserts, ctx)
 
   // Resolve prices by slug instead of relying on array index order
   // This makes the intent explicit and protects against future refactoring mistakes

@@ -1,6 +1,6 @@
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import SubscriptionCheckoutSuccessPage from './SubscriptionCheckoutSuccessPage'
@@ -18,10 +18,12 @@ const AddPaymentCheckoutSuccessPage = async ({
     try {
       const { subscription, price, organization } =
         await adminTransaction(async ({ transaction }) => {
-          const subscription = await selectSubscriptionById(
-            targetSubscriptionId,
-            transaction
-          )
+          const subscription = (
+            await selectSubscriptionById(
+              targetSubscriptionId,
+              transaction
+            )
+          ).unwrap()
           if (!subscription.priceId) {
             throw new Error('No price ID found for subscription')
           }

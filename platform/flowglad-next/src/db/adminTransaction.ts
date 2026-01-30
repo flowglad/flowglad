@@ -2,7 +2,6 @@ import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type {
-  AdminTransactionParams,
   ComprehensiveAdminTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -29,7 +28,7 @@ interface AdminTransactionOptions {
  * Delegates to comprehensiveAdminTransaction by wrapping the result.
  */
 export async function adminTransaction<T>(
-  fn: (params: AdminTransactionParams) => Promise<T>,
+  fn: (params: ComprehensiveAdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
   return comprehensiveAdminTransaction(async (params) => {
@@ -41,8 +40,11 @@ export async function adminTransaction<T>(
 /**
  * Core comprehensive admin transaction logic without tracing.
  * Returns the full Result plus processed counts so the traced wrapper can extract accurate metrics.
+ *
+ * Note: This is a function declaration (not const arrow function) to ensure hoisting.
+ * This prevents TDZ errors when there are circular import dependencies.
  */
-const executeComprehensiveAdminTransaction = async <T>(
+async function executeComprehensiveAdminTransaction<T>(
   fn: (
     params: ComprehensiveAdminTransactionParams
   ) => Promise<Result<T, Error>>,
@@ -51,7 +53,7 @@ const executeComprehensiveAdminTransaction = async <T>(
   output: Result<T, Error>
   processedEventsCount: number
   processedLedgerCommandsCount: number
-}> => {
+}> {
   // Create effects accumulator and callbacks
   const {
     effects,
@@ -201,4 +203,79 @@ export async function adminTransactionUnwrap<T>(
     }
     return fn(ctx)
   }, options)
+}
+
+/**
+ * Executes a function within an admin database transaction and returns the Result directly.
+ *
+ * Unlike `comprehensiveAdminTransaction` which unwraps and throws on error, this function
+ * returns the Result for explicit error handling by the caller via `.unwrap()`.
+ *
+ * Use this when you need to:
+ * - Chain multiple transactions and handle errors between them
+ * - Return errors to callers without throwing
+ * - Migrate code towards explicit Result handling
+ *
+ * @param fn - Function that receives admin transaction parameters and returns a Result
+ * @param options - Transaction options including livemode flag
+ * @returns Promise resolving to the Result (not unwrapped)
+ *
+ * @example
+ * ```ts
+ * const result = await adminTransactionWithResult(async ({ transaction, emitEvent }) => {
+ *   // ... perform operations ...
+ *   emitEvent(event1)
+ *   return Result.ok(someValue)
+ * })
+ *
+ * // At router/API boundary, unwrap to convert to exceptions:
+ * return result.unwrap()
+ *
+ * // Or handle errors explicitly:
+ * if (Result.isError(result)) {
+ *   // handle error
+ * }
+ * ```
+ */
+export async function adminTransactionWithResult<T>(
+  fn: (
+    params: ComprehensiveAdminTransactionParams
+  ) => Promise<Result<T, Error>>,
+  options: AdminTransactionOptions = {}
+): Promise<Result<T, Error>> {
+  const { livemode = true } = options
+  const effectiveLivemode = isNil(livemode) ? true : livemode
+
+  try {
+    const { output } = await traced(
+      {
+        options: {
+          spanName: 'db.adminTransactionWithResult',
+          tracerName: 'db.transaction',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'db.transaction.type': 'admin',
+            'db.user_id': 'ADMIN',
+            'db.livemode': effectiveLivemode,
+          },
+        },
+        extractResultAttributes: (data) => ({
+          'db.events_count': data.processedEventsCount,
+          'db.ledger_commands_count':
+            data.processedLedgerCommandsCount,
+        }),
+      },
+      () =>
+        executeComprehensiveAdminTransaction(fn, effectiveLivemode)
+    )()
+
+    return output
+  } catch (error) {
+    // Convert thrown errors back to Result.err
+    // This happens when the callback returns Result.err, which triggers
+    // a throw inside executeComprehensiveAdminTransaction to roll back the transaction
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    )
+  }
 }

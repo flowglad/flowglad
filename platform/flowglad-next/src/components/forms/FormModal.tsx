@@ -1,6 +1,7 @@
 'use client'
 import {
   type DefaultValues,
+  type FieldError,
   type FieldValues,
   FormProvider,
   type UseFormReturn,
@@ -23,8 +24,14 @@ export interface ModalInterfaceProps {
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useId, useState } from 'react'
-import type { z } from 'zod'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react'
+import { type ZodError, type z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   Drawer,
@@ -74,7 +81,14 @@ interface FormModalProps<T extends FieldValues>
   extends ModalInterfaceProps {
   onSuccess?: () => void
   formSchema: z.ZodSchema<T>
-  defaultValues: DefaultValues<T>
+  /**
+   * A function that returns the default values for the form.
+   * This function is only called when the modal opens, which prevents
+   * expensive computations (like schema.parse()) from running when
+   * the modal is closed. This avoids errors on pages where the modal
+   * is rendered but not visible.
+   */
+  defaultValues: () => DefaultValues<T>
   onSubmit: (data: T) => void
   title: string
   children: React.ReactNode
@@ -103,6 +117,10 @@ interface FormModalProps<T extends FieldValues>
    * @default false
    */
   allowContentOverflow?: boolean
+  /**
+   * Whether the submit button should be disabled. Defaults to false.
+   */
+  submitDisabled?: boolean
 }
 
 interface NestedFormModalProps<T extends FieldValues>
@@ -128,6 +146,30 @@ export const NestedFormModal = <T extends FieldValues>({
   mode = 'modal',
   allowContentOverflow = false,
 }: NestedFormModalProps<T>) => {
+  // Lazily compute default values only when the modal opens
+  // This prevents expensive computations (like schema.parse()) from running
+  // on every render when the modal is closed
+  const lastIsOpenRef = useRef(false)
+  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(
+    undefined
+  )
+
+  if (isOpen && !lastIsOpenRef.current) {
+    // Modal is transitioning from closed to open - compute fresh default values
+    defaultValuesRef.current = defaultValues()
+  }
+  lastIsOpenRef.current = isOpen
+
+  const resolvedDefaultValues = defaultValuesRef.current
+
+  // Reset form with actual default values when modal opens
+  // This is needed because the form may have been created before lazy default values were computed
+  useEffect(() => {
+    if (isOpen && form && defaultValuesRef.current) {
+      form.reset(defaultValuesRef.current)
+    }
+  }, [isOpen, form])
+
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
     <div className="flex flex-1 justify-end gap-2 w-full">
@@ -135,8 +177,8 @@ export const NestedFormModal = <T extends FieldValues>({
         variant="secondary"
         size="default"
         onClick={() => {
-          if (form) {
-            form.reset(defaultValues)
+          if (form && resolvedDefaultValues) {
+            form.reset(resolvedDefaultValues)
           }
           setIsOpen(false)
         }}
@@ -249,9 +291,25 @@ const FormModal = <T extends FieldValues>({
   hideFooter = false,
   mode = 'modal',
   allowContentOverflow = false,
+  submitDisabled = false,
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
+  // Lazily compute default values only when the modal opens
+  // This prevents expensive computations (like schema.parse()) from running
+  // on every render when the modal is closed
+  const lastIsOpenRef = useRef(false)
+  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(
+    undefined
+  )
+
+  if (isOpen && !lastIsOpenRef.current) {
+    // Modal is transitioning from closed to open - compute fresh default values
+    defaultValuesRef.current = defaultValues()
+  }
+  lastIsOpenRef.current = isOpen
+
+  const resolvedDefaultValues = defaultValuesRef.current
   const form = useForm<T>({
     resolver: async (data, context, options) => {
       try {
@@ -266,10 +324,10 @@ const FormModal = <T extends FieldValues>({
         // Catch any errors thrown by zodResolver
         // This prevents unhandled errors from escaping to React's error boundary
         console.error('Form validation error:', error)
-        const fieldErrors: Record<string, any> = {}
+        const fieldErrors: Record<string, FieldError> = {}
         if (error && typeof error === 'object' && 'issues' in error) {
-          const zodError = error as any
-          zodError.issues?.forEach((issue: any) => {
+          const zodError = error as ZodError
+          zodError.issues?.forEach((issue) => {
             const path = issue.path.join('.')
             if (path) {
               fieldErrors[path] = {
@@ -296,15 +354,25 @@ const FormModal = <T extends FieldValues>({
         }
       }
     },
-    defaultValues,
+    defaultValues: resolvedDefaultValues,
   })
   const {
     handleSubmit,
     formState: { isSubmitting, errors },
     reset,
   } = form
+
+  // Reset form with actual default values when modal opens
+  // This is needed because useForm is called before lazy default values are computed
+  useEffect(() => {
+    if (isOpen && defaultValuesRef.current) {
+      form.reset(defaultValuesRef.current)
+    }
+  }, [isOpen, form])
+
   const hardResetFormValues = useCallback(() => {
-    form.reset(defaultValues, {
+    if (!resolvedDefaultValues) return
+    form.reset(resolvedDefaultValues, {
       keepDefaultValues: true,
       keepIsSubmitted: false,
       keepErrors: false,
@@ -312,7 +380,7 @@ const FormModal = <T extends FieldValues>({
       keepValues: false,
       keepTouched: false,
     })
-  }, [form, defaultValues])
+  }, [form, resolvedDefaultValues])
 
   const shouldRenderContent = useShouldRenderContent({
     isOpen,
@@ -325,7 +393,9 @@ const FormModal = <T extends FieldValues>({
         variant="secondary"
         size="default"
         onClick={() => {
-          form.reset(defaultValues)
+          if (resolvedDefaultValues) {
+            form.reset(resolvedDefaultValues)
+          }
           setIsOpen(false)
         }}
       >
@@ -336,7 +406,7 @@ const FormModal = <T extends FieldValues>({
         size="default"
         type="submit"
         form={id}
-        disabled={isSubmitting}
+        disabled={isSubmitting || submitDisabled}
       >
         {submitButtonText ?? 'Submit'}
       </Button>

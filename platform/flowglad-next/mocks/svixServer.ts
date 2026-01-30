@@ -74,6 +74,48 @@ export const svixHandlers = [
     })
   }),
 
+  // Endpoint update (PATCH)
+  http.patch(
+    'https://api.svix.com/api/v1/app/:appId/endpoint/:endpointId',
+    () => {
+      return HttpResponse.json({
+        id: `ep_mock_${core.nanoid()}`,
+        url: 'https://mock-endpoint.com/webhook',
+        uid: core.nanoid(),
+        createdAt: new Date().toISOString(),
+      })
+    }
+  ),
+  http.patch(
+    'https://api.us.svix.com/api/v1/app/:appId/endpoint/:endpointId',
+    () => {
+      return HttpResponse.json({
+        id: `ep_mock_${core.nanoid()}`,
+        url: 'https://mock-endpoint.com/webhook',
+        uid: core.nanoid(),
+        createdAt: new Date().toISOString(),
+      })
+    }
+  ),
+
+  // Endpoint signing secret
+  http.get(
+    'https://api.svix.com/api/v1/app/:appId/endpoint/:endpointId/secret',
+    () => {
+      return HttpResponse.json({
+        key: 'whsec_mock_secret_key_12345',
+      })
+    }
+  ),
+  http.get(
+    'https://api.us.svix.com/api/v1/app/:appId/endpoint/:endpointId/secret',
+    () => {
+      return HttpResponse.json({
+        key: 'whsec_mock_secret_key_12345',
+      })
+    }
+  ),
+
   // Catch-all variants for app retrieval to avoid missing regional or trailing-slash differences
   http.get(
     /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/[^/]+\/?$/,

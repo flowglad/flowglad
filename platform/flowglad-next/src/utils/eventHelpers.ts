@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
-import type { Customer } from '@/db/schema/customers'
-import { Event } from '@/db/schema/events'
-import type { Payment } from '@/db/schema/payments'
-import type { Purchase } from '@/db/schema/purchases'
-import type { Subscription } from '@/db/schema/subscriptions'
-import { FlowgladEventType } from '@/types'
+import { FlowgladEventType } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import { Event } from '@db-core/schema/events'
+import type { Payment } from '@db-core/schema/payments'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { Subscription } from '@db-core/schema/subscriptions'
 
 function constructEventHash(record: Record<string, any>) {
   return createHash('sha256')
@@ -63,5 +63,16 @@ export function constructCustomerCreatedEventHash(
   return constructEventHash({
     type: FlowgladEventType.CustomerCreated,
     id: customer.id,
+  })
+}
+
+export function constructSyncEventsAvailableEventHash(params: {
+  scopeId: string
+  latestSequence: string
+}) {
+  return constructEventHash({
+    type: FlowgladEventType.SyncEventsAvailable,
+    scopeId: params.scopeId,
+    latestSequence: params.latestSequence,
   })
 }

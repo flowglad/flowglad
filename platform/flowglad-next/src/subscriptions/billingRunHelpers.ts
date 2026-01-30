@@ -1,3 +1,27 @@
+import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  type CountryCode,
+  type CurrencyCode,
+  FeatureType,
+  InvoiceStatus,
+  InvoiceType,
+  PaymentStatus,
+  SubscriptionItemType,
+} from '@db-core/enums'
+import type { BillingPeriodItem } from '@db-core/schema/billingPeriodItems'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { BillingRun } from '@db-core/schema/billingRuns'
+import type { Customer } from '@db-core/schema/customers'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Payment } from '@db-core/schema/payments'
+import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -5,19 +29,6 @@ import {
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import type { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
-import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { BillingRun } from '@/db/schema/billingRuns'
-import type { Customer } from '@/db/schema/customers'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Payment } from '@/db/schema/payments'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -56,18 +67,7 @@ import type {
 } from '@/db/types'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  type CountryCode,
-  type CurrencyCode,
-  FeatureType,
-  InvoiceStatus,
-  InvoiceType,
-  PaymentStatus,
-  SubscriptionItemType,
-  type UsageBillingInfo,
-} from '@/types'
+import { type UsageBillingInfo } from '@/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { createAndFinalizeSubscriptionFeeCalculation } from '@/utils/bookkeeping/fees/subscription'
 import core from '@/utils/core'
@@ -145,17 +145,17 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
         `Organization: ${organization.id}; Billing Period: ${billingPeriod.id}`
     )
   }
-  const organizationCountry = await selectCountryById(
-    countryId,
-    transaction
-  )
-  await claimLedgerEntriesWithOutstandingBalances(
+  const organizationCountry = (
+    await selectCountryById(countryId, transaction)
+  ).unwrap()
+  const claimResult = await claimLedgerEntriesWithOutstandingBalances(
     usageOverages.flatMap(
       (usageOverage) => usageOverage.usageEventIds
     ),
     billingRun,
     transaction
   )
+  claimResult.unwrap()
   const feeCalculation =
     await createAndFinalizeSubscriptionFeeCalculation(
       {
@@ -225,9 +225,7 @@ export const tabulateOutstandingUsageCosts = async (
     string,
     OutstandingUsageCostAggregation
   >
-  rawOutstandingUsageCosts: Awaited<
-    ReturnType<typeof aggregateOutstandingBalanceForUsageCosts>
-  >
+  rawOutstandingUsageCosts: UsageBillingInfo[]
 }> => {
   const ledgerAccountsForSubscription = await selectLedgerAccounts(
     {
@@ -235,7 +233,7 @@ export const tabulateOutstandingUsageCosts = async (
     },
     transaction
   )
-  const rawOutstandingUsageCosts =
+  const rawOutstandingUsageCostsResult =
     await aggregateOutstandingBalanceForUsageCosts(
       {
         ledgerAccountId: ledgerAccountsForSubscription.map(
@@ -245,6 +243,8 @@ export const tabulateOutstandingUsageCosts = async (
       billingPeriodEndDate,
       transaction
     )
+  const rawOutstandingUsageCosts =
+    rawOutstandingUsageCostsResult.unwrap()
 
   const outstandingUsageCostsByLedgerAccountId = new Map()
   rawOutstandingUsageCosts.forEach((usageCost) => {
@@ -435,10 +435,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
 
-  const paymentMethod = await selectPaymentMethodById(
-    billingRun.paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(
+      billingRun.paymentMethodId,
+      transaction
+    )
+  ).unwrap()
 
   // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
   const { rawOutstandingUsageCosts } =
@@ -619,6 +621,39 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     }
   }
 
+  /**
+   * Guard: Only create a payment record if there's actually an amount to charge.
+   * This prevents orphaned $0 payment records when the invoice is already fully
+   * paid via credits or prior payments (amountToCharge = 0).
+   * This check must come BEFORE Stripe ID validation since we don't need
+   * Stripe IDs when there's nothing to charge.
+   * See: https://github.com/flowglad/flowglad/issues/1317
+   */
+  if (amountToCharge <= 0) {
+    const processBillingPeriodResult =
+      await processNoMoreDueForBillingPeriod(
+        {
+          billingRun,
+          billingPeriod,
+          invoice,
+        },
+        transaction
+      )
+    return {
+      invoice: processBillingPeriodResult.invoice,
+      feeCalculation,
+      customer,
+      organization,
+      billingPeriod: processBillingPeriodResult.billingPeriod,
+      subscription,
+      paymentMethod,
+      totalDueAmount,
+      totalAmountPaid,
+      amountToCharge,
+      payments,
+    }
+  }
+
   const stripeCustomerId = customer.stripeCustomerId
   const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
   if (!stripeCustomerId) {
@@ -665,7 +700,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingPeriodId: billingPeriod.id,
   }
 
-  const payment = await insertPayment(paymentInsert, transaction)
+  const paymentResult = await insertPayment(
+    paymentInsert,
+    transaction
+  )
+  const payment = paymentResult.unwrap()
 
   /**
    * Eagerly update the billing run status to AwaitingPaymentConfirmation
@@ -750,7 +789,9 @@ export const executeBillingRun = async (
   }
 ) => {
   const billingRun = await adminTransaction(({ transaction }) => {
-    return selectBillingRunById(billingRunId, transaction)
+    return selectBillingRunById(billingRunId, transaction).then((r) =>
+      r.unwrap()
+    )
   })
 
   if (billingRun.status !== BillingRunStatus.Scheduled) {
@@ -857,19 +898,24 @@ export const executeBillingRun = async (
               )
             }
 
-            paymentIntent = await createPaymentIntentForBillingRun({
-              amount: amountToCharge,
-              currency: resultFromSteps.invoice.currency,
-              stripeCustomerId:
-                resultFromSteps.customer.stripeCustomerId,
-              stripePaymentMethodId:
-                resultFromSteps.paymentMethod.stripePaymentMethodId,
-              billingPeriodId: billingRun.billingPeriodId,
-              billingRunId: billingRun.id,
-              feeCalculation: resultFromSteps.feeCalculation,
-              organization: resultFromSteps.organization,
-              livemode: billingRun.livemode,
-            })
+            const paymentIntentResult =
+              await createPaymentIntentForBillingRun({
+                amount: amountToCharge,
+                currency: resultFromSteps.invoice.currency,
+                stripeCustomerId:
+                  resultFromSteps.customer.stripeCustomerId,
+                stripePaymentMethodId:
+                  resultFromSteps.paymentMethod.stripePaymentMethodId,
+                billingPeriodId: billingRun.billingPeriodId,
+                billingRunId: billingRun.id,
+                feeCalculation: resultFromSteps.feeCalculation,
+                organization: resultFromSteps.organization,
+                livemode: billingRun.livemode,
+              })
+            if (Result.isError(paymentIntentResult)) {
+              return Result.err(paymentIntentResult.error)
+            }
+            paymentIntent = paymentIntentResult.value
 
             // Update payment record with payment intent ID
             await updatePayment(
@@ -984,7 +1030,7 @@ export const executeBillingRun = async (
           },
           effectsCtx
         )
-        return Result.ok(result)
+        return result
       })
     }
 

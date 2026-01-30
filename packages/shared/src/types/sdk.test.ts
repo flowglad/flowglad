@@ -50,6 +50,7 @@ describe('Route type classification', () => {
       FlowgladActionKey.UncancelSubscription,
       FlowgladActionKey.AdjustSubscription,
       FlowgladActionKey.CreateSubscription,
+      FlowgladActionKey.GetSubscriptions,
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
       FlowgladActionKey.GetResourceUsages,
@@ -57,6 +58,8 @@ describe('Route type classification', () => {
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
+      FlowgladActionKey.GetUsageMeterBalances,
+      FlowgladActionKey.GetFeatureAccess,
     ]
 
     expect(authenticatedKeys.sort()).toEqual(

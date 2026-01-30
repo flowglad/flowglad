@@ -93,7 +93,7 @@ type ApiKeyVerificationResult = z.infer<
  *
  * If you need to test actual caching behavior, use one of these approaches:
  *
- * 1. Integration tests: Set REDIS_INTEGRATION_TEST_MODE=true to use real Redis
+ * 1. Integration tests: Use .env.integration with real Redis credentials
  *    (see cache.integration.test.ts for examples)
  *
  * 2. Stateful mock: Use _setTestRedisClient() to inject a mock that stores data
@@ -124,22 +124,38 @@ export const _setTestRedisClient = (client: any) => {
 }
 
 /**
+ * Returns true if Redis credentials appear to be real (not stubs).
+ */
+const hasRealRedisCredentials = () => {
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  // Check for stub values that won't work with real Redis
+  if (!url || !token) return false
+  if (url.includes('stub') || token.includes('stub')) return false
+  if (url.includes('mock') || token.includes('mock')) return false
+  return true
+}
+
+/**
  * Returns a Redis client.
  *
- * In unit tests (NODE_ENV=test), returns either:
- * - A custom client set via _setTestRedisClient(), or
- * - The default testStubClient (no-op stub)
- *
- * In integration tests (REDIS_INTEGRATION_TEST_MODE=true), returns real Redis.
- * In production, returns real Redis.
+ * Priority:
+ * 1. If _setTestRedisClient() was called, always use that client (test override)
+ * 2. In tests without real Redis credentials, returns testStubClient
+ * 3. In production or integration tests with real credentials, returns real Redis
  */
 export const redis = () => {
-  if (
-    core.IS_TEST &&
-    process.env.REDIS_INTEGRATION_TEST_MODE !== 'true'
-  ) {
-    return _testRedisClient ?? testStubClient
+  // Always respect explicit test client injection (used for testing specific behaviors)
+  if (_testRedisClient !== null) {
+    return _testRedisClient
   }
+
+  // In tests without real Redis credentials, use the no-op stub
+  if (core.IS_TEST && !hasRealRedisCredentials()) {
+    return testStubClient
+  }
+
+  // Integration tests (with real credentials) and production use real Redis
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
     token: core.envVariable('UPSTASH_REDIS_REST_TOKEN'),
@@ -162,6 +178,14 @@ export enum RedisKeyNamespace {
   UsageMetersByPricingModel = 'usageMetersByPricingModel',
   CacheDependencyRegistry = 'cacheDeps',
   CacheRecomputeMetadata = 'cacheRecompute',
+  // Pricing model cache atoms
+  PricingModel = 'pricingModel',
+  ProductsByPricingModel = 'productsByPricingModel',
+  PricesByPricingModel = 'pricesByPricingModel',
+  FeaturesByPricingModel = 'featuresByPricingModel',
+  ProductFeaturesByPricingModel = 'productFeaturesByPricingModel',
+  // Sync stream for SSE event streaming
+  SyncStream = 'syncStream',
 }
 
 const evictionPolicy: Record<
@@ -219,6 +243,27 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.CacheRecomputeMetadata]: {
     max: 500000, // One metadata entry per recomputable cache key
     ttl: 86400, // 24 hours - same as dependency registry
+  },
+  // Pricing model cache atoms - keyed by pricingModelId
+  [RedisKeyNamespace.PricingModel]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.ProductsByPricingModel]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.PricesByPricingModel]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.FeaturesByPricingModel]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.ProductFeaturesByPricingModel]: {
+    max: 100000,
+  },
+  // Sync streams use MAXLEN for eviction, not LRU
+  [RedisKeyNamespace.SyncStream]: {
+    maxlen: 100000, // Max 100k events per stream
+    ttl: 60 * 60 * 24 * 7, // 7 days retention
   },
 }
 
@@ -433,25 +478,32 @@ export const resetDismissedBanners = async (
 }
 
 /**
- * Lua script for atomic LRU cache eviction.
+ * Lua script for atomic LRU cache eviction with orphan cleanup.
  *
  * This script:
  * 1. Adds the cache key to a namespace's sorted set (score = timestamp)
  * 2. Checks if the set size exceeds the max
- * 3. If so, evicts the oldest entries (lowest scores)
+ * 3. If so, iterates through oldest entries and:
+ *    - For orphans (expired TTL): removes from sorted set only
+ *    - For real entries: deletes cache key, metadata key, and removes from sorted set
+ *
+ * This lazy cleanup ensures that TTL-expired entries don't accumulate in the
+ * LRU sorted set, which would otherwise degrade eviction accuracy.
  *
  * KEYS[1] = ZSET key (namespace:lru)
  * KEYS[2] = cache key to add
  * ARGV[1] = current timestamp
  * ARGV[2] = max size
+ * ARGV[3] = metadata key prefix (e.g., "cacheRecompute:")
  *
- * Returns: number of entries evicted
+ * Returns: JSON array [evictedCount, orphansRemoved]
  */
 const LRU_EVICTION_SCRIPT = `
 local zsetKey = KEYS[1]
 local cacheKey = KEYS[2]
 local timestamp = tonumber(ARGV[1])
 local maxSize = tonumber(ARGV[2])
+local metadataPrefix = ARGV[3]
 
 -- Add the cache key with current timestamp as score
 redis.call('ZADD', zsetKey, timestamp, cacheKey)
@@ -459,21 +511,41 @@ redis.call('ZADD', zsetKey, timestamp, cacheKey)
 -- Check current size
 local size = redis.call('ZCARD', zsetKey)
 
-if size > maxSize then
-  -- Calculate how many to evict
-  local toEvictCount = size - maxSize
-  -- Get the oldest entries (lowest scores)
-  local toEvict = redis.call('ZRANGE', zsetKey, 0, toEvictCount - 1)
-  if #toEvict > 0 then
-    -- Delete the cache entries
-    redis.call('DEL', unpack(toEvict))
-    -- Remove from the ZSET
-    redis.call('ZREM', zsetKey, unpack(toEvict))
+local evictedCount = 0
+local orphansRemoved = 0
+local maxIterations = 100 -- Safety limit to prevent infinite loops
+
+-- While over max size and haven't hit iteration limit
+while size > maxSize and maxIterations > 0 do
+  maxIterations = maxIterations - 1
+
+  -- Get the oldest entry (lowest score)
+  local oldest = redis.call('ZRANGE', zsetKey, 0, 0)
+  if #oldest == 0 then
+    break
   end
-  return #toEvict
+
+  local oldestKey = oldest[1]
+
+  -- Check if the cache key still exists (not expired by TTL)
+  local exists = redis.call('EXISTS', oldestKey)
+
+  if exists == 1 then
+    -- Real entry - delete cache key and its metadata
+    redis.call('DEL', oldestKey)
+    redis.call('DEL', metadataPrefix .. oldestKey)
+    evictedCount = evictedCount + 1
+  else
+    -- Orphan (TTL expired) - just clean up the sorted set entry
+    orphansRemoved = orphansRemoved + 1
+  end
+
+  -- Remove from sorted set
+  redis.call('ZREM', zsetKey, oldestKey)
+  size = size - 1
 end
 
-return 0
+return cjson.encode({evictedCount, orphansRemoved})
 `
 
 /**
@@ -528,19 +600,38 @@ export function getMaxSizeForNamespace(
 }
 
 /**
+ * Get the SyncStream eviction policy configuration.
+ */
+export function getSyncStreamConfig(): {
+  maxlen: number
+  ttl: number
+} {
+  const policy = evictionPolicy[RedisKeyNamespace.SyncStream]
+  return {
+    maxlen: policy.maxlen ?? 100000,
+    ttl: policy.ttl ?? 60 * 60 * 24 * 7,
+  }
+}
+
+/**
  * Track a cache key in the namespace's LRU set and evict oldest entries if over limit.
  *
  * This function atomically:
  * 1. Adds the cache key to a sorted set (score = current timestamp)
  * 2. Checks if the set exceeds max size
- * 3. Evicts oldest entries (by score) if needed
+ * 3. Evicts oldest entries (by score) if needed, cleaning up orphans along the way
+ *
+ * Orphan cleanup: When iterating through oldest entries, the script checks if each
+ * cache key still exists. TTL-expired entries (orphans) are removed from the sorted
+ * set without attempting to delete the already-gone cache key. This prevents the
+ * LRU sorted set from accumulating stale entries over time.
  *
  * Uses EVALSHA to avoid sending the full script on every call. Falls back to
  * EVAL if the script isn't cached in Redis (which also caches it for future calls).
  *
  * @param namespace - The cache namespace
  * @param cacheKey - The full cache key being written
- * @returns Number of entries evicted (0 if none)
+ * @returns Number of real entries evicted (0 if none)
  */
 export async function trackAndEvictLRU(
   namespace: RedisKeyNamespace,
@@ -550,21 +641,32 @@ export async function trackAndEvictLRU(
     const zsetKey = `${namespace}:lru`
     const maxSize = getMaxSizeForNamespace(namespace)
     const timestamp = Date.now()
+    const metadataPrefix = `${RedisKeyNamespace.CacheRecomputeMetadata}:`
 
-    const evicted = await evalWithShaFallback<unknown>(
+    const result = await evalWithShaFallback<string>(
       LRU_EVICTION_SCRIPT,
       LRU_EVICTION_SCRIPT_SHA,
       [zsetKey, cacheKey],
-      [timestamp, maxSize]
+      [timestamp, maxSize, metadataPrefix]
     )
 
-    const evictedCount =
-      typeof evicted === 'number' ? evicted : Number(evicted) || 0
+    // Parse the JSON array result [evictedCount, orphansRemoved]
+    let evictedCount = 0
+    let orphansRemoved = 0
+    try {
+      const parsed = JSON.parse(result) as [number, number]
+      evictedCount = parsed[0] ?? 0
+      orphansRemoved = parsed[1] ?? 0
+    } catch {
+      // Fallback for unexpected format
+      evictedCount = typeof result === 'number' ? result : 0
+    }
 
-    if (evictedCount > 0) {
+    if (evictedCount > 0 || orphansRemoved > 0) {
       logger.debug('LRU eviction performed', {
         namespace,
         evictedCount,
+        orphansRemoved,
         maxSize,
       })
     }

@@ -1,5 +1,5 @@
+import type { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import type * as React from 'react'
-import type { CurrencyCode, IntervalUnit } from '@/types'
 
 /**
  * Email recipient types for determining appropriate branding.
@@ -200,7 +200,7 @@ export interface CustomerTrialExpiredNoPaymentProps {
   organizationLogoUrl?: string
   organizationId: string
   customerId: string
-  planName: string
+  productName: string
   livemode: boolean
 }
 
@@ -512,7 +512,7 @@ export const EMAIL_REGISTRY: {
       )
       return mod.PaymentFailedEmail
     },
-    defaultSubject: 'Payment Unsuccessful',
+    defaultSubject: 'Your Payment Failed',
     recipientType: 'customer',
     category: 'payment',
     description: 'Sent when a payment fails to process',
@@ -660,7 +660,7 @@ export const EMAIL_REGISTRY: {
       return mod.OrganizationPaymentNotificationEmail
     },
     defaultSubject: (props) =>
-      `You just made payment from ${props.customerName}!`,
+      `Successful payment from ${props.customerName}!`,
     recipientType: 'organization',
     category: 'payment',
     description: 'Notifies organization of a successful payment',
@@ -674,7 +674,7 @@ export const EMAIL_REGISTRY: {
       return mod.OrganizationPaymentFailedNotificationEmail
     },
     defaultSubject: (props) =>
-      `Payment Failed: ${props.customerName} payment failed`,
+      `Payment Failed from ${props.customerName}`,
     recipientType: 'organization',
     category: 'payment',
     description: 'Notifies organization of a failed payment',

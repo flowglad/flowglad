@@ -1,4 +1,4 @@
-import { CurrencyCode, IntervalUnit } from '@/types'
+import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import type { EmailType, EmailTypeMap } from '@/utils/email/registry'
 
 // ============================================================================
@@ -385,7 +385,7 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
       organizationLogoUrl: mockOrganization.logoUrl,
       organizationId: mockOrganization.id,
       customerId: mockCustomer.id,
-      planName: 'Pro Plan',
+      productName: 'Pro Plan',
       livemode: true,
     },
   },

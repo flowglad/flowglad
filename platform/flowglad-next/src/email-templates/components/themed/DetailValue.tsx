@@ -2,7 +2,7 @@ import { Text } from '@react-email/components'
 import type * as React from 'react'
 
 const detailsValue = {
-  color: '#32325d',
+  color: '#141312',
   fontSize: '16px',
   fontWeight: 'bold' as const,
   marginBottom: '16px',

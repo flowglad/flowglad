@@ -30,8 +30,6 @@ export interface LoadedFlowgladProviderProps {
    * (e.g., '/api/auth'). This routes all Flowglad API calls through Better Auth
    * endpoints instead of the standalone /api/flowglad route.
    *
-   * IMPORTANT: This must match your Better Auth configuration. If you change your
-   * Better Auth basePath, you must update this prop to match.
    */
   betterAuthBasePath?: string
 }

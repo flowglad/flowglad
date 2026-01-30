@@ -1,10 +1,10 @@
 'use client'
 
+import { createResourceSchema } from '@db-core/schema/resources'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import ResourceFormFields from '@/components/forms/ResourceFormFields'
-import { createResourceSchema } from '@/db/schema/resources'
 
 interface CreateResourceModalProps {
   isOpen: boolean
@@ -37,14 +37,14 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Create Resource"
       formSchema={createResourceSchema}
-      defaultValues={{
+      defaultValues={() => ({
         resource: {
           name: '',
           slug: '',
           pricingModelId: defaultPricingModelId || '',
           active: true,
         },
-      }}
+      })}
       onSubmit={async (input) => {
         await createResource.mutateAsync(input)
       }}

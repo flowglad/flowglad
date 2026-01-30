@@ -1,8 +1,9 @@
 'use client'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
+import { usePathname } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
 import { useSession } from '@/utils/authClient'
 
 export type AuthContextValues = Partial<{
@@ -72,24 +73,31 @@ const AuthProvider = ({
     Organization.ClientRecord | undefined
   >(values.organization)
   const session = useSession()
+  const pathname = usePathname()
   const authenticated = session.data?.user?.id !== undefined
+  // Don't call getFocusedMembership during onboarding - user has no membership yet
+  const isOnboarding = pathname?.startsWith('/onboarding')
   const {
     data: focusedMembership,
     refetch: refetchFocusedMembership,
   } = trpc.organizations.getFocusedMembership.useQuery(undefined, {
-    enabled: values.role === 'merchant' && authenticated,
+    enabled:
+      values.role === 'merchant' && authenticated && !isOnboarding,
   })
   /**
    * A race condition happens where sometimes the layout renders
    * before the user is fetched when first logging in.
    * This gracefully recovers by refetching the focused membership
    * when the user is fetched.
+   *
+   * Note: We also check !isOnboarding because refetch() executes
+   * regardless of the query's `enabled` state.
    */
   useEffect(() => {
-    if (user) {
+    if (user && !isOnboarding) {
       refetchFocusedMembership()
     }
-  }, [user, refetchFocusedMembership])
+  }, [user, isOnboarding, refetchFocusedMembership])
 
   const focusedOrganization = focusedMembership?.organization
   useEffect(() => {

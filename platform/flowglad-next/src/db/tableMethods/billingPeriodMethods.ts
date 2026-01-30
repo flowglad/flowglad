@@ -1,3 +1,38 @@
+import { BillingPeriodStatus } from '@db-core/enums'
+import {
+  type BillingPeriod,
+  billingPeriods,
+  billingPeriodsInsertSchema,
+  billingPeriodsSelectSchema,
+  billingPeriodsUpdateSchema,
+} from '@db-core/schema/billingPeriods'
+import {
+  customers,
+  customersSelectSchema,
+} from '@db-core/schema/customers'
+import {
+  invoices,
+  invoicesSelectSchema,
+} from '@db-core/schema/invoices'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import {
+  subscriptions,
+  subscriptionsSelectSchema,
+} from '@db-core/schema/subscriptions'
+import {
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  SelectConditions,
+  whereClauseFromObject,
+} from '@db-core/tableUtils'
 import {
   and,
   eq,
@@ -9,36 +44,8 @@ import {
   ne,
   or,
 } from 'drizzle-orm'
-import {
-  type BillingPeriod,
-  billingPeriods,
-  billingPeriodsInsertSchema,
-  billingPeriodsSelectSchema,
-  billingPeriodsUpdateSchema,
-} from '@/db/schema/billingPeriods'
-import {
-  createDerivePricingModelId,
-  createDerivePricingModelIds,
-  createInsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createUpdateFunction,
-  type ORMMethodCreatorConfig,
-  SelectConditions,
-  whereClauseFromObject,
-} from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { BillingPeriodStatus, CancellationReason } from '@/types'
-import { customers, customersSelectSchema } from '../schema/customers'
-import { invoices, invoicesSelectSchema } from '../schema/invoices'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import {
-  subscriptions,
-  subscriptionsSelectSchema,
-} from '../schema/subscriptions'
+import { CancellationReason } from '@/types'
 import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -66,7 +73,10 @@ export const derivePricingModelIdFromBillingPeriod =
   createDerivePricingModelId(
     billingPeriods,
     config,
-    selectBillingPeriodById
+    async (id, transaction) => {
+      const result = await selectBillingPeriodById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

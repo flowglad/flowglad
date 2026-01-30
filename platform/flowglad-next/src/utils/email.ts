@@ -1,3 +1,6 @@
+import type { CurrencyCode } from '@db-core/enums'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
 import {
   type CreateEmailOptions,
   type CreateEmailRequestOptions,
@@ -5,8 +8,6 @@ import {
   Resend,
 } from 'resend'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 import { CustomerBillingPortalOTPEmail } from '@/email-templates/customer-billing-portal-otp'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
@@ -26,11 +27,9 @@ import {
 import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/organization/organization-payouts-enabled'
 import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
 import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
-import type { CurrencyCode } from '@/types'
 import { resendTraced } from '@/utils/tracing'
 import core from './core'
 import { getFromAddress } from './email/fromAddress'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -209,10 +208,7 @@ export const sendOrganizationPaymentNotificationEmail = async (
       to: params.to.map(safeTo),
       bcc: getBccForLivemode(params.livemode),
       subject: formatEmailSubject(
-        `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          params.currency,
-          params.amount
-        )} from ${params.organizationName}!`,
+        `Successful payment from ${params.customerName}!`,
         params.livemode
       ),
       /**
@@ -296,7 +292,7 @@ export const sendPaymentFailedEmail = async (params: {
       bcc: getBccForLivemode(params.livemode),
       replyTo: params.replyTo ?? undefined,
       subject: formatEmailSubject(
-        'Payment Unsuccessful',
+        'Your Payment Failed',
         params.livemode
       ),
       react: await PaymentFailedEmail({
@@ -401,7 +397,7 @@ export const sendOrganizationPaymentFailedNotificationEmail = async (
       to: params.to.map(safeTo),
       bcc: getBccForLivemode(params.livemode),
       subject: formatEmailSubject(
-        `${params.organizationName} payment failed from ${params.customerName}`,
+        `Payment Failed from ${params.customerName}`,
         params.livemode
       ),
       /**

@@ -1,15 +1,15 @@
-import { z } from 'zod'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   paymentMethodClientSelectSchema,
   paymentMethodsPaginatedListSchema,
   paymentMethodsPaginatedSelectSchema,
-} from '@/db/schema/paymentMethods'
+} from '@db-core/schema/paymentMethods'
+import { idInputSchema } from '@db-core/tableUtils'
+import { z } from 'zod'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectPaymentMethodById,
   selectPaymentMethodsPaginated,
 } from '@/db/tableMethods/paymentMethodMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 
@@ -44,7 +44,9 @@ const getPaymentMethodProcedure = protectedProcedure
   .query(async ({ ctx, input }) => {
     const paymentMethod = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPaymentMethodById(input.id, transaction)
+        return (
+          await selectPaymentMethodById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,

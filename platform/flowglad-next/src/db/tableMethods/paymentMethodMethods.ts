@@ -1,11 +1,10 @@
-import { eq } from 'drizzle-orm'
 import {
   type PaymentMethod,
   paymentMethods,
   paymentMethodsInsertSchema,
   paymentMethodsSelectSchema,
   paymentMethodsUpdateSchema,
-} from '@/db/schema/paymentMethods'
+} from '@db-core/schema/paymentMethods'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -15,7 +14,8 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
   onConflictDoUpdateSetValues,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { eq } from 'drizzle-orm'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import type {
@@ -171,7 +171,9 @@ export const safelyUpdatePaymentMethod = async (
   // Fetch existing payment method if we need to handle default or customerId change
   const existingPaymentMethod =
     paymentMethod.default || paymentMethod.customerId
-      ? await selectPaymentMethodById(paymentMethod.id, transaction)
+      ? (
+          await selectPaymentMethodById(paymentMethod.id, transaction)
+        ).unwrap()
       : null
 
   // If payment method is becoming default, set existing defaults to non-default

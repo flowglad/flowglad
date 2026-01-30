@@ -1,13 +1,13 @@
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Payment } from '@db-core/schema/payments'
+import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
 import type { NextRequest } from 'next/server'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Payment } from '@/db/schema/payments'
-import type { Purchase } from '@/db/schema/purchases'
 import {
   isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
@@ -55,32 +55,36 @@ const processPaymentIntent = async ({
   const { payment, purchase, invoice, checkoutSession } =
     await comprehensiveAdminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const { payment } = await processPaymentIntentStatusUpdated(
+      const paymentResult = await processPaymentIntentStatusUpdated(
         paymentIntent,
         ctx
       )
+      if (paymentResult.status === 'error') {
+        return Result.err(paymentResult.error)
+      }
+      const { payment } = paymentResult.value
       if (!payment.purchaseId) {
         throw new Error(
           `No purchase id found for payment ${payment.id}`
         )
       }
-      const purchase = await selectPurchaseById(
-        payment.purchaseId,
-        transaction
-      )
-      const invoice = await selectInvoiceById(
-        payment.invoiceId,
-        transaction
-      )
+      const purchase = (
+        await selectPurchaseById(payment.purchaseId, transaction)
+      ).unwrap()
+      const invoice = (
+        await selectInvoiceById(payment.invoiceId, transaction)
+      ).unwrap()
       const metadata = stripeIntentMetadataSchema.parse(
         paymentIntent.metadata
       )
       let checkoutSession: CheckoutSession.Record | null = null
       if (metadata?.type === IntentMetadataType.CheckoutSession) {
-        checkoutSession = await selectCheckoutSessionById(
-          metadata.checkoutSessionId,
-          transaction
-        )
+        checkoutSession = (
+          await selectCheckoutSessionById(
+            metadata.checkoutSessionId,
+            transaction
+          )
+        ).unwrap()
       } else {
         const checkoutSessionsForPaymentIntent =
           await selectCheckoutSessions(
@@ -201,7 +205,7 @@ const processSetupIntent = async ({
     }
   )
 
-  const { purchase, checkoutSession, type } = setupSuceededResult
+  const { purchase, checkoutSession } = setupSuceededResult
   if (
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
     setupSuceededResult.billingRun?.id

@@ -1,5 +1,41 @@
-import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
-import { z } from 'zod'
+import {
+  CurrencyCode,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
+import { checkoutSessionClientSelectSchema } from '@db-core/schema/checkoutSessions'
+import {
+  customerClientInsertSchema,
+  customers,
+  customersSelectSchema,
+} from '@db-core/schema/customers'
+import { discountClientSelectSchema } from '@db-core/schema/discounts'
+import { featuresClientSelectSchema } from '@db-core/schema/features'
+import { customerFacingFeeCalculationSelectSchema } from '@db-core/schema/feeCalculations'
+import { invoiceLineItemsClientSelectSchema } from '@db-core/schema/invoiceLineItems'
+import { invoicesClientSelectSchema } from '@db-core/schema/invoices'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import {
+  payments,
+  paymentsSelectSchema,
+} from '@db-core/schema/payments'
+import {
+  Price,
+  prices,
+  pricesSelectSchema,
+  singlePaymentPriceSelectSchema,
+  subscriptionPriceSelectSchema,
+  usagePriceSelectSchema,
+} from '@db-core/schema/prices'
+import {
+  Product,
+  products,
+  productsSelectSchema,
+} from '@db-core/schema/products'
 import {
   type Purchase,
   purchaseClientInsertSchema,
@@ -10,7 +46,7 @@ import {
   purchasesUpdateSchema,
   singlePaymentPurchaseSelectSchema,
   subscriptionPurchaseSelectSchema,
-} from '@/db/schema/purchases'
+} from '@db-core/schema/purchases'
 import {
   createCursorPaginatedSelectFunction,
   createDerivePricingModelId,
@@ -22,50 +58,20 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
-import {
-  CheckoutFlowType,
-  CurrencyCode,
-  PaymentStatus,
-  PriceType,
-  PurchaseStatus,
-} from '@/types'
+import { NotFoundError } from '@/errors'
+import { CheckoutFlowType } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'
-import {
-  customerClientInsertSchema,
-  customers,
-  customersSelectSchema,
-} from '../schema/customers'
-import { discountClientSelectSchema } from '../schema/discounts'
-import { featuresClientSelectSchema } from '../schema/features'
-import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
-import { invoiceLineItemsClientSelectSchema } from '../schema/invoiceLineItems'
-import { invoicesClientSelectSchema } from '../schema/invoices'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import { payments, paymentsSelectSchema } from '../schema/payments'
-import {
-  Price,
-  prices,
-  pricesSelectSchema,
-  singlePaymentPriceSelectSchema,
-  subscriptionPriceSelectSchema,
-  usagePriceSelectSchema,
-} from '../schema/prices'
-import {
-  Product,
-  products,
-  productsSelectSchema,
-} from '../schema/products'
 import {
   derivePricingModelIdFromPrice,
   pricingModelIdsForPrices,
 } from './priceMethods'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -175,7 +181,14 @@ export const updatePurchase = createUpdateFunction(purchases, config)
  * Used for discountRedemptions.
  */
 export const derivePricingModelIdFromPurchase =
-  createDerivePricingModelId(purchases, config, selectPurchaseById)
+  createDerivePricingModelId(
+    purchases,
+    config,
+    async (id, transaction) => {
+      const result = await selectPurchaseById(id, transaction)
+      return result.unwrap()
+    }
+  )
 
 /**
  * Batch fetch pricingModelIds for multiple purchases.
@@ -356,32 +369,43 @@ export type CreateCustomerInputSchema = z.infer<
 export const bulkInsertPurchases = async (
   purchaseInserts: Purchase.Insert[],
   transaction: DbTransaction
-) => {
+): Promise<Result<Purchase.Record[], NotFoundError>> => {
   const pricingModelIdMap = await pricingModelIdsForPrices(
     purchaseInserts.map((insert) => insert.priceId),
     transaction
   )
-  const purchasesWithPricingModelId = purchaseInserts.map(
-    (purchaseInsert) => {
-      const pricingModelId =
-        purchaseInsert.pricingModelId ??
-        pricingModelIdMap.get(purchaseInsert.priceId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Pricing model id not found for price ${purchaseInsert.priceId}`
-        )
+
+  // Build the array with derived pricingModelIds, returning early on any error
+  const purchasesWithPricingModelId: (Purchase.Insert & {
+    pricingModelId: string
+  })[] = []
+  for (const purchaseInsert of purchaseInserts) {
+    if (purchaseInsert.pricingModelId) {
+      purchasesWithPricingModelId.push(
+        purchaseInsert as Purchase.Insert & { pricingModelId: string }
+      )
+    } else {
+      const pricingModelIdResult = derivePricingModelIdFromMap({
+        entityId: purchaseInsert.priceId,
+        entityType: 'price',
+        pricingModelIdMap,
+      })
+      if (Result.isError(pricingModelIdResult)) {
+        return Result.err(pricingModelIdResult.error)
       }
-      return {
+      purchasesWithPricingModelId.push({
         ...purchaseInsert,
-        pricingModelId,
-      }
+        pricingModelId: pricingModelIdResult.value,
+      })
     }
-  )
+  }
   const result = await transaction
     .insert(purchases)
     .values(purchasesWithPricingModelId)
     .returning()
-  return result.map((item) => purchasesSelectSchema.parse(item))
+  return Result.ok(
+    result.map((item) => purchasesSelectSchema.parse(item))
+  )
 }
 
 export const selectPurchaseRowDataForOrganization = async (

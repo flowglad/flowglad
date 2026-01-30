@@ -1,14 +1,14 @@
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   invoiceLineItemsClientSelectSchema,
   invoiceLineItemsPaginatedListSchema,
   invoiceLineItemsPaginatedSelectSchema,
-} from '@/db/schema/invoiceLineItems'
+} from '@db-core/schema/invoiceLineItems'
+import { idInputSchema } from '@db-core/tableUtils'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectInvoiceLineItemById,
   selectInvoiceLineItemsPaginated,
 } from '@/db/tableMethods/invoiceLineItemMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 
@@ -41,7 +41,9 @@ const getInvoiceLineItemProcedure = protectedProcedure
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        return selectInvoiceLineItemById(input.id, transaction)
+        return (
+          await selectInvoiceLineItemById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,

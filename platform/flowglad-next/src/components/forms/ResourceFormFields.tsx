@@ -1,5 +1,6 @@
 'use client'
 
+import type { CreateResourceInput } from '@db-core/schema/resources'
 import { Controller, useFormContext } from 'react-hook-form'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import {
@@ -11,9 +12,11 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
-import type { CreateResourceInput } from '@/db/schema/resources'
-import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
 
 interface ResourceFormFieldsProps {
@@ -87,11 +90,9 @@ const ResourceFormFields: React.FC<ResourceFormFieldsProps> = ({
                 htmlFor="resource-active"
                 className="cursor-pointer w-full"
               >
-                {field.value ? (
-                  <StatusBadge active={true} />
-                ) : (
-                  <StatusBadge active={false} />
-                )}
+                <ActiveStatusTag
+                  status={booleanToActiveStatus(field.value ?? false)}
+                />
               </Label>
             </div>
           )}

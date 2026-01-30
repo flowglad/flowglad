@@ -1,14 +1,14 @@
 'use client'
 
-import { trpc } from '@/app/_trpc/client'
-import DiscountFormFields from '@/components/forms/DiscountFormFields'
-import FormModal from '@/components/forms/FormModal'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
   type Discount,
   type EditDiscountFormSchema,
   editDiscountFormSchema,
-} from '@/db/schema/discounts'
+} from '@db-core/schema/discounts'
+import { trpc } from '@/app/_trpc/client'
+import DiscountFormFields from '@/components/forms/DiscountFormFields'
+import FormModal from '@/components/forms/FormModal'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import { countableCurrencyAmountToRawStringAmount } from '@/utils/stripe'
 import { toEditDiscountInput } from './discountFormHelpers'
 
@@ -25,22 +25,25 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
 }) => {
   const editDiscount = trpc.discounts.update.useMutation()
   const { organization } = useAuthenticatedContext()
-  const __rawAmountString = countableCurrencyAmountToRawStringAmount(
-    organization!.defaultCurrency,
-    discount.amount
-  )
-  const discountForForm =
-    discount.amountType === 'fixed'
-      ? (() => {
-          const { amount: _omitAmount, ...rest } = discount as any
-          return rest
-        })()
-      : discount
+  const getDefaultValues = (): EditDiscountFormSchema => {
+    const __rawAmountString =
+      countableCurrencyAmountToRawStringAmount(
+        organization!.defaultCurrency,
+        discount.amount
+      )
+    const discountForForm =
+      discount.amountType === 'fixed'
+        ? (() => {
+            const { amount: _omitAmount, ...rest } = discount as any
+            return rest
+          })()
+        : discount
 
-  const defaultValues: EditDiscountFormSchema = {
-    discount: discountForForm as any,
-    id: discount.id,
-    __rawAmountString,
+    return {
+      discount: discountForForm as any,
+      id: discount.id,
+      __rawAmountString,
+    }
   }
   return (
     <FormModal
@@ -48,7 +51,7 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Discount"
       formSchema={editDiscountFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={(input) => {
         const payload = toEditDiscountInput(
           input,

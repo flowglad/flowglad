@@ -1,7 +1,17 @@
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import type { Subscription } from '@db-core/schema/subscriptions'
+import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
+import { ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
@@ -14,34 +24,40 @@ import {
 import { getFromAddress } from '@/utils/email/fromAddress'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 
-const sendCustomerSubscriptionCanceledNotificationTask = task({
-  id: 'send-customer-subscription-canceled-notification',
-  run: async (
-    {
-      subscriptionId,
-    }: {
-      subscriptionId: string
-    },
-    { ctx }
-  ) => {
+/**
+ * Core run function for send-customer-subscription-canceled-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendCustomerSubscriptionCanceledNotification =
+  async (params: { subscriptionId: string }) => {
+    const { subscriptionId } = params
     logger.log(
       'Sending customer subscription canceled notification',
       {
         subscriptionId,
-        ctx,
       }
     )
 
-    const { subscription, organization, customer } =
-      await adminTransaction(async ({ transaction }) => {
+    let dataResult: Result<
+      {
+        subscription: Subscription.Record
+        organization: Organization.Record
+        customer: Customer.Record
+        product: Product.Record | null
+      },
+      NotFoundError | ValidationError
+    >
+    try {
+      const data = await adminTransaction(async ({ transaction }) => {
         // First fetch subscription to get organizationId and customerId
-        const subscription = await selectSubscriptionById(
+        const subscriptionResult = await selectSubscriptionById(
           subscriptionId,
           transaction
         )
-        if (!subscription) {
-          throw new Error(`Subscription not found: ${subscriptionId}`)
+        if (Result.isError(subscriptionResult)) {
+          throw subscriptionResult.error
         }
+        const subscription = subscriptionResult.value
 
         // Use buildNotificationContext for organization and customer
         const { organization, customer } =
@@ -53,26 +69,66 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
             transaction
           )
 
+        // Fetch the product associated with the subscription for user-friendly naming
+        const price = subscription.priceId
+          ? (
+              await selectPriceById(subscription.priceId, transaction)
+            ).unwrap()
+          : null
+        const product =
+          price && Price.hasProductId(price)
+            ? (
+                await selectProductById(price.productId, transaction)
+              ).unwrap()
+            : null
+
         return {
           subscription,
           organization,
           customer,
+          product,
         }
       })
+      dataResult = Result.ok(data)
+    } catch (error) {
+      // Only convert NotFoundError to Result.err; rethrow other errors
+      // for Trigger.dev to retry (e.g., transient DB failures)
+      if (error instanceof NotFoundError) {
+        dataResult = Result.err(error)
+      } else if (
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        // Handle errors from buildNotificationContext
+        dataResult = Result.err(
+          new NotFoundError('Resource', error.message)
+        )
+      } else {
+        throw error
+      }
+    }
 
-    // Validate customer email
+    if (Result.isError(dataResult)) {
+      return dataResult
+    }
+    const { subscription, organization, customer, product } =
+      dataResult.value
+
+    // Validate customer email - return ValidationError per PR spec
     if (!customer.email || customer.email.trim() === '') {
       logger.log(
-        'Skipping customer subscription canceled notification: customer email is missing or empty',
+        'Customer subscription canceled notification failed: customer email is missing or empty',
         {
           customerId: customer.id,
           subscriptionId: subscription.id,
         }
       )
-      return {
-        message:
-          'Customer subscription canceled notification skipped: customer email is missing or empty',
-      }
+      return Result.err(
+        new ValidationError(
+          'email',
+          'customer email is missing or empty'
+        )
+      )
     }
 
     // Only send notification if subscription has a cancellation date
@@ -84,10 +140,10 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
           subscriptionId: subscription.id,
         }
       )
-      return {
+      return Result.ok({
         message:
           'Customer subscription canceled notification skipped: subscription has no cancellation date',
-      }
+      })
     }
 
     // Compute cancellation date from available timestamps
@@ -104,14 +160,15 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
           subscriptionId: subscription.id,
         }
       )
-      return {
+      return Result.ok({
         message:
           'Customer subscription canceled notification skipped: unable to determine cancellation date',
-      }
+      })
     }
 
     // Use safe fallback for subscription name
-    const subscriptionName = subscription.name || 'your subscription'
+    const subscriptionName =
+      subscription.name || product?.name || 'your subscription'
 
     await safeSend({
       from: getFromAddress({
@@ -136,10 +193,22 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
       }),
     })
 
-    return {
+    return Result.ok({
       message:
         'Customer subscription canceled notification sent successfully',
-    }
+    })
+  }
+
+const sendCustomerSubscriptionCanceledNotificationTask = task({
+  id: 'send-customer-subscription-canceled-notification',
+  run: async (
+    payload: {
+      subscriptionId: string
+    },
+    { ctx }
+  ) => {
+    logger.log('Task context', { ctx })
+    return runSendCustomerSubscriptionCanceledNotification(payload)
   },
 })
 

@@ -1,10 +1,6 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import { CurrencyCode, IntervalUnit } from '@/types'
 import core from '@/utils/core'
 import { CustomerSubscriptionAdjustedEmail } from './customer-subscription-adjusted'
 

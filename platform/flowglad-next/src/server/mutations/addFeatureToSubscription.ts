@@ -1,6 +1,6 @@
+import { addFeatureToSubscriptionInputSchema } from '@db-core/schema/subscriptionItemFeatures'
 import { Result } from 'better-result'
 import { authenticatedProcedureComprehensiveTransaction } from '@/db/authenticatedTransaction'
-import { addFeatureToSubscriptionInputSchema } from '@/db/schema/subscriptionItemFeatures'
 import { selectClientSubscriptionItemFeatureAndFeatureById } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { protectedProcedure } from '@/server/trpc'
 import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFeatureHelpers'
@@ -10,8 +10,9 @@ export const addFeatureToSubscription = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transactionCtx }) => {
-        const { subscriptionItemFeature } =
+        const { subscriptionItemFeature } = (
           await addFeatureToSubscriptionItem(input, transactionCtx)
+        ).unwrap()
         const { transaction } = transactionCtx
 
         const [enrichedFeature] =

@@ -1,9 +1,9 @@
+import { PriceType } from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { PriceType } from '@/types'
 import SubscriptionCheckoutSuccessPage from './SubscriptionCheckoutSuccessPage'
 
 interface PurchaseCheckoutSuccessPageProps {
@@ -18,13 +18,15 @@ const PurchaseCheckoutSuccessPage = async ({
   if (checkoutSession.customerId) {
     const customer = await adminTransaction(
       async ({ transaction }) => {
-        return selectCustomerById(
-          checkoutSession.customerId!,
-          transaction
-        )
+        return (
+          await selectCustomerById(
+            checkoutSession.customerId!,
+            transaction
+          )
+        ).unwrap()
       }
     )
-    customerEmail = customer?.email || null
+    customerEmail = customer.email || null
   }
 
   // If there's no priceId, just show a generic success message

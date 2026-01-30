@@ -1,5 +1,7 @@
 {
+  "files": ["src/test/globals.ts"],
   "compilerOptions": {
+    "types": ["bun-types"],
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -19,6 +21,7 @@
       }
     ],
     "paths": {
+      "@db-core/*": ["./db-core/*"],
       "@/*": ["./src/*"]
     },
     "target": "ES2017"
@@ -32,6 +35,11 @@
   ],
   "exclude": [
     "node_modules",
-    "scripts/generate-discount-email-previews.ts"
+    "scripts/generate-discount-email-previews.ts",
+    "src/__mocks__/**/*",
+    "src/test/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "slow-tests/**/*"
   ]
 }

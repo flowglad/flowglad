@@ -1,6 +1,6 @@
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
 import { logger, task } from '@trigger.dev/sdk'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
@@ -31,10 +31,12 @@ export const attemptBillingPeriodTransitionTask = task({
               emitEvent,
               enqueueLedgerCommand,
             }
-            const billingPeriod = await selectBillingPeriodById(
-              payload.billingPeriod.id,
-              transaction
-            )
+            const billingPeriod = (
+              await selectBillingPeriodById(
+                payload.billingPeriod.id,
+                transaction
+              )
+            ).unwrap()
             logger.log('Attempting to transition billing period', {
               billingPeriod: payload.billingPeriod,
               ctx,

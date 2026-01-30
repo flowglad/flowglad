@@ -3,9 +3,10 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/rehydrateBillingPeriodItems.ts billing_period_id=bp_...
 */
 
+import { PriceType, SubscriptionItemType } from '@db-core/enums'
+import type { BillingPeriodItem } from '@db-core/schema/billingPeriodItems'
+import { subscriptionItems } from '@db-core/schema/subscriptionItems'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
@@ -14,7 +15,6 @@ import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { isSubscriptionItemActiveAndNonManual } from '@/subscriptions/subscriptionItemHelpers'
-import { PriceType, SubscriptionItemType } from '@/types'
 import runScript from './scriptRunner'
 
 async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
@@ -40,10 +40,9 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
     )
   }
   await db.transaction(async (transaction) => {
-    const billingPeriod = await selectBillingPeriodById(
-      billingPeriodId,
-      transaction
-    )
+    const billingPeriod = (
+      await selectBillingPeriodById(billingPeriodId, transaction)
+    ).unwrap()
     const result = await selectSubscriptionAndItems(
       { id: billingPeriod.subscriptionId },
       transaction
@@ -73,10 +72,9 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
         if (item.createdAt > billingPeriod.startDate) {
           continue
         }
-        const price = await selectPriceById(
-          item.priceId!,
-          transaction
-        )
+        const price = (
+          await selectPriceById(item.priceId!, transaction)
+        ).unwrap()
         if (
           price.type === PriceType.Subscription ||
           price.type === PriceType.SinglePayment

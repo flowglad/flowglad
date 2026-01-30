@@ -1,7 +1,9 @@
+import { PriceType } from '@db-core/enums'
+import type { CreateProductSchema } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
-
 import FileInput from '@/components/FileInput'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import PriceFormFields from '@/components/forms/PriceFormFields'
@@ -15,13 +17,13 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import type { CreateProductSchema } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import { PriceType } from '@/types'
 import core from '@/utils/core'
-import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 
@@ -167,11 +169,11 @@ export const ProductFormFields = ({
                           htmlFor="product-active"
                           className="cursor-pointer w-full"
                         >
-                          {field.value ? (
-                            <StatusBadge active={true} />
-                          ) : (
-                            <StatusBadge active={false} />
-                          )}
+                          <ActiveStatusTag
+                            status={booleanToActiveStatus(
+                              field.value
+                            )}
+                          />
                         </Label>
                       </div>
                     </FormControl>

@@ -1,6 +1,6 @@
+import { type CurrencyCode, IntervalUnit } from '@db-core/enums'
 import { Hr, Section, Text } from '@react-email/components'
 import * as React from 'react'
-import { type CurrencyCode, IntervalUnit } from '@/types'
 import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from './components/EmailButton'
@@ -187,6 +187,11 @@ export const CustomerSubscriptionAdjustedEmail = ({
       <Hr
         style={{
           borderColor: '#e6e6e6',
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'dashed',
           margin: '16px 0',
         }}
       />

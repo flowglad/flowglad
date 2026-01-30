@@ -4,14 +4,14 @@ import {
   usageCreditBalanceAdjustmentsInsertSchema,
   usageCreditBalanceAdjustmentsSelectSchema,
   usageCreditBalanceAdjustmentsUpdateSchema,
-} from '@/db/schema/usageCreditBalanceAdjustments'
+} from '@db-core/schema/usageCreditBalanceAdjustments'
 import {
   createInsertFunction,
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { derivePricingModelIdFromUsageCredit } from './usageCreditMethods'
 

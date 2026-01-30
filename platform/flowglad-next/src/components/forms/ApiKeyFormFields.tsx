@@ -1,5 +1,6 @@
 'use client'
 
+import type { CreateApiKeyInput } from '@db-core/schema/apiKeys'
 import { useFormContext } from 'react-hook-form'
 import {
   FormControl,
@@ -9,7 +10,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import type { CreateApiKeyInput } from '@/db/schema/apiKeys'
+import PricingModelSelect from './PricingModelSelect'
 
 const ApiKeyFormFields = () => {
   const form = useFormContext<CreateApiKeyInput>()
@@ -38,6 +39,10 @@ const ApiKeyFormFields = () => {
             <FormMessage />
           </FormItem>
         )}
+      />
+      <PricingModelSelect
+        name="apiKey.pricingModelId"
+        control={form.control}
       />
     </div>
   )

@@ -6,17 +6,22 @@
  * to avoid pulling server dependencies into client bundles.
  */
 
-import { and, eq, inArray, lte } from 'drizzle-orm'
 import {
   type SubscriptionItem,
   subscriptionItems,
   subscriptionItemsInsertSchema,
   subscriptionItemsSelectSchema,
   subscriptionItemsUpdateSchema,
-} from '@/db/schema/subscriptionItems'
+} from '@db-core/schema/subscriptionItems'
+import {
+  type Subscription,
+  subscriptions,
+  subscriptionsSelectSchema,
+} from '@db-core/schema/subscriptions'
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
+  createDateNotPassedFilter,
   createDerivePricingModelId,
   createDerivePricingModelIds,
   createInsertFunction,
@@ -26,14 +31,9 @@ import {
   type ORMMethodCreatorConfig,
   type SelectConditions,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { and, eq, inArray, lte } from 'drizzle-orm'
 import type { DbTransaction } from '@/db/types'
-import {
-  type Subscription,
-  subscriptions,
-  subscriptionsSelectSchema,
-} from '../schema/subscriptions'
-import { createDateNotPassedFilter } from '../tableUtils'
 import {
   derivePricingModelIdFromSubscription,
   pricingModelIdsForSubscriptions,
@@ -64,7 +64,10 @@ export const derivePricingModelIdFromSubscriptionItem =
   createDerivePricingModelId(
     subscriptionItems,
     config,
-    selectSubscriptionItemById
+    async (id, transaction) => {
+      const result = await selectSubscriptionItemById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

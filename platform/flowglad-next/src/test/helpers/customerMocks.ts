@@ -2,7 +2,7 @@ import {
   type Customer,
   type CustomerTableRowData,
   InferredCustomerStatus,
-} from '@/db/schema/customers'
+} from '@db-core/schema/customers'
 import core from '@/utils/core'
 
 /**

@@ -1,12 +1,15 @@
 'use client'
 
+import {
+  editProductFormSchema,
+  type Price,
+} from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import { encodeCursor } from '@db-core/tableUtils'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { editProductFormSchema, type Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import { encodeCursor } from '@/db/tableUtils'
 import {
   countableCurrencyAmountToRawStringAmount,
   isCurrencyZeroDecimal,
@@ -54,7 +57,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setIsOpen={setIsOpen}
       title={product.default ? 'Edit Default Plan' : 'Edit Product'}
       formSchema={editProductFormSchema}
-      defaultValues={{
+      defaultValues={() => ({
         product,
         price: defaultActivePrice ?? prices?.[0],
         id: product.id,
@@ -62,7 +65,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
           organization.defaultCurrency,
           defaultActivePrice?.unitPrice! ?? prices?.[0]?.unitPrice!
         ),
-      }}
+      })}
       onSubmit={async (input) => {
         await editProduct.mutateAsync({
           ...input,

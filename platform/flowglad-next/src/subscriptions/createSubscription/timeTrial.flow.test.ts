@@ -1,5 +1,25 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { CreateCheckoutSessionInput } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Feature } from '@db-core/schema/features'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -8,11 +28,6 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Feature } from '@/db/schema/features'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
 import {
   selectCheckoutSessionById,
   updateCheckoutSessionBillingAddress,
@@ -24,14 +39,6 @@ import {
   noopEmitEvent,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  IntervalUnit,
-  PaymentMethodType,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
@@ -48,7 +55,7 @@ import core from '@/utils/core'
 import { createProductTransaction } from '@/utils/pricingModel'
 import { IntentMetadataType } from '@/utils/stripe'
 
-vi.mock('next/headers', () => ({
+mock.module('next/headers', () => ({
   cookies: () => ({
     get: () => undefined,
     set: () => {},
@@ -125,7 +132,6 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               ],
             },
             {
-              userId: user.id,
               transaction,
               cacheRecomputationContext: {
                 type: 'admin',
@@ -134,6 +140,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               livemode: true,
               organizationId: organization.id,
               invalidateCache,
+              emitEvent: () => {},
+              enqueueLedgerCommand: () => {},
             }
           )
           return Result.ok(result)
@@ -189,7 +197,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             successUrl: 'https://test.com/success',
             cancelUrl: 'https://test.com/cancel',
           }
-        const { checkoutSession } =
+        const { checkoutSession } = (
           await createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
@@ -198,6 +206,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             },
             transaction
           )
+        ).unwrap()
         // 2. Update billing address & payment method
         await updateCheckoutSessionBillingAddress(
           {

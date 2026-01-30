@@ -1,15 +1,15 @@
 'use client'
 
+import {
+  createWebhookInputSchema,
+  type Webhook,
+} from '@db-core/schema/webhooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import FormModal from '@/components/forms/FormModal'
 import WebhookFormFields from '@/components/forms/WebhookFormFields'
-import {
-  createWebhookInputSchema,
-  type Webhook,
-} from '@/db/schema/webhooks'
 
 interface CreateWebhookModalProps {
   isOpen: boolean
@@ -29,17 +29,23 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
       toast.success('Webhook created successfully')
     },
     onError: (error) => {
-      toast.error(
-        'Failed to create webhook. Please check your settings and try again.'
-      )
+      const errorMessage =
+        error.message || 'Failed to create webhook. Please try again.'
+      toast.error(errorMessage)
       console.error('Webhook creation error:', error)
     },
   })
-  const webhookDefaultValues: Webhook.ClientInsert = {
-    name: '',
-    url: '',
-    filterTypes: [],
-    active: true,
+  const getDefaultValues = () => {
+    const webhookDefaultValues: Webhook.ClientInsert = {
+      name: '',
+      url: '',
+      filterTypes: [],
+      active: true,
+      pricingModelId: '',
+    }
+    return {
+      webhook: webhookDefaultValues,
+    }
   }
 
   return (
@@ -51,9 +57,7 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
       }}
       title="Create Webhook"
       formSchema={createWebhookInputSchema}
-      defaultValues={{
-        webhook: webhookDefaultValues,
-      }}
+      defaultValues={getDefaultValues}
       onSubmit={async (data) => {
         await createWebhook.mutateAsync(data)
       }}

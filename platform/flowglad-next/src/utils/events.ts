@@ -1,17 +1,16 @@
-import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
-import type { Payment } from '@/db/schema/payments'
-import type { Purchase } from '@/db/schema/purchases'
-import type { Subscription } from '@/db/schema/subscriptions'
+import { EventNoun, FlowgladEventType } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Event } from '@db-core/schema/events'
+import type { Payment } from '@db-core/schema/payments'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
-import type { DbTransaction } from '@/db/types'
 import {
-  EventCategory,
-  EventNoun,
-  EventRetentionPolicy,
-  FlowgladEventType,
-} from '@/types'
+  derivePricingModelIdFromEventPayload,
+  upsertEventByHash,
+} from '@/db/tableMethods/eventMethods'
+import type { DbTransaction } from '@/db/types'
+import { EventCategory, EventRetentionPolicy } from '@/types'
 import { hashData } from './backendCore'
 
 export interface CreateEventPayload {
@@ -28,6 +27,10 @@ export const commitEvent = async (
   transaction: DbTransaction
 ) => {
   const now = Date.now()
+  const pricingModelId = await derivePricingModelIdFromEventPayload(
+    payload.payload,
+    transaction
+  )
   return upsertEventByHash(
     {
       type: payload.type,
@@ -41,6 +44,7 @@ export const commitEvent = async (
       processedAt: null,
       organizationId: payload.organizationId,
       livemode: payload.livemode,
+      pricingModelId,
     },
     transaction
   )
@@ -76,14 +80,9 @@ export const commitPaymentSucceededEvent = async (
   payment: Payment.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    payment.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer not found for payment ${payment.id}`)
-  }
+  const customer = (
+    await selectCustomerById(payment.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -109,14 +108,9 @@ export const commitPaymentCanceledEvent = async (
   payment: Payment.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    payment.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer not found for payment ${payment.id}`)
-  }
+  const customer = (
+    await selectCustomerById(payment.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -190,14 +184,9 @@ export const commitPurchaseCompletedEvent = async (
   purchase: Purchase.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    purchase.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer not found for purchase ${purchase.id}`)
-  }
+  const customer = (
+    await selectCustomerById(purchase.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -223,16 +212,9 @@ export const commitSubscriptionCreatedEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(
-      `Customer not found for subscription ${subscription.id}`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -258,16 +240,9 @@ export const commitSubscriptionUpdatedEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(
-      `Customer not found for subscription ${subscription.id}`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -293,16 +268,9 @@ export const commitSubscriptionCanceledEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(
-      `Customer not found for subscription ${subscription.id}`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {

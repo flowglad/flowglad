@@ -1,3 +1,4 @@
+import { PaymentStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -6,7 +7,6 @@ import {
   selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
-import { PaymentStatus } from '@/types'
 import { getStripeCharge } from '@/utils/stripe'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '../notifications/send-customer-payment-failed-notification'
 

@@ -1,7 +1,6 @@
 import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
 import type {
-  AuthenticatedTransactionParams,
   ComprehensiveAuthenticatedTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -35,7 +34,9 @@ interface AuthenticatedTransactionOptions {
  * Delegates to comprehensiveAuthenticatedTransaction by wrapping the result.
  */
 export async function authenticatedTransaction<T>(
-  fn: (params: AuthenticatedTransactionParams) => Promise<T>,
+  fn: (
+    params: ComprehensiveAuthenticatedTransactionParams
+  ) => Promise<T>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   return comprehensiveAuthenticatedTransaction(async (params) => {
@@ -317,4 +318,76 @@ export async function authenticatedTransactionUnwrap<T>(
     }
     return fn(ctx)
   }, options)
+}
+
+/**
+ * Executes a function within an authenticated database transaction and returns the Result directly.
+ *
+ * Unlike `comprehensiveAuthenticatedTransaction` which unwraps and throws on error, this function
+ * returns the Result for explicit error handling by the caller via `.unwrap()`.
+ *
+ * Use this when you need to:
+ * - Chain multiple transactions and handle errors between them
+ * - Return errors to callers without throwing
+ * - Migrate code towards explicit Result handling
+ *
+ * @param fn - Function that receives authenticated transaction parameters and returns a Result
+ * @param options - Authentication options including apiKey
+ * @returns Promise resolving to the Result (not unwrapped)
+ *
+ * @example
+ * ```ts
+ * const result = await authenticatedTransactionWithResult(async ({ transaction, emitEvent, organizationId }) => {
+ *   // ... perform operations ...
+ *   emitEvent(event1)
+ *   return Result.ok(someValue)
+ * }, { apiKey })
+ *
+ * // At router/API boundary, unwrap to convert to exceptions:
+ * return result.unwrap()
+ *
+ * // Or handle errors explicitly:
+ * if (Result.isError(result)) {
+ *   // handle error
+ * }
+ * ```
+ */
+export async function authenticatedTransactionWithResult<T>(
+  fn: (
+    params: ComprehensiveAuthenticatedTransactionParams
+  ) => Promise<Result<T, Error>>,
+  options?: AuthenticatedTransactionOptions
+): Promise<Result<T, Error>> {
+  try {
+    const { output } = await traced(
+      {
+        options: {
+          spanName: 'db.authenticatedTransactionWithResult',
+          tracerName: 'db.transaction',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            'db.transaction.type': 'authenticated',
+          },
+        },
+        extractResultAttributes: (data) => ({
+          'db.user_id': data.userId,
+          'db.organization_id': data.organizationId,
+          'db.livemode': data.livemode,
+          'db.events_count': data.processedEventsCount,
+          'db.ledger_commands_count':
+            data.processedLedgerCommandsCount,
+        }),
+      },
+      () => executeComprehensiveAuthenticatedTransaction(fn, options)
+    )()
+
+    return output
+  } catch (error) {
+    // Convert thrown errors back to Result.err
+    // This happens when the callback returns Result.err, which triggers
+    // a throw inside executeComprehensiveAuthenticatedTransaction to roll back the transaction
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    )
+  }
 }

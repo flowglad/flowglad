@@ -1,12 +1,12 @@
 'use client'
 
-import { trpc } from '@/app/_trpc/client'
-import FormModal from '@/components/forms/FormModal'
 import {
   type EditFeatureInput,
   editFeatureSchema,
   type Feature,
-} from '@/db/schema/features'
+} from '@db-core/schema/features'
+import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
 import FeatureFormFields from './FeatureFormFields' // Adjusted import
 
 interface EditFeatureModalProps {
@@ -23,10 +23,10 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
   const editFeatureMutation = trpc.features.update.useMutation() // Adjusted endpoint
 
   // Prepare defaultValues according to the schema structure
-  const defaultValues: EditFeatureInput = {
+  const getDefaultValues = (): EditFeatureInput => ({
     id: feature.id,
     feature,
-  }
+  })
 
   return (
     <FormModal<EditFeatureInput>
@@ -34,7 +34,7 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Feature"
       formSchema={editFeatureSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (data) => {
         await editFeatureMutation.mutateAsync(data)
       }}

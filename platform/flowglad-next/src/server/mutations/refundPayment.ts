@@ -1,10 +1,10 @@
-import { z } from 'zod'
-import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   paymentsClientSelectSchema,
   refundPaymentInputSchema,
-} from '@/db/schema/payments'
+} from '@db-core/schema/payments'
+import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { protectedProcedure } from '@/server/trpc'
 import { createPostOpenApiMetaWithIdParam } from '@/utils/openapi'
@@ -30,7 +30,7 @@ export const refundPayment = protectedProcedure
     if (!payment) {
       throw new Error('Payment not found')
     }
-    const updatedPayment = await adminTransaction(
+    const updatedPaymentResult = await adminTransaction(
       async ({ transaction }) => {
         return await refundPaymentTransaction(
           {
@@ -41,5 +41,5 @@ export const refundPayment = protectedProcedure
         )
       }
     )
-    return { payment: updatedPayment }
+    return { payment: updatedPaymentResult.unwrap() }
   })

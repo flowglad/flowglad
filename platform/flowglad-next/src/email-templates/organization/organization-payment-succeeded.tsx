@@ -1,6 +1,6 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { Img, Section } from '@react-email/components'
 import * as React from 'react'
-import type { CurrencyCode } from '@/types'
 import { emailBaseUrl } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from '../components/EmailButton'
@@ -43,18 +43,18 @@ export const OrganizationPaymentNotificationEmail = ({
     )
   return (
     <EmailLayout
-      previewText={`Congratulations, ${organizationName}!`}
+      previewText={`Payment Received - ${humanReadableAmount} from ${customerName}`}
       variant="organization"
     >
       <TestModeBanner livemode={livemode} />
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-        width="540"
-        height="199"
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
-      <Header title="Congratulations!" variant="organization" />
+      <Header title="Payment Received" variant="organization" />
       <Paragraph variant="organization">
         You just received a payment of {humanReadableAmount} from{' '}
         {customerName}!

@@ -1,3 +1,4 @@
+import { type CurrencyCode, DiscountAmountType } from '@db-core/enums'
 import {
   type CreateDiscountFormSchema,
   type CreateDiscountInput,
@@ -5,8 +6,7 @@ import {
   type EditDiscountFormSchema,
   type EditDiscountInput,
   editDiscountInputSchema,
-} from '@/db/schema/discounts'
-import { type CurrencyCode, DiscountAmountType } from '@/types'
+} from '@db-core/schema/discounts'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 export function normalizeDiscountAmount(

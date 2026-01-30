@@ -1,12 +1,12 @@
 'use client'
 
-import { trpc } from '@/app/_trpc/client'
-import FormModal from '@/components/forms/FormModal'
-import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
 import {
   editPricingModelSchema,
   type PricingModel,
-} from '@/db/schema/pricingModels'
+} from '@db-core/schema/pricingModels'
+import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
+import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
 
 interface EditPricingModelModalProps {
   isOpen: boolean
@@ -26,13 +26,13 @@ const EditPricingModelModal: React.FC<EditPricingModelModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Pricing Model"
       formSchema={editPricingModelSchema}
-      defaultValues={{
+      defaultValues={() => ({
         id: pricingModel.id,
         pricingModel: {
           ...pricingModel,
           id: pricingModel.id,
         },
-      }}
+      })}
       onSubmit={editPricingModel.mutateAsync}
     >
       <PricingModelFormFields edit />

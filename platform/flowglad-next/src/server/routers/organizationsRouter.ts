@@ -1,3 +1,24 @@
+import {
+  RevenueChartIntervalUnit,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  membershipsClientSelectSchema,
+  membershipsTableRowDataSchema,
+  type NotificationPreferences,
+  notificationPreferencesSchema,
+} from '@db-core/schema/memberships'
+import {
+  createOrganizationSchema,
+  editOrganizationSchema,
+  organizationsClientSelectSchema,
+} from '@db-core/schema/organizations'
+import { getRevenueDataInputSchema } from '@db-core/schema/payments'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
@@ -9,19 +30,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  DEFAULT_NOTIFICATION_PREFERENCES,
-  membershipsClientSelectSchema,
-  membershipsTableRowDataSchema,
-  type NotificationPreferences,
-  notificationPreferencesSchema,
-} from '@/db/schema/memberships'
-import {
-  createOrganizationSchema,
-  editOrganizationSchema,
-  organizationsClientSelectSchema,
-} from '@/db/schema/organizations'
-import { getRevenueDataInputSchema } from '@/db/schema/payments'
 import {
   getMembershipNotificationPreferences,
   selectFocusedMembershipAndOrganization,
@@ -36,16 +44,8 @@ import {
 import { updateOrganization as updateOrganizationDB } from '@/db/tableMethods/organizationMethods'
 import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-} from '@/db/tableUtils'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { protectedProcedure, router } from '@/server/trpc'
-import {
-  RevenueChartIntervalUnit,
-  UsageMeterAggregationType,
-} from '@/types'
 import { getSession } from '@/utils/auth'
 import {
   calculateARR,
@@ -67,6 +67,7 @@ import {
   saveOrganizationCodebaseMarkdown,
 } from '@/utils/textContent'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
+import { removeMemberFromOrganization } from '../mutations/removeMemberFromOrganization'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -136,7 +137,23 @@ const getFocusedMembership = protectedProcedure
             userId,
             transaction
           )
-        return focusedMembership
+        if (!focusedMembership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'No focused membership found for user',
+          })
+        }
+        // Explicitly parse through client schemas to ensure output validation passes.
+        // selectFocusedMembershipAndOrganization returns server schemas which include
+        // hidden columns (position, createdByCommit, etc.) that must be stripped.
+        return {
+          membership: membershipsClientSelectSchema.parse(
+            focusedMembership.membership
+          ),
+          organization: organizationsClientSelectSchema.parse(
+            focusedMembership.organization
+          ),
+        }
       }
     )
   )
@@ -571,6 +588,7 @@ const getMembersTableRowData = protectedProcedure
           filters: {
             ...args.input.filters,
             organizationId: focusedMembership.organization.id,
+            deactivatedAt: null,
           },
         },
         transaction,
@@ -705,6 +723,7 @@ export const organizationsRouter = router({
   updateFocusedMembership: updateFocusedMembership,
   getOrganizations: getOrganizations,
   inviteUser: inviteUserToOrganization,
+  removeMember: removeMemberFromOrganization,
   getCodebaseMarkdown: getCodebaseMarkdown,
   updateCodebaseMarkdown: updateCodebaseMarkdown,
   // Notification preferences for the current user

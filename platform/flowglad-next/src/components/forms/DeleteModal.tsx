@@ -1,10 +1,10 @@
+import { idInputSchema } from '@db-core/tableUtils'
 import { sentenceCase } from 'change-case'
 import type { UseFormReturn } from 'react-hook-form'
 import type { trpc } from '@/app/_trpc/client'
 import FormModal, {
   NestedFormModal,
 } from '@/components/forms/FormModal'
-import { idInputSchema } from '@/db/tableUtils'
 
 export type LocalDeleteMutation = (params: {
   id: string
@@ -38,9 +38,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   nested,
   form,
 }) => {
-  const defaultValues = {
+  const getDefaultValues = () => ({
     id,
-  }
+  })
   const ModalComponent = nested ? NestedFormModal : FormModal
   return (
     <ModalComponent
@@ -49,7 +49,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       setIsOpen={setIsOpen}
       onSubmit={() => mutation({ id })}
       formSchema={idInputSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       form={form ?? undefined}
     >
       <div className="text-muted-foreground gap-4">

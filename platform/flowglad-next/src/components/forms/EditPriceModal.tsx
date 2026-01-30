@@ -1,14 +1,14 @@
 'use client'
 
-import { trpc } from '@/app/_trpc/client'
-import FormModal from '@/components/forms/FormModal'
-import { useAuthenticatedContext } from '@/contexts/authContext'
+import { IntervalUnit, PriceType } from '@db-core/enums'
 import {
   createPriceFormSchema,
   Price,
   pricesClientInsertSchema,
-} from '@/db/schema/prices'
-import { IntervalUnit, PriceType } from '@/types'
+} from '@db-core/schema/prices'
+import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
   countableCurrencyAmountToRawStringAmount,
   rawStringAmountToCountableCurrencyAmount,
@@ -65,7 +65,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       setIsOpen(false)
     },
   })
-  const defaultValues = parseEditPriceDefaultValues(price)
+  const getDefaultValues = () => parseEditPriceDefaultValues(price)
 
   const { organization } = useAuthenticatedContext()
 
@@ -84,7 +84,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Price"
       formSchema={createPriceFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (input) => {
         await editPrice.mutateAsync({
           price: {

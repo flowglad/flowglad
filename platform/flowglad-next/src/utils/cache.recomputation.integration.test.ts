@@ -1,4 +1,10 @@
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it } from 'bun:test'
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
 import {
   setupCustomer,
   setupOrg,
@@ -17,12 +23,6 @@ import {
   getRedisTestClient,
   waitForCachePopulation,
 } from '@/test/redisIntegrationHelpers'
-import {
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   CacheDependency,
   invalidateDependencies,
@@ -165,15 +165,8 @@ describeIfRedisKey('cache recomputation integration', () => {
       )
     })
 
-    // Step 4: Invalidate cache and trigger recomputation
+    // Step 4: Invalidate cache (triggers fire-and-forget recomputation internally)
     await invalidateDependencies([dependencyKey])
-
-    // Cache should be deleted immediately after invalidation
-    const cachedValueAfterInvalidation = await client.get(cacheKey)
-    expect(cachedValueAfterInvalidation).toBeNull()
-
-    // Trigger recomputation (simulates what would happen in a production scenario)
-    await recomputeDependencies([dependencyKey])
 
     // Step 5: Poll until cache is repopulated by fire-and-forget recomputation
     const recomputedData = safeParseJsonNonNull<

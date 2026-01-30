@@ -4,9 +4,10 @@ Run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/clonePricingModel.ts pricing_model_id=pm_... [destination_env=livemode|testmode]
 */
 
+import { DestinationEnvironment } from '@db-core/enums'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
-import { DestinationEnvironment } from '@/types'
+import { createTransactionEffectsContext } from '@/db/types'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import runScript from './scriptRunner'
 
@@ -50,10 +51,15 @@ const clonePricingModel = async (db: PostgresJsDatabase) => {
   }
 
   await db.transaction(async (transaction) => {
-    const sourcePricingModel = await selectPricingModelById(
-      pricingModelId,
-      transaction
-    )
+    const sourcePricingModel = (
+      await selectPricingModelById(pricingModelId, transaction)
+    ).unwrap()
+
+    // Create transaction context with noop callbacks for scripts
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: sourcePricingModel.livemode,
+    })
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const clonedName = `${sourcePricingModel.name} (Clone ${timestamp})`
@@ -64,7 +70,7 @@ const clonePricingModel = async (db: PostgresJsDatabase) => {
         name: clonedName,
         destinationEnvironment,
       },
-      transaction
+      ctx
     )
 
     console.log(

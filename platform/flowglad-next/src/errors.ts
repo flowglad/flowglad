@@ -48,6 +48,27 @@ export class TerminalStateError extends DomainError {
   }
 }
 
+export class SubscriptionTerminalStateError extends DomainError {
+  constructor(
+    public readonly subscriptionId: string,
+    public readonly state: string
+  ) {
+    super(
+      'SubscriptionTerminalStateError',
+      `Cannot mutate subscription ${subscriptionId} in terminal state: ${state}`
+    )
+  }
+}
+
+export class ArchivedCustomerError extends DomainError {
+  constructor(public readonly operation: string) {
+    super(
+      'ArchivedCustomerError',
+      `Cannot ${operation} for archived customer`
+    )
+  }
+}
+
 export class PaymentError extends DomainError {
   constructor(
     public readonly reason: string,
@@ -92,4 +113,17 @@ export class ExternalServiceError extends DomainError {
       `${service} ${operation} failed${reason ? `: ${reason}` : ''}`
     )
   }
+}
+
+/**
+ * Panic is used for invariant violations - code defects that indicate bugs.
+ * Unlike Result.err(), panic throws immediately and should never be caught.
+ * Use this when a code path should be unreachable or when encountering
+ * a state that indicates a bug in the code.
+ *
+ * @param message - Description of the invariant violation
+ * @throws Error - Always throws, never returns
+ */
+export function panic(message: string): never {
+  throw new Error(message)
 }

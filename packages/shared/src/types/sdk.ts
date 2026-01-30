@@ -11,6 +11,7 @@ export enum FlowgladActionKey {
   UncancelSubscription = 'subscriptions/uncancel',
   AdjustSubscription = 'subscriptions/adjust',
   CreateSubscription = 'subscriptions/create',
+  GetSubscriptions = 'subscriptions/list',
   UpdateCustomer = 'customers/update',
   CreateUsageEvent = 'usage-events/create',
   GetResourceUsages = 'resources/usages',
@@ -19,6 +20,8 @@ export enum FlowgladActionKey {
   ReleaseResource = 'resources/release',
   ListResourceClaims = 'resources/claims',
   GetPricingModel = 'pricing-models/retrieve',
+  GetUsageMeterBalances = 'usage-meters/balances',
+  GetFeatureAccess = 'features/access',
 }
 
 /**
@@ -66,6 +69,13 @@ export interface UsageMeterBalance {
   slug: string
   availableBalance: number
   subscriptionId: string
+}
+
+export interface FeatureAccessItem {
+  id: string
+  livemode: boolean
+  slug: string
+  name: string
 }
 
 export type CustomerRetrieveBillingResponse =

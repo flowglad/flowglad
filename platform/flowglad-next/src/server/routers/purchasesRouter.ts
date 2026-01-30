@@ -1,23 +1,23 @@
+import { PurchaseStatus } from '@db-core/enums'
+import {
+  purchaseClientSelectSchema,
+  purchasesTableRowDataSchema,
+} from '@db-core/schema/purchases'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  purchaseClientSelectSchema,
-  purchasesTableRowDataSchema,
-} from '@/db/schema/purchases'
-import {
   selectPurchaseById,
   selectPurchasesTableRowData,
 } from '@/db/tableMethods/purchaseMethods'
-import {
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { PurchaseStatus } from '@/types'
 import { generateOpenApiMetas } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -34,7 +34,9 @@ const getPurchaseProcedure = protectedProcedure
   .query(async ({ ctx, input }) => {
     const purchase = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPurchaseById(input.id, transaction)
+        return (
+          await selectPurchaseById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,

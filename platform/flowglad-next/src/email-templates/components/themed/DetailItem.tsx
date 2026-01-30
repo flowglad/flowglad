@@ -19,9 +19,7 @@ export const DetailItem = ({
   variant?: 'customer' | 'organization'
 }) => {
   const variantStyle: React.CSSProperties =
-    variant === 'organization'
-      ? { color: '#525f7f', marginBottom: '4px' }
-      : {}
+    variant === 'organization' ? { textAlign: 'left' } : {}
 
   return (
     <Text

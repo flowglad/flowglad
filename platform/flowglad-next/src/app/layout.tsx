@@ -1,15 +1,15 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-import * as Sentry from '@sentry/nextjs'
-import { headers } from 'next/headers'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
   type Organization,
   organizationsClientSelectSchema,
-} from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
+} from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
+import * as Sentry from '@sentry/nextjs'
+import { headers } from 'next/headers'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertUser,
@@ -24,6 +24,14 @@ import Providers from './Providers'
 export const metadata: Metadata = {
   title: 'Flowglad',
   description: 'Make more internet money',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // Resize content when virtual keyboard appears, making fixed bottom
+  // elements move up with the keyboard on mobile devices
+  interactiveWidget: 'resizes-content',
 }
 
 export default async function RootLayout({

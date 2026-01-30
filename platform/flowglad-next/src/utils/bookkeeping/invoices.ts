@@ -1,8 +1,15 @@
-import { Customer } from '@/db/schema/customers'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
-import { billingAddressSchema } from '@/db/schema/organizations'
-import type { Purchase } from '@/db/schema/purchases'
+import {
+  type CountryCode,
+  InvoiceStatus,
+  InvoiceType,
+  PriceType,
+  SubscriptionItemType,
+} from '@db-core/enums'
+import { Customer } from '@db-core/schema/customers'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
+import { billingAddressSchema } from '@db-core/schema/organizations'
+import type { Purchase } from '@db-core/schema/purchases'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   insertInvoiceLineItems,
@@ -14,13 +21,6 @@ import {
 } from '@/db/tableMethods/invoiceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import type { DbTransaction } from '@/db/types'
-import {
-  type CountryCode,
-  InvoiceStatus,
-  InvoiceType,
-  PriceType,
-  SubscriptionItemType,
-} from '@/types'
 import core from '../core'
 
 export const createInitialInvoiceForPurchase = async (
@@ -36,10 +36,9 @@ export const createInitialInvoiceForPurchase = async (
     },
     transaction
   )
-  const customer = await selectCustomerById(
-    purchase.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(purchase.customerId, transaction)
+  ).unwrap()
   const { customerId, organizationId, priceId } = purchase
   const [{ price, organization }] =
     await selectPriceProductAndOrganizationByPriceWhere(

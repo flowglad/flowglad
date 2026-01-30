@@ -1,3 +1,4 @@
+import { BusinessOnboardingStatus } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -7,7 +8,6 @@ import {
   updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
 import { protectedProcedure } from '@/server/trpc'
-import { BusinessOnboardingStatus } from '@/types'
 import { getConnectedAccountOnboardingStatus } from '@/utils/stripe'
 
 export const getBusinessOnboardingStatus = protectedProcedure
@@ -19,20 +19,16 @@ export const getBusinessOnboardingStatus = protectedProcedure
   .query(async ({ input, ctx }) => {
     const organization = await authenticatedTransaction(
       async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          input.organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            input.organizationId,
+            transaction
+          )
+        ).unwrap()
 
         return organization
       }
     )
-    if (!organization) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Organization not found',
-      })
-    }
 
     if (
       organization.stripeAccountId &&

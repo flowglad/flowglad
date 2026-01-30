@@ -44,7 +44,10 @@ const config: Config = {
       },
       colors: {
         border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
+        input: {
+          DEFAULT: 'hsl(var(--input))',
+          bg: 'hsl(var(--input-bg))',
+        },
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -76,7 +79,7 @@ const config: Config = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
-          muted: 'hsl(var(--muted-card))',
+          muted: 'hsl(var(--card-muted))',
         },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar))',
@@ -94,7 +97,40 @@ const config: Config = {
           foreground: 'hsl(var(--jade-foreground))',
           'muted-foreground': 'hsl(var(--jade-muted-foreground))',
           background: 'hsl(var(--jade-background))',
+          border: 'hsl(var(--jade-border))',
         },
+        lapis: {
+          foreground: 'hsl(var(--lapis-foreground))',
+          'muted-foreground': 'hsl(var(--lapis-muted-foreground))',
+          background: 'hsl(var(--lapis-background))',
+          border: 'hsl(var(--lapis-border))',
+        },
+        brownstone: {
+          foreground: 'hsl(var(--brownstone-foreground))',
+          'muted-foreground':
+            'hsl(var(--brownstone-muted-foreground))',
+          background: 'hsl(var(--brownstone-background))',
+          border: 'hsl(var(--brownstone-border))',
+        },
+        amethyst: {
+          foreground: 'hsl(var(--amethyst-foreground))',
+          'muted-foreground': 'hsl(var(--amethyst-muted-foreground))',
+          background: 'hsl(var(--amethyst-background))',
+          border: 'hsl(var(--amethyst-border))',
+        },
+        citrine: {
+          foreground: 'hsl(var(--citrine-foreground))',
+          'muted-foreground': 'hsl(var(--citrine-muted-foreground))',
+          background: 'hsl(var(--citrine-background))',
+          border: 'hsl(var(--citrine-border))',
+        },
+        'status-destructive-bg': 'hsl(var(--status-destructive-bg))',
+        'status-destructive-fg': 'hsl(var(--status-destructive-fg))',
+        'status-destructive-border':
+          'hsl(var(--status-destructive-border))',
+        'status-muted-bg': 'hsl(var(--status-muted-bg))',
+        'status-muted-fg': 'hsl(var(--status-muted-fg))',
+        'status-muted-border': 'hsl(var(--status-muted-border))',
       },
       boxShadow: {
         xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',

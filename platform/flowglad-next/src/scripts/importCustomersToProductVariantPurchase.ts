@@ -3,10 +3,10 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/importCustomersToProductPricePurchase.ts
 */
 
+import { purchasesInsertSchema } from '@db-core/schema/purchases'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import fs from 'fs/promises'
 import path from 'path'
-import { purchasesInsertSchema } from '@/db/schema/purchases'
 import { selectCustomersByOrganizationIdAndEmails } from '@/db/tableMethods/customerMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
@@ -47,7 +47,9 @@ const example = async (db: PostgresJsDatabase) => {
       defaultPricingModel.id
     )
 
-    const price = await selectPriceById(VARIANT_ID, transaction)
+    const price = (
+      await selectPriceById(VARIANT_ID, transaction)
+    ).unwrap()
     const customers = await selectCustomersByOrganizationIdAndEmails(
       ORGANIZATION_ID,
       customerInserts.map((customer) => customer.email),

@@ -1,11 +1,11 @@
 'use client'
 
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
+import { createDiscountFormSchema } from '@db-core/schema/discounts'
 import { trpc } from '@/app/_trpc/client'
 import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { createDiscountFormSchema } from '@/db/schema/discounts'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import { toCreateDiscountInput } from './discountFormHelpers'
 
 interface CreateDiscountModalProps {
@@ -32,18 +32,18 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
         )
         await createDiscount.mutateAsync(payload)
       }}
-      defaultValues={{
+      defaultValues={() => ({
         discount: {
           name: '',
           code: '',
-          amountType: DiscountAmountType.Fixed,
-          duration: DiscountDuration.Once,
+          amountType: DiscountAmountType.Fixed as const,
+          duration: DiscountDuration.Once as const,
           active: true,
           numberOfPayments: null,
           pricingModelId: undefined, // Will be set by PricingModelSelect
         },
         __rawAmountString: '0',
-      }}
+      })}
     >
       <DiscountFormFields />
     </FormModal>

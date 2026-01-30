@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm'
 import {
   type UsageMeter,
   usageMeters,
@@ -7,11 +6,7 @@ import {
   usageMetersSelectSchema,
   usageMetersTableRowDataSchema,
   usageMetersUpdateSchema,
-} from '@/db/schema/usageMeters'
-import {
-  selectPricingModelForCustomer,
-  selectPricingModels,
-} from '@/db/tableMethods/pricingModelMethods'
+} from '@db-core/schema/usageMeters'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -23,8 +18,17 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { eq } from 'drizzle-orm'
+import {
+  selectPricingModelForCustomer,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { selectCustomerById } from './customerMethods'
@@ -54,7 +58,13 @@ export const derivePricingModelIdFromUsageMeter =
   createDerivePricingModelId(
     usageMeters,
     config,
-    selectUsageMeterById
+    async (id, transaction) => {
+      const result = await selectUsageMeterById(id, transaction)
+      if (Result.isError(result)) {
+        throw result.error
+      }
+      return result.value
+    }
   )
 
 /**
@@ -64,16 +74,6 @@ export const derivePricingModelIdFromUsageMeter =
  */
 export const pricingModelIdsForUsageMeters =
   createDerivePricingModelIds(usageMeters, config)
-
-export const insertUsageMeter = createInsertFunction(
-  usageMeters,
-  config
-)
-
-export const updateUsageMeter = createUpdateFunction(
-  usageMeters,
-  config
-)
 
 export const selectUsageMeters = createSelectFunction(
   usageMeters,
@@ -87,20 +87,13 @@ export const selectUsageMeters = createSelectFunction(
  * This cache entry depends on pricingModelUsageMeters - invalidate when
  * usage meters for this pricing model are created, updated, or archived.
  *
- * Cache key includes livemode to prevent cross-mode data leakage, since RLS
- * filters usage meters by livemode and the same pricing model could have different
- * meters in live vs test mode.
- *
  * Returns UsageMeter.ClientRecord[] (client-safe schema) for use in customer-facing APIs.
  */
 export const selectUsageMetersByPricingModelId = cached(
   {
     namespace: RedisKeyNamespace.UsageMetersByPricingModel,
-    keyFn: (
-      pricingModelId: string,
-      _transaction: DbTransaction,
-      livemode: boolean
-    ) => `${pricingModelId}:${livemode}`,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
     schema: usageMetersClientSelectSchema.array(),
     /**
      * This cache entry depends on two types of dependencies:
@@ -112,7 +105,10 @@ export const selectUsageMetersByPricingModelId = cached(
      * - Updating a meter: invalidate usageMeter (content changed)
      * - Archiving/deleting a meter: invalidate pricingModelUsageMeters (set membership changed)
      */
-    dependenciesFn: (meters, pricingModelId: string) => [
+    dependenciesFn: (
+      meters: UsageMeter.ClientRecord[],
+      pricingModelId: string
+    ) => [
       // Set membership dependency - invalidate when meters are added/removed
       CacheDependency.pricingModelUsageMeters(pricingModelId),
       // Individual meter content dependencies - invalidate when any meter's content changes
@@ -121,10 +117,7 @@ export const selectUsageMetersByPricingModelId = cached(
   },
   async (
     pricingModelId: string,
-    transaction: DbTransaction,
-    // livemode is used by keyFn for cache key generation, not in the query itself
-    // (RLS filters by livemode context set on the transaction)
-    _livemode: boolean
+    transaction: DbTransaction
   ): Promise<UsageMeter.ClientRecord[]> => {
     const meters = await selectUsageMeters(
       { pricingModelId },
@@ -137,13 +130,72 @@ export const selectUsageMetersByPricingModelId = cached(
   }
 )
 
-export const bulkInsertOrDoNothingUsageMeters =
+const baseInsertUsageMeter = createInsertFunction(usageMeters, config)
+
+export const insertUsageMeter = async (
+  usageMeter: UsageMeter.Insert,
+  ctx: TransactionEffectsContext
+): Promise<UsageMeter.Record> => {
+  const result = await baseInsertUsageMeter(
+    usageMeter,
+    ctx.transaction
+  )
+  // Invalidate set membership - a new meter was added to the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.pricingModelUsageMeters(result.pricingModelId)
+  )
+  return result
+}
+
+const baseUpdateUsageMeter = createUpdateFunction(usageMeters, config)
+
+export const updateUsageMeter = async (
+  usageMeter: UsageMeter.Update,
+  ctx: TransactionEffectsContext
+): Promise<UsageMeter.Record> => {
+  const result = await baseUpdateUsageMeter(
+    usageMeter,
+    ctx.transaction
+  )
+  // Invalidate content - the meter's properties changed (queued for after commit)
+  ctx.invalidateCache(CacheDependency.usageMeter(result.id))
+  return result
+}
+
+const baseBulkInsertOrDoNothingUsageMeters =
   createBulkInsertOrDoNothingFunction(usageMeters, config)
+
+export const bulkInsertOrDoNothingUsageMeters = async (
+  inserts: UsageMeter.Insert[],
+  conflictTarget: Parameters<
+    typeof baseBulkInsertOrDoNothingUsageMeters
+  >[1],
+  ctx: TransactionEffectsContext
+) => {
+  const results = await baseBulkInsertOrDoNothingUsageMeters(
+    inserts,
+    conflictTarget,
+    ctx.transaction
+  )
+
+  // Invalidate set membership for all affected pricing models (queued for after commit)
+  // (bulk insert adds meters to pricing models)
+  const pricingModelIds = [
+    ...new Set(inserts.map((um) => um.pricingModelId)),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.pricingModelUsageMeters(pricingModelId)
+    )
+  }
+
+  return results
+}
 
 export const bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId =
   async (
     inserts: UsageMeter.Insert[],
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ) => {
     return bulkInsertOrDoNothingUsageMeters(
       inserts,
@@ -152,7 +204,7 @@ export const bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId =
         usageMeters.pricingModelId,
         usageMeters.organizationId,
       ],
-      transaction
+      ctx
     )
   }
 
@@ -225,14 +277,9 @@ export const selectUsageMeterBySlugAndCustomerId = async (
   transaction: DbTransaction
 ): Promise<UsageMeter.ClientRecord | null> => {
   // First, get the customer to determine their pricing model
-  const customer = await selectCustomerById(
-    params.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer ${params.customerId} not found`)
-  }
+  const customer = (
+    await selectCustomerById(params.customerId, transaction)
+  ).unwrap()
 
   // Get the pricing model for the customer (includes usage meters)
   const pricingModel = await selectPricingModelForCustomer(

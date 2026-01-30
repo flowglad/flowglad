@@ -1,6 +1,6 @@
 'use client'
+import type { Invoice } from '@db-core/schema/invoices'
 import { Button } from '@/components/ui/button'
-import type { Invoice } from '@/db/schema/invoices'
 
 export const CustomerInvoiceDownloadReceiptButtonBanner = ({
   invoice,

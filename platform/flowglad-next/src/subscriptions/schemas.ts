@@ -1,23 +1,23 @@
-import { z } from 'zod'
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
   pricesClientSelectSchema,
-} from '@/db/schema/prices'
-import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+} from '@db-core/schema/prices'
+import { subscriptionItemFeaturesClientSelectSchema } from '@db-core/schema/subscriptionItemFeatures'
 import {
   staticSubscriptionItemClientSelectSchema,
   subscriptionItemClientInsertSchema,
   subscriptionItemClientSelectSchema,
   subscriptionItemsInsertSchema,
   subscriptionItemsSelectSchema,
-} from '@/db/schema/subscriptionItems'
+} from '@db-core/schema/subscriptionItems'
 import {
   nonRenewingSubscriptionClientSelectSchema,
   standardSubscriptionClientSelectSchema,
   subscriptionClientSelectSchema,
-} from '@/db/schema/subscriptions'
-import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
+} from '@db-core/schema/subscriptions'
+import { usageMeterBalanceClientSelectSchema } from '@db-core/schema/usageMeters'
+import { z } from 'zod'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,
@@ -272,3 +272,129 @@ export const uncancelSubscriptionSchema = z
 export type UncancelSubscriptionParams = z.infer<
   typeof uncancelSubscriptionSchema
 >
+
+/**
+ * Schema for the preview adjustment subscription item.
+ * Contains the essential fields needed for displaying in the preview UI.
+ */
+export const previewSubscriptionItemSchema = z
+  .object({
+    name: z.string(),
+    unitPrice: z.number(),
+    quantity: z.number(),
+    priceId: z.string(),
+  })
+  .meta({ id: 'PreviewSubscriptionItem' })
+
+export type PreviewSubscriptionItem = z.infer<
+  typeof previewSubscriptionItemSchema
+>
+
+/**
+ * Schema for the payment method info in preview responses.
+ */
+export const previewPaymentMethodSchema = z
+  .object({
+    id: z.string(),
+    type: z.string(),
+    last4: z.string().optional(),
+    brand: z.string().optional(),
+  })
+  .meta({ id: 'PreviewPaymentMethod' })
+
+export type PreviewPaymentMethod = z.infer<
+  typeof previewPaymentMethodSchema
+>
+
+/**
+ * Output schema for subscription adjustment preview.
+ * Returns either a success result with all calculation details,
+ * or a failure result with the reason the adjustment cannot be made.
+ */
+export const previewAdjustSubscriptionOutputSchema = z
+  .object({
+    canAdjust: z
+      .boolean()
+      .describe(
+        'Whether the adjustment can be made. If false, the reason field will contain the explanation.'
+      ),
+    reason: z
+      .string()
+      .optional()
+      .describe(
+        'The reason the adjustment cannot be made, if canAdjust is false.'
+      ),
+    previewGeneratedAt: z
+      .number()
+      .int()
+      .describe(
+        'Epoch milliseconds when this preview was generated. Useful for staleness detection.'
+      ),
+    prorationAmount: z
+      .number()
+      .optional()
+      .describe(
+        'The proration amount that will be charged, if applicable.'
+      ),
+    currentPlanTotal: z
+      .number()
+      .optional()
+      .describe(
+        'The total price of the current plan (sum of unitPrice * quantity for all items).'
+      ),
+    newPlanTotal: z
+      .number()
+      .optional()
+      .describe(
+        'The total price of the new plan (sum of unitPrice * quantity for all items).'
+      ),
+    resolvedTiming: z
+      .enum([
+        SubscriptionAdjustmentTiming.Immediately,
+        SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+      ])
+      .optional()
+      .describe(
+        'The resolved timing for the adjustment. When auto timing is requested, this indicates whether it resolved to immediate or end-of-period.'
+      ),
+    effectiveDate: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        'Epoch milliseconds when the adjustment will take effect.'
+      ),
+    isUpgrade: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether this adjustment is an upgrade (true) or downgrade/lateral move (false).'
+      ),
+    percentThroughBillingPeriod: z
+      .number()
+      .optional()
+      .describe(
+        'The percentage through the current billing period (0-1).'
+      ),
+    billingPeriodEnd: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        'Epoch milliseconds when the current billing period ends.'
+      ),
+    paymentMethod: previewPaymentMethodSchema
+      .optional()
+      .describe(
+        'The payment method that will be charged for immediate adjustments with proration.'
+      ),
+    currentSubscriptionItems: z
+      .array(previewSubscriptionItemSchema)
+      .optional()
+      .describe('The current subscription items.'),
+    newSubscriptionItems: z
+      .array(previewSubscriptionItemSchema)
+      .optional()
+      .describe('The new subscription items that will be applied.'),
+  })
+  .meta({ id: 'PreviewAdjustSubscriptionOutput' })

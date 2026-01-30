@@ -1,5 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { z } from 'zod'
+import { PaymentStatus } from '@db-core/enums'
 import {
   type Customer,
   type CustomerTableRowData,
@@ -10,7 +9,14 @@ import {
   customers as customersTable,
   customersUpdateSchema,
   InferredCustomerStatus,
-} from '@/db/schema/customers'
+} from '@db-core/schema/customers'
+import { invoices } from '@db-core/schema/invoices'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import { payments } from '@db-core/schema/payments'
+import { purchases } from '@db-core/schema/purchases'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -24,16 +30,11 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
-import { PaymentStatus } from '@/types'
-import { invoices } from '../schema/invoices'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import { payments } from '../schema/payments'
-import { purchases } from '../schema/purchases'
+import { ArchivedCustomerError } from '@/errors'
 
 const config: ORMMethodCreatorConfig<
   typeof customersTable,
@@ -59,6 +60,13 @@ export const upsertCustomerByorganizationIdAndInvoiceNumberBase =
     config
   )
 
+/**
+ * Selects customers matching the given conditions.
+ *
+ * @warning This function returns ALL customers including archived ones.
+ * For public API endpoints, use `selectCustomerByExternalIdAndOrganizationId()`
+ * which filters out archived customers by default.
+ */
 export const selectCustomers = createSelectFunction(
   customersTable,
   config
@@ -72,7 +80,10 @@ export const derivePricingModelIdFromCustomer =
   createDerivePricingModelId(
     customersTable,
     config,
-    selectCustomerById
+    async (id, transaction) => {
+      const result = await selectCustomerById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**
@@ -94,16 +105,34 @@ export const updateCustomer = createUpdateFunction(
 )
 
 export const selectCustomerByExternalIdAndOrganizationId = async (
-  params: { externalId: string; organizationId: string },
+  params: {
+    externalId: string
+    organizationId: string
+    /**
+     * When false (default), only returns non-archived customers.
+     * When true, returns customers regardless of archived status.
+     * Use includeArchived=true when you need to handle idempotency
+     * (e.g., archiving an already-archived customer).
+     */
+    includeArchived?: boolean
+  },
   transaction: DbTransaction
 ) => {
+  const {
+    externalId,
+    organizationId,
+    includeArchived = false,
+  } = params
   const result = await transaction
     .select()
     .from(customersTable)
     .where(
       and(
-        eq(customersTable.externalId, params.externalId),
-        eq(customersTable.organizationId, params.organizationId)
+        eq(customersTable.externalId, externalId),
+        eq(customersTable.organizationId, organizationId),
+        includeArchived
+          ? undefined
+          : eq(customersTable.archived, false)
       )
     )
     .limit(1)
@@ -519,11 +548,17 @@ export type CustomerPricingInfo = {
   pricingModelId: string
   organizationId: string
   livemode: boolean
+  /**
+   * Included for early validation in bulk operations to prevent
+   * processing events for archived customers before expensive lookups.
+   */
+  archived: boolean
 }
 
 /**
  * Performance-optimized batch fetch of customer pricing info.
  * Only selects the minimal fields needed for pricing model resolution.
+ * replacing N individual selectCustomerById calls with a single query.
  *
  * @param customerIds - Array of customer IDs to fetch
  * @param transaction - Database transaction
@@ -543,9 +578,28 @@ export const selectCustomerPricingInfoBatch = async (
       pricingModelId: customers.pricingModelId,
       organizationId: customers.organizationId,
       livemode: customers.livemode,
+      archived: customers.archived,
     })
     .from(customers)
     .where(inArray(customers.id, customerIds))
 
   return new Map(results.map((c) => [c.id, c]))
+}
+
+/**
+ * Guard function that throws if the customer is archived.
+ * Use this to block operations on archived customers such as
+ * creating payment methods or usage events.
+ *
+ * @param customer - The customer to check
+ * @param operation - Description of the operation being attempted (for error message)
+ * @throws ArchivedCustomerError if customer is archived
+ */
+export const assertCustomerNotArchived = (
+  customer: Customer.Record,
+  operation: string
+): void => {
+  if (customer.archived) {
+    throw new ArchivedCustomerError(operation)
+  }
 }

@@ -3,10 +3,11 @@
 Run the script using the following command:
 NODE_ENV=production bunx tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...
 */
+
+import { Customer } from '@db-core/schema/customers'
+import { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import type Stripe from 'stripe'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -99,15 +100,9 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       }
     )
 
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-  if (!customer) {
-    throw new Error(
-      `Customer with id ${subscription.customerId} not found`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   const paymentMethods = await selectPaymentMethods(
     { customerId: customer.id },
@@ -231,7 +226,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
   }
 
   // Create the initial billing period
-  const { billingPeriod, billingPeriodItems } =
+  const { billingPeriod, billingPeriodItems } = (
     await createBillingPeriodAndItems(
       {
         subscription,
@@ -241,6 +236,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       },
       transaction
     )
+  ).unwrap()
 
   console.log(
     `Created billing period ${billingPeriod.id} for subscription ${subscription.id}`
@@ -353,16 +349,12 @@ async function migrateSingleSubscriptionBillingPeriodScript(
     )
 
     // Get the organization for this subscription
-    const organization = await selectOrganizationById(
-      subscription.organizationId,
-      transaction
-    )
-
-    if (!organization) {
-      throw new Error(
-        `No organization found for subscription ${subscription.id}`
+    const organization = (
+      await selectOrganizationById(
+        subscription.organizationId,
+        transaction
       )
-    }
+    ).unwrap()
 
     console.log(
       `Found organization ${organization.id} for subscription ${subscription.id}`

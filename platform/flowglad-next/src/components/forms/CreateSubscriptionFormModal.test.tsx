@@ -1,7 +1,14 @@
-/**
- * @vitest-environment jsdom
- */
+/// <reference lib="dom" />
 
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  mock,
+} from 'bun:test'
+import { PriceType } from '@db-core/enums'
 import {
   fireEvent,
   render,
@@ -11,42 +18,40 @@ import {
 import React from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { FormProvider, useForm } from 'react-hook-form'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { trpc } from '@/app/_trpc/client'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
-import { PriceType } from '@/types'
 import { CreateSubscriptionFormModal } from './CreateSubscriptionFormModal'
 
 // Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     customers: {
       internal__getById: {
-        useQuery: vi.fn(),
+        useQuery: mock(() => {}),
       },
       getPricingModelForCustomer: {
-        useQuery: vi.fn(),
+        useQuery: mock(() => {}),
       },
     },
     paymentMethods: {
       list: {
-        useQuery: vi.fn(),
+        useQuery: mock(() => {}),
       },
     },
     subscriptions: {
       create: {
-        useMutation: vi.fn(),
+        useMutation: mock(() => {}),
       },
       getTableRows: {
-        invalidate: vi.fn(),
+        invalidate: mock(() => {}),
       },
     },
-    useUtils: vi.fn(),
+    useUtils: mock(() => {}),
   },
 }))
 
 // Mock FormModal to provide FormProvider context
-vi.mock('@/components/forms/FormModal', () => {
+mock.module('@/components/forms/FormModal', () => {
   function FormModalMock<T extends FieldValues>({
     children,
     onSubmit,
@@ -120,7 +125,7 @@ describe('CreateSubscriptionFormModal', () => {
     },
   }
 
-  const mockMutateAsync = vi.fn().mockResolvedValue({})
+  const mockMutateAsync = mock(() => {}).mockResolvedValue({})
   const mockCreateSubscription = {
     mutateAsync: mockMutateAsync,
     isPending: false,
@@ -129,28 +134,26 @@ describe('CreateSubscriptionFormModal', () => {
   const mockUtils = {
     subscriptions: {
       getTableRows: {
-        invalidate: vi.fn(),
+        invalidate: mock(() => {}),
       },
     },
   }
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    // Cast through unknown to avoid complex tRPC type requirements
-    vi.mocked(trpc.useUtils).mockReturnValue(
-      mockUtils as unknown as ReturnType<typeof trpc.useUtils>
-    )
-    vi.mocked(
-      trpc.customers.internal__getById.useQuery
+    // Clear mock call counts between tests
+    mockMutateAsync.mockClear()
+
+    // Set up each mock separately
+    ;(trpc.useUtils as Mock).mockReturnValue(mockUtils)
+    ;(
+      trpc.customers.internal__getById.useQuery as Mock
     ).mockReturnValue({
       data: { customer: mockCustomer },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.customers.internal__getById.useQuery
-    >)
-    vi.mocked(
-      trpc.customers.getPricingModelForCustomer.useQuery
+    })
+    ;(
+      trpc.customers.getPricingModelForCustomer.useQuery as Mock
     ).mockReturnValue({
       data: {
         pricingModel: {
@@ -159,20 +162,14 @@ describe('CreateSubscriptionFormModal', () => {
       },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.customers.getPricingModelForCustomer.useQuery
-    >)
-    vi.mocked(trpc.paymentMethods.list.useQuery).mockReturnValue({
+    })
+    ;(trpc.paymentMethods.list.useQuery as Mock).mockReturnValue({
       data: { data: [mockPaymentMethod] },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.paymentMethods.list.useQuery
-    >)
-    vi.mocked(trpc.subscriptions.create.useMutation).mockReturnValue(
-      mockCreateSubscription as unknown as ReturnType<
-        typeof trpc.subscriptions.create.useMutation
-      >
+    })
+    ;(trpc.subscriptions.create.useMutation as Mock).mockReturnValue(
+      mockCreateSubscription
     )
   })
 
@@ -181,7 +178,7 @@ describe('CreateSubscriptionFormModal', () => {
     return render(
       <CreateSubscriptionFormModal
         isOpen={true}
-        setIsOpen={vi.fn()}
+        setIsOpen={mock(() => {})}
         customerId="customer_123"
       />
     )
@@ -327,15 +324,15 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Loading States', () => {
     it('should show loading skeletons when data is loading', () => {
-      vi.mocked(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
-        data: undefined,
-        isLoading: true,
-        error: null,
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      trpc.customers.getPricingModelForCustomer.useQuery.mockReturnValue(
+        {
+          data: undefined,
+          isLoading: true,
+          error: null,
+        } as unknown as ReturnType<
+          typeof trpc.customers.getPricingModelForCustomer.useQuery
+        >
+      )
 
       renderModal()
 
@@ -348,15 +345,15 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Error States', () => {
     it('should show error message when pricing model fails to load', () => {
-      vi.mocked(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
-        data: undefined,
-        isLoading: false,
-        error: new Error('Failed to load'),
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      trpc.customers.getPricingModelForCustomer.useQuery.mockReturnValue(
+        {
+          data: undefined,
+          isLoading: false,
+          error: new Error('Failed to load'),
+        } as unknown as ReturnType<
+          typeof trpc.customers.getPricingModelForCustomer.useQuery
+        >
+      )
 
       renderModal()
 
@@ -366,19 +363,19 @@ describe('CreateSubscriptionFormModal', () => {
     })
 
     it('should show message when no products are available', () => {
-      vi.mocked(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
-        data: {
-          pricingModel: {
-            products: [],
+      trpc.customers.getPricingModelForCustomer.useQuery.mockReturnValue(
+        {
+          data: {
+            pricingModel: {
+              products: [],
+            },
           },
-        },
-        isLoading: false,
-        error: null,
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+          isLoading: false,
+          error: null,
+        } as unknown as ReturnType<
+          typeof trpc.customers.getPricingModelForCustomer.useQuery
+        >
+      )
 
       renderModal()
 

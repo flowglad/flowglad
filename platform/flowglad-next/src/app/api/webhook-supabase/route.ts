@@ -1,9 +1,10 @@
+import { SupabasePayloadType } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Event } from '@db-core/schema/events'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Membership } from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
 import { NextResponse } from 'next/server'
-import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Membership } from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
 import { customerCreatedTask } from '@/trigger/supabase/customer-inserted'
 import { eventInsertedTask } from '@/trigger/supabase/event-inserted'
 import { invoiceUpdatedTask } from '@/trigger/supabase/invoice-updated'
@@ -12,7 +13,6 @@ import { organizationUpdatedTask } from '@/trigger/supabase/organization-updated
 import {
   type SupabaseDatabaseUpdatePayload,
   type SupabaseInsertPayload,
-  SupabasePayloadType,
   type SupabaseUpdatePayload,
 } from '@/types'
 import core from '@/utils/core'

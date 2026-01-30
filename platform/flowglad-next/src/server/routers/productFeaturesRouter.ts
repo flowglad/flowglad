@@ -1,15 +1,18 @@
+import { FeatureType, PriceType } from '@db-core/enums'
+import {
+  createProductFeatureInputSchema,
+  productFeatureClientSelectSchema,
+  productFeaturesPaginatedListSchema,
+  productFeaturesPaginatedSelectSchema,
+} from '@db-core/schema/productFeatures'
+import { idInputSchema } from '@db-core/tableUtils'
+import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createProductFeatureInputSchema,
-  productFeatureClientSelectSchema,
-  productFeaturesPaginatedListSchema,
-  productFeaturesPaginatedSelectSchema,
-} from '@/db/schema/productFeatures'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import {
@@ -19,9 +22,7 @@ import {
   selectProductFeaturesPaginated,
 } from '@/db/tableMethods/productFeatureMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
-import { FeatureType, PriceType } from '@/types'
 import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
@@ -52,24 +53,27 @@ export const createOrRestoreProductFeature = protectedProcedure
         // The RLS on productFeatures ensures user has access to the product
         // and its organization, and that livemode matches current context.
         // Here, we need to set the livemode and organizationId fields on the productFeature record itself.
-        const product = await selectProductById(
+        const productResult = await selectProductById(
           input.productFeature.productId,
           transaction
         )
-        if (!product) {
-          throw new Error(
-            'Associated product not found or access denied.'
-          ) // TRPCError can be used here
+
+        if (Result.isError(productResult)) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Product with id ${input.productFeature.productId} not found`,
+          })
         }
 
+        const product = productResult.value
+
         // Validate that toggle features cannot be associated with single payment products
-        const feature = await selectFeatureById(
-          input.productFeature.featureId,
-          transaction
-        )
-        if (!feature) {
-          throw new Error('Feature not found')
-        }
+        const feature = (
+          await selectFeatureById(
+            input.productFeature.featureId,
+            transaction
+          )
+        ).unwrap()
 
         if (feature.type === FeatureType.Toggle) {
           const defaultPrice = await selectPrices(
@@ -97,7 +101,7 @@ export const createOrRestoreProductFeature = protectedProcedure
               livemode: product.livemode,
               organizationId: product.organizationId,
             },
-            transaction
+            transactionCtx
           )
         return { productFeature }
       }
@@ -129,14 +133,9 @@ export const getProductFeature = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const productFeature = await selectProductFeatureById(
-          input.id,
-          transaction
-        )
-        if (!productFeature) {
-          // Consider throwing a TRPCError NOT_FOUND
-          throw new Error('ProductFeature not found')
-        }
+        const productFeature = (
+          await selectProductFeatureById(input.id, transaction)
+        ).unwrap()
         return { productFeature }
       }
     )

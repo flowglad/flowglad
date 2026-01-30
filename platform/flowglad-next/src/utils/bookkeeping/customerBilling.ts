@@ -1,9 +1,10 @@
+import { CheckoutSessionType } from '@db-core/enums'
+import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
 import { TRPCError } from '@trpc/server'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectCustomerFacingInvoicesWithLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
@@ -27,7 +28,6 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import type { RichSubscription } from '@/subscriptions/schemas'
-import { CheckoutSessionType } from '@/types'
 import {
   CacheDependency,
   type CacheRecomputationContext,
@@ -44,18 +44,20 @@ export const customerBillingTransaction = async (
   cacheRecomputationContext: CacheRecomputationContext
 ) => {
   const [customer] = await selectCustomers(params, transaction)
-  const subscriptions = await selectRichSubscriptionsAndActiveItems(
-    { customerId: customer.id },
-    transaction,
-    cacheRecomputationContext
-  )
-  const pricingModel = await selectPricingModelForCustomer(
-    customer,
-    transaction
-  )
-  // Use cached queries for payment methods, purchases, and invoices
-  // These are invalidated via CacheDependency.customerPaymentMethods/customerPurchases/customerInvoices
-  const [invoices, paymentMethods, purchases] = await Promise.all([
+  // All queries below depend only on customer, so they can run in parallel
+  const [
+    subscriptions,
+    pricingModel,
+    invoices,
+    paymentMethods,
+    purchases,
+  ] = await Promise.all([
+    selectRichSubscriptionsAndActiveItems(
+      { customerId: customer.id },
+      transaction,
+      cacheRecomputationContext
+    ),
+    selectPricingModelForCustomer(customer, transaction),
     selectCustomerFacingInvoicesWithLineItems(
       customer.id,
       transaction,
@@ -121,10 +123,9 @@ export const setDefaultPaymentMethodForCustomer = async (
 ) => {
   const { transaction, invalidateCache } = ctx
   // Verify the payment method belongs to the customer
-  const paymentMethod = await selectPaymentMethodById(
-    paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(paymentMethodId, transaction)
+  ).unwrap()
 
   // Check if already default
   if (paymentMethod.default) {
@@ -247,7 +248,9 @@ export const customerBillingCreatePricedCheckoutSession = async ({
 
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        return await selectPriceById(resolvedPriceId, transaction)
+        return (
+          await selectPriceById(resolvedPriceId, transaction)
+        ).unwrap()
       }
     )
     if (!price) {
@@ -267,7 +270,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   })
 
   return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
+    const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
           ...checkoutSessionInput,
@@ -279,6 +282,10 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       },
       transaction
     )
+    if (result.status === 'error') {
+      throw result.error
+    }
+    return result.value
   })
 }
 
@@ -307,7 +314,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
   })
 
   return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
+    const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
           customerExternalId: customer.externalId,
@@ -320,5 +327,9 @@ export const customerBillingCreateAddPaymentMethodSession = async (
       },
       transaction
     )
+    if (result.status === 'error') {
+      throw result.error
+    }
+    return result.value
   })
 }

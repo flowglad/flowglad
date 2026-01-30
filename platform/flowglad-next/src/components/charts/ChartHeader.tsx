@@ -1,10 +1,10 @@
 'use client'
 
+import { RevenueChartIntervalUnit } from '@db-core/enums'
 import React from 'react'
 import { ChartInfoTooltip } from '@/components/ui/chart-info-tooltip'
 import { GhostSelect } from '@/components/ui/ghost-select'
 import { cn } from '@/lib/utils'
-import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalSelectOptions } from '@/utils/chartIntervalUtils'
 import { CHART_CONSTANTS, CHART_SIZE_CONFIG } from './constants'
 import type { ChartSize } from './types'

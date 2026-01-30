@@ -1,6 +1,7 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { Img, Section, Text } from '@react-email/components'
 import * as React from 'react'
-import type { CurrencyCode } from '@/types'
+import { emailBaseUrl } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from '../components/EmailButton'
 import TestModeBanner from '../components/TestBanner'
@@ -36,14 +37,14 @@ export interface OrganizationSubscriptionAdjustedEmailProps {
 }
 
 const detailsValue = {
-  color: '#32325d',
+  color: '#141312',
   fontSize: '16px',
   fontWeight: 'bold' as const,
   marginBottom: '16px',
 }
 
 const itemRow = {
-  color: '#32325d',
+  color: '#141312',
   fontSize: '14px',
   margin: '4px 0',
 }
@@ -109,41 +110,36 @@ export const OrganizationSubscriptionAdjustedEmail = ({
     <EmailLayout previewText={previewText} variant="organization">
       <TestModeBanner livemode={livemode} />
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-        width="540"
-        height="199"
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
       <Header
         title={title}
-        style={{ textAlign: 'center', fontWeight: 'normal' }}
+        variant="organization"
+        style={{ fontWeight: 'normal' }}
       />
-      <Paragraph
-        style={{
-          color: '#525f7f',
-          textAlign: 'center',
-          margin: 0,
-        }}
-      >
+      <Paragraph variant="organization" style={{ margin: 0 }}>
         {`${customerName} has updated their subscription.`}
       </Paragraph>
       <DetailSection>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Customer Name
         </DetailItem>
         <Text style={detailsValue}>{customerName}</Text>
         {customerEmail && (
           <>
             <DetailItem
-              style={{ color: '#525f7f', marginBottom: '4px' }}
+              style={{ color: '#797063', marginBottom: '4px' }}
             >
               Customer Email
             </DetailItem>
             <Text style={detailsValue}>{customerEmail}</Text>
           </>
         )}
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Previous Plan
         </DetailItem>
         <div style={{ marginBottom: '16px' }}>
@@ -152,7 +148,7 @@ export const OrganizationSubscriptionAdjustedEmail = ({
             Total: {formattedPreviousTotal}
           </Text>
         </div>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           New Plan
         </DetailItem>
         <div style={{ marginBottom: '16px' }}>
@@ -164,7 +160,7 @@ export const OrganizationSubscriptionAdjustedEmail = ({
         {formattedProration !== null && (
           <>
             <DetailItem
-              style={{ color: '#525f7f', marginBottom: '4px' }}
+              style={{ color: '#797063', marginBottom: '4px' }}
             >
               Proration Charged
             </DetailItem>
@@ -174,14 +170,14 @@ export const OrganizationSubscriptionAdjustedEmail = ({
         {prorationAmount === null && (
           <>
             <DetailItem
-              style={{ color: '#525f7f', marginBottom: '4px' }}
+              style={{ color: '#797063', marginBottom: '4px' }}
             >
               Charge
             </DetailItem>
             <Text style={detailsValue}>No charge (downgrade)</Text>
           </>
         )}
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Effective Date
         </DetailItem>
         <Text style={detailsValue}>
@@ -198,10 +194,9 @@ export const OrganizationSubscriptionAdjustedEmail = ({
         </EmailButton>
       </Section>
       <Paragraph
+        variant="organization"
         style={{
-          color: '#525f7f',
           lineHeight: '20px',
-          textAlign: 'center',
           marginTop: '24px',
         }}
       >

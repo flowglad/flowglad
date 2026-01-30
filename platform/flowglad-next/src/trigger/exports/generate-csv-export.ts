@@ -1,10 +1,10 @@
-import { logger, task } from '@trigger.dev/sdk'
-import { format } from 'date-fns'
-import { adminTransaction } from '@/db/adminTransaction'
 import type {
   CustomersPaginatedTableRowInput,
   CustomerTableRowData,
-} from '@/db/schema/customers'
+} from '@db-core/schema/customers'
+import { logger, task } from '@trigger.dev/sdk'
+import { format } from 'date-fns'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomersCursorPaginatedWithTableRowData } from '@/db/tableMethods/customerMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -70,11 +70,12 @@ export const generateCsvExportTask = task({
             transaction,
           })
 
-        const organization = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
-        const user = await selectUserById(userId, transaction)
+        const organization = (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+        const user = (
+          await selectUserById(userId, transaction)
+        ).unwrap()
 
         // Verify membership exists for userId + organizationId
         const memberships = await selectMemberships(

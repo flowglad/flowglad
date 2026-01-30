@@ -14,23 +14,25 @@ This directory contains Flowglad's entire database layer - a sophisticated, prod
 
 ## Directory Structure
 
+Schema definitions have moved to `db-core/` for sharing with other repositories.
+
+- **Schema files**: `@db-core/schema/*` (in `db-core/schema/`)
+- **Schema utilities**: `@db-core/tableUtils`, `@db-core/createZodSchemas`, etc.
+- **Test files**: Remain here in `src/db/schema/*.test.ts`
+
+Files that remain in `src/db/`:
+
 ```
 db/
 ├── client.ts                    # Main database client configuration
-├── types.ts                     # Core type definitions (DbTransaction, etc.)
+├── types.ts                     # App-specific types (re-exports pure types from db-core)
 ├── authenticatedTransaction.ts  # User-scoped transactions with RLS
 ├── adminTransaction.ts          # Admin-scoped transactions
-├── schema/                      # All table definitions
-│   ├── organizations.ts         # Multi-tenant orgs
-│   ├── customers.ts            # Customer records
-│   ├── subscriptions.ts        # Subscription models
-│   ├── invoices.ts             # Invoice records
-│   ├── payments.ts             # Payment tracking
-│   └── [30+ more tables]       # Complete business model
-├── tableMethods/               # Generated CRUD operations
-│   └── *Methods.ts             # Standard operations per table
-├── ledgerManager/              # Financial transaction processing
-└── tableUtils.ts               # Schema and method factories
+├── schema/                      # Schema test files only (*.test.ts)
+├── tableMethods/                # CRUD operations and business logic
+│   └── *Methods.ts              # Standard operations per table
+├── ledgerManager/               # Financial transaction processing (ledger operations)
+└── rls/                         # Row Level Security tests
 ```
 
 ## How to Use
@@ -203,7 +205,7 @@ const response = apiResponseSchema.parse({
 
 ```typescript
 // Tests use real database operations with setup helpers
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import { setupOrg, setupCustomer } from '@/../seedDatabase'
 import { selectCustomers, updateCustomer } from './tableMethods/customerMethods'

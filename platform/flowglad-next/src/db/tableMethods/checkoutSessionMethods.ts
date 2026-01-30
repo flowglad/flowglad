@@ -1,27 +1,29 @@
-import { and, eq, inArray, lt, not } from 'drizzle-orm'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+} from '@db-core/enums'
 import {
   type CheckoutSession,
   checkoutSessions,
   checkoutSessionsInsertSchema,
   checkoutSessionsSelectSchema,
   checkoutSessionsUpdateSchema,
-} from '@/db/schema/checkoutSessions'
+} from '@db-core/schema/checkoutSessions'
+import { feeCalculations } from '@db-core/schema/feeCalculations'
 import {
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
   type SelectConditions,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { and, eq, inArray, lt, not } from 'drizzle-orm'
 import type { DbTransaction } from '@/db/types'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-} from '@/types'
-import { feeCalculations } from '../schema/feeCalculations'
+import { TerminalStateError, ValidationError } from '@/errors'
 import { selectCustomerById } from './customerMethods'
 import { selectInvoiceById } from './invoiceMethods'
 import { derivePricingModelIdFromPrice } from './priceMethods'
@@ -60,31 +62,31 @@ export const derivePricingModelIdForCheckoutSession = async (
     type: CheckoutSessionType
   },
   transaction: DbTransaction
-): Promise<string> => {
+): Promise<Result<string, ValidationError>> => {
   // Try price first (for Product and ActivateSubscription sessions)
   if (data.priceId) {
-    return await derivePricingModelIdFromPrice(
-      data.priceId,
-      transaction
+    return Result.ok(
+      await derivePricingModelIdFromPrice(data.priceId, transaction)
     )
   }
 
   // Try purchase second (for Purchase sessions)
   if (data.purchaseId) {
-    return await derivePricingModelIdFromPurchase(
-      data.purchaseId,
-      transaction
+    return Result.ok(
+      await derivePricingModelIdFromPurchase(
+        data.purchaseId,
+        transaction
+      )
     )
   }
 
   // Try invoice third (for Invoice sessions)
   if (data.invoiceId) {
     // Invoice already has pricingModelId from Wave 3
-    const invoice = await selectInvoiceById(
-      data.invoiceId,
-      transaction
-    )
-    return invoice.pricingModelId
+    const invoice = (
+      await selectInvoiceById(data.invoiceId, transaction)
+    ).unwrap()
+    return Result.ok(invoice.pricingModelId)
   }
 
   // Fall back to customer (for AddPaymentMethod sessions)
@@ -92,20 +94,25 @@ export const derivePricingModelIdForCheckoutSession = async (
     data.customerId &&
     data.type === CheckoutSessionType.AddPaymentMethod
   ) {
-    const customer = await selectCustomerById(
-      data.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(data.customerId, transaction)
+    ).unwrap()
     if (!customer.pricingModelId) {
-      throw new Error(
-        `Customer ${data.customerId} does not have a pricingModelId`
+      return Result.err(
+        new ValidationError(
+          'customer',
+          `Customer ${data.customerId} does not have a pricingModelId`
+        )
       )
     }
-    return customer.pricingModelId
+    return Result.ok(customer.pricingModelId)
   }
 
-  throw new Error(
-    'Cannot derive pricingModelId for checkout session: no valid parent found'
+  return Result.err(
+    new ValidationError(
+      'checkoutSession',
+      'Cannot derive pricingModelId for checkout session: no valid parent found'
+    )
   )
 }
 
@@ -117,25 +124,37 @@ const baseInsertCheckoutSession = createInsertFunction(
 export const insertCheckoutSession = async (
   insertData: CheckoutSession.Insert,
   transaction: DbTransaction
-): Promise<CheckoutSession.Record> => {
-  const pricingModelId = insertData.pricingModelId
-    ? insertData.pricingModelId
-    : await derivePricingModelIdForCheckoutSession(
-        {
-          priceId: insertData.priceId,
-          purchaseId: insertData.purchaseId,
-          invoiceId: insertData.invoiceId,
-          customerId: insertData.customerId,
-          type: insertData.type,
-        },
-        transaction
-      )
-  return baseInsertCheckoutSession(
-    {
-      ...insertData,
-      pricingModelId,
-    } as CheckoutSession.Insert,
-    transaction
+): Promise<Result<CheckoutSession.Record, ValidationError>> => {
+  if (insertData.pricingModelId) {
+    return Result.ok(
+      await baseInsertCheckoutSession(insertData, transaction)
+    )
+  }
+
+  const pricingModelIdResult =
+    await derivePricingModelIdForCheckoutSession(
+      {
+        priceId: insertData.priceId,
+        purchaseId: insertData.purchaseId,
+        invoiceId: insertData.invoiceId,
+        customerId: insertData.customerId,
+        type: insertData.type,
+      },
+      transaction
+    )
+
+  if (pricingModelIdResult.status === 'error') {
+    return Result.err(pricingModelIdResult.error)
+  }
+
+  return Result.ok(
+    await baseInsertCheckoutSession(
+      {
+        ...insertData,
+        pricingModelId: pricingModelIdResult.value,
+      } as CheckoutSession.Insert,
+      transaction
+    )
   )
 }
 
@@ -291,21 +310,27 @@ export const safelyUpdateCheckoutSessionStatus = async (
   checkoutSession: CheckoutSession.Record,
   status: CheckoutSessionStatus,
   transaction: DbTransaction
-) => {
+): Promise<Result<CheckoutSession.Record, TerminalStateError>> => {
   if (checkoutSession.status === status) {
-    return checkoutSession
+    return Result.ok(checkoutSession)
   }
   if (checkoutSessionIsInTerminalState(checkoutSession)) {
-    throw new Error(
-      `Cannot update checkout session ${checkoutSession.id} status to ${status} because it is in terminal state ${checkoutSession.status}`
+    return Result.err(
+      new TerminalStateError(
+        'CheckoutSession',
+        checkoutSession.id,
+        checkoutSession.status
+      )
     )
   }
-  return updateCheckoutSession(
-    {
-      ...checkoutSession,
-      status,
-    },
-    transaction
+  return Result.ok(
+    await updateCheckoutSession(
+      {
+        ...checkoutSession,
+        status,
+      },
+      transaction
+    )
   )
 }
 
@@ -326,14 +351,23 @@ export const updateCheckoutSessionPaymentMethodType = async (
 export const updateCheckoutSessionCustomerEmail = async (
   update: Pick<CheckoutSession.Record, 'id' | 'customerEmail'>,
   transaction: DbTransaction
-): Promise<CheckoutSession.Record> => {
-  const checkoutSession = await selectCheckoutSessionById(
+): Promise<
+  Result<CheckoutSession.Record, ValidationError | NotFoundError>
+> => {
+  const checkoutSessionResult = await selectCheckoutSessionById(
     update.id,
     transaction
   )
+  if (Result.isError(checkoutSessionResult)) {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const checkoutSession = checkoutSessionResult.value
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
-    throw new Error(
-      'Cannot update customer email for a non-open checkout session'
+    return Result.err(
+      new ValidationError(
+        'checkoutSession',
+        'Cannot update customer email for a non-open checkout session'
+      )
     )
   }
   const [result] = await transaction
@@ -343,20 +377,29 @@ export const updateCheckoutSessionCustomerEmail = async (
     })
     .where(eq(checkoutSessions.id, update.id))
     .returning()
-  return checkoutSessionsSelectSchema.parse(result)
+  return Result.ok(checkoutSessionsSelectSchema.parse(result))
 }
 
 export const updateCheckoutSessionBillingAddress = async (
   update: Pick<CheckoutSession.Record, 'id' | 'billingAddress'>,
   transaction: DbTransaction
-): Promise<CheckoutSession.Record> => {
-  const checkoutSession = await selectCheckoutSessionById(
+): Promise<
+  Result<CheckoutSession.Record, ValidationError | NotFoundError>
+> => {
+  const checkoutSessionResult = await selectCheckoutSessionById(
     update.id,
     transaction
   )
+  if (Result.isError(checkoutSessionResult)) {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const checkoutSession = checkoutSessionResult.value
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
-    throw new Error(
-      'Cannot update billing address for a non-open checkout session'
+    return Result.err(
+      new ValidationError(
+        'checkoutSession',
+        'Cannot update billing address for a non-open checkout session'
+      )
     )
   }
   const [result] = await transaction
@@ -366,7 +409,7 @@ export const updateCheckoutSessionBillingAddress = async (
     })
     .where(eq(checkoutSessions.id, update.id))
     .returning()
-  return checkoutSessionsSelectSchema.parse(result)
+  return Result.ok(checkoutSessionsSelectSchema.parse(result))
 }
 
 export const updateCheckoutSessionAutomaticallyUpdateSubscriptions =
@@ -376,21 +419,33 @@ export const updateCheckoutSessionAutomaticallyUpdateSubscriptions =
       'id' | 'automaticallyUpdateSubscriptions'
     >,
     transaction: DbTransaction
-  ): Promise<CheckoutSession.Record> => {
-    const checkoutSession = await selectCheckoutSessionById(
+  ): Promise<
+    Result<CheckoutSession.Record, ValidationError | NotFoundError>
+  > => {
+    const checkoutSessionResult = await selectCheckoutSessionById(
       update.id,
       transaction
     )
+    if (Result.isError(checkoutSessionResult)) {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const checkoutSession = checkoutSessionResult.value
     if (
       checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
     ) {
-      throw new Error(
-        'Cannot update automaticallyUpdateSubscriptions for a non-add payment method checkout session'
+      return Result.err(
+        new ValidationError(
+          'checkoutSession',
+          'Cannot update automaticallyUpdateSubscriptions for a non-add payment method checkout session'
+        )
       )
     }
     if (checkoutSession.status !== CheckoutSessionStatus.Open) {
-      throw new Error(
-        'Cannot update automaticallyUpdateSubscriptions for a non-open checkout session'
+      return Result.err(
+        new ValidationError(
+          'checkoutSession',
+          'Cannot update automaticallyUpdateSubscriptions for a non-open checkout session'
+        )
       )
     }
     const [result] = await transaction
@@ -402,7 +457,7 @@ export const updateCheckoutSessionAutomaticallyUpdateSubscriptions =
       .where(eq(checkoutSessions.id, update.id))
       .returning()
 
-    return checkoutSessionsSelectSchema.parse(result)
+    return Result.ok(checkoutSessionsSelectSchema.parse(result))
   }
 
 const subscriptionCreatingCheckoutSessionTypes = [

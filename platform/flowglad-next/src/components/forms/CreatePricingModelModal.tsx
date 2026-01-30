@@ -1,5 +1,10 @@
 'use client'
 
+import { IntervalUnit } from '@db-core/enums'
+import {
+  type CreatePricingModelInput,
+  createPricingModelSchema,
+} from '@db-core/schema/pricingModels'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
@@ -21,11 +26,6 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  type CreatePricingModelInput,
-  createPricingModelSchema,
-} from '@/db/schema/pricingModels'
-import { IntervalUnit } from '@/types'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'
@@ -50,6 +50,7 @@ const CreatePricingModelModal: React.FC<
   CreatePricingModelModalProps
 > = ({ isOpen, setIsOpen }) => {
   const router = useRouter()
+  const trpcUtils = trpc.useUtils()
 
   // Single modal with different views
   const [currentView, setCurrentView] = useState<ModalView>('choice')
@@ -73,6 +74,8 @@ const CreatePricingModelModal: React.FC<
     trpc.pricingModels.create.useMutation({
       onSuccess: ({ pricingModel }) => {
         toast.success('Pricing model created successfully')
+        // Invalidate to refresh the count for "can create" check
+        trpcUtils.pricingModels.getTableRows.invalidate()
         setIsOpen(false)
         router.push(`/pricing-models/${pricingModel.id}`)
         resetState()
@@ -89,6 +92,8 @@ const CreatePricingModelModal: React.FC<
         toast.success(
           'Pricing model created from template successfully'
         )
+        // Invalidate to refresh the count for "can create" check
+        trpcUtils.pricingModels.getTableRows.invalidate()
         setIsOpen(false)
         router.push(`/pricing-models/${pricingModel.id}`)
         resetState()

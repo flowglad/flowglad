@@ -1,9 +1,5 @@
-/**
- * @vitest-environment jsdom
- */
-
-import { describe, expect, it } from 'vitest'
-import { IntervalUnit } from '@/types'
+import { describe, expect, it } from 'bun:test'
+import { IntervalUnit } from '@db-core/enums'
 import { intervalLabel } from './billing-header'
 
 describe('BillingHeader', () => {

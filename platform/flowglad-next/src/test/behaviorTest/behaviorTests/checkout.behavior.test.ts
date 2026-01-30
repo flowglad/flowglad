@@ -18,29 +18,29 @@
  * 3. **MoR Tax Jurisdictions** - Tax behavior varies by customer location
  */
 
-import { expect } from 'vitest'
+import { expect } from 'bun:test'
 import {
   CheckoutSessionStatus,
   CurrencyCode,
   FeeCalculationType,
   PriceType,
   StripeConnectContractType,
-} from '@/types'
-import { teardownOrg } from '../../../../seedDatabase'
-import { authenticateUserBehavior } from '../behaviors/authBehaviors'
+} from '@db-core/enums'
+import { teardownOrg } from '@/../seedDatabase'
+import { authenticateUserBehavior } from '@/test/behaviorTest/behaviors/authBehaviors'
 import {
   applyDiscountBehavior,
   createProductWithPriceBehavior,
   initiateCheckoutSessionBehavior,
   type ProvideBillingAddressResult,
   provideBillingAddressBehavior,
-} from '../behaviors/checkoutBehaviors'
-import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'
-import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'
-import { CountryDep } from '../dependencies/countryDependencies'
-import { CustomerResidencyDep } from '../dependencies/customerResidencyDependencies'
-import { DiscountDep } from '../dependencies/discountDependencies'
-import { behaviorTest } from '../index'
+} from '@/test/behaviorTest/behaviors/checkoutBehaviors'
+import { createOrganizationBehavior } from '@/test/behaviorTest/behaviors/orgSetupBehaviors'
+import { completeStripeOnboardingBehavior } from '@/test/behaviorTest/behaviors/stripeOnboardingBehaviors'
+import { CountryDep } from '@/test/behaviorTest/dependencies/countryDependencies'
+import { CustomerResidencyDep } from '@/test/behaviorTest/dependencies/customerResidencyDependencies'
+import { DiscountDep } from '@/test/behaviorTest/dependencies/discountDependencies'
+import { behaviorTest } from '@/test/behaviorTest/index'
 
 // =============================================================================
 // Shared teardown function

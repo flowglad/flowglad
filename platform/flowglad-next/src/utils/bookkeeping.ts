@@ -1,14 +1,24 @@
+import {
+  type CurrencyCode,
+  EventNoun,
+  FlowgladEventType,
+  type IntervalUnit,
+  InvoiceStatus,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Payment } from '@db-core/schema/payments'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
-import type { Customer } from '@/db/schema/customers'
-import type { Payment } from '@/db/schema/payments'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { Purchase } from '@/db/schema/purchases'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   insertCustomer,
   selectCustomerById,
@@ -40,16 +50,6 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
-import {
-  type CurrencyCode,
-  EventNoun,
-  FlowgladEventType,
-  type IntervalUnit,
-  InvoiceStatus,
-  PaymentStatus,
-  PriceType,
-  PurchaseStatus,
-} from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
 import { createInitialInvoiceForPurchase } from './bookkeeping/invoices'
@@ -70,10 +70,9 @@ export const updatePurchaseStatusToReflectLatestPayment = async (
     purchaseStatus = PurchaseStatus.Pending
   }
   if (payment.purchaseId) {
-    const purchase = await selectPurchaseById(
-      payment.purchaseId,
-      transaction
-    )
+    const purchase = (
+      await selectPurchaseById(payment.purchaseId, transaction)
+    ).unwrap()
     await updatePurchase(
       {
         id: payment.purchaseId,
@@ -274,10 +273,12 @@ export const createCustomerBookkeeping = async (
     )
   }
   const pricingModel = payload.customer.pricingModelId
-    ? await selectPricingModelById(
-        payload.customer.pricingModelId,
-        transaction
-      )
+    ? (
+        await selectPricingModelById(
+          payload.customer.pricingModelId,
+          transaction
+        )
+      ).unwrap()
     : await selectDefaultPricingModel(
         { organizationId: payload.customer.organizationId, livemode },
         transaction
@@ -355,10 +356,12 @@ export const createCustomerBookkeeping = async (
       const defaultPrice = product.defaultPrice
       if (defaultPrice) {
         // Get the organization details - use customer's organizationId for consistency
-        const organization = await selectOrganizationById(
-          customer.organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            customer.organizationId,
+            transaction
+          )
+        ).unwrap()
 
         // Create the subscription - pass callbacks directly
         const subscriptionResult = (
@@ -423,17 +426,6 @@ export const createCustomerBookkeeping = async (
 /**
  * Creates a pricing model with a default "Base Plan" product and a default price of 0
  */
-/**
- * Minimal transaction context for bookkeeping operations that don't need
- * userId or cacheRecomputationContext. Callers can pass full transaction
- * params objects - TypeScript's structural typing allows extra properties.
- */
-interface BookkeepingTransactionContext {
-  transaction: DbTransaction
-  organizationId: string
-  livemode: boolean
-}
-
 export const createPricingModelBookkeeping = async (
   payload: {
     pricingModel: Omit<
@@ -442,11 +434,10 @@ export const createPricingModelBookkeeping = async (
     >
     defaultPlanIntervalUnit?: IntervalUnit
   },
-  {
-    transaction,
-    organizationId,
-    livemode,
-  }: BookkeepingTransactionContext
+  ctx: TransactionEffectsContext & {
+    organizationId: string
+    livemode: boolean
+  }
 ): Promise<
   Result<
     {
@@ -457,6 +448,7 @@ export const createPricingModelBookkeeping = async (
     Error
   >
 > => {
+  const { transaction, organizationId, livemode } = ctx
   // 1. Create the pricing model
   const pricingModel = await safelyInsertPricingModel(
     {
@@ -464,20 +456,19 @@ export const createPricingModelBookkeeping = async (
       organizationId,
       livemode,
     },
-    transaction
+    ctx
   )
 
   // 2. Create the default "Base Plan" product
   const defaultProduct = await insertProduct(
     createFreePlanProductInsert(pricingModel),
-    transaction
+    ctx
   )
 
   // 3. Get organization for default currency
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
 
   // 4. Create the default price with unitPrice of 0
   const defaultPrice = await insertPrice(
@@ -486,7 +477,7 @@ export const createPricingModelBookkeeping = async (
       organization.defaultCurrency,
       payload.defaultPlanIntervalUnit
     ),
-    transaction
+    ctx
   )
 
   return Result.ok({

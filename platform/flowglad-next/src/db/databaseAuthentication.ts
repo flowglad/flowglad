@@ -1,19 +1,22 @@
+import { FlowgladApiKeyType } from '@db-core/enums'
+import type { ApiKey } from '@db-core/schema/apiKeys'
+import {
+  customers,
+  customersSelectSchema,
+} from '@db-core/schema/customers'
+import { memberships } from '@db-core/schema/memberships'
+import { users, usersSelectSchema } from '@db-core/schema/users'
 import type { Session } from '@supabase/supabase-js'
 import type { User } from 'better-auth'
-import { and, desc, eq, or } from 'drizzle-orm'
+import { and, desc, eq, isNull, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
 import { z } from 'zod'
-import { FlowgladApiKeyType } from '@/types'
 import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { parseUnkeyMeta, unkey } from '@/utils/unkey'
 import { adminTransaction } from './adminTransaction'
 import db from './client'
-import type { ApiKey } from './schema/apiKeys'
-import { customers, customersSelectSchema } from './schema/customers'
-import { memberships } from './schema/memberships'
-import { users, usersSelectSchema } from './schema/users'
 import { selectApiKeys } from './tableMethods/apiKeyMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
 
@@ -26,6 +29,12 @@ export interface JWTClaim extends JwtPayload {
   role: string
   organization_id: string
   auth_type: 'api_key' | 'webapp'
+  /**
+   * Pricing model ID for PM-scoped access.
+   * Required for API key auth (extracted from Unkey metadata).
+   * Undefined for webapp/CLI auth (falls back to org+livemode isolation via RLS).
+   */
+  pricing_model_id?: string
 }
 
 interface KeyVerifyResult {
@@ -83,6 +92,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     organizationId,
     apiKeyType,
     apiKeyLivemode,
+    pricingModelId,
   } = await adminTransaction(async ({ transaction }) => {
     const [apiKeyRecord] = await selectApiKeys(
       {
@@ -102,6 +112,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       organizationId: apiKeyRecord.organizationId,
       apiKeyType: apiKeyRecord.type,
       apiKeyLivemode: apiKeyRecord.livemode,
+      pricingModelId: apiKeyRecord.pricingModelId,
     }
   })
   return {
@@ -113,6 +124,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       type: apiKeyType as FlowgladApiKeyType.Secret,
       userId: membershipAndUser.user.id,
       organizationId: organizationId,
+      pricingModelId: pricingModelId,
     },
   }
 }
@@ -131,10 +143,16 @@ interface DatabaseAuthenticationInfo {
  * API keys are scoped to a specific organization and should work regardless
  * of which organization the user has focused in the webapp.
  *
+ * Also extracts `pricingModelId` from the API key metadata and includes it
+ * in JWT claims as `pricing_model_id`. This enables RLS policies to enforce
+ * pricing model isolation for API key requests.
+ *
  * @param verifyKeyResult - The verified API key result containing:
  *   - `userId`: The user who created/owns the API key (extracted from metadata)
  *   - `ownerId`: The organization ID this API key belongs to
+ *   - `metadata`: Contains `pricingModelId` for PM-scoped access
  * @returns Database authentication info with JWT claims set for API key auth
+ * @throws Error if `pricingModelId` is missing from API key metadata
  */
 export async function dbAuthInfoForSecretApiKeyResult(
   verifyKeyResult: KeyVerifyResult
@@ -144,6 +162,16 @@ export async function dbAuthInfoForSecretApiKeyResult(
       `dbAuthInfoForSecretApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
     )
   }
+
+  // Extract pricingModelId from API key metadata - required for PM-scoped access
+  const pricingModelId = verifyKeyResult.metadata.pricingModelId
+  if (!pricingModelId) {
+    throw new Error(
+      'API key is missing pricingModelId in metadata. This key may not have been migrated. ' +
+        'Please contact support or create a new API key.'
+    )
+  }
+
   const membershipsForOrganization = await db
     .select()
     .from(memberships)
@@ -168,6 +196,7 @@ export async function dbAuthInfoForSecretApiKeyResult(
     session_id: 'mock_session_123',
     organization_id: verifyKeyResult.ownerId,
     auth_type: 'api_key',
+    pricing_model_id: pricingModelId,
     user_metadata: {
       id: userId,
       user_metadata: {},
@@ -323,7 +352,8 @@ export async function databaseAuthenticationInfoForWebappRequest(
       .where(
         and(
           eq(users.betterAuthId, betterAuthId),
-          eq(memberships.focused, true)
+          eq(memberships.focused, true),
+          isNull(memberships.deactivatedAt)
         )
       )
       .limit(1)

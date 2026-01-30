@@ -1,3 +1,15 @@
+import {
+  createFeatureSchema,
+  editFeatureSchema,
+  featuresClientSelectSchema,
+} from '@db-core/schema/features'
+import {
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
@@ -5,11 +17,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createFeatureSchema,
-  editFeatureSchema,
-  featuresClientSelectSchema,
-} from '@/db/schema/features'
 import {
   featuresTableRowOutputSchema,
   insertFeature,
@@ -20,13 +27,6 @@ import {
   updateFeatureTransaction,
 } from '@/db/tableMethods/featureMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import {
-  createPaginatedListQuerySchema,
-  createPaginatedSelectSchema,
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { router } from '../trpc'
@@ -52,7 +52,6 @@ export const createFeature = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
         const { livemode, organizationId } = ctx
         if (!organizationId) {
           throw new Error('organizationId is required')
@@ -63,7 +62,7 @@ export const createFeature = protectedProcedure
             organizationId,
             livemode,
           },
-          transaction
+          transactionCtx
         )
         return { feature }
       }
@@ -112,7 +111,9 @@ export const getFeature = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const feature = await selectFeatureById(input.id, transaction)
+        const feature = (
+          await selectFeatureById(input.id, transaction)
+        ).unwrap()
         return { feature }
       }
     )

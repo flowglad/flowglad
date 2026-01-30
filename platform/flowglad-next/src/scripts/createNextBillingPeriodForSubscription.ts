@@ -4,10 +4,10 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/createNextBillingPeriodForSubscription.ts subscription_id=sub_...
 */
 
+import { SubscriptionStatus } from '@db-core/enums'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { attemptToCreateFutureBillingPeriodForSubscription } from '@/subscriptions/billingPeriodHelpers'
-import { SubscriptionStatus } from '@/types'
 import runScript from './scriptRunner'
 
 async function createNextBillingPeriodForSubscription(
@@ -35,10 +35,9 @@ async function createNextBillingPeriodForSubscription(
     )
   }
   await db.transaction(async (transaction) => {
-    const subscription = await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap()
     if (subscription.status === SubscriptionStatus.CreditTrial) {
       throw new Error(
         `Subscription ${subscriptionId} is a credit trial subscription. Credit trial subscriptions cannot have billing periods.`

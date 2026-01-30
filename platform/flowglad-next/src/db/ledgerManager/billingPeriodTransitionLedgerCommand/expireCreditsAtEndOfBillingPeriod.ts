@@ -1,24 +1,31 @@
+import {
+  LedgerEntryDirection,
+  LedgerEntryStatus,
+  LedgerEntryType,
+} from '@db-core/enums'
+import type { LedgerAccount } from '@db-core/schema/ledgerAccounts'
+import {
+  type LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '@db-core/schema/ledgerEntries'
+import type { LedgerTransaction } from '@db-core/schema/ledgerTransactions'
+import { Result } from 'better-result'
 import type {
   BillingPeriodTransitionLedgerCommand,
   StandardBillingPeriodTransitionPayload,
 } from '@/db/ledgerManager/ledgerManagerTypes'
-import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import {
-  type LedgerEntry,
-  ledgerEntryNulledSourceIdColumns,
-} from '@/db/schema/ledgerEntries'
-import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
   aggregateAvailableBalanceForUsageCredit,
   bulkInsertLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
 import type { DbTransaction } from '@/db/types'
-import {
-  LedgerEntryDirection,
-  LedgerEntryStatus,
-  LedgerEntryType,
-} from '@/types'
+import { NotFoundError } from '@/errors'
 import { nowTime } from '@/utils/core'
+
+interface ExpireCreditsResult {
+  ledgerTransaction: LedgerTransaction.Record
+  ledgerEntries: LedgerEntry.Record[]
+}
 
 export const expireCreditsAtEndOfBillingPeriod = async (
   params: {
@@ -27,7 +34,7 @@ export const expireCreditsAtEndOfBillingPeriod = async (
     command: BillingPeriodTransitionLedgerCommand
   },
   transaction: DbTransaction
-) => {
+): Promise<Result<ExpireCreditsResult, NotFoundError>> => {
   const {
     ledgerAccountsForSubscription,
     ledgerTransaction,
@@ -36,10 +43,10 @@ export const expireCreditsAtEndOfBillingPeriod = async (
 
   // Non-renewing subscriptions don't have billing periods and their credits never expire
   if (command.payload.type === 'non_renewing') {
-    return {
+    return Result.ok({
       ledgerTransaction,
       ledgerEntries: [],
-    }
+    })
   }
 
   const standardPayload =
@@ -92,12 +99,15 @@ export const expireCreditsAtEndOfBillingPeriod = async (
         }
       return creditExpirationLedgerEntry
     })
-  const entries = await bulkInsertLedgerEntries(
+  const entriesResult = await bulkInsertLedgerEntries(
     creditExpirationLedgerInserts,
     transaction
   )
-  return {
-    ledgerTransaction,
-    ledgerEntries: entries,
+  if (Result.isError(entriesResult)) {
+    return Result.err(entriesResult.error)
   }
+  return Result.ok({
+    ledgerTransaction,
+    ledgerEntries: entriesResult.value,
+  })
 }
