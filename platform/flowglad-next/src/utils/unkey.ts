@@ -320,14 +320,11 @@ export const parseUnkeyMeta =
     const metaType = (rawUnkeyMeta as { type?: string }).type
 
     // If there's an explicit type that's not a valid type, reject it
-    const validTypes = [
+    const validTypes: string[] = [
       FlowgladApiKeyType.Secret,
       FlowgladApiKeyType.CliSession,
     ]
-    if (
-      metaType &&
-      !validTypes.includes(metaType as FlowgladApiKeyType)
-    ) {
+    if (metaType && !validTypes.includes(metaType)) {
       throw new Error(
         `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${validTypes.join(' or ')}`
       )

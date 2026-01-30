@@ -161,14 +161,26 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Validate metadata schema (ensures type safety)
   const validatedMeta = cliSessionApiKeyMetadataSchema.parse(cliMeta)
 
-  const createKeyResult = await unkey().keys.createKey({
-    apiId: core.envVariable('UNKEY_API_ID'),
-    name: `CLI Session - ${organizationId} / ${pricingModelId}`,
-    expires: expiresAt.getTime(),
-    externalId: organizationId,
-    prefix,
-    meta: validatedMeta,
-  })
+  let createKeyResult
+  try {
+    createKeyResult = await unkey().keys.createKey({
+      apiId: core.envVariable('UNKEY_API_ID'),
+      name: `CLI Session - ${organizationId} / ${pricingModelId}`,
+      expires: expiresAt.getTime(),
+      externalId: organizationId,
+      prefix,
+      meta: validatedMeta,
+    })
+  } catch (error) {
+    console.error('Failed to create Unkey API key:', error)
+    return NextResponse.json(
+      {
+        error: 'Internal Server Error',
+        message: 'Failed to create access token',
+      },
+      { status: 500 }
+    )
+  }
 
   const response: AccessTokenResponse = {
     accessToken: createKeyResult.data.key,
