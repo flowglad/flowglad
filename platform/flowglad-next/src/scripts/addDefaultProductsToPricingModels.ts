@@ -33,7 +33,6 @@ async function addDefaultProductsToPricingModels(
   await db.transaction(async (tx) => {
     // Create transaction context with noop callbacks for scripts
     const ctx = createTransactionEffectsContext(tx, {
-      type: 'admin',
       livemode: true,
     })
 
