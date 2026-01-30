@@ -65,7 +65,10 @@ export const loginFlow = async (
   let deviceCodeResponse
   try {
     deviceCodeResponse = await requestDeviceCode(baseUrl)
-  } catch {
+  } catch (error) {
+    if (process.env.DEBUG) {
+      console.error('Debug:', error)
+    }
     console.error(
       'Error: Failed to connect to Flowglad. Please check your internet connection.'
     )

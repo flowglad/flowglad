@@ -1,3 +1,9 @@
+/**
+ * Login command tests.
+ *
+ * Note: These tests use vitest-specific APIs (vi.stubGlobal, vi.mock).
+ * Run with `bun run test`, not `bun test` directly.
+ */
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
