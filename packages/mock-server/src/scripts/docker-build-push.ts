@@ -10,8 +10,7 @@
  *
  * Prerequisites:
  *   - Docker must be installed and running
- *   - For pushing: must be logged in to ghcr.io
- *     Run: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+ *   - gh CLI must be installed and authenticated (for pushing)
  */
 
 import { $ } from 'bun'
@@ -46,8 +45,7 @@ Options:
 
 Prerequisites:
   - Docker must be installed and running
-  - For pushing: must be logged in to ghcr.io
-    Run: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+  - gh CLI must be installed and authenticated (for pushing)
 
 Image: ${DOCKER_CONFIG.fullImage}
 `)
@@ -76,6 +74,10 @@ const main = async () => {
   console.log(`\n✓ Build complete: ${fullImageWithTag}`)
 
   if (args.push) {
+    // Login to GHCR using gh CLI credentials
+    const loginScript = resolve(dirname(scriptPath), 'ghcr-login.ts')
+    await $`bun run ${loginScript}`
+
     console.log('\nPushing to registry...')
     await $`docker push ${fullImageWithTag}`
     console.log(`✓ Push complete: ${fullImageWithTag}`)

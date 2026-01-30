@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "check": "biome check . && bun run typecheck",
     "docker:build": "bun run src/scripts/docker-build-push.ts",
-    "docker:push": "bun run src/scripts/docker-build-push.ts --push"
+    "docker:push": "bun run src/scripts/docker-build-push.ts --push",
+    "ghcr:login": "bun run src/scripts/ghcr-login.ts"
   },
   "dependencies": {
     "nanoid": "^3.3.11"
