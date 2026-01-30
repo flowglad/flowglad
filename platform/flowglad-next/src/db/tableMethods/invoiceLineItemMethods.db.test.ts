@@ -11,13 +11,17 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Product } from '@db-core/schema/products'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupInvoice,
   setupOrg,
   setupPrice,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   derivePricingModelIdForInvoiceLineItem,
@@ -66,36 +70,42 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should derive pricingModelId from invoice when invoiceId is provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const derivedPricingModelId =
-          await derivePricingModelIdForInvoiceLineItem(
-            {
-              invoiceId: invoice.id,
-              priceId: price.id,
-            },
-            transaction
-          )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const derivedPricingModelId =
+            await derivePricingModelIdForInvoiceLineItem(
+              {
+                invoiceId: invoice.id,
+                priceId: price.id,
+              },
+              transaction
+            )
 
-        expect(derivedPricingModelId).toBe(invoice.pricingModelId)
-        expect(derivedPricingModelId).toBe(pricingModel.id)
-      })
+          expect(derivedPricingModelId).toBe(invoice.pricingModelId)
+          expect(derivedPricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should derive pricingModelId from price when only priceId is provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const derivedPricingModelId =
-          await derivePricingModelIdForInvoiceLineItem(
-            {
-              invoiceId: null,
-              priceId: price.id,
-            },
-            transaction
-          )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const derivedPricingModelId =
+            await derivePricingModelIdForInvoiceLineItem(
+              {
+                invoiceId: null,
+                priceId: price.id,
+              },
+              transaction
+            )
 
-        expect(derivedPricingModelId).toBe(price.pricingModelId)
-        expect(derivedPricingModelId).toBe(product.pricingModelId)
-        expect(derivedPricingModelId).toBe(pricingModel.id)
-      })
+          expect(derivedPricingModelId).toBe(price.pricingModelId)
+          expect(derivedPricingModelId).toBe(product.pricingModelId)
+          expect(derivedPricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should throw error when both invoiceId and priceId are null', async () => {
@@ -154,26 +164,29 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should successfully insert invoice line item and derive pricingModelId from invoice', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItem = await insertInvoiceLineItem(
-          {
-            invoiceId: invoice.id,
-            quantity: 1,
-            price: 1000,
-            priceId: price.id,
-            description: 'Test line item',
-            type: SubscriptionItemType.Static,
-            livemode: true,
-          },
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const invoiceLineItem = await insertInvoiceLineItem(
+            {
+              invoiceId: invoice.id,
+              quantity: 1,
+              price: 1000,
+              priceId: price.id,
+              description: 'Test line item',
+              type: SubscriptionItemType.Static,
+              livemode: true,
+            },
+            transaction
+          )
 
-        // Verify pricingModelId is correctly derived from invoice
-        expect(invoiceLineItem.pricingModelId).toBe(
-          invoice.pricingModelId
-        )
-        expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
-      })
+          // Verify pricingModelId is correctly derived from invoice
+          expect(invoiceLineItem.pricingModelId).toBe(
+            invoice.pricingModelId
+          )
+          expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should throw an error when invoiceId is invalid and priceId is null', async () => {
@@ -196,24 +209,27 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItem = await insertInvoiceLineItem(
-          {
-            invoiceId: invoice.id,
-            quantity: 1,
-            price: 1000,
-            priceId: price.id,
-            description: 'Test line item',
-            type: SubscriptionItemType.Static,
-            livemode: true,
-            pricingModelId: pricingModel.id, // explicitly provided
-          },
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const invoiceLineItem = await insertInvoiceLineItem(
+            {
+              invoiceId: invoice.id,
+              quantity: 1,
+              price: 1000,
+              priceId: price.id,
+              description: 'Test line item',
+              type: SubscriptionItemType.Static,
+              livemode: true,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
 
-        // Verify the provided pricingModelId is used
-        expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
-      })
+          // Verify the provided pricingModelId is used
+          expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -267,54 +283,57 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should bulk insert invoice line items and derive pricingModelId for each', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItems = await insertInvoiceLineItems(
-          [
-            {
-              invoiceId: invoice.id,
-              quantity: 1,
-              price: 1000,
-              priceId: price1.id,
-              description: 'Test line item 1',
-              type: SubscriptionItemType.Static,
-              livemode: true,
-            },
-            {
-              invoiceId: invoice.id,
-              quantity: 2,
-              price: 2000,
-              priceId: price2.id,
-              description: 'Test line item 2',
-              type: SubscriptionItemType.Static,
-              livemode: true,
-            },
-          ],
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const invoiceLineItems = await insertInvoiceLineItems(
+            [
+              {
+                invoiceId: invoice.id,
+                quantity: 1,
+                price: 1000,
+                priceId: price1.id,
+                description: 'Test line item 1',
+                type: SubscriptionItemType.Static,
+                livemode: true,
+              },
+              {
+                invoiceId: invoice.id,
+                quantity: 2,
+                price: 2000,
+                priceId: price2.id,
+                description: 'Test line item 2',
+                type: SubscriptionItemType.Static,
+                livemode: true,
+              },
+            ],
+            transaction
+          )
 
-        expect(invoiceLineItems).toHaveLength(2)
+          expect(invoiceLineItems).toHaveLength(2)
 
-        // Verify pricingModelId is correctly derived for each invoice line item
-        expect(invoiceLineItems[0]!.pricingModelId).toBe(
-          price1.pricingModelId
-        )
-        expect(invoiceLineItems[0]!.pricingModelId).toBe(
-          invoice.pricingModelId
-        )
-        expect(invoiceLineItems[0]!.pricingModelId).toBe(
-          pricingModel.id
-        )
+          // Verify pricingModelId is correctly derived for each invoice line item
+          expect(invoiceLineItems[0]!.pricingModelId).toBe(
+            price1.pricingModelId
+          )
+          expect(invoiceLineItems[0]!.pricingModelId).toBe(
+            invoice.pricingModelId
+          )
+          expect(invoiceLineItems[0]!.pricingModelId).toBe(
+            pricingModel.id
+          )
 
-        expect(invoiceLineItems[1]!.pricingModelId).toBe(
-          price2.pricingModelId
-        )
-        expect(invoiceLineItems[1]!.pricingModelId).toBe(
-          invoice.pricingModelId
-        )
-        expect(invoiceLineItems[1]!.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+          expect(invoiceLineItems[1]!.pricingModelId).toBe(
+            price2.pricingModelId
+          )
+          expect(invoiceLineItems[1]!.pricingModelId).toBe(
+            invoice.pricingModelId
+          )
+          expect(invoiceLineItems[1]!.pricingModelId).toBe(
+            pricingModel.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should throw error when one invoice line item has invalid invoiceId and null priceId', async () => {
@@ -389,28 +408,32 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
   })
 
   it('should return invoices with line items for a customer with customer-facing statuses', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await selectCustomerFacingInvoicesWithLineItems(
-        customer.id,
-        transaction,
-        true,
-        { ignoreCache: true }
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result =
+          await selectCustomerFacingInvoicesWithLineItems(
+            customer.id,
+            transaction,
+            true,
+            { ignoreCache: true }
+          )
 
-      expect(result.length).toBeGreaterThanOrEqual(1)
-      const foundInvoice = result.find(
-        (item) => item.invoice.id === invoice.id
-      )
-      expect(foundInvoice).toMatchObject({
-        invoice: {
-          id: invoice.id,
-          customerId: customer.id,
-          pricingModelId: pricingModel.id,
-          status: InvoiceStatus.Paid,
-        },
-        invoiceLineItems: expect.any(Array),
+        expect(result.length).toBeGreaterThanOrEqual(1)
+        const foundInvoice = result.find(
+          (item) => item.invoice.id === invoice.id
+        )
+        expect(foundInvoice).toMatchObject({
+          invoice: {
+            id: invoice.id,
+            customerId: customer.id,
+            pricingModelId: pricingModel.id,
+            status: InvoiceStatus.Paid,
+          },
+          invoiceLineItems: expect.any(Array),
+        })
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 
   it('should return empty array when customer has no invoices', async () => {
@@ -420,16 +443,20 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      const result = await selectCustomerFacingInvoicesWithLineItems(
-        customerWithNoInvoices.id,
-        transaction,
-        true,
-        { ignoreCache: true }
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result =
+          await selectCustomerFacingInvoicesWithLineItems(
+            customerWithNoInvoices.id,
+            transaction,
+            true,
+            { ignoreCache: true }
+          )
 
-      expect(result).toEqual([])
-    })
+        expect(result).toEqual([])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should not return invoices with Draft status', async () => {
@@ -441,20 +468,24 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       status: InvoiceStatus.Draft,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      const result = await selectCustomerFacingInvoicesWithLineItems(
-        customer.id,
-        transaction,
-        true,
-        { ignoreCache: true }
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result =
+          await selectCustomerFacingInvoicesWithLineItems(
+            customer.id,
+            transaction,
+            true,
+            { ignoreCache: true }
+          )
 
-      const invoiceIds = result.map((item) => item.invoice.id)
-      // Should include the Paid invoice
-      expect(invoiceIds).toContain(invoice.id)
-      // Should NOT include the Draft invoice
-      expect(invoiceIds).not.toContain(draftInvoice.id)
-    })
+        const invoiceIds = result.map((item) => item.invoice.id)
+        // Should include the Paid invoice
+        expect(invoiceIds).toContain(invoice.id)
+        // Should NOT include the Draft invoice
+        expect(invoiceIds).not.toContain(draftInvoice.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should only return invoices for the specified customer', async () => {
@@ -471,17 +502,21 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       status: InvoiceStatus.Paid,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      const result = await selectCustomerFacingInvoicesWithLineItems(
-        customer.id,
-        transaction,
-        true,
-        { ignoreCache: true }
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result =
+          await selectCustomerFacingInvoicesWithLineItems(
+            customer.id,
+            transaction,
+            true,
+            { ignoreCache: true }
+          )
 
-      const invoiceIds = result.map((item) => item.invoice.id)
-      expect(invoiceIds).toContain(invoice.id)
-      expect(invoiceIds).not.toContain(otherInvoice.id)
-    })
+        const invoiceIds = result.map((item) => item.invoice.id)
+        expect(invoiceIds).toContain(invoice.id)
+        expect(invoiceIds).not.toContain(otherInvoice.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
