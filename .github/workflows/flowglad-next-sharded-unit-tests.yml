@@ -19,57 +19,6 @@ permissions:
   contents: read
   packages: read
 
-# =============================================================================
-# Shared Service Definitions (using YAML anchors)
-# =============================================================================
-# These anchors define reusable service configurations.
-# Reference them in jobs using: <<: *anchor-name
-#
-x-services:
-  # Postgres database for tests requiring DB access
-  postgres: &postgres-service
-    image: postgres:15
-    env:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: test_db
-    ports:
-      - 5432:5432
-    options: >-
-      --health-cmd pg_isready
-      --health-interval 10s
-      --health-timeout 5s
-      --health-retries 5
-      --health-start-period 10s
-
-  # Stripe mock server for Stripe API testing
-  stripe-mock: &stripe-mock-service
-    image: stripe/stripe-mock:v0.197.0
-    ports:
-      - 12111:12111
-      - 12112:12112
-
-  # Flowglad mock server for external services (Svix, Unkey, Trigger, Redis, Resend, Cloudflare)
-  # Image name defined in packages/mock-server/src/docker-config.ts
-  flowglad-mock-server: &flowglad-mock-server-service
-    image: ghcr.io/flowglad/flowglad/mock-server:latest
-    credentials:
-      username: ${{ github.actor }}
-      password: ${{ secrets.GITHUB_TOKEN }}
-    ports:
-      - 9001:9001  # Svix
-      - 9002:9002  # Unkey
-      - 9003:9003  # Trigger
-      - 9004:9004  # Redis
-      - 9005:9005  # Resend
-      - 9006:9006  # Cloudflare R2
-    options: >-
-      --health-cmd "wget -q --spider http://localhost:9001/health || exit 1"
-      --health-interval 10s
-      --health-timeout 5s
-      --health-retries 5
-      --health-start-period 10s
-
 jobs:
   # Unit tests are fast and don't need a database - run in a single job
   # Still requires mock servers for external service stubs (Svix, Unkey, Trigger, Redis, Resend, Cloudflare)
@@ -78,9 +27,28 @@ jobs:
 
     services:
       stripe-mock:
-        <<: *stripe-mock-service
+        image: stripe/stripe-mock:v0.197.0
+        ports:
+          - 12111:12111
+          - 12112:12112
       flowglad-mock-server:
-        <<: *flowglad-mock-server-service
+        image: ghcr.io/flowglad/flowglad/mock-server:latest
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 9001:9001  # Svix
+          - 9002:9002  # Unkey
+          - 9003:9003  # Trigger
+          - 9004:9004  # Redis
+          - 9005:9005  # Resend
+          - 9006:9006  # Cloudflare R2
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:9001/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
 
     defaults:
       run:
@@ -117,11 +85,42 @@ jobs:
 
     services:
       postgres:
-        <<: *postgres-service
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
       stripe-mock:
-        <<: *stripe-mock-service
+        image: stripe/stripe-mock:v0.197.0
+        ports:
+          - 12111:12111
+          - 12112:12112
       flowglad-mock-server:
-        <<: *flowglad-mock-server-service
+        image: ghcr.io/flowglad/flowglad/mock-server:latest
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 9001:9001  # Svix
+          - 9002:9002  # Unkey
+          - 9003:9003  # Trigger
+          - 9004:9004  # Redis
+          - 9005:9005  # Resend
+          - 9006:9006  # Cloudflare R2
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:9001/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
 
     defaults:
       run:
@@ -157,7 +156,19 @@ jobs:
 
     services:
       postgres:
-        <<: *postgres-service
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
 
     defaults:
       run:
@@ -198,7 +209,19 @@ jobs:
 
     services:
       postgres:
-        <<: *postgres-service
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
 
     defaults:
       run:
