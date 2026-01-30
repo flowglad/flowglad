@@ -1,6 +1,7 @@
 import { FlowgladApiKeyType } from '@db-core/enums'
 import type { ApiKey } from '@db-core/schema/apiKeys'
 import { cliSessionApiKeyMetadataSchema } from '@db-core/schema/apiKeys'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -29,6 +30,10 @@ export interface AccessTokenResponse {
   accessToken: string
   expiresAt: string
 }
+
+type ValidationResult =
+  | { valid: false; error: string; status: number }
+  | { valid: true; userId: string; pricingModel: PricingModel.Record }
 
 export async function POST(request: Request): Promise<NextResponse> {
   // Get the session from the Authorization header (Better Auth session token)
@@ -67,7 +72,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Validate user has access to the organization and pricing model
   const validationResult = await adminTransaction(
-    async ({ transaction }) => {
+    async ({ transaction }): Promise<ValidationResult> => {
       // Get the application user from their Better Auth ID
       const [applicationUser] = await selectUsers(
         { betterAuthId: betterAuthUserId },
@@ -76,7 +81,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       if (!applicationUser) {
         return {
-          valid: false as const,
+          valid: false,
           error: 'User not found',
           status: 404,
         }
@@ -90,7 +95,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       if (memberships.length === 0) {
         return {
-          valid: false as const,
+          valid: false,
           error: 'User does not have access to this organization',
           status: 403,
         }
@@ -104,7 +109,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       if (Result.isError(pricingModelResult)) {
         return {
-          valid: false as const,
+          valid: false,
           error: 'Pricing model not found',
           status: 404,
         }
@@ -113,7 +118,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       const pricingModel = pricingModelResult.value
       if (pricingModel.organizationId !== organizationId) {
         return {
-          valid: false as const,
+          valid: false,
           error: 'Pricing model does not belong to this organization',
           status: 403,
         }
@@ -121,14 +126,14 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       if (pricingModel.livemode !== livemode) {
         return {
-          valid: false as const,
+          valid: false,
           error: `Pricing model livemode mismatch. Expected ${livemode}, got ${pricingModel.livemode}`,
           status: 400,
         }
       }
 
       return {
-        valid: true as const,
+        valid: true,
         userId: applicationUser.id,
         pricingModel,
       }
