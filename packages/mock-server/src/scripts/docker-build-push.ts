@@ -35,9 +35,16 @@ const parseArgs = (): Args => {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     switch (arg) {
-      case '--tag':
-        result.tag = args[++i] || 'latest'
+      case '--tag': {
+        const nextArg = args[i + 1]
+        if (!nextArg || nextArg.startsWith('-')) {
+          console.error('Error: --tag requires a value')
+          process.exit(1)
+        }
+        result.tag = nextArg
+        i++
         break
+      }
       case '--push':
         result.push = true
         break
