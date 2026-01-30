@@ -1,5 +1,6 @@
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
@@ -17,47 +18,63 @@ const CustomerPage = async ({
   params: Promise<CustomerPageParams>
 }) => {
   const { id } = await params
-  const result = await authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      await selectMembershipAndOrganizations(
-        {
-          userId,
-          focused: true,
-        },
-        transaction
-      )
+  const result = (
+    await authenticatedTransactionWithResult(
+      async ({ transaction, userId }) => {
+        // Verify user has membership access (authorization check)
+        const memberships = await selectMembershipAndOrganizations(
+          {
+            userId,
+            focused: true,
+          },
+          transaction
+        )
+        if (memberships.length === 0) {
+          return Result.err(
+            new Error(
+              'User does not have a focused organization membership'
+            )
+          )
+        }
 
-      // Then, use the organizationId to fetch customer
-      const [customerResult] =
-        await selectCustomerAndCustomerTableRows({ id }, transaction)
-      if (!customerResult) {
-        return null
+        const organizationId = memberships[0].organization.id
+
+        // Fetch customer scoped to the user's organization
+        const [customerResult] =
+          await selectCustomerAndCustomerTableRows(
+            { id },
+            organizationId,
+            transaction
+          )
+        if (!customerResult) {
+          return Result.ok(null)
+        }
+        const paymentsForCustomer = await selectPayments(
+          {
+            customerId: customerResult.customer.id,
+          },
+          transaction
+        )
+        const prices = await selectPricesAndProductsForOrganization(
+          {},
+          organizationId,
+          transaction
+        )
+        const usageEvents = await selectUsageEvents(
+          {
+            customerId: customerResult.customer.id,
+          },
+          transaction
+        )
+        return Result.ok({
+          customer: customerResult.customer,
+          prices,
+          paymentsForCustomer,
+          usageEvents,
+        })
       }
-      const paymentsForCustomer = await selectPayments(
-        {
-          customerId: customerResult.customer.id,
-        },
-        transaction
-      )
-      const prices = await selectPricesAndProductsForOrganization(
-        {},
-        customerResult.customer.organizationId,
-        transaction
-      )
-      const usageEvents = await selectUsageEvents(
-        {
-          customerId: customerResult.customer.id,
-        },
-        transaction
-      )
-      return {
-        customer: customerResult.customer,
-        prices,
-        paymentsForCustomer,
-        usageEvents,
-      }
-    }
-  )
+    )
+  ).unwrap()
 
   if (!result) {
     notFound()

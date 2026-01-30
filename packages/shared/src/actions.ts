@@ -597,14 +597,19 @@ export type GetUsageMeterBalancesResponse = {
   usageMeterBalances: UsageMeterBalance[]
 }
 
-export const getFeatureAccessSchema = z
+/**
+ * Schema for fetching feature access items for a customer.
+ * Returns toggle features only, deduplicated across subscriptions.
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getFeatureAccessItemsSchema = z
   .object({
     subscriptionId: z.string().optional(),
   })
   .strict()
 
 export type GetFeatureAccessParams = z.infer<
-  typeof getFeatureAccessSchema
+  typeof getFeatureAccessItemsSchema
 >
 
 export type GetFeatureAccessResponse = {
@@ -711,7 +716,7 @@ export const flowgladActionValidators = {
   },
   [FlowgladActionKey.GetFeatureAccess]: {
     method: HTTPMethod.POST,
-    inputValidator: getFeatureAccessSchema,
+    inputValidator: getFeatureAccessItemsSchema,
   },
   [FlowgladActionKey.GetSubscriptions]: {
     method: HTTPMethod.POST,

@@ -28,6 +28,7 @@ const createUserWithMembership = async (params: {
   organizationId: string
   role: MembershipRole
   focused?: boolean
+  focusedPricingModelId: string
 }): Promise<{ user: User.Record; membership: Membership.Record }> => {
   return adminTransaction(async ({ transaction }) => {
     const user = await insertUser(
@@ -46,6 +47,7 @@ const createUserWithMembership = async (params: {
         focused: params.focused ?? true,
         livemode: true,
         role: params.role,
+        focusedPricingModelId: params.focusedPricingModelId,
       },
       transaction
     )
@@ -56,16 +58,19 @@ const createUserWithMembership = async (params: {
 
 describe('innerRemoveMemberFromOrganization', () => {
   let organization: Organization.Record
+  let pricingModelId: string
   let ownerMembership: Membership.Record
 
   beforeEach(async () => {
-    const { organization: org } = await setupOrg()
+    const { organization: org, pricingModel } = await setupOrg()
     organization = org
+    pricingModelId = pricingModel.id
 
     // Create an owner for this org
     const { membership } = await createUserWithMembership({
       organizationId: organization.id,
       role: MembershipRole.Owner,
+      focusedPricingModelId: pricingModelId,
     })
     ownerMembership = membership
   })
@@ -82,6 +87,7 @@ describe('innerRemoveMemberFromOrganization', () => {
           organizationId: organization.id,
           role: MembershipRole.Member,
           focused: true,
+          focusedPricingModelId: pricingModelId,
         })
 
       const result = await adminTransaction(
@@ -138,6 +144,7 @@ describe('innerRemoveMemberFromOrganization', () => {
         await createUserWithMembership({
           organizationId: organization.id,
           role: MembershipRole.Owner,
+          focusedPricingModelId: pricingModelId,
         })
 
       const result = await adminTransaction(
@@ -163,6 +170,7 @@ describe('innerRemoveMemberFromOrganization', () => {
       const { membership } = await createUserWithMembership({
         organizationId: organization.id,
         role: MembershipRole.Member,
+        focusedPricingModelId: pricingModelId,
       })
       memberMembership = membership
     })
@@ -193,6 +201,7 @@ describe('innerRemoveMemberFromOrganization', () => {
         await createUserWithMembership({
           organizationId: organization.id,
           role: MembershipRole.Member,
+          focusedPricingModelId: pricingModelId,
         })
 
       const result = await adminTransaction(
@@ -255,6 +264,7 @@ describe('innerRemoveMemberFromOrganization', () => {
         await createUserWithMembership({
           organizationId: organization.id,
           role: MembershipRole.Member,
+          focusedPricingModelId: pricingModelId,
         })
 
       await adminTransaction(async ({ transaction }) => {
@@ -288,11 +298,13 @@ describe('innerRemoveMemberFromOrganization', () => {
 
     it('returns NotFoundError when target membership is in different org (avoids info leakage)', async () => {
       // Create another org with a member
-      const { organization: otherOrg } = await setupOrg()
+      const { organization: otherOrg, pricingModel: otherPm } =
+        await setupOrg()
       const { membership: otherOrgMembership } =
         await createUserWithMembership({
           organizationId: otherOrg.id,
           role: MembershipRole.Member,
+          focusedPricingModelId: otherPm.id,
         })
 
       const result = await adminTransaction(
@@ -323,6 +335,7 @@ describe('innerRemoveMemberFromOrganization', () => {
           organizationId: organization.id,
           role: MembershipRole.Member,
           focused: true,
+          focusedPricingModelId: pricingModelId,
         })
 
       // Remove the member

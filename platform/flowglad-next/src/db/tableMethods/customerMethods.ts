@@ -140,8 +140,16 @@ export const selectCustomerByExternalIdAndOrganizationId = async (
   return row ? customersSelectSchema.parse(row) : null
 }
 
+/**
+ * Selects customers with table row data, scoped to a specific organization.
+ *
+ * @param whereConditions - Filter conditions (must NOT include organizationId - use the parameter)
+ * @param organizationId - Required organization ID for security scoping
+ * @param transaction - Database transaction
+ */
 export const selectCustomerAndCustomerTableRows = async (
-  whereConditions: Partial<Customer.Record>,
+  whereConditions: Omit<Partial<Customer.Record>, 'organizationId'>,
+  organizationId: string,
   transaction: DbTransaction
 ): Promise<CustomerTableRowData[]> => {
   /**
@@ -160,6 +168,7 @@ export const selectCustomerAndCustomerTableRows = async (
     .leftJoin(purchases, eq(customersTable.id, purchases.customerId))
     .where(
       and(
+        eq(customersTable.organizationId, organizationId),
         whereClauseFromObject(customersTable, whereConditions),
         inArray(payments.status, [
           PaymentStatus.Succeeded,
@@ -174,7 +183,12 @@ export const selectCustomerAndCustomerTableRows = async (
       customer: customersTable,
     })
     .from(customersTable)
-    .where(whereClauseFromObject(customersTable, whereConditions))
+    .where(
+      and(
+        eq(customersTable.organizationId, organizationId),
+        whereClauseFromObject(customersTable, whereConditions)
+      )
+    )
     .orderBy(desc(customersTable.createdAt))
 
   const dataByCustomerId = new Map<

@@ -27,6 +27,7 @@ import core from '@/utils/core'
  */
 describe('membership deactivation filtering', () => {
   let org: Organization.Record
+  let pricingModelId: string
   let activeMembership: Membership.Record
   let deactivatedMembership: Membership.Record
 
@@ -34,14 +35,17 @@ describe('membership deactivation filtering', () => {
     // Setup organization
     const orgData = await setupOrg()
     org = orgData.organization
+    pricingModelId = orgData.pricingModel.id
 
     // Create two memberships - one active, one to be deactivated
     activeMembership = await setupMemberships({
       organizationId: org.id,
+      focusedPricingModelId: orgData.pricingModel.id,
     })
 
     const membershipToDeactivate = await setupMemberships({
       organizationId: org.id,
+      focusedPricingModelId: orgData.pricingModel.id,
     })
 
     // Deactivate one membership
@@ -303,6 +307,7 @@ describe('membership deactivation filtering', () => {
               focused: true,
               livemode: true,
               role: MembershipRole.Member,
+              focusedPricingModelId: pricingModelId,
             },
             transaction
           )
@@ -315,6 +320,7 @@ describe('membership deactivation filtering', () => {
               livemode: true,
               role: MembershipRole.Member,
               deactivatedAt: new Date(),
+              focusedPricingModelId: org2Data.pricingModel.id,
             },
             transaction
           )
@@ -384,6 +390,7 @@ describe('membership deactivation filtering', () => {
               focused: true,
               livemode: true,
               role: MembershipRole.Member,
+              focusedPricingModelId: pricingModelId,
             },
             transaction
           )

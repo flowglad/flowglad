@@ -1,6 +1,6 @@
 import type { BillingPeriod } from '@db-core/schema/billingPeriods'
 import { logger, task } from '@trigger.dev/sdk'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
@@ -16,7 +16,7 @@ export const attemptBillingPeriodTransitionTask = task({
     return tracedTaskRun(
       'attemptBillingPeriodTransition',
       async () => {
-        const { billingRun } = await comprehensiveAdminTransaction(
+        const result = await adminTransactionWithResult(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -47,6 +47,7 @@ export const attemptBillingPeriodTransitionTask = task({
             )
           }
         )
+        const { billingRun } = result.unwrap()
 
         if (billingRun) {
           await executeBillingRun(billingRun.id)

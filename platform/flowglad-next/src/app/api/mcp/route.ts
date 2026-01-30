@@ -234,6 +234,11 @@ export async function POST(req: Request) {
 }
 
 // Handle GET requests - return a simple JSON response indicating the endpoint is available
+// SECURITY NOTE: This endpoint intentionally allows CORS from any origin because:
+// 1. It only returns public, non-sensitive status information (service name, version, availability)
+// 2. MCP clients (IDEs, tools) from various origins need to check endpoint availability
+// 3. Actual MCP operations require authentication via the POST handler
+// If this endpoint ever returns sensitive data, CORS should be restricted.
 export async function GET(req: Request) {
   return new Response(
     JSON.stringify({

@@ -34,18 +34,21 @@ describe('getProductTableRows', () => {
 
   beforeEach(async () => {
     // Set up organization
-    const { organization } = await setupOrg()
+    const { organization, pricingModel } = await setupOrg()
     organizationId = organization.id
 
-    const membership = await setupMemberships({ organizationId })
+    const membership = await setupMemberships({
+      organizationId,
+      focusedPricingModelId: pricingModel.id,
+    })
     userId = membership.userId
 
-    // Set up pricingModel
-    const pricingModel = await setupPricingModel({
+    // Set up a separate pricingModel for testing
+    const testPricingModel = await setupPricingModel({
       organizationId,
       name: 'Test PricingModel',
     })
-    pricingModelId = pricingModel.id
+    pricingModelId = testPricingModel.id
 
     // Set up products
     const secondProduct = await setupProduct({
@@ -161,7 +164,8 @@ describe('getProductTableRows', () => {
 
   it('should filter products by organization ID', async () => {
     // Create another organization
-    const { organization: otherOrg } = await setupOrg()
+    const { organization: otherOrg, pricingModel: otherOrgPm } =
+      await setupOrg()
     const otherUser = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return insertUser(
@@ -173,7 +177,10 @@ describe('getProductTableRows', () => {
         transaction
       )
     })
-    await setupMemberships({ organizationId: otherOrg.id })
+    await setupMemberships({
+      organizationId: otherOrg.id,
+      focusedPricingModelId: otherOrgPm.id,
+    })
 
     // Create a product in the other organization
     const otherPricingModel = await setupPricingModel({

@@ -19,6 +19,12 @@ const CreateApiKeyModal = ({
   setIsOpen,
 }: CreateApiKeyModalProps) => {
   const createApiKey = trpc.apiKeys.create.useMutation()
+  // Get focused membership to auto-set pricingModelId
+  const focusedMembership =
+    trpc.organizations.getFocusedMembership.useQuery()
+  const focusedPricingModelId =
+    focusedMembership.data?.pricingModel?.id ?? ''
+
   /**
    * Used to determine if the key is in livemode
    */
@@ -41,7 +47,7 @@ const CreateApiKeyModal = ({
         apiKey: {
           name: '',
           type: FlowgladApiKeyType.Secret as const,
-          pricingModelId: '',
+          pricingModelId: focusedPricingModelId,
         },
       })}
       onSubmit={async (data) => {
@@ -82,7 +88,7 @@ const CreateApiKeyModal = ({
           </p>
         </div>
       ) : (
-        <ApiKeyFormFields />
+        <ApiKeyFormFields hidePricingModelSelector />
       )}
     </FormModal>
   )

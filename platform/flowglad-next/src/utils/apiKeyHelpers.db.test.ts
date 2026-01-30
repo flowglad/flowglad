@@ -48,6 +48,7 @@ describe('apiKeyHelpers', () => {
     // Create a test membership
     const membership = await setupMemberships({
       organizationId: organization.id,
+      focusedPricingModelId: livemodePricingModelId,
     })
     membershipId = membership.id
     userId = membership.userId

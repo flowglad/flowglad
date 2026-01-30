@@ -20,7 +20,16 @@ import { Switch } from '@/components/ui/switch'
 import MultiSelect, { type Option } from './MultiSelect'
 import PricingModelSelect from './PricingModelSelect'
 
-const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
+interface WebhookFormFieldsProps {
+  edit?: boolean
+  /** When true, hides the pricing model selector (PM is auto-set from focused membership) */
+  hidePricingModelSelector?: boolean
+}
+
+const WebhookFormFields = ({
+  edit = false,
+  hidePricingModelSelector = false,
+}: WebhookFormFieldsProps) => {
   const form = useFormContext<CreateWebhookInput>()
 
   const eventOptions = Object.values(FlowgladEventType).map(
@@ -45,7 +54,7 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
           </FormItem>
         )}
       />
-      {!edit && (
+      {!edit && !hidePricingModelSelector && (
         <div className="w-full relative flex flex-col gap-3">
           <PricingModelSelect
             name="webhook.pricingModelId"
