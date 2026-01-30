@@ -43,12 +43,12 @@ describe('getProductTableRows', () => {
     })
     userId = membership.userId
 
-    // Set up pricingModel
-    const pricingModel = await setupPricingModel({
+    // Set up a separate pricingModel for testing
+    const testPricingModel = await setupPricingModel({
       organizationId,
       name: 'Test PricingModel',
     })
-    pricingModelId = pricingModel.id
+    pricingModelId = testPricingModel.id
 
     // Set up products
     const secondProduct = await setupProduct({
