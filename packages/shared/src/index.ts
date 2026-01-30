@@ -36,6 +36,7 @@ export {
   createSubscriptionSchema,
   createUsageEventSchema,
   flowgladActionValidators,
+  getFeatureAccessItemsSchema,
   getResourcesSchema,
   getSubscriptionsSchema,
   getUsageMeterBalancesSchema,

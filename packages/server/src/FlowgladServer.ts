@@ -650,9 +650,9 @@ export class FlowgladServer {
   /**
    * Get feature access items for the authenticated customer.
    *
-   * Returns toggle features only (binary access checks).
-   * By default, returns features across all current subscriptions.
+   * By default, returns toggle features for all current subscriptions.
    * Optionally filter by a specific subscriptionId.
+   * Features are deduplicated by slug across subscriptions.
    *
    * @param params - Optional parameters for fetching feature access
    * @param params.subscriptionId - Optional. Filter to a specific subscription.
@@ -674,21 +674,21 @@ export class FlowgladServer {
   public getFeatureAccessItems = async (
     params?: GetFeatureAccessParams
   ): Promise<GetFeatureAccessResponse> => {
-    // Delegate to getBilling() initially (no dedicated platform endpoint yet)
     const billing = await this.getBilling()
-    const currentSubscriptions = billing.currentSubscriptions ?? []
-
-    // Filter by subscriptionId if provided
     const subscriptions = params?.subscriptionId
-      ? currentSubscriptions.filter(s => s.id === params.subscriptionId)
-      : currentSubscriptions
+      ? billing.currentSubscriptions?.filter(
+          (s) => s.id === params.subscriptionId
+        )
+      : billing.currentSubscriptions
 
-    // Extract toggle features only, deduplicate by slug
     const featuresBySlug = new Map<string, FeatureAccessItem>()
-    for (const sub of subscriptions) {
+    for (const sub of subscriptions ?? []) {
       const featureItems = sub.experimental?.featureItems ?? []
       for (const item of featureItems) {
-        if (item.type === 'toggle' && !featuresBySlug.has(item.slug)) {
+        if (
+          item.type === 'toggle' &&
+          !featuresBySlug.has(item.slug)
+        ) {
           featuresBySlug.set(item.slug, {
             id: item.id,
             livemode: item.livemode,
