@@ -71,8 +71,9 @@ describe('resourceMethods', () => {
             await insertResource(createResourceInsert(), transaction)
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const selected = (
@@ -176,8 +177,9 @@ describe('resourceMethods', () => {
             await insertResource(createResourceInsert(), transaction)
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const updated = await updateResource(
@@ -202,8 +204,9 @@ describe('resourceMethods', () => {
             await insertResource(createResourceInsert(), transaction)
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const updated = await updateResource(
@@ -325,8 +328,9 @@ describe('resourceMethods', () => {
             )
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               // The upsert with onConflictDoNothing returns empty array when conflict occurs

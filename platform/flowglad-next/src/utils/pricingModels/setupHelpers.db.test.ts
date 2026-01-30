@@ -677,8 +677,9 @@ describe('getPricingModelSetupData', () => {
           ).unwrap()
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Now manually expire one of the product-feature associations
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx

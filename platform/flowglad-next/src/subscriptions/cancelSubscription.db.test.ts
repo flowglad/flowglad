@@ -2347,8 +2347,9 @@ describe('Subscription Cancellation Test Suite', async () => {
           ).unwrap()
           return Result.ok(await result.canceledAt)
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           // Verify subscription items are expired
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
@@ -2514,8 +2515,9 @@ describe('Subscription Cancellation Test Suite', async () => {
           ).unwrap()
           return Result.ok(await result.canceledAt)
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           // Verify all subscription items are expired
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx

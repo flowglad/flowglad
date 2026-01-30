@@ -503,8 +503,9 @@ describe('getBillingPeriodsForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -658,8 +659,9 @@ describe('calculateMRRByMonth', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -735,8 +737,9 @@ describe('calculateMRRByMonth', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -817,8 +820,9 @@ describe('calculateMRRByMonth', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({

@@ -531,8 +531,9 @@ describe('clonePricingModelTransaction', () => {
             )
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             return Result.ok(
               await clonePricingModelTransaction(

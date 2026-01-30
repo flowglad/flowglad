@@ -929,21 +929,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Create a billing period for the subscription
       const now = new Date()
       const billingPeriodEndDate = new Date(now)
-      billingPeriodEndDate
-        .setDate(billingPeriodEndDate.getDate() + 30)(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await setupBillingPeriod({
-                  subscriptionId: subWithBillingPeriod.id,
-                  startDate: now,
-                  endDate: billingPeriodEndDate,
-                })
-              )
-            }
-          )
+      billingPeriodEndDate.setDate(billingPeriodEndDate.getDate() + 30)
+
+      ;(
+        await adminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await setupBillingPeriod({
+                subscriptionId: subWithBillingPeriod.id,
+                startDate: now,
+                endDate: billingPeriodEndDate,
+              })
+            )
+          }
         )
-        .unwrap()
+      ).unwrap()
 
       // Test with undefined properties
       await expect(
@@ -1425,25 +1425,25 @@ describe('bulkInsertUsageEventsTransaction', () => {
               )
             }
           )
-        )
-          .unwrap()(
-            // Create billing period for each subscription
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const now = new Date()
-                const endDate = new Date(now)
-                endDate.setDate(endDate.getDate() + 30)
-                return Result.ok(
-                  await setupBillingPeriod({
-                    subscriptionId: subData.id,
-                    startDate: now,
-                    endDate,
-                  })
-                )
-              }
-            )
+        ).unwrap()
+
+        // Create billing period for each subscription
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const now = new Date()
+              const endDate = new Date(now)
+              endDate.setDate(endDate.getDate() + 30)
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: subData.id,
+                  startDate: now,
+                  endDate,
+                })
+              )
+            }
           )
-          .unwrap()
+        ).unwrap()
 
         customersAndSubscriptions.push({
           customer: customerData,
@@ -1592,21 +1592,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       const now = new Date()
       const endDate = new Date(now)
-      endDate
-        .setDate(endDate.getDate() + 30)(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await setupBillingPeriod({
-                  subscriptionId: customSubscription.id,
-                  startDate: now,
-                  endDate,
-                })
-              )
-            }
-          )
+      endDate.setDate(endDate.getDate() + 30)
+
+      ;(
+        await adminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await setupBillingPeriod({
+                subscriptionId: customSubscription.id,
+                startDate: now,
+                endDate,
+              })
+            )
+          }
         )
-        .unwrap()
+      ).unwrap()
 
       // Execute: Create usage event for customer with explicit pricing model
       const result = (
@@ -1685,21 +1685,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       const now = new Date()
       const endDate = new Date(now)
-      endDate
-        .setDate(endDate.getDate() + 30)(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await setupBillingPeriod({
-                  subscriptionId: defaultSubscription.id,
-                  startDate: now,
-                  endDate,
-                })
-              )
-            }
-          )
+      endDate.setDate(endDate.getDate() + 30)
+
+      ;(
+        await adminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await setupBillingPeriod({
+                subscriptionId: defaultSubscription.id,
+                startDate: now,
+                endDate,
+              })
+            )
+          }
         )
-        .unwrap()
+      ).unwrap()
 
       // Execute: Create usage event for customer using default pricing model
       const result = (
@@ -1837,24 +1837,24 @@ describe('bulkInsertUsageEventsTransaction', () => {
               )
             }
           )
-        )
-          .unwrap()(
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const now = new Date()
-                const endDate = new Date(now)
-                endDate.setDate(endDate.getDate() + 30)
-                return Result.ok(
-                  await setupBillingPeriod({
-                    subscriptionId: subData.id,
-                    startDate: now,
-                    endDate,
-                  })
-                )
-              }
-            )
+        ).unwrap()
+
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const now = new Date()
+              const endDate = new Date(now)
+              endDate.setDate(endDate.getDate() + 30)
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: subData.id,
+                  startDate: now,
+                  endDate,
+                })
+              )
+            }
           )
-          .unwrap()
+        ).unwrap()
 
         explicitCustomers.push({
           customer: customerData,
@@ -1906,24 +1906,24 @@ describe('bulkInsertUsageEventsTransaction', () => {
               )
             }
           )
-        )
-          .unwrap()(
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const now = new Date()
-                const endDate = new Date(now)
-                endDate.setDate(endDate.getDate() + 30)
-                return Result.ok(
-                  await setupBillingPeriod({
-                    subscriptionId: subData.id,
-                    startDate: now,
-                    endDate,
-                  })
-                )
-              }
-            )
+        ).unwrap()
+
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const now = new Date()
+              const endDate = new Date(now)
+              endDate.setDate(endDate.getDate() + 30)
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: subData.id,
+                  startDate: now,
+                  endDate,
+                })
+              )
+            }
           )
-          .unwrap()
+        ).unwrap()
 
         defaultCustomers.push({
           customer: customerData,
@@ -2077,24 +2077,24 @@ describe('bulkInsertUsageEventsTransaction', () => {
               )
             }
           )
-        )
-          .unwrap()(
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const now = new Date()
-                const endDate = new Date(now)
-                endDate.setDate(endDate.getDate() + 30)
-                return Result.ok(
-                  await setupBillingPeriod({
-                    subscriptionId: subData.id,
-                    startDate: now,
-                    endDate,
-                  })
-                )
-              }
-            )
+        ).unwrap()
+
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const now = new Date()
+              const endDate = new Date(now)
+              endDate.setDate(endDate.getDate() + 30)
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: subData.id,
+                  startDate: now,
+                  endDate,
+                })
+              )
+            }
           )
-          .unwrap()
+        ).unwrap()
 
         customers.push({
           customer: customerData,
@@ -2260,24 +2260,24 @@ describe('bulkInsertUsageEventsTransaction', () => {
                 )
               }
             )
-          )
-            .unwrap()(
-              await adminTransactionWithResult(
-                async ({ transaction }) => {
-                  const now = new Date()
-                  const endDate = new Date(now)
-                  endDate.setDate(endDate.getDate() + 30)
-                  return Result.ok(
-                    await setupBillingPeriod({
-                      subscriptionId: subData.id,
-                      startDate: now,
-                      endDate,
-                    })
-                  )
-                }
-              )
+          ).unwrap()
+
+          ;(
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                const now = new Date()
+                const endDate = new Date(now)
+                endDate.setDate(endDate.getDate() + 30)
+                return Result.ok(
+                  await setupBillingPeriod({
+                    subscriptionId: subData.id,
+                    startDate: now,
+                    endDate,
+                  })
+                )
+              }
             )
-            .unwrap()
+          ).unwrap()
 
           customers.push({
             customer: customerData,
@@ -2428,24 +2428,24 @@ describe('bulkInsertUsageEventsTransaction', () => {
             })
           )
         })
-      )
-        .unwrap()(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const now = new Date()
-              const endDate = new Date(now)
-              endDate.setDate(endDate.getDate() + 30)
-              return Result.ok(
-                await setupBillingPeriod({
-                  subscriptionId: subData.id,
-                  startDate: now,
-                  endDate,
-                })
-              )
-            }
-          )
+      ).unwrap()
+
+      ;(
+        await adminTransactionWithResult(
+          async ({ transaction }) => {
+            const now = new Date()
+            const endDate = new Date(now)
+            endDate.setDate(endDate.getDate() + 30)
+            return Result.ok(
+              await setupBillingPeriod({
+                subscriptionId: subData.id,
+                startDate: now,
+                endDate,
+              })
+            )
+          }
         )
-        .unwrap()
+      ).unwrap()
 
       // Execute: Try to resolve subscription price slug - should fail (only usage prices are considered)
       const timestamp = Date.now()

@@ -98,8 +98,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -196,8 +197,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -270,8 +272,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -347,8 +350,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -437,8 +441,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -529,8 +534,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create multiple billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -668,8 +674,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({
@@ -774,8 +781,9 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
           })
         )
       })
-    )
-      .unwrap()(
+    ).unwrap()
+
+      ;(
         // Create billing period items
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupBillingPeriodItem({

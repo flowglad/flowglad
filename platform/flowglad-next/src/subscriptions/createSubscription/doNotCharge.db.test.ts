@@ -289,8 +289,9 @@ describe('doNotCharge subscription creation', () => {
         )
       })
     )
-      .unwrap()
-      .unwrap()(
+      .unwrap().unwrap()
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const canceledFree = (
             await selectSubscriptionById(

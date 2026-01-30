@@ -3045,8 +3045,9 @@ describe('Process payment intent status updated', async () => {
             )
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           // Create a fee calculation for the anonymous checkout
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx

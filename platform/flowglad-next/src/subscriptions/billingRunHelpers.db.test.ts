@@ -1472,8 +1472,9 @@ describe('billingRunHelpers', async () => {
           )
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(({ transaction }) =>
             Result.ok(
               executeBillingRunCalculationAndBookkeepingSteps(
@@ -2045,8 +2046,9 @@ describe('billingRunHelpers', async () => {
           expect(rawOutstandingUsageCosts.length).toBe(1)
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           // 2. Action
           await adminTransactionWithResult(({ transaction }) =>
             Result.ok(

@@ -579,8 +579,9 @@ describe('resourceClaimHelpers', () => {
             )
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           // Create 2 named claims
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
@@ -885,8 +886,9 @@ describe('resourceClaimHelpers', () => {
             )
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -1042,8 +1044,9 @@ describe('resourceClaimHelpers', () => {
             )
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(

@@ -880,8 +880,9 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
             )
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             const selected = (

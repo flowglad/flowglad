@@ -565,8 +565,9 @@ describe('Process setup intent', async () => {
             ).unwrap()
           )
         })
-      )
-        .unwrap()(
+      ).unwrap()
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               await processAddPaymentMethodSetupIntentSucceeded(
