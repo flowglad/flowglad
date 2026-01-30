@@ -24,24 +24,22 @@ const CheckoutSessionPage = async ({
   params: Promise<{ checkoutSessionId: string }>
 }) => {
   const { checkoutSessionId } = await params
-  const { checkoutSession, sellerOrganization, customer } = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+  const result = await adminTransactionWithResult(
+    async ({ transaction }) => {
       const checkoutSession = (
         await selectCheckoutSessionById(
           checkoutSessionId,
           transaction
         )
       ).unwrap()
-      // For non-AddPaymentMethod sessions or missing customerId, return early
-      // and let the outer code handle with notFound()
+      // For non-AddPaymentMethod sessions or missing customerId, return null
+      // to signal a 404 case (vs throwing which would be a 500)
       if (
         checkoutSession.type !==
           CheckoutSessionType.AddPaymentMethod ||
         !checkoutSession.customerId
       ) {
-        return Result.err(
-          new Error('Invalid checkout session for add payment method')
-        )
+        return Result.ok(null)
       }
       const customer = (
         await selectCustomerById(
@@ -60,18 +58,18 @@ const CheckoutSessionPage = async ({
         sellerOrganization: organization,
         customer,
       })
-    })
+    }
   )
-    .mapError(() => null)
-    .unwrapOr({
-      checkoutSession: null,
-      sellerOrganization: null,
-      customer: null,
-    })
 
-  if (!checkoutSession || !customer || !sellerOrganization) {
+  // Let transaction/DB errors surface as 500s
+  const data = result.unwrap()
+
+  // Only the "invalid checkout session type" case should be a 404
+  if (!data) {
     notFound()
   }
+
+  const { checkoutSession, sellerOrganization, customer } = data
 
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
     redirect(

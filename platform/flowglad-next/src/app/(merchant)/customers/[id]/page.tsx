@@ -22,13 +22,20 @@ const CustomerPage = async ({
     await authenticatedTransactionWithResult(
       async ({ transaction, userId }) => {
         // Verify user has membership access (authorization check)
-        await selectMembershipAndOrganizations(
+        const memberships = await selectMembershipAndOrganizations(
           {
             userId,
             focused: true,
           },
           transaction
         )
+        if (memberships.length === 0) {
+          return Result.err(
+            new Error(
+              'User does not have a focused organization membership'
+            )
+          )
+        }
 
         // Then, use the organizationId to fetch customer
         const [customerResult] =
