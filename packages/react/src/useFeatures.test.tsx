@@ -5,6 +5,7 @@ import {
   expect,
   it,
   mock,
+  spyOn,
 } from 'bun:test'
 import {
   QueryClient,
@@ -13,7 +14,12 @@ import {
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
-import { useFeature, useFeatures } from './useFeatures'
+import { invalidateCustomerData } from './lib/invalidation'
+import {
+  FEATURES_QUERY_KEY,
+  useFeature,
+  useFeatures,
+} from './useFeatures'
 
 // Mock data
 const mockFeatureAccessItems = [
@@ -506,7 +512,7 @@ describe('useFeature', () => {
   })
 })
 
-describe.skip('subscription mutations', () => {
+describe('subscription mutations', () => {
   let originalFetch: typeof fetch
   let mockFetch: ReturnType<typeof mock>
 
@@ -522,6 +528,41 @@ describe.skip('subscription mutations', () => {
   })
 
   it('invalidate features query key', async () => {
-    // Test stub - to be implemented in Patch 7
+    const { wrapper, queryClient } = createWrapperWithQueryClient()
+
+    // Mock fetch to return feature data
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockFeatureAccessResponse),
+    })
+
+    // Render the hook to populate the cache
+    const { result } = renderHook(() => useFeatures(), { wrapper })
+
+    // Wait for the query to succeed
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.features).toHaveLength(3)
+
+    // Spy on invalidateQueries to verify it was called
+    const invalidateQueriesSpy = spyOn(
+      queryClient,
+      'invalidateQueries'
+    )
+
+    // Call the invalidation helper (simulating a subscription mutation)
+    await act(async () => {
+      await invalidateCustomerData(queryClient)
+    })
+
+    // Verify that invalidateQueries was called with FEATURES_QUERY_KEY
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: [FEATURES_QUERY_KEY],
+    })
+
+    // Cleanup
+    invalidateQueriesSpy.mockRestore()
   })
 })
