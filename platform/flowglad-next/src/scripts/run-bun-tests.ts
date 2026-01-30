@@ -187,6 +187,19 @@ if (nodeEnv === 'test') {
   childEnv.UNKEY_MOCK_HOST = 'http://localhost:9002'
   childEnv.RESEND_BASE_URL = 'http://localhost:9005'
   childEnv.CLOUDFLARE_R2_ENDPOINT = 'http://localhost:9006'
+
+  // Set Unkey credentials for test environment
+  // These are required for SDK validation in tests
+  childEnv.UNKEY_API_ID = childEnv.UNKEY_API_ID || 'api_test_mock'
+  childEnv.UNKEY_ROOT_KEY =
+    childEnv.UNKEY_ROOT_KEY || 'unkey_test_mock'
+
+  // Stripe mock configuration
+  childEnv.STRIPE_MOCK_HOST = childEnv.STRIPE_MOCK_HOST || 'localhost'
+  childEnv.STRIPE_SECRET_KEY =
+    childEnv.STRIPE_SECRET_KEY || 'sk_test_stub'
+  childEnv.STRIPE_TEST_MODE_SECRET_KEY =
+    childEnv.STRIPE_TEST_MODE_SECRET_KEY || 'sk_test_stub'
 }
 
 // Run bun test with appropriate environment
