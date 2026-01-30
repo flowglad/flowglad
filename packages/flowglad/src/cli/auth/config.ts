@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import {
   chmod,
   mkdir,
@@ -17,7 +18,7 @@ import { join } from 'node:path'
 export interface StoredCredentials {
   // Refresh token (Better Auth session) - user identity
   refreshToken: string
-  refreshTokenExpiresAt: string // ISO date (~90 days from login)
+  refreshTokenExpiresAt: number // epoch ms (~90 days from login)
   userId: string
   email: string
   name?: string
@@ -25,7 +26,7 @@ export interface StoredCredentials {
   // Access token (Unkey API key) - scoped to org + PM
   // These are populated after `flowglad link`
   accessToken?: string
-  accessTokenExpiresAt?: string // ISO date (10 minutes from creation)
+  accessTokenExpiresAt?: number // epoch ms (10 minutes from creation)
   organizationId?: string
   organizationName?: string
   pricingModelId?: string
@@ -97,10 +98,10 @@ export const saveCredentials = async (
 
   const credentialsPath = getCredentialsPath()
   // Use same directory as target to ensure atomic rename works across filesystems
-  // Include random suffix to avoid collision if multiple processes write simultaneously
+  // UUID guarantees uniqueness across concurrent processes
   const tempPath = join(
     getConfigDir(),
-    `.credentials-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`
+    `.credentials-${randomUUID()}.tmp`
   )
 
   try {
@@ -139,14 +140,14 @@ const isStoredCredentials = (
   const record = obj as Record<string, unknown>
   return (
     typeof record.refreshToken === 'string' &&
-    typeof record.refreshTokenExpiresAt === 'string' &&
+    typeof record.refreshTokenExpiresAt === 'number' &&
     typeof record.userId === 'string' &&
     typeof record.email === 'string' &&
     (record.name === undefined || typeof record.name === 'string') &&
     (record.accessToken === undefined ||
       typeof record.accessToken === 'string') &&
     (record.accessTokenExpiresAt === undefined ||
-      typeof record.accessTokenExpiresAt === 'string') &&
+      typeof record.accessTokenExpiresAt === 'number') &&
     (record.organizationId === undefined ||
       typeof record.organizationId === 'string') &&
     (record.organizationName === undefined ||
@@ -207,7 +208,6 @@ export const clearCredentials = async (): Promise<void> => {
 
 /**
  * Checks if the refresh token is expired or will expire within the given buffer.
- * Invalid or missing timestamps are treated as expired to force re-authentication.
  * @param credentials The stored credentials
  * @param bufferMs Buffer time in milliseconds before actual expiration (default: 5 minutes)
  */
@@ -215,14 +215,7 @@ export const isRefreshTokenExpired = (
   credentials: StoredCredentials,
   bufferMs = 5 * 60 * 1000
 ): boolean => {
-  const expiresAt = new Date(
-    credentials.refreshTokenExpiresAt
-  ).getTime()
-  // Treat invalid timestamps (NaN) as expired
-  if (Number.isNaN(expiresAt)) {
-    return true
-  }
-  return Date.now() + bufferMs >= expiresAt
+  return Date.now() + bufferMs >= credentials.refreshTokenExpiresAt
 }
 
 /**

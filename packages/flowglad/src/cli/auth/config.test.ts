@@ -52,9 +52,7 @@ describe('CLI credential storage', () => {
     overrides: Partial<StoredCredentials> = {}
   ): StoredCredentials => ({
     refreshToken: 'ba_session_test_token_123',
-    refreshTokenExpiresAt: new Date(
-      Date.now() + 90 * 24 * 60 * 60 * 1000
-    ).toISOString(),
+    refreshTokenExpiresAt: Date.now() + 90 * 24 * 60 * 60 * 1000,
     userId: 'user_test_123',
     email: 'test@example.com',
     name: 'Test User',
@@ -163,9 +161,7 @@ describe('CLI credential storage', () => {
     it('saves credentials with optional access token fields', async () => {
       const credentials = createTestCredentials({
         accessToken: 'cli_test_xxxx_abc123',
-        accessTokenExpiresAt: new Date(
-          Date.now() + 10 * 60 * 1000
-        ).toISOString(),
+        accessTokenExpiresAt: Date.now() + 10 * 60 * 1000,
         organizationId: 'org_test_456',
         organizationName: 'Test Org',
         pricingModelId: 'pm_test_789',
@@ -234,13 +230,13 @@ describe('CLI credential storage', () => {
     it('returns null when credentials file has valid JSON but wrong field types', async () => {
       const credentialsPath = getCredentialsPath()
 
-      // Write JSON with wrong types (userId should be string, not number)
+      // Write JSON with wrong types (refreshTokenExpiresAt should be number, not string)
       await writeFile(
         credentialsPath,
         JSON.stringify({
           refreshToken: 'token',
           refreshTokenExpiresAt: '2025-01-01T00:00:00Z',
-          userId: 12345,
+          userId: 'user_123',
           email: 'test@example.com',
         }),
         { mode: 0o600 }
@@ -281,9 +277,7 @@ describe('CLI credential storage', () => {
   describe('isRefreshTokenExpired', () => {
     it('returns true when the refresh token is expired', () => {
       const credentials = createTestCredentials({
-        refreshTokenExpiresAt: new Date(
-          Date.now() - 1000
-        ).toISOString(),
+        refreshTokenExpiresAt: Date.now() - 1000,
       })
 
       expect(isRefreshTokenExpired(credentials)).toBe(true)
@@ -292,9 +286,7 @@ describe('CLI credential storage', () => {
     it('returns true when the refresh token will expire within the buffer period', () => {
       const credentials = createTestCredentials({
         // Expires in 2 minutes, default buffer is 5 minutes
-        refreshTokenExpiresAt: new Date(
-          Date.now() + 2 * 60 * 1000
-        ).toISOString(),
+        refreshTokenExpiresAt: Date.now() + 2 * 60 * 1000,
       })
 
       expect(isRefreshTokenExpired(credentials)).toBe(true)
@@ -303,9 +295,7 @@ describe('CLI credential storage', () => {
     it('returns false when the refresh token is not expired and outside buffer period', () => {
       const credentials = createTestCredentials({
         // Expires in 90 days
-        refreshTokenExpiresAt: new Date(
-          Date.now() + 90 * 24 * 60 * 60 * 1000
-        ).toISOString(),
+        refreshTokenExpiresAt: Date.now() + 90 * 24 * 60 * 60 * 1000,
       })
 
       expect(isRefreshTokenExpired(credentials)).toBe(false)
@@ -314,9 +304,7 @@ describe('CLI credential storage', () => {
     it('respects custom buffer time when checking expiration', () => {
       const credentials = createTestCredentials({
         // Expires in 10 seconds
-        refreshTokenExpiresAt: new Date(
-          Date.now() + 10 * 1000
-        ).toISOString(),
+        refreshTokenExpiresAt: Date.now() + 10 * 1000,
       })
 
       // With 5 second buffer, should not be expired
@@ -324,22 +312,6 @@ describe('CLI credential storage', () => {
 
       // With 15 second buffer, should be expired
       expect(isRefreshTokenExpired(credentials, 15 * 1000)).toBe(true)
-    })
-
-    it('returns true when refreshTokenExpiresAt is an invalid date string', () => {
-      const credentials = createTestCredentials({
-        refreshTokenExpiresAt: 'not-a-valid-date',
-      })
-
-      expect(isRefreshTokenExpired(credentials)).toBe(true)
-    })
-
-    it('returns true when refreshTokenExpiresAt is an empty string', () => {
-      const credentials = createTestCredentials({
-        refreshTokenExpiresAt: '',
-      })
-
-      expect(isRefreshTokenExpired(credentials)).toBe(true)
     })
   })
 })
