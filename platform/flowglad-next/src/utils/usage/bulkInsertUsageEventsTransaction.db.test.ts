@@ -18,6 +18,7 @@ import { products } from '@db-core/schema/products'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { usageMeters } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -30,7 +31,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
@@ -135,24 +136,28 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
   describe('slug resolution', () => {
     it('should resolve priceSlug to priceId', async () => {
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  priceSlug: price.slug ?? undefined,
-                  amount: 100,
-                  transactionId: `txn_slug_${Date.now()}`,
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: subscription.id,
+                      priceSlug: price.slug ?? undefined,
+                      amount: 100,
+                      transactionId: `txn_slug_${Date.now()}`,
+                    },
+                  ],
                 },
-              ],
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.unwrap().usageEvents).toHaveLength(1)
       expect(result.unwrap().usageEvents[0].priceId).toBe(price.id)
@@ -175,24 +180,28 @@ describe('bulkInsertUsageEventsTransaction', () => {
         usageMeterId: usageMeter.id,
       })
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  usageMeterSlug: usageMeter.slug ?? undefined,
-                  amount: 200,
-                  transactionId: `txn_slug_um_${Date.now()}`,
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: subscription.id,
+                      usageMeterSlug: usageMeter.slug ?? undefined,
+                      amount: 200,
+                      transactionId: `txn_slug_um_${Date.now()}`,
+                    },
+                  ],
                 },
-              ],
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       expect(result.unwrap().usageEvents).toHaveLength(1)
       // Should resolve to the default price for the usage meter
@@ -320,30 +329,34 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Bulk insert events for both customers using the same slug
       const timestamp = Date.now()
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  priceSlug: price.slug ?? undefined,
-                  amount: 100,
-                  transactionId: `txn_slug_collision_1_${timestamp}`,
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: subscription.id,
+                      priceSlug: price.slug ?? undefined,
+                      amount: 100,
+                      transactionId: `txn_slug_collision_1_${timestamp}`,
+                    },
+                    {
+                      subscriptionId: subscription2.id,
+                      priceSlug: price2.slug ?? undefined,
+                      amount: 200,
+                      transactionId: `txn_slug_collision_2_${timestamp}`,
+                    },
+                  ],
                 },
-                {
-                  subscriptionId: subscription2.id,
-                  priceSlug: price2.slug ?? undefined,
-                  amount: 200,
-                  transactionId: `txn_slug_collision_2_${timestamp}`,
-                },
-              ],
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       const events = result.unwrap().usageEvents
       expect(events).toHaveLength(2)
@@ -459,30 +472,34 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Bulk insert events for both customers using the same usageMeterSlug
       const timestamp = Date.now()
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  usageMeterSlug: usageMeter.slug ?? undefined,
-                  amount: 300,
-                  transactionId: `txn_meter_slug_collision_1_${timestamp}`,
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: subscription.id,
+                      usageMeterSlug: usageMeter.slug ?? undefined,
+                      amount: 300,
+                      transactionId: `txn_meter_slug_collision_1_${timestamp}`,
+                    },
+                    {
+                      subscriptionId: subscription2.id,
+                      usageMeterSlug: usageMeter2.slug ?? undefined,
+                      amount: 400,
+                      transactionId: `txn_meter_slug_collision_2_${timestamp}`,
+                    },
+                  ],
                 },
-                {
-                  subscriptionId: subscription2.id,
-                  usageMeterSlug: usageMeter2.slug ?? undefined,
-                  amount: 400,
-                  transactionId: `txn_meter_slug_collision_2_${timestamp}`,
-                },
-              ],
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       const events = result.unwrap().usageEvents
       expect(events).toHaveLength(2)
@@ -514,21 +531,24 @@ describe('bulkInsertUsageEventsTransaction', () => {
   describe('validation', () => {
     it('should throw error when priceId is not a usage price', async () => {
       // Create a subscription price (not usage) in the same org
-      const subscriptionPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            productId,
-            name: 'Subscription Price',
-            type: PriceType.Subscription,
-            unitPrice: 1000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            // usageMeterId should not be provided for subscription prices
-          })
-      )
+      const subscriptionPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              productId,
+              name: 'Subscription Price',
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              // usageMeterId should not be provided for subscription prices
+            })
+          )
+        })
+      ).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) =>
@@ -554,18 +574,23 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when usageMeterId not in customer pricing model', async () => {
       // Create a usage meter in a different pricing model
-      const otherOrg = await adminTransaction(
-        async ({ transaction }) => setupOrg()
-      )
-      const otherUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
-          setupUsageMeter({
-            organizationId: otherOrg.organization.id,
-            name: 'Other Usage Meter',
-            livemode: true,
-            pricingModelId: otherOrg.pricingModel.id,
-          })
-      )
+      const otherOrg = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(await setupOrg())
+        })
+      ).unwrap()
+      const otherUsageMeter = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupUsageMeter({
+              organizationId: otherOrg.organization.id,
+              name: 'Other Usage Meter',
+              livemode: true,
+              pricingModelId: otherOrg.pricingModel.id,
+            })
+          )
+        })
+      ).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) =>
@@ -684,32 +709,40 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when priceId not in customer pricing model', async () => {
       // Create a usage price in a different pricing model (different org)
-      const otherOrg = await adminTransaction(
-        async ({ transaction }) => setupOrg()
-      )
-      const otherUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
-          setupUsageMeter({
-            organizationId: otherOrg.organization.id,
-            name: 'Other Usage Meter',
-            livemode: true,
-            pricingModelId: otherOrg.pricingModel.id,
-          })
-      )
-      const otherPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Other Usage Price',
-            type: PriceType.Usage,
-            unitPrice: 10,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: otherUsageMeter.id,
-          })
-      )
+      const otherOrg = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(await setupOrg())
+        })
+      ).unwrap()
+      const otherUsageMeter = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupUsageMeter({
+              organizationId: otherOrg.organization.id,
+              name: 'Other Usage Meter',
+              livemode: true,
+              pricingModelId: otherOrg.pricingModel.id,
+            })
+          )
+        })
+      ).unwrap()
+      const otherPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              name: 'Other Usage Price',
+              type: PriceType.Usage,
+              unitPrice: 10,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: otherUsageMeter.id,
+            })
+          )
+        })
+      ).unwrap()
 
       // Try to create a usage event for our customer's subscription using a priceId
       // from a different pricing model - this should throw an error
@@ -736,61 +769,73 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should throw error when CountDistinctProperties meter is used with subscription missing billing period', async () => {
-      const countDistinctMeter = await adminTransaction(
-        async ({ transaction }) =>
-          setupUsageMeter({
-            organizationId: organization.id,
-            name: 'Count Distinct Meter',
-            livemode: true,
-            pricingModelId,
-            aggregationType:
-              UsageMeterAggregationType.CountDistinctProperties,
-          })
-      )
+      const countDistinctMeter = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupUsageMeter({
+              organizationId: organization.id,
+              name: 'Count Distinct Meter',
+              livemode: true,
+              pricingModelId,
+              aggregationType:
+                UsageMeterAggregationType.CountDistinctProperties,
+            })
+          )
+        })
+      ).unwrap()
 
       // Default price must exist for meter-based events (required by system invariant),
       // even though this test expects an error before price resolution is reached
-      const countDistinctDefaultPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Count Distinct Default Price',
-            type: PriceType.Usage,
-            unitPrice: 0,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: true,
-            currency: CurrencyCode.USD,
-            usageMeterId: countDistinctMeter.id,
-          })
-      )
+      const countDistinctDefaultPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              name: 'Count Distinct Default Price',
+              type: PriceType.Usage,
+              unitPrice: 0,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: true,
+              currency: CurrencyCode.USD,
+              usageMeterId: countDistinctMeter.id,
+            })
+          )
+        })
+      ).unwrap()
 
       // Create a non-default usage price for the subscription
-      const countDistinctPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Count Distinct Price',
-            type: PriceType.Usage,
-            unitPrice: 10,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: countDistinctMeter.id,
-          })
-      )
+      const countDistinctPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              name: 'Count Distinct Price',
+              type: PriceType.Usage,
+              unitPrice: 10,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: countDistinctMeter.id,
+            })
+          )
+        })
+      ).unwrap()
 
       // Create subscription without billing period (no billing period record exists for this subscription)
-      const subWithoutBillingPeriod = await adminTransaction(
-        async ({ transaction }) =>
-          setupSubscription({
-            organizationId: organization.id,
-            customerId: customer.id,
-            paymentMethodId: paymentMethod.id,
-            priceId: countDistinctPrice.id,
-          })
-      )
+      const subWithoutBillingPeriod = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupSubscription({
+              organizationId: organization.id,
+              customerId: customer.id,
+              paymentMethodId: paymentMethod.id,
+              priceId: countDistinctPrice.id,
+            })
+          )
+        })
+      ).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) =>
@@ -815,73 +860,90 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should throw error when CountDistinctProperties meter is used with empty properties', async () => {
-      const countDistinctMeter = await adminTransaction(
-        async ({ transaction }) =>
-          setupUsageMeter({
-            organizationId: organization.id,
-            name: 'Count Distinct Meter Empty Props',
-            livemode: true,
-            pricingModelId,
-            aggregationType:
-              UsageMeterAggregationType.CountDistinctProperties,
-          })
-      )
+      const countDistinctMeter = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupUsageMeter({
+              organizationId: organization.id,
+              name: 'Count Distinct Meter Empty Props',
+              livemode: true,
+              pricingModelId,
+              aggregationType:
+                UsageMeterAggregationType.CountDistinctProperties,
+            })
+          )
+        })
+      ).unwrap()
 
       // Default price must exist for meter-based events (required by system invariant),
       // even though this test expects an error before price resolution is reached
-      const countDistinctDefaultPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Count Distinct Default Price Empty Props',
-            type: PriceType.Usage,
-            unitPrice: 0,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: true,
-            currency: CurrencyCode.USD,
-            usageMeterId: countDistinctMeter.id,
-          })
-      )
+      const countDistinctDefaultPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              name: 'Count Distinct Default Price Empty Props',
+              type: PriceType.Usage,
+              unitPrice: 0,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: true,
+              currency: CurrencyCode.USD,
+              usageMeterId: countDistinctMeter.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const countDistinctPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Count Distinct Price Empty Props',
-            type: PriceType.Usage,
-            unitPrice: 10,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: countDistinctMeter.id,
-          })
-      )
+      const countDistinctPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              name: 'Count Distinct Price Empty Props',
+              type: PriceType.Usage,
+              unitPrice: 10,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: countDistinctMeter.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const subWithBillingPeriod = await adminTransaction(
-        async ({ transaction }) =>
-          setupSubscription({
-            organizationId: organization.id,
-            customerId: customer.id,
-            paymentMethodId: paymentMethod.id,
-            priceId: countDistinctPrice.id,
-          })
-      )
+      const subWithBillingPeriod = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupSubscription({
+              organizationId: organization.id,
+              customerId: customer.id,
+              paymentMethodId: paymentMethod.id,
+              priceId: countDistinctPrice.id,
+            })
+          )
+        })
+      ).unwrap()
 
       // Create a billing period for the subscription
       const now = new Date()
       const billingPeriodEndDate = new Date(now)
-      billingPeriodEndDate.setDate(
-        billingPeriodEndDate.getDate() + 30
-      )
-      await adminTransaction(async ({ transaction }) =>
-        setupBillingPeriod({
-          subscriptionId: subWithBillingPeriod.id,
-          startDate: now,
-          endDate: billingPeriodEndDate,
-        })
-      )
+      billingPeriodEndDate
+        .setDate(billingPeriodEndDate.getDate() + 30)(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: subWithBillingPeriod.id,
+                  startDate: now,
+                  endDate: billingPeriodEndDate,
+                })
+              )
+            }
+          )
+        )
+        .unwrap()
 
       // Test with undefined properties
       await expect(
@@ -934,25 +996,29 @@ describe('bulkInsertUsageEventsTransaction', () => {
   describe('normalization', () => {
     it('should default properties and usageDate when not provided', async () => {
       const before = Date.now()
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: subscription.id,
-                  priceId: price.id,
-                  amount: 100,
-                  transactionId: `txn_no_props_date_${Date.now()}`,
-                  // properties and usageDate not provided
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: subscription.id,
+                      priceId: price.id,
+                      amount: 100,
+                      transactionId: `txn_no_props_date_${Date.now()}`,
+                      // properties and usageDate not provided
+                    },
+                  ],
                 },
-              ],
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
       const after = Date.now()
 
       expect(result.unwrap().usageEvents).toHaveLength(1)
@@ -970,8 +1036,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
     it('should not insert duplicate events with same transactionId', async () => {
       const transactionId = `txn_dedup_${Date.now()}`
 
-      const { firstResult, firstEffects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { firstResult, firstEffects } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await bulkInsertUsageEventsTransaction(
@@ -990,16 +1056,18 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             ctx
           )
-          return { firstResult: result, firstEffects: effects }
-        }
-      )
+          return Result.ok(
+            await { firstResult: result, firstEffects: effects }
+          )
+        })
+      ).unwrap()
 
       expect(firstResult.unwrap().usageEvents).toHaveLength(1)
       expect(firstEffects.ledgerCommands.length).toBe(1)
 
       // Resubmit the same payload
-      const { secondResult, secondEffects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { secondResult, secondEffects } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await bulkInsertUsageEventsTransaction(
@@ -1018,9 +1086,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             ctx
           )
-          return { secondResult: result, secondEffects: effects }
-        }
-      )
+          return Result.ok(
+            await { secondResult: result, secondEffects: effects }
+          )
+        })
+      ).unwrap()
 
       // Should return empty array (no new events inserted)
       expect(secondResult.unwrap().usageEvents).toHaveLength(0)
@@ -1033,8 +1103,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const transactionId2 = `txn_ledger_2_${Date.now()}`
 
       // First bulk insert
-      const { firstResult, firstEffects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { firstResult, firstEffects } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await bulkInsertUsageEventsTransaction(
@@ -1059,16 +1129,18 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             ctx
           )
-          return { firstResult: result, firstEffects: effects }
-        }
-      )
+          return Result.ok(
+            await { firstResult: result, firstEffects: effects }
+          )
+        })
+      ).unwrap()
 
       expect(firstResult.unwrap().usageEvents).toHaveLength(2)
       expect(firstEffects.ledgerCommands.length).toBe(2)
 
       // Resubmit with one duplicate and one new
-      const { secondResult, secondEffects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { secondResult, secondEffects } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await bulkInsertUsageEventsTransaction(
@@ -1093,9 +1165,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             ctx
           )
-          return { secondResult: result, secondEffects: effects }
-        }
-      )
+          return Result.ok(
+            await { secondResult: result, secondEffects: effects }
+          )
+        })
+      ).unwrap()
 
       // Should only insert the new event
       expect(secondResult.unwrap().usageEvents).toHaveLength(1)
@@ -1110,8 +1184,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
   describe('happy path', () => {
     it('should successfully insert multiple usage events', async () => {
-      const { result, effects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { result, effects } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await bulkInsertUsageEventsTransaction(
@@ -1136,9 +1210,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             ctx
           )
-          return { result, effects }
-        }
-      )
+          return Result.ok(await { result, effects })
+        })
+      ).unwrap()
 
       expect(result.unwrap().usageEvents).toHaveLength(2)
       expect(result.unwrap().usageEvents[0].amount).toBe(100)
@@ -1148,48 +1222,59 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should successfully bulk insert usage events for multiple customers and subscriptions', async () => {
       // Setup a second customer and subscription
-      const customer2 = await adminTransaction(
-        async ({ transaction }) =>
-          setupCustomer({
-            organizationId: organization.id,
-            pricingModelId,
-          })
-      )
+      const customer2 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupCustomer({
+              organizationId: organization.id,
+              pricingModelId,
+            })
+          )
+        })
+      ).unwrap()
 
-      const paymentMethod2 = await adminTransaction(
-        async ({ transaction }) =>
-          setupPaymentMethod({
-            organizationId: organization.id,
-            customerId: customer2.id,
-          })
-      )
+      const paymentMethod2 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customer2.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const subscription2 = await adminTransaction(
-        async ({ transaction }) =>
-          setupSubscription({
-            organizationId: organization.id,
-            customerId: customer2.id,
-            paymentMethodId: paymentMethod2.id,
-            priceId: price.id,
-          })
-      )
+      const subscription2 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupSubscription({
+              organizationId: organization.id,
+              customerId: customer2.id,
+              paymentMethodId: paymentMethod2.id,
+              priceId: price.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const billingPeriod2 = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod2 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const now = new Date()
           const endDate = new Date(now)
           endDate.setDate(endDate.getDate() + 30)
-          return setupBillingPeriod({
-            subscriptionId: subscription2.id,
-            startDate: now,
-            endDate,
-          })
-        }
-      )
+          return Result.ok(
+            await setupBillingPeriod({
+              subscriptionId: subscription2.id,
+              startDate: now,
+              endDate,
+            })
+          )
+        })
+      ).unwrap()
 
       const timestamp = Date.now()
-      const { result, effects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { result, effects } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await bulkInsertUsageEventsTransaction(
@@ -1226,9 +1311,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             ctx
           )
-          return { result, effects }
-        }
-      )
+          return Result.ok(await { result, effects })
+        })
+      ).unwrap()
 
       // Should successfully insert all 4 events
       expect(result.unwrap().usageEvents).toHaveLength(4)
@@ -1301,43 +1386,64 @@ describe('bulkInsertUsageEventsTransaction', () => {
       }> = []
 
       for (let i = 0; i < 10; i++) {
-        const customerData = await adminTransaction(
-          async ({ transaction }) =>
-            setupCustomer({
-              organizationId: organization.id,
-              pricingModelId,
-            })
-        )
+        const customerData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupCustomer({
+                  organizationId: organization.id,
+                  pricingModelId,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const pmData = await adminTransaction(
-          async ({ transaction }) =>
-            setupPaymentMethod({
-              organizationId: organization.id,
-              customerId: customerData.id,
-            })
-        )
+        const pmData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupPaymentMethod({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const subData = await adminTransaction(
-          async ({ transaction }) =>
-            setupSubscription({
-              organizationId: organization.id,
-              customerId: customerData.id,
-              paymentMethodId: pmData.id,
-              priceId: price.id,
-            })
+        const subData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupSubscription({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                  paymentMethodId: pmData.id,
+                  priceId: price.id,
+                })
+              )
+            }
+          )
         )
-
-        // Create billing period for each subscription
-        await adminTransaction(async ({ transaction }) => {
-          const now = new Date()
-          const endDate = new Date(now)
-          endDate.setDate(endDate.getDate() + 30)
-          return setupBillingPeriod({
-            subscriptionId: subData.id,
-            startDate: now,
-            endDate,
-          })
-        })
+          .unwrap()(
+            // Create billing period for each subscription
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                const now = new Date()
+                const endDate = new Date(now)
+                endDate.setDate(endDate.getDate() + 30)
+                return Result.ok(
+                  await setupBillingPeriod({
+                    subscriptionId: subData.id,
+                    startDate: now,
+                    endDate,
+                  })
+                )
+              }
+            )
+          )
+          .unwrap()
 
         customersAndSubscriptions.push({
           customer: customerData,
@@ -1348,24 +1454,28 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Execute: Create usage events for all 10 customers in a single bulk insert
       const timestamp = Date.now()
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: customersAndSubscriptions.map(
-                ({ subscription }, index) => ({
-                  subscriptionId: subscription.id,
-                  priceId: price.id,
-                  amount: (index + 1) * 100,
-                  transactionId: `txn_batch_customer_${index}_${timestamp}`,
-                })
-              ),
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: customersAndSubscriptions.map(
+                    ({ subscription }, index) => ({
+                      subscriptionId: subscription.id,
+                      priceId: price.id,
+                      amount: (index + 1) * 100,
+                      transactionId: `txn_batch_customer_${index}_${timestamp}`,
+                    })
+                  ),
+                },
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       // Expectations: All events should be processed successfully
       expect(result.unwrap().usageEvents).toHaveLength(10)
@@ -1386,109 +1496,141 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should handle customers with explicit pricingModelId', async () => {
       // Setup: Create a custom pricing model and assign it to a customer
-      const customPricingModel = await adminTransaction(
-        async ({ transaction }) =>
-          setupPricingModel({
-            organizationId: organization.id,
-            name: 'Custom Pricing Model',
-            isDefault: false,
-            livemode: false,
-          })
-      )
+      const customPricingModel = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPricingModel({
+              organizationId: organization.id,
+              name: 'Custom Pricing Model',
+              isDefault: false,
+              livemode: false,
+            })
+          )
+        })
+      ).unwrap()
 
       // Create a product and price for this pricing model
-      const customProduct = await adminTransaction(
-        async ({ transaction }) =>
-          setupProduct({
-            organizationId: organization.id,
-            pricingModelId: customPricingModel.id,
-            name: 'Custom Product',
-            livemode: false,
-          })
-      )
+      const customProduct = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupProduct({
+              organizationId: organization.id,
+              pricingModelId: customPricingModel.id,
+              name: 'Custom Product',
+              livemode: false,
+            })
+          )
+        })
+      ).unwrap()
 
-      const customUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
-          setupUsageMeter({
-            organizationId: organization.id,
-            name: 'Custom Usage Meter',
-            livemode: false,
-            pricingModelId: customPricingModel.id,
-          })
-      )
+      const customUsageMeter = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupUsageMeter({
+              organizationId: organization.id,
+              name: 'Custom Usage Meter',
+              livemode: false,
+              pricingModelId: customPricingModel.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const customPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Custom Usage Price',
-            type: PriceType.Usage,
-            unitPrice: 20,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: false,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: customUsageMeter.id,
-          })
-      )
+      const customPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              name: 'Custom Usage Price',
+              type: PriceType.Usage,
+              unitPrice: 20,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: false,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: customUsageMeter.id,
+            })
+          )
+        })
+      ).unwrap()
 
       // Create customer with explicit pricingModelId
-      const customCustomer = await adminTransaction(
-        async ({ transaction }) =>
-          setupCustomer({
-            organizationId: organization.id,
-            pricingModelId: customPricingModel.id,
-          })
-      )
+      const customCustomer = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupCustomer({
+              organizationId: organization.id,
+              pricingModelId: customPricingModel.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const customPaymentMethod = await adminTransaction(
-        async ({ transaction }) =>
-          setupPaymentMethod({
-            organizationId: organization.id,
-            customerId: customCustomer.id,
-          })
-      )
+      const customPaymentMethod = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customCustomer.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const customSubscription = await adminTransaction(
-        async ({ transaction }) =>
-          setupSubscription({
-            organizationId: organization.id,
-            customerId: customCustomer.id,
-            paymentMethodId: customPaymentMethod.id,
-            priceId: customPrice.id,
-          })
-      )
+      const customSubscription = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupSubscription({
+              organizationId: organization.id,
+              customerId: customCustomer.id,
+              paymentMethodId: customPaymentMethod.id,
+              priceId: customPrice.id,
+            })
+          )
+        })
+      ).unwrap()
 
       const now = new Date()
       const endDate = new Date(now)
-      endDate.setDate(endDate.getDate() + 30)
-      await adminTransaction(async ({ transaction }) =>
-        setupBillingPeriod({
-          subscriptionId: customSubscription.id,
-          startDate: now,
-          endDate,
-        })
-      )
+      endDate
+        .setDate(endDate.getDate() + 30)(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: customSubscription.id,
+                  startDate: now,
+                  endDate,
+                })
+              )
+            }
+          )
+        )
+        .unwrap()
 
       // Execute: Create usage event for customer with explicit pricing model
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: customSubscription.id,
-                  priceId: customPrice.id,
-                  amount: 500,
-                  transactionId: `txn_explicit_pm_${Date.now()}`,
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: customSubscription.id,
+                      priceId: customPrice.id,
+                      amount: 500,
+                      transactionId: `txn_explicit_pm_${Date.now()}`,
+                    },
+                  ],
                 },
-              ],
-            },
-            livemode: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+                livemode: false,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       // Expectations: Event should use the custom pricing model
       expect(result.unwrap().usageEvents).toHaveLength(1)
@@ -1506,62 +1648,82 @@ describe('bulkInsertUsageEventsTransaction', () => {
     it('should handle customers without explicit pricingModelId (uses default pricing model)', async () => {
       // Setup: Create customer without pricingModelId (will use default)
 
-      const defaultCustomer = await adminTransaction(
-        async ({ transaction }) =>
-          setupCustomer({
-            organizationId: organization.id,
-            // pricingModelId not set - should use default
-          })
-      )
+      const defaultCustomer = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupCustomer({
+              organizationId: organization.id,
+              // pricingModelId not set - should use default
+            })
+          )
+        })
+      ).unwrap()
 
-      const defaultPaymentMethod = await adminTransaction(
-        async ({ transaction }) =>
-          setupPaymentMethod({
-            organizationId: organization.id,
-            customerId: defaultCustomer.id,
-          })
-      )
+      const defaultPaymentMethod = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: defaultCustomer.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const defaultSubscription = await adminTransaction(
-        async ({ transaction }) =>
-          setupSubscription({
-            organizationId: organization.id,
-            customerId: defaultCustomer.id,
-            paymentMethodId: defaultPaymentMethod.id,
-            priceId: price.id,
-          })
-      )
+      const defaultSubscription = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupSubscription({
+              organizationId: organization.id,
+              customerId: defaultCustomer.id,
+              paymentMethodId: defaultPaymentMethod.id,
+              priceId: price.id,
+            })
+          )
+        })
+      ).unwrap()
 
       const now = new Date()
       const endDate = new Date(now)
-      endDate.setDate(endDate.getDate() + 30)
-      await adminTransaction(async ({ transaction }) =>
-        setupBillingPeriod({
-          subscriptionId: defaultSubscription.id,
-          startDate: now,
-          endDate,
-        })
-      )
+      endDate
+        .setDate(endDate.getDate() + 30)(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: defaultSubscription.id,
+                  startDate: now,
+                  endDate,
+                })
+              )
+            }
+          )
+        )
+        .unwrap()
 
       // Execute: Create usage event for customer using default pricing model
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: [
-                {
-                  subscriptionId: defaultSubscription.id,
-                  priceId: price.id,
-                  amount: 300,
-                  transactionId: `txn_default_pm_${Date.now()}`,
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: defaultSubscription.id,
+                      priceId: price.id,
+                      amount: 300,
+                      transactionId: `txn_default_pm_${Date.now()}`,
+                    },
+                  ],
                 },
-              ],
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       // Expectations: Event should use the default pricing model
       expect(result.unwrap().usageEvents).toHaveLength(1)
@@ -1576,90 +1738,123 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should handle mix of customers with and without explicit pricingModelId', async () => {
       // Setup: Create some customers with explicit pricing model, some without
-      const explicitPricingModel = await adminTransaction(
-        async ({ transaction }) =>
-          setupPricingModel({
-            organizationId: organization.id,
-            name: 'Explicit Pricing Model',
-            isDefault: false,
-            livemode: false,
-          })
-      )
+      const explicitPricingModel = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPricingModel({
+              organizationId: organization.id,
+              name: 'Explicit Pricing Model',
+              isDefault: false,
+              livemode: false,
+            })
+          )
+        })
+      ).unwrap()
 
-      const explicitProduct = await adminTransaction(
-        async ({ transaction }) =>
-          setupProduct({
-            organizationId: organization.id,
-            pricingModelId: explicitPricingModel.id,
-            name: 'Explicit Product',
-            livemode: false,
-          })
-      )
+      const explicitProduct = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupProduct({
+              organizationId: organization.id,
+              pricingModelId: explicitPricingModel.id,
+              name: 'Explicit Product',
+              livemode: false,
+            })
+          )
+        })
+      ).unwrap()
 
-      const explicitUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
-          setupUsageMeter({
-            organizationId: organization.id,
-            name: 'Explicit Usage Meter',
-            livemode: false,
-            pricingModelId: explicitPricingModel.id,
-          })
-      )
+      const explicitUsageMeter = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupUsageMeter({
+              organizationId: organization.id,
+              name: 'Explicit Usage Meter',
+              livemode: false,
+              pricingModelId: explicitPricingModel.id,
+            })
+          )
+        })
+      ).unwrap()
 
-      const explicitPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Explicit Usage Price',
-            type: PriceType.Usage,
-            unitPrice: 15,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: false,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: explicitUsageMeter.id,
-          })
-      )
+      const explicitPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPrice({
+              name: 'Explicit Usage Price',
+              type: PriceType.Usage,
+              unitPrice: 15,
+              intervalUnit: IntervalUnit.Day,
+              intervalCount: 1,
+              livemode: false,
+              isDefault: false,
+              currency: CurrencyCode.USD,
+              usageMeterId: explicitUsageMeter.id,
+            })
+          )
+        })
+      ).unwrap()
 
       // Create 3 customers with explicit pricing model
       const explicitCustomers = []
       for (let i = 0; i < 3; i++) {
-        const customerData = await adminTransaction(
-          async ({ transaction }) =>
-            setupCustomer({
-              organizationId: organization.id,
-              pricingModelId: explicitPricingModel.id,
-            })
-        )
+        const customerData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupCustomer({
+                  organizationId: organization.id,
+                  pricingModelId: explicitPricingModel.id,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const pmData = await adminTransaction(
-          async ({ transaction }) =>
-            setupPaymentMethod({
-              organizationId: organization.id,
-              customerId: customerData.id,
-            })
-        )
+        const pmData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupPaymentMethod({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const subData = await adminTransaction(
-          async ({ transaction }) =>
-            setupSubscription({
-              organizationId: organization.id,
-              customerId: customerData.id,
-              paymentMethodId: pmData.id,
-              priceId: explicitPrice.id,
-            })
+        const subData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupSubscription({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                  paymentMethodId: pmData.id,
+                  priceId: explicitPrice.id,
+                })
+              )
+            }
+          )
         )
-
-        await adminTransaction(async ({ transaction }) => {
-          const now = new Date()
-          const endDate = new Date(now)
-          endDate.setDate(endDate.getDate() + 30)
-          return setupBillingPeriod({
-            subscriptionId: subData.id,
-            startDate: now,
-            endDate,
-          })
-        })
+          .unwrap()(
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                const now = new Date()
+                const endDate = new Date(now)
+                endDate.setDate(endDate.getDate() + 30)
+                return Result.ok(
+                  await setupBillingPeriod({
+                    subscriptionId: subData.id,
+                    startDate: now,
+                    endDate,
+                  })
+                )
+              }
+            )
+          )
+          .unwrap()
 
         explicitCustomers.push({
           customer: customerData,
@@ -1672,42 +1867,63 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Create 3 customers with default pricing model
       const defaultCustomers = []
       for (let i = 0; i < 3; i++) {
-        const customerData = await adminTransaction(
-          async ({ transaction }) =>
-            setupCustomer({
-              organizationId: organization.id,
-              // No pricingModelId - uses default
-            })
-        )
+        const customerData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupCustomer({
+                  organizationId: organization.id,
+                  // No pricingModelId - uses default
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const pmData = await adminTransaction(
-          async ({ transaction }) =>
-            setupPaymentMethod({
-              organizationId: organization.id,
-              customerId: customerData.id,
-            })
-        )
+        const pmData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupPaymentMethod({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const subData = await adminTransaction(
-          async ({ transaction }) =>
-            setupSubscription({
-              organizationId: organization.id,
-              customerId: customerData.id,
-              paymentMethodId: pmData.id,
-              priceId: price.id,
-            })
+        const subData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupSubscription({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                  paymentMethodId: pmData.id,
+                  priceId: price.id,
+                })
+              )
+            }
+          )
         )
-
-        await adminTransaction(async ({ transaction }) => {
-          const now = new Date()
-          const endDate = new Date(now)
-          endDate.setDate(endDate.getDate() + 30)
-          return setupBillingPeriod({
-            subscriptionId: subData.id,
-            startDate: now,
-            endDate,
-          })
-        })
+          .unwrap()(
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                const now = new Date()
+                const endDate = new Date(now)
+                endDate.setDate(endDate.getDate() + 30)
+                return Result.ok(
+                  await setupBillingPeriod({
+                    subscriptionId: subData.id,
+                    startDate: now,
+                    endDate,
+                  })
+                )
+              }
+            )
+          )
+          .unwrap()
 
         defaultCustomers.push({
           customer: customerData,
@@ -1736,17 +1952,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
         })),
       ]
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: allEvents,
-            },
-            livemode: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: allEvents,
+                },
+                livemode: false,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       // Expectations: All 6 events processed correctly
       expect(result.unwrap().usageEvents).toHaveLength(6)
@@ -1785,13 +2005,16 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Setup: Create 10 customers all sharing the same pricing model
       const { organization } = await setupOrg()
 
-      const pricingModel = await adminTransaction(
-        async ({ transaction }) =>
-          setupPricingModel({
-            organizationId: organization.id,
-            isDefault: false,
-          })
-      )
+      const pricingModel = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPricingModel({
+              organizationId: organization.id,
+              isDefault: false,
+            })
+          )
+        })
+      ).unwrap()
 
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
@@ -1815,42 +2038,63 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Create 10 customers all with the same explicit pricing model
       const customers = []
       for (let i = 0; i < 10; i++) {
-        const customerData = await adminTransaction(
-          async ({ transaction }) =>
-            setupCustomer({
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-            })
-        )
+        const customerData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupCustomer({
+                  organizationId: organization.id,
+                  pricingModelId: pricingModel.id,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const pmData = await adminTransaction(
-          async ({ transaction }) =>
-            setupPaymentMethod({
-              organizationId: organization.id,
-              customerId: customerData.id,
-            })
-        )
+        const pmData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupPaymentMethod({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
-        const subData = await adminTransaction(
-          async ({ transaction }) =>
-            setupSubscription({
-              organizationId: organization.id,
-              customerId: customerData.id,
-              paymentMethodId: pmData.id,
-              priceId: price.id,
-            })
+        const subData = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupSubscription({
+                  organizationId: organization.id,
+                  customerId: customerData.id,
+                  paymentMethodId: pmData.id,
+                  priceId: price.id,
+                })
+              )
+            }
+          )
         )
-
-        await adminTransaction(async ({ transaction }) => {
-          const now = new Date()
-          const endDate = new Date(now)
-          endDate.setDate(endDate.getDate() + 30)
-          return setupBillingPeriod({
-            subscriptionId: subData.id,
-            startDate: now,
-            endDate,
-          })
-        })
+          .unwrap()(
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                const now = new Date()
+                const endDate = new Date(now)
+                endDate.setDate(endDate.getDate() + 30)
+                return Result.ok(
+                  await setupBillingPeriod({
+                    subscriptionId: subData.id,
+                    startDate: now,
+                    endDate,
+                  })
+                )
+              }
+            )
+          )
+          .unwrap()
 
         customers.push({
           customer: customerData,
@@ -1867,17 +2111,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
         transactionId: `txn_shared_${index}_${timestamp}`,
       }))
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: events,
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: events,
+                },
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       // Expectations: All 10 events processed correctly
       expect(result.unwrap().usageEvents).toHaveLength(10)
@@ -1934,13 +2182,18 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Create 4 more non-default pricing models
       for (let i = 0; i < 4; i++) {
-        const pricingModel = await adminTransaction(
-          async ({ transaction }) =>
-            setupPricingModel({
-              organizationId: organization.id,
-              isDefault: false,
-            })
-        )
+        const pricingModel = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await setupPricingModel({
+                  organizationId: organization.id,
+                  isDefault: false,
+                })
+              )
+            }
+          )
+        ).unwrap()
 
         const usageMeter = await setupUsageMeter({
           organizationId: organization.id,
@@ -1968,42 +2221,63 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const customers = []
       for (const { pricingModel, price } of pricingModelsData) {
         for (let i = 0; i < 2; i++) {
-          const customerData = await adminTransaction(
-            async ({ transaction }) =>
-              setupCustomer({
-                organizationId: organization.id,
-                pricingModelId: pricingModel.id,
-              })
-          )
+          const customerData = (
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                return Result.ok(
+                  await setupCustomer({
+                    organizationId: organization.id,
+                    pricingModelId: pricingModel.id,
+                  })
+                )
+              }
+            )
+          ).unwrap()
 
-          const pmData = await adminTransaction(
-            async ({ transaction }) =>
-              setupPaymentMethod({
-                organizationId: organization.id,
-                customerId: customerData.id,
-              })
-          )
+          const pmData = (
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                return Result.ok(
+                  await setupPaymentMethod({
+                    organizationId: organization.id,
+                    customerId: customerData.id,
+                  })
+                )
+              }
+            )
+          ).unwrap()
 
-          const subData = await adminTransaction(
-            async ({ transaction }) =>
-              setupSubscription({
-                organizationId: organization.id,
-                customerId: customerData.id,
-                paymentMethodId: pmData.id,
-                priceId: price.id,
-              })
+          const subData = (
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                return Result.ok(
+                  await setupSubscription({
+                    organizationId: organization.id,
+                    customerId: customerData.id,
+                    paymentMethodId: pmData.id,
+                    priceId: price.id,
+                  })
+                )
+              }
+            )
           )
-
-          await adminTransaction(async ({ transaction }) => {
-            const now = new Date()
-            const endDate = new Date(now)
-            endDate.setDate(endDate.getDate() + 30)
-            return setupBillingPeriod({
-              subscriptionId: subData.id,
-              startDate: now,
-              endDate,
-            })
-          })
+            .unwrap()(
+              await adminTransactionWithResult(
+                async ({ transaction }) => {
+                  const now = new Date()
+                  const endDate = new Date(now)
+                  endDate.setDate(endDate.getDate() + 30)
+                  return Result.ok(
+                    await setupBillingPeriod({
+                      subscriptionId: subData.id,
+                      startDate: now,
+                      endDate,
+                    })
+                  )
+                }
+              )
+            )
+            .unwrap()
 
           customers.push({
             customer: customerData,
@@ -2025,17 +2299,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
         })
       )
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: events,
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: events,
+                },
+                livemode: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       // Expectations: All 10 events processed correctly
       expect(result.unwrap().usageEvents).toHaveLength(10)
@@ -2067,15 +2345,18 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const pricingModel = orgSetup.pricingModel
 
       // Create a product with subscription price
-      const product = await adminTransaction(
-        async ({ transaction }) =>
-          setupProduct({
-            name: 'Test Product',
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            active: true,
-          })
-      )
+      const product = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupProduct({
+              name: 'Test Product',
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              active: true,
+            })
+          )
+        })
+      ).unwrap()
 
       const subscriptionPrice = await setupPrice({
         name: 'Subscription Price',
@@ -2114,41 +2395,57 @@ describe('bulkInsertUsageEventsTransaction', () => {
         slug: 'usage-price-slug',
       })
 
-      const customerData = await adminTransaction(
-        async ({ transaction }) =>
-          setupCustomer({
-            organizationId: organization.id,
-            // Uses default pricing model
-          })
-      )
+      const customerData = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupCustomer({
+              organizationId: organization.id,
+              // Uses default pricing model
+            })
+          )
+        })
+      ).unwrap()
 
-      const pmData = await adminTransaction(async ({ transaction }) =>
-        setupPaymentMethod({
-          organizationId: organization.id,
-          customerId: customerData.id,
+      const pmData = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customerData.id,
+            })
+          )
+        })
+      ).unwrap()
+
+      const subData = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await setupSubscription({
+              organizationId: organization.id,
+              customerId: customerData.id,
+              paymentMethodId: pmData.id,
+              priceId: subscriptionPrice.id,
+            })
+          )
         })
       )
-
-      const subData = await adminTransaction(
-        async ({ transaction }) =>
-          setupSubscription({
-            organizationId: organization.id,
-            customerId: customerData.id,
-            paymentMethodId: pmData.id,
-            priceId: subscriptionPrice.id,
-          })
-      )
-
-      await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
-        const endDate = new Date(now)
-        endDate.setDate(endDate.getDate() + 30)
-        return setupBillingPeriod({
-          subscriptionId: subData.id,
-          startDate: now,
-          endDate,
-        })
-      })
+        .unwrap()(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const now = new Date()
+              const endDate = new Date(now)
+              endDate.setDate(endDate.getDate() + 30)
+              return Result.ok(
+                await setupBillingPeriod({
+                  subscriptionId: subData.id,
+                  startDate: now,
+                  endDate,
+                })
+              )
+            }
+          )
+        )
+        .unwrap()
 
       // Execute: Try to resolve subscription price slug - should fail (only usage prices are considered)
       const timestamp = Date.now()
@@ -2176,25 +2473,28 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       // Execute: Use usage price slug - should succeed
-      const resultActive = await adminTransaction(
-        async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
-            {
-              input: {
-                usageEvents: [
-                  {
-                    subscriptionId: subData.id,
-                    priceSlug: 'usage-price-slug',
-                    amount: 100,
-                    transactionId: `txn_usage_slug_${timestamp}`,
-                  },
-                ],
+      const resultActive = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await bulkInsertUsageEventsTransaction(
+              {
+                input: {
+                  usageEvents: [
+                    {
+                      subscriptionId: subData.id,
+                      priceSlug: 'usage-price-slug',
+                      amount: 100,
+                      transactionId: `txn_usage_slug_${timestamp}`,
+                    },
+                  ],
+                },
+                livemode: true,
               },
-              livemode: true,
-            },
-            createDiscardingEffectsContext(transaction)
+              createDiscardingEffectsContext(transaction)
+            )
           )
-      )
+        })
+      ).unwrap()
 
       // Expectation: Usage price slug should resolve correctly
       expect(resultActive.unwrap().usageEvents).toHaveLength(1)
@@ -2219,18 +2519,20 @@ describe('bulkInsertUsageEventsTransaction', () => {
         pricingModelId: orgSetup2.pricingModel.id,
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const customersInfo = await selectCustomerPricingInfoBatch(
             [customer1.id, customer2.id],
             transaction
           )
-          return batchFetchPricingModelsForCustomers(
-            customersInfo,
-            transaction
+          return Result.ok(
+            await batchFetchPricingModelsForCustomers(
+              customersInfo,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.size).toBe(2)
       expect(result.get(customer1.id)?.id).toBe(
@@ -2250,18 +2552,20 @@ describe('bulkInsertUsageEventsTransaction', () => {
         // No explicit pricingModelId - will use default
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const customersInfo = await selectCustomerPricingInfoBatch(
             [customer.id],
             transaction
           )
-          return batchFetchPricingModelsForCustomers(
-            customersInfo,
-            transaction
+          return Result.ok(
+            await batchFetchPricingModelsForCustomers(
+              customersInfo,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.size).toBe(1)
       const pricingModel = result.get(customer.id)
@@ -2315,8 +2619,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
         pricingModelId: orgSetup.pricingModel.id,
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [pricingModel] =
             await selectPricingModelSlugResolutionData(
               { id: orgSetup.pricingModel.id },
@@ -2340,9 +2644,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             getPricingModelForCustomer,
           }
 
-          return resolvePriceSlugs(context as WithSlugEventsContext)
-        }
-      )
+          return Result.ok(
+            await resolvePriceSlugs(context as WithSlugEventsContext)
+          )
+        })
+      ).unwrap()
 
       expect(result.status).toBe('ok')
       if (result.status === 'ok') {
@@ -2372,8 +2678,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       }
 
       // Test resolvePriceSlugs
-      const priceSlugResult = await adminTransaction(
-        async ({ transaction }) => {
+      const priceSlugResult = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const context: TestResolvePriceSlugsContext = {
             eventsWithPriceSlugs: [
               {
@@ -2385,9 +2691,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             getPricingModelForCustomer,
           }
 
-          return resolvePriceSlugs(context as WithSlugEventsContext)
-        }
-      )
+          return Result.ok(
+            await resolvePriceSlugs(context as WithSlugEventsContext)
+          )
+        })
+      ).unwrap()
 
       expect(priceSlugResult.status).toBe('error')
       if (priceSlugResult.status === 'error') {
@@ -2398,8 +2706,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       }
 
       // Test resolveUsageMeterSlugs
-      const usageMeterSlugResult = await adminTransaction(
-        async ({ transaction }) => {
+      const usageMeterSlugResult = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const context: TestResolveUsageMeterSlugsContext = {
             eventsWithUsageMeterSlugs: [
               {
@@ -2412,13 +2720,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(
-            context as WithSlugEventsContext & {
-              slugToPriceIdMap: Map<string, string>
-            }
+          return Result.ok(
+            await resolveUsageMeterSlugs(
+              context as WithSlugEventsContext & {
+                slugToPriceIdMap: Map<string, string>
+              }
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(usageMeterSlugResult.status).toBe('error')
       if (usageMeterSlugResult.status === 'error') {
@@ -2439,8 +2749,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       })
 
       // Test resolvePriceSlugs - slug not found
-      const priceSlugResult = await adminTransaction(
-        async ({ transaction }) => {
+      const priceSlugResult = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [pricingModel] =
             await selectPricingModelSlugResolutionData(
               { id: orgSetup.pricingModel.id },
@@ -2464,9 +2774,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             getPricingModelForCustomer,
           }
 
-          return resolvePriceSlugs(context as WithSlugEventsContext)
-        }
-      )
+          return Result.ok(
+            await resolvePriceSlugs(context as WithSlugEventsContext)
+          )
+        })
+      ).unwrap()
 
       expect(priceSlugResult.status).toBe('error')
       if (priceSlugResult.status === 'error') {
@@ -2477,8 +2789,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       }
 
       // Test resolveUsageMeterSlugs - slug not found
-      const usageMeterSlugResult = await adminTransaction(
-        async ({ transaction }) => {
+      const usageMeterSlugResult = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [pricingModel] =
             await selectPricingModelSlugResolutionData(
               { id: orgSetup.pricingModel.id },
@@ -2503,13 +2815,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(
-            context as WithSlugEventsContext & {
-              slugToPriceIdMap: Map<string, string>
-            }
+          return Result.ok(
+            await resolveUsageMeterSlugs(
+              context as WithSlugEventsContext & {
+                slugToPriceIdMap: Map<string, string>
+              }
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(usageMeterSlugResult.status).toBe('error')
       if (usageMeterSlugResult.status === 'error') {
@@ -2536,8 +2850,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
         pricingModelId: orgSetup.pricingModel.id,
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [pricingModel] =
             await selectPricingModelSlugResolutionData(
               { id: orgSetup.pricingModel.id },
@@ -2562,13 +2876,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(
-            context as WithSlugEventsContext & {
-              slugToPriceIdMap: Map<string, string>
-            }
+          return Result.ok(
+            await resolveUsageMeterSlugs(
+              context as WithSlugEventsContext & {
+                slugToPriceIdMap: Map<string, string>
+              }
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.status).toBe('ok')
       if (result.status === 'ok') {
@@ -2611,8 +2927,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
         pricingModelId: orgSetup2.pricingModel.id,
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [pricingModel1] =
             await selectPricingModelSlugResolutionData(
               { id: orgSetup1.pricingModel.id },
@@ -2654,13 +2970,15 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(
-            context as WithSlugEventsContext & {
-              slugToPriceIdMap: Map<string, string>
-            }
+          return Result.ok(
+            await resolveUsageMeterSlugs(
+              context as WithSlugEventsContext & {
+                slugToPriceIdMap: Map<string, string>
+              }
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.status).toBe('ok')
       if (result.status === 'ok') {

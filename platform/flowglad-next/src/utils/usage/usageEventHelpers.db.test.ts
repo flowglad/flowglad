@@ -33,7 +33,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
@@ -58,55 +58,58 @@ describe('usageEventHelpers', () => {
   let usageMeter: UsageMeter.Record
   let orgSetup: Awaited<ReturnType<typeof setupOrg>>
   beforeEach(async () => {
-    await adminTransaction(async ({ transaction }) => {
-      orgSetup = await setupOrg()
-      organization = orgSetup.organization
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        orgSetup = await setupOrg()
+        organization = orgSetup.organization
+        customer = await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+        paymentMethod = await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
 
-      const defaultPricingModelForOrg = orgSetup.pricingModel
-      const defaultProductForOrg = orgSetup.product
-      usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Test Usage Meter',
-        livemode: true,
-        pricingModelId: defaultPricingModelForOrg.id,
-      })
-      usagePrice = await setupPrice({
-        name: 'Test Usage Price',
-        type: PriceType.Usage,
-        unitPrice: 10,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-        currency: CurrencyCode.USD,
-        usageMeterId: usageMeter.id,
-      })
+        const defaultPricingModelForOrg = orgSetup.pricingModel
+        const defaultProductForOrg = orgSetup.product
+        usageMeter = await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Test Usage Meter',
+          livemode: true,
+          pricingModelId: defaultPricingModelForOrg.id,
+        })
+        usagePrice = await setupPrice({
+          name: 'Test Usage Price',
+          type: PriceType.Usage,
+          unitPrice: 10,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          currency: CurrencyCode.USD,
+          usageMeterId: usageMeter.id,
+        })
 
-      mainSubscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        paymentMethodId: paymentMethod.id,
-        priceId: usagePrice.id,
-      })
+        mainSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: usagePrice.id,
+        })
 
-      const now = new Date()
-      const endDate = new Date(now)
-      endDate.setDate(now.getDate() + 30)
+        const now = new Date()
+        const endDate = new Date(now)
+        endDate.setDate(now.getDate() + 30)
 
-      mainBillingPeriod = await setupBillingPeriod({
-        subscriptionId: mainSubscription.id,
-        startDate: now,
-        endDate: endDate,
+        mainBillingPeriod = await setupBillingPeriod({
+          subscriptionId: mainSubscription.id,
+          startDate: now,
+          endDate: endDate,
+        })
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 
   describe('ingestAndProcessUsageEvent', () => {
@@ -166,27 +169,31 @@ describe('usageEventHelpers', () => {
         new Date(createdUsageEvent.usageDate!).getTime()
       ).toEqual(usageEventDetails.usageDate!)
 
-      let ledgerTransactions: LedgerTransaction.Record[] = []
-      await adminTransaction(async ({ transaction }) => {
-        ledgerTransactions = await selectLedgerTransactions(
-          {
-            initiatingSourceId: createdUsageEvent!.id,
-            initiatingSourceType:
-              LedgerTransactionInitiatingSourceType.UsageEvent,
-          },
-          transaction
-        )
-      })
+      let ledgerTransactions: LedgerTransaction.Record[] = [](
+        await adminTransactionWithResult(async ({ transaction }) => {
+          ledgerTransactions = await selectLedgerTransactions(
+            {
+              initiatingSourceId: createdUsageEvent!.id,
+              initiatingSourceType:
+                LedgerTransactionInitiatingSourceType.UsageEvent,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
       expect(ledgerTransactions.length).toBe(1)
       const ledgerTransactionId = ledgerTransactions[0].id
 
-      let ledgerItems: LedgerEntry.Record[] = []
-      await adminTransaction(async ({ transaction }) => {
-        ledgerItems = await selectLedgerEntries(
-          { ledgerTransactionId },
-          transaction
-        )
-      })
+      let ledgerItems: LedgerEntry.Record[] = [](
+        await adminTransactionWithResult(async ({ transaction }) => {
+          ledgerItems = await selectLedgerEntries(
+            { ledgerTransactionId },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
       expect(ledgerItems.length).toBeGreaterThan(0)
       expect(ledgerItems[0].amount).toBe(usageEventDetails.amount)
     })
@@ -226,30 +233,36 @@ describe('usageEventHelpers', () => {
           }
         )
 
-      let initialLedgerTransactions: LedgerTransaction.Record[] = []
-      await adminTransaction(async ({ transaction }) => {
-        initialLedgerTransactions = await selectLedgerTransactions(
-          {
-            initiatingSourceId: initialEvent!.id,
-            initiatingSourceType:
-              LedgerTransactionInitiatingSourceType.UsageEvent,
-          },
-          transaction
-        )
-      })
+      let initialLedgerTransactions: LedgerTransaction.Record[] = [](
+        await adminTransactionWithResult(async ({ transaction }) => {
+          initialLedgerTransactions = await selectLedgerTransactions(
+            {
+              initiatingSourceId: initialEvent!.id,
+              initiatingSourceType:
+                LedgerTransactionInitiatingSourceType.UsageEvent,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
       const initialLedgerItemCount =
         initialLedgerTransactions.length > 0
           ? (
-              await adminTransaction(async ({ transaction }) =>
-                selectLedgerEntries(
-                  {
-                    ledgerTransactionId:
-                      initialLedgerTransactions[0].id,
-                  },
-                  transaction
-                )
+              await adminTransactionWithResult(
+                async ({ transaction }) => {
+                  return Result.ok(
+                    await selectLedgerEntries(
+                      {
+                        ledgerTransactionId:
+                          initialLedgerTransactions[0].id,
+                      },
+                      transaction
+                    )
+                  )
+                }
               )
-            ).length
+            ).unwrap().length
           : 0
 
       const { usageEvent: resultEvent } =
@@ -280,30 +293,39 @@ describe('usageEventHelpers', () => {
       expect(resultEvent.id).toBe(initialEvent.id)
 
       let subsequentLedgerTransactions: LedgerTransaction.Record[] =
-        []
-      await adminTransaction(async ({ transaction }) => {
-        subsequentLedgerTransactions = await selectLedgerTransactions(
-          {
-            initiatingSourceId: resultEvent!.id,
-            initiatingSourceType:
-              LedgerTransactionInitiatingSourceType.UsageEvent,
-          },
-          transaction
-        )
-      })
-      const subsequentLedgerItemCount =
-        subsequentLedgerTransactions.length > 0
-          ? (
-              await adminTransaction(async ({ transaction }) =>
-                selectLedgerEntries(
+        [](
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              subsequentLedgerTransactions =
+                await selectLedgerTransactions(
                   {
-                    ledgerTransactionId:
-                      subsequentLedgerTransactions[0].id,
+                    initiatingSourceId: resultEvent!.id,
+                    initiatingSourceType:
+                      LedgerTransactionInitiatingSourceType.UsageEvent,
                   },
                   transaction
                 )
+              return Result.ok(undefined)
+            }
+          )
+        ).unwrap()
+      const subsequentLedgerItemCount =
+        subsequentLedgerTransactions.length > 0
+          ? (
+              await adminTransactionWithResult(
+                async ({ transaction }) => {
+                  return Result.ok(
+                    await selectLedgerEntries(
+                      {
+                        ledgerTransactionId:
+                          subsequentLedgerTransactions[0].id,
+                      },
+                      transaction
+                    )
+                  )
+                }
               )
-            ).length
+            ).unwrap().length
           : 0
       expect(subsequentLedgerItemCount).toBe(initialLedgerItemCount)
     })
@@ -331,24 +353,27 @@ describe('usageEventHelpers', () => {
         usageMeterId: usagePrice.usageMeterId!,
         livemode: true,
         organizationId: organization.id,
-      })
-      await adminTransaction(async ({ transaction }) => {
-        return ingestAndProcessUsageEvent(
-          {
-            input: {
-              usageEvent: {
-                priceId: usagePrice.id,
-                usageMeterId: usagePrice.usageMeterId!,
-                subscriptionId: sub2.id,
-                transactionId: sharedTransactionId,
-                amount: 1,
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await ingestAndProcessUsageEvent(
+              {
+                input: {
+                  usageEvent: {
+                    priceId: usagePrice.id,
+                    usageMeterId: usagePrice.usageMeterId!,
+                    subscriptionId: sub2.id,
+                    transactionId: sharedTransactionId,
+                    amount: 1,
+                  },
+                },
+                livemode: true,
               },
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       const usageEventDetailsMainSub: CreateUsageEventInput['usageEvent'] =
         {
@@ -362,14 +387,16 @@ describe('usageEventHelpers', () => {
         usageEvent: usageEventDetailsMainSub,
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            { input: inputMainSub, livemode: true },
-            createDiscardingEffectsContext(transaction)
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await ingestAndProcessUsageEvent(
+              { input: inputMainSub, livemode: true },
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
@@ -556,25 +583,31 @@ describe('usageEventHelpers', () => {
         )
       expect(resultLiveTrue.livemode).toBe(true)
 
-      const liveTrueTransactions: LedgerTransaction.Record[] =
-        await adminTransaction(async ({ transaction }) => {
-          return selectLedgerTransactions(
-            {
-              initiatingSourceId: resultLiveTrue.id,
-              initiatingSourceType:
-                LedgerTransactionInitiatingSourceType.UsageEvent,
-            },
-            transaction
+      const liveTrueTransactions: LedgerTransaction.Record[] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerTransactions(
+              {
+                initiatingSourceId: resultLiveTrue.id,
+                initiatingSourceType:
+                  LedgerTransactionInitiatingSourceType.UsageEvent,
+              },
+              transaction
+            )
           )
         })
+      ).unwrap()
       expect(liveTrueTransactions.length).toBe(1)
-      const liveTrueLedgerItems: LedgerEntry.Record[] =
-        await adminTransaction(async ({ transaction }) => {
-          return selectLedgerEntries(
-            { ledgerTransactionId: liveTrueTransactions[0].id },
-            transaction
+      const liveTrueLedgerItems: LedgerEntry.Record[] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerEntries(
+              { ledgerTransactionId: liveTrueTransactions[0].id },
+              transaction
+            )
           )
         })
+      ).unwrap()
       expect(liveTrueLedgerItems[0].livemode).toBe(true)
       const testmodeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -627,25 +660,31 @@ describe('usageEventHelpers', () => {
         )
       expect(resultLiveFalse.livemode).toBe(false)
 
-      const liveFalseTransactions: LedgerTransaction.Record[] =
-        await adminTransaction(async ({ transaction }) => {
-          return selectLedgerTransactions(
-            {
-              initiatingSourceId: resultLiveFalse!.id,
-              initiatingSourceType:
-                LedgerTransactionInitiatingSourceType.UsageEvent,
-            },
-            transaction
+      const liveFalseTransactions: LedgerTransaction.Record[] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerTransactions(
+              {
+                initiatingSourceId: resultLiveFalse!.id,
+                initiatingSourceType:
+                  LedgerTransactionInitiatingSourceType.UsageEvent,
+              },
+              transaction
+            )
           )
         })
+      ).unwrap()
       expect(liveFalseTransactions.length).toBe(1)
-      const liveFalseLedgerItems: LedgerEntry.Record[] =
-        await adminTransaction(async ({ transaction }) => {
-          return selectLedgerEntries(
-            { ledgerTransactionId: liveFalseTransactions[0].id },
-            transaction
+      const liveFalseLedgerItems: LedgerEntry.Record[] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerEntries(
+              { ledgerTransactionId: liveFalseTransactions[0].id },
+              transaction
+            )
           )
         })
+      ).unwrap()
       expect(liveFalseLedgerItems[0].livemode).toBe(false)
     })
 
@@ -752,18 +791,20 @@ describe('usageEventHelpers', () => {
       expect(firstEventTime).toBeLessThanOrEqual(Date.now())
 
       // Verify ledger command was emitted (ledger transaction created)
-      const firstLedgerTransactions = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerTransactions(
-            {
-              initiatingSourceId: firstUsageEvent.id,
-              initiatingSourceType:
-                LedgerTransactionInitiatingSourceType.UsageEvent,
-            },
-            transaction
+      const firstLedgerTransactions = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerTransactions(
+              {
+                initiatingSourceId: firstUsageEvent.id,
+                initiatingSourceType:
+                  LedgerTransactionInitiatingSourceType.UsageEvent,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(firstLedgerTransactions.length).toBe(1)
 
       // Test 2: Second event with same properties should NOT emit ledger command
@@ -818,18 +859,20 @@ describe('usageEventHelpers', () => {
       expect(secondEventTime).toBeLessThanOrEqual(Date.now())
 
       // Verify NO ledger command was emitted (no new ledger transaction)
-      const secondLedgerTransactions = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerTransactions(
-            {
-              initiatingSourceId: secondUsageEvent.id,
-              initiatingSourceType:
-                LedgerTransactionInitiatingSourceType.UsageEvent,
-            },
-            transaction
+      const secondLedgerTransactions = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerTransactions(
+              {
+                initiatingSourceId: secondUsageEvent.id,
+                initiatingSourceType:
+                  LedgerTransactionInitiatingSourceType.UsageEvent,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(secondLedgerTransactions.length).toBe(0)
 
       // Verify the two events are different records
@@ -879,25 +922,27 @@ describe('usageEventHelpers', () => {
       expect(typeof thirdUsageEvent.usageDate).toBe('number')
 
       // Verify ledger command was emitted (ledger transaction created)
-      const thirdLedgerTransactions = await adminTransaction(
-        async ({ transaction }) => {
-          return selectLedgerTransactions(
-            {
-              initiatingSourceId: thirdUsageEvent.id,
-              initiatingSourceType:
-                LedgerTransactionInitiatingSourceType.UsageEvent,
-            },
-            transaction
+      const thirdLedgerTransactions = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectLedgerTransactions(
+              {
+                initiatingSourceId: thirdUsageEvent.id,
+                initiatingSourceType:
+                  LedgerTransactionInitiatingSourceType.UsageEvent,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(thirdLedgerTransactions.length).toBe(1)
     })
 
     it('should throw error when usageMeterId from different pricing model is provided directly', async () => {
       // Create a usage meter and price in a different organization
-      const { otherOrgUsageMeter, otherOrgPrice } =
-        await adminTransaction(async ({ transaction }) => {
+      const { otherOrgUsageMeter, otherOrgPrice } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const orgSetup = await setupOrg()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
@@ -916,11 +961,14 @@ describe('usageEventHelpers', () => {
             currency: CurrencyCode.USD,
             usageMeterId: testUsageMeter.id,
           })
-          return {
-            otherOrgUsageMeter: testUsageMeter,
-            otherOrgPrice: testPrice,
-          }
+          return Result.ok(
+            await {
+              otherOrgUsageMeter: testUsageMeter,
+              otherOrgPrice: testPrice,
+            }
+          )
         })
+      ).unwrap()
 
       const input: CreateUsageEventInput = {
         usageEvent: {
@@ -932,14 +980,16 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            { input, livemode: true },
-            createDiscardingEffectsContext(transaction)
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         // When both usageMeterId and priceId from a different org are provided,
@@ -952,8 +1002,8 @@ describe('usageEventHelpers', () => {
 
     it('should throw error when priceId from different pricing model is provided directly', async () => {
       // Create a usage price in a different organization/pricing model
-      const otherOrgPrice = await adminTransaction(
-        async ({ transaction }) => {
+      const otherOrgPrice = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const otherOrgSetup = await setupOrg()
           const otherUsageMeter = await setupUsageMeter({
             organizationId: otherOrgSetup.organization.id,
@@ -972,9 +1022,9 @@ describe('usageEventHelpers', () => {
             currency: CurrencyCode.USD,
             usageMeterId: otherUsageMeter.id,
           })
-          return otherPrice
-        }
-      )
+          return Result.ok(await otherPrice)
+        })
+      ).unwrap()
 
       const input: CreateUsageEventInput = {
         usageEvent: {
@@ -986,14 +1036,16 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            { input, livemode: true },
-            createDiscardingEffectsContext(transaction)
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
@@ -1093,14 +1145,16 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result1 = await adminTransaction(
-        async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            { input: undefinedPropsInput, livemode: true },
-            createDiscardingEffectsContext(transaction)
+      const result1 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await ingestAndProcessUsageEvent(
+              { input: undefinedPropsInput, livemode: true },
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result1.status).toBe('error')
       if (result1.status === 'error') {
         expect(result1.error.message).toContain(
@@ -1120,14 +1174,16 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result2 = await adminTransaction(
-        async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            { input: emptyPropsInput, livemode: true },
-            createDiscardingEffectsContext(transaction)
+      const result2 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await ingestAndProcessUsageEvent(
+              { input: emptyPropsInput, livemode: true },
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result2.status).toBe('error')
       if (result2.status === 'error') {
         expect(result2.error.message).toContain(
@@ -1312,15 +1368,15 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const resolved = await resolveUsageEventInput(
             input,
             transaction
           )
-          return resolved.unwrap()
-        }
-      )
+          return Result.ok(await resolved.unwrap())
+        })
+      ).unwrap()
 
       expect(result.usageEvent.priceId).toBe(usagePrice.id)
       expect(result.usageEvent).not.toHaveProperty('priceSlug')
@@ -1328,8 +1384,8 @@ describe('usageEventHelpers', () => {
 
     it('should resolve priceSlug to priceId when priceSlug is provided', async () => {
       // First, we need to set up a price with a slug
-      const priceWithSlug = await adminTransaction(
-        async ({ transaction }) => {
+      const priceWithSlug = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const orgSetup = await setupOrg()
           const testCustomer = await setupCustomer({
             organizationId: orgSetup.organization.id,
@@ -1362,9 +1418,11 @@ describe('usageEventHelpers', () => {
             paymentMethodId: testPaymentMethod.id,
             priceId: testPrice.id,
           })
-          return { testPrice, testSubscription, testCustomer }
-        }
-      )
+          return Result.ok(
+            await { testPrice, testSubscription, testCustomer }
+          )
+        })
+      ).unwrap()
 
       const input = {
         usageEvent: {
@@ -1375,15 +1433,15 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const resolved = await resolveUsageEventInput(
             input,
             transaction
           )
-          return resolved.unwrap()
-        }
-      )
+          return Result.ok(await resolved.unwrap())
+        })
+      ).unwrap()
 
       expect(result.usageEvent.priceId).toBe(
         priceWithSlug.testPrice.id
@@ -1401,58 +1459,65 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return resolveUsageEventInput(inputNonExistent, transaction)
-        }
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await resolveUsageEventInput(
+              inputNonExistent,
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
           "Price not found: with slug non-existent-slug (not in customer's pricing model)"
         )
       }
-
       // Set up a second pricing model in the same organization with a price with a slug
-      await adminTransaction(async ({ transaction }) => {
-        // Create a second pricing model in the same organization
-        const secondPricingModel = await setupPricingModel({
-          organizationId: organization.id,
-          name: 'Second Pricing Model',
-          livemode: false,
-          isDefault: false,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Create a second pricing model in the same organization
+          const secondPricingModel = await setupPricingModel({
+            organizationId: organization.id,
+            name: 'Second Pricing Model',
+            livemode: false,
+            isDefault: false,
+          })
 
-        // Create a product in the second pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          pricingModelId: secondPricingModel.id,
-          name: 'Second Product',
-          livemode: false,
-          active: true,
-        })
+          // Create a product in the second pricing model
+          const secondProduct = await setupProduct({
+            organizationId: organization.id,
+            pricingModelId: secondPricingModel.id,
+            name: 'Second Product',
+            livemode: false,
+            active: true,
+          })
 
-        const secondUsageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          name: 'Second Usage Meter',
-          livemode: false,
-          pricingModelId: secondPricingModel.id,
-        })
+          const secondUsageMeter = await setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Second Usage Meter',
+            livemode: false,
+            pricingModelId: secondPricingModel.id,
+          })
 
-        // Create a price with a slug in the second pricing model
-        await setupPrice({
-          name: 'Second Usage Price',
-          type: PriceType.Usage,
-          unitPrice: 20,
-          intervalUnit: IntervalUnit.Day,
-          intervalCount: 1,
-          livemode: false,
-          isDefault: false,
-          currency: CurrencyCode.USD,
-          usageMeterId: secondUsageMeter.id,
-          slug: 'other-pricing-model-price-slug',
+          // Create a price with a slug in the second pricing model
+          await setupPrice({
+            name: 'Second Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 20,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: false,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: secondUsageMeter.id,
+            slug: 'other-pricing-model-price-slug',
+          })
+          return Result.ok(undefined)
         })
-      })
+      ).unwrap()
 
       // Try to use the slug from second pricing model's price with first customer's subscription
       // This should fail because the slug belongs to a different pricing model
@@ -1466,14 +1531,16 @@ describe('usageEventHelpers', () => {
       }
 
       // Should fail because the slug belongs to a different pricing model
-      const result2 = await adminTransaction(
-        async ({ transaction }) => {
-          return resolveUsageEventInput(
-            inputDifferentPricingModel,
-            transaction
+      const result2 = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await resolveUsageEventInput(
+              inputDifferentPricingModel,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result2.status).toBe('error')
       if (result2.status === 'error') {
         expect(result2.error.message).toContain(
@@ -1491,14 +1558,16 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return resolveUsageEventInput(
-            inputWithoutPrice,
-            transaction
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await resolveUsageEventInput(
+              inputWithoutPrice,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
@@ -1530,15 +1599,15 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const resolved = await resolveUsageEventInput(
             input,
             transaction
           )
-          return resolved.unwrap()
-        }
-      )
+          return Result.ok(await resolved.unwrap())
+        })
+      ).unwrap()
 
       expect(result.usageEvent.usageMeterId).toBe(usageMeter.id)
       // Should resolve to the default price for the usage meter
@@ -1548,8 +1617,8 @@ describe('usageEventHelpers', () => {
 
     it('should resolve usageMeterSlug to usageMeterId with default price', async () => {
       // First, we need to set up a usage meter with a slug and a default price
-      const usageMeterWithSlug = await adminTransaction(
-        async ({ transaction }) => {
+      const usageMeterWithSlug = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const orgSetup = await setupOrg()
           const testCustomer = await setupCustomer({
             organizationId: orgSetup.organization.id,
@@ -1596,14 +1665,16 @@ describe('usageEventHelpers', () => {
             paymentMethodId: testPaymentMethod.id,
             priceId: testPrice.id,
           })
-          return {
-            testUsageMeter,
-            testSubscription,
-            testCustomer,
-            testDefaultPrice,
-          }
-        }
-      )
+          return Result.ok(
+            await {
+              testUsageMeter,
+              testSubscription,
+              testCustomer,
+              testDefaultPrice,
+            }
+          )
+        })
+      ).unwrap()
 
       const input = {
         usageEvent: {
@@ -1614,15 +1685,15 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const resolved = await resolveUsageEventInput(
             input,
             transaction
           )
-          return resolved.unwrap()
-        }
-      )
+          return Result.ok(await resolved.unwrap())
+        })
+      ).unwrap()
 
       expect(result.usageEvent.usageMeterId).toBe(
         usageMeterWithSlug.testUsageMeter.id
@@ -1636,8 +1707,8 @@ describe('usageEventHelpers', () => {
 
     it('should throw NOT_FOUND error when usageMeterId does not exist in customer pricing model', async () => {
       // Create a usage meter in a different organization
-      const otherOrgUsageMeter = await adminTransaction(
-        async ({ transaction }) => {
+      const otherOrgUsageMeter = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const orgSetup = await setupOrg()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
@@ -1645,9 +1716,9 @@ describe('usageEventHelpers', () => {
             livemode: true,
             pricingModelId: orgSetup.pricingModel.id,
           })
-          return testUsageMeter
-        }
-      )
+          return Result.ok(await testUsageMeter)
+        })
+      ).unwrap()
 
       const input = {
         usageEvent: {
@@ -1658,11 +1729,13 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return resolveUsageEventInput(input, transaction)
-        }
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await resolveUsageEventInput(input, transaction)
+          )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
@@ -1681,11 +1754,13 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return resolveUsageEventInput(input, transaction)
-        }
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await resolveUsageEventInput(input, transaction)
+          )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
@@ -1755,67 +1830,72 @@ describe('usageEventHelpers', () => {
 
   describe('generateLedgerCommandsForBulkUsageEvents', () => {
     it('should generate ledger commands for all inserted events when none are duplicates and include organizationId and subscriptionId from subscription lookup', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create 3 usage events with different transactionIds
-        const event1 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: mainSubscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          amount: 10,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: usagePrice.id,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Create 3 usage events with different transactionIds
+          const event1 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: mainSubscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            amount: 10,
+            transactionId: `txn_${core.nanoid()}`,
+            priceId: usagePrice.id,
+          })
 
-        const event2 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: mainSubscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          amount: 20,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: usagePrice.id,
-        })
+          const event2 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: mainSubscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            amount: 20,
+            transactionId: `txn_${core.nanoid()}`,
+            priceId: usagePrice.id,
+          })
 
-        const event3 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: mainSubscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          amount: 30,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: usagePrice.id,
-        })
+          const event3 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: mainSubscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            amount: 30,
+            transactionId: `txn_${core.nanoid()}`,
+            priceId: usagePrice.id,
+          })
 
-        const ledgerCommandsResult =
-          await generateLedgerCommandsForBulkUsageEvents(
-            {
-              insertedUsageEvents: [event1, event2, event3],
-              livemode: true,
-            },
-            transaction
+          const ledgerCommandsResult =
+            await generateLedgerCommandsForBulkUsageEvents(
+              {
+                insertedUsageEvents: [event1, event2, event3],
+                livemode: true,
+              },
+              transaction
+            )
+          const ledgerCommands = ledgerCommandsResult.unwrap()
+
+          expect(ledgerCommands.length).toBe(3)
+          expect(ledgerCommands[0].type).toBe(
+            LedgerTransactionType.UsageEventProcessed
           )
-        const ledgerCommands = ledgerCommandsResult.unwrap()
-
-        expect(ledgerCommands.length).toBe(3)
-        expect(ledgerCommands[0].type).toBe(
-          LedgerTransactionType.UsageEventProcessed
-        )
-        expect(ledgerCommands[0].livemode).toBe(true)
-        expect(ledgerCommands[0].organizationId).toBe(organization.id)
-        expect(ledgerCommands[0].subscriptionId).toBe(
-          mainSubscription.id
-        )
-        expect(ledgerCommands[0].payload.usageEvent.id).toBe(
-          event1.id
-        )
-        expect(ledgerCommands[1].payload.usageEvent.id).toBe(
-          event2.id
-        )
-        expect(ledgerCommands[2].payload.usageEvent.id).toBe(
-          event3.id
-        )
-      })
+          expect(ledgerCommands[0].livemode).toBe(true)
+          expect(ledgerCommands[0].organizationId).toBe(
+            organization.id
+          )
+          expect(ledgerCommands[0].subscriptionId).toBe(
+            mainSubscription.id
+          )
+          expect(ledgerCommands[0].payload.usageEvent.id).toBe(
+            event1.id
+          )
+          expect(ledgerCommands[1].payload.usageEvent.id).toBe(
+            event2.id
+          )
+          expect(ledgerCommands[2].payload.usageEvent.id).toBe(
+            event3.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should skip ledger commands for CountDistinctProperties duplicates in same period, including intra-batch duplicates (with different key order) and existing database duplicates', async () => {
@@ -1893,114 +1973,128 @@ describe('usageEventHelpers', () => {
         priceId: distinctPrice.id,
         properties: existingEventProps,
         billingPeriodId: distinctBillingPeriod.id,
-      })
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const ledgerCommandsResult =
+            await generateLedgerCommandsForBulkUsageEvents(
+              {
+                insertedUsageEvents: [
+                  event1,
+                  event2,
+                  newEventWithDuplicateProps,
+                ],
+                livemode: true,
+              },
+              transaction
+            )
+          const ledgerCommands = ledgerCommandsResult.unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerCommandsResult =
-          await generateLedgerCommandsForBulkUsageEvents(
-            {
-              insertedUsageEvents: [
-                event1,
-                event2,
-                newEventWithDuplicateProps,
-              ],
-              livemode: true,
-            },
-            transaction
+          // Should generate 1 command:
+          // - event1 (event2 is intra-batch duplicate with different key order)
+          // - newEventWithDuplicateProps is skipped (duplicate of existing DB event)
+          expect(ledgerCommands.length).toBe(1)
+          expect(ledgerCommands[0].payload.usageEvent.id).toBe(
+            event1.id
           )
-        const ledgerCommands = ledgerCommandsResult.unwrap()
 
-        // Should generate 1 command:
-        // - event1 (event2 is intra-batch duplicate with different key order)
-        // - newEventWithDuplicateProps is skipped (duplicate of existing DB event)
-        expect(ledgerCommands.length).toBe(1)
-        expect(ledgerCommands[0].payload.usageEvent.id).toBe(
-          event1.id
-        )
-
-        // Explicitly verify that duplicate events are not included
-        const eventIds = ledgerCommands.map(
-          (cmd) => cmd.payload.usageEvent.id
-        )
-        expect(eventIds).not.toContain(event2.id)
-        expect(eventIds).not.toContain(newEventWithDuplicateProps.id)
-      })
+          // Explicitly verify that duplicate events are not included
+          const eventIds = ledgerCommands.map(
+            (cmd) => cmd.payload.usageEvent.id
+          )
+          expect(eventIds).not.toContain(event2.id)
+          expect(eventIds).not.toContain(
+            newEventWithDuplicateProps.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should return empty array when no events provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerCommandsResult =
-          await generateLedgerCommandsForBulkUsageEvents(
-            {
-              insertedUsageEvents: [],
-              livemode: true,
-            },
-            transaction
-          )
-        const ledgerCommands = ledgerCommandsResult.unwrap()
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const ledgerCommandsResult =
+            await generateLedgerCommandsForBulkUsageEvents(
+              {
+                insertedUsageEvents: [],
+                livemode: true,
+              },
+              transaction
+            )
+          const ledgerCommands = ledgerCommandsResult.unwrap()
 
-        expect(ledgerCommands.length).toBe(0)
-      })
+          expect(ledgerCommands.length).toBe(0)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should throw error when subscription not found', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageEvent = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: mainSubscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          amount: 10,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: usagePrice.id,
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: mainSubscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            amount: 10,
+            transactionId: `txn_${core.nanoid()}`,
+            priceId: usagePrice.id,
+          })
+
+          const invalidSubscriptionEvent = {
+            ...usageEvent,
+            subscriptionId: 'non-existent-subscription-id',
+          }
+
+          const result =
+            await generateLedgerCommandsForBulkUsageEvents(
+              {
+                insertedUsageEvents: [invalidSubscriptionEvent],
+                livemode: true,
+              },
+              transaction
+            )
+          expect(() => result.unwrap()).toThrow(
+            'Subscription not found: non-existent-subscription-id'
+          )
+          return Result.ok(undefined)
         })
-
-        const invalidSubscriptionEvent = {
-          ...usageEvent,
-          subscriptionId: 'non-existent-subscription-id',
-        }
-
-        const result = await generateLedgerCommandsForBulkUsageEvents(
-          {
-            insertedUsageEvents: [invalidSubscriptionEvent],
-            livemode: true,
-          },
-          transaction
-        )
-        expect(() => result.unwrap()).toThrow(
-          'Subscription not found: non-existent-subscription-id'
-        )
-      })
+      ).unwrap()
     })
 
     it('should throw error when usage meter not found', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageEvent = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: mainSubscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          amount: 10,
-          transactionId: `txn_${core.nanoid()}`,
-          priceId: usagePrice.id,
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: mainSubscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            amount: 10,
+            transactionId: `txn_${core.nanoid()}`,
+            priceId: usagePrice.id,
+          })
+
+          const invalidMeterEvent = {
+            ...usageEvent,
+            usageMeterId: 'non-existent-usage-meter-id',
+          }
+
+          const result =
+            await generateLedgerCommandsForBulkUsageEvents(
+              {
+                insertedUsageEvents: [invalidMeterEvent],
+                livemode: true,
+              },
+              transaction
+            )
+          expect(() => result.unwrap()).toThrow(
+            'UsageMeter not found: non-existent-usage-meter-id'
+          )
+          return Result.ok(undefined)
         })
-
-        const invalidMeterEvent = {
-          ...usageEvent,
-          usageMeterId: 'non-existent-usage-meter-id',
-        }
-
-        const result = await generateLedgerCommandsForBulkUsageEvents(
-          {
-            insertedUsageEvents: [invalidMeterEvent],
-            livemode: true,
-          },
-          transaction
-        )
-        expect(() => result.unwrap()).toThrow(
-          'UsageMeter not found: non-existent-usage-meter-id'
-        )
-      })
+      ).unwrap()
     })
   })
 })

@@ -22,7 +22,7 @@ import {
   setupToggleFeature,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import {
@@ -78,21 +78,24 @@ describe('insertFeature uniqueness constraints', () => {
   })
 
   it('should not allow two features with the same slug, organizationId, and pricingModelId', async () => {
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await insertFeature(
-        createToggleFeatureInsert(
-          organization1.id,
-          pricingModel1.id,
-          'unique-slug',
-          'Test Feature 1'
-        ),
-        ctx
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await insertFeature(
+          createToggleFeatureInsert(
+            organization1.id,
+            pricingModel1.id,
+            'unique-slug',
+            'Test Feature 1'
+          ),
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     await expect(
-      adminTransaction(async (ctx) => {
+      adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await insertFeature(
           createToggleFeatureInsert(
@@ -103,6 +106,7 @@ describe('insertFeature uniqueness constraints', () => {
           ),
           ctx
         )
+        return Result.ok(undefined)
       })
     ).rejects.toThrow()
   })
@@ -111,123 +115,146 @@ describe('insertFeature uniqueness constraints', () => {
     const newPricingModelForOrg1 = await setupPricingModel({
       organizationId: organization1.id,
       name: 'Second PricingModel for Org 1',
-    })
+    })(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await insertFeature(
+          createToggleFeatureInsert(
+            organization1.id,
+            pricingModel1.id,
+            'same-slug',
+            'Test Feature 1'
+          ),
+          ctx
+        )
+        await insertFeature(
+          createToggleFeatureInsert(
+            organization1.id,
+            newPricingModelForOrg1.id,
+            'same-slug',
+            'Test Feature 2'
+          ),
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await insertFeature(
-        createToggleFeatureInsert(
-          organization1.id,
-          pricingModel1.id,
-          'same-slug',
-          'Test Feature 1'
-        ),
-        ctx
-      )
-      await insertFeature(
-        createToggleFeatureInsert(
-          organization1.id,
-          newPricingModelForOrg1.id,
-          'same-slug',
-          'Test Feature 2'
-        ),
-        ctx
-      )
-    })
-
-    const features = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeatures(
-        {
-          organizationId: organization1.id,
-          slug: 'same-slug',
-        },
-        transaction
-      )
-    })
+    const features = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeatures(
+            {
+              organizationId: organization1.id,
+              slug: 'same-slug',
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(features.length).toBe(2)
   })
 
   it('should allow two features with the same slug but different organizationId', async () => {
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await insertFeature(
-        createToggleFeatureInsert(
-          organization1.id,
-          pricingModel1.id,
-          'same-slug',
-          'Feature for Org 1'
-        ),
-        ctx
-      )
-      await insertFeature(
-        createToggleFeatureInsert(
-          organization2.id,
-          pricingModel2.id,
-          'same-slug',
-          'Feature for Org 2'
-        ),
-        ctx
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await insertFeature(
+          createToggleFeatureInsert(
+            organization1.id,
+            pricingModel1.id,
+            'same-slug',
+            'Feature for Org 1'
+          ),
+          ctx
+        )
+        await insertFeature(
+          createToggleFeatureInsert(
+            organization2.id,
+            pricingModel2.id,
+            'same-slug',
+            'Feature for Org 2'
+          ),
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    const featuresOrg1 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeatures(
-        {
-          organizationId: organization1.id,
-          slug: 'same-slug',
-        },
-        transaction
-      )
-    })
-    const featuresOrg2 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeatures(
-        {
-          organizationId: organization2.id,
-          slug: 'same-slug',
-        },
-        transaction
-      )
-    })
+    const featuresOrg1 = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeatures(
+            {
+              organizationId: organization1.id,
+              slug: 'same-slug',
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
+    const featuresOrg2 = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeatures(
+            {
+              organizationId: organization2.id,
+              slug: 'same-slug',
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(featuresOrg1.length).toBe(1)
     expect(featuresOrg2.length).toBe(1)
   })
 
   it('should allow two features with different slugs for the same organization and pricingModel', async () => {
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await insertFeature(
-        createToggleFeatureInsert(
-          organization1.id,
-          pricingModel1.id,
-          'slug-1',
-          'Test Feature 1'
-        ),
-        ctx
-      )
-      await insertFeature(
-        createToggleFeatureInsert(
-          organization1.id,
-          pricingModel1.id,
-          'slug-2',
-          'Test Feature 2'
-        ),
-        ctx
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await insertFeature(
+          createToggleFeatureInsert(
+            organization1.id,
+            pricingModel1.id,
+            'slug-1',
+            'Test Feature 1'
+          ),
+          ctx
+        )
+        await insertFeature(
+          createToggleFeatureInsert(
+            organization1.id,
+            pricingModel1.id,
+            'slug-2',
+            'Test Feature 2'
+          ),
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    const features = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeatures(
-        {
-          organizationId: organization1.id,
-          pricingModelId: pricingModel1.id,
-        },
-        transaction
-      )
-    })
+    const features = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeatures(
+            {
+              organizationId: organization1.id,
+              pricingModelId: pricingModel1.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(features.length).toBe(2)
   })
 })
@@ -603,48 +630,49 @@ describe('selectFeaturesTableRowData search', () => {
       name: 'Premium Feature',
       slug: 'premium-feature-slug',
       livemode: true,
-    })
+    })(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        // Search by name (case-insensitive)
+        const byName = await selectFeaturesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: 'PREMIUM',
+            filters: { organizationId: organization.id },
+          },
+          transaction,
+        })
+        expect(
+          byName.items.some((i) => i.feature.id === feature.id)
+        ).toBe(true)
 
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Search by name (case-insensitive)
-      const byName = await selectFeaturesTableRowData({
-        input: {
-          pageSize: 10,
-          searchQuery: 'PREMIUM',
-          filters: { organizationId: organization.id },
-        },
-        transaction,
-      })
-      expect(
-        byName.items.some((i) => i.feature.id === feature.id)
-      ).toBe(true)
+        // Search by slug
+        const bySlug = await selectFeaturesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: 'premium-feature',
+            filters: { organizationId: organization.id },
+          },
+          transaction,
+        })
+        expect(
+          bySlug.items.some((i) => i.feature.id === feature.id)
+        ).toBe(true)
 
-      // Search by slug
-      const bySlug = await selectFeaturesTableRowData({
-        input: {
-          pageSize: 10,
-          searchQuery: 'premium-feature',
-          filters: { organizationId: organization.id },
-        },
-        transaction,
+        // Search by exact ID with whitespace trimming
+        const byId = await selectFeaturesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: `  ${feature.id}  `,
+            filters: { organizationId: organization.id },
+          },
+          transaction,
+        })
+        expect(byId.items.length).toBe(1)
+        expect(byId.items[0].feature.id).toBe(feature.id)
+        return Result.ok(undefined)
       })
-      expect(
-        bySlug.items.some((i) => i.feature.id === feature.id)
-      ).toBe(true)
-
-      // Search by exact ID with whitespace trimming
-      const byId = await selectFeaturesTableRowData({
-        input: {
-          pageSize: 10,
-          searchQuery: `  ${feature.id}  `,
-          filters: { organizationId: organization.id },
-        },
-        transaction,
-      })
-      expect(byId.items.length).toBe(1)
-      expect(byId.items[0].feature.id).toBe(feature.id)
-    })
+    ).unwrap()
   })
 
   it('should return all features when search query is empty or undefined', async () => {
@@ -655,31 +683,32 @@ describe('selectFeaturesTableRowData search', () => {
       pricingModelId: pricingModel.id,
       name: 'Test Feature',
       livemode: true,
-    })
+    })(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        const resultEmpty = await selectFeaturesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: '',
+            filters: { organizationId: organization.id },
+          },
+          transaction,
+        })
 
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const resultEmpty = await selectFeaturesTableRowData({
-        input: {
-          pageSize: 10,
-          searchQuery: '',
-          filters: { organizationId: organization.id },
-        },
-        transaction,
+        const resultUndefined = await selectFeaturesTableRowData({
+          input: {
+            pageSize: 10,
+            searchQuery: undefined,
+            filters: { organizationId: organization.id },
+          },
+          transaction,
+        })
+
+        expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
+        expect(resultEmpty.total).toBe(resultUndefined.total)
+        return Result.ok(undefined)
       })
-
-      const resultUndefined = await selectFeaturesTableRowData({
-        input: {
-          pageSize: 10,
-          searchQuery: undefined,
-          filters: { organizationId: organization.id },
-        },
-        transaction,
-      })
-
-      expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
-      expect(resultEmpty.total).toBe(resultUndefined.total)
-    })
+    ).unwrap()
   })
 })
 
@@ -722,44 +751,54 @@ describe('Resource Feature schema and methods', () => {
 
   describe('insertFeature for Resource type', () => {
     it('should insert a resource feature with required fields: type=Resource, resourceId, and positive amount', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertFeature(
-          createResourceFeatureInsert({
-            resourceId: resource.id,
-            amount: 10,
-          }),
-          ctx
-        )
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertFeature(
+            createResourceFeatureInsert({
+              resourceId: resource.id,
+              amount: 10,
+            }),
+            ctx
+          )
 
-        expect(inserted.id).toMatch(/^feature_/)
-        expect(inserted.type).toBe(FeatureType.Resource)
-        expect(inserted.resourceId).toBe(resource.id)
-        expect(inserted.amount).toBe(10)
-        expect(inserted.usageMeterId).toBeNull()
-        expect(inserted.renewalFrequency).toBeNull()
-        expect(inserted.organizationId).toBe(organization.id)
-        expect(inserted.pricingModelId).toBe(pricingModel.id)
-      })
+          expect(inserted.id).toMatch(/^feature_/)
+          expect(inserted.type).toBe(FeatureType.Resource)
+          expect(inserted.resourceId).toBe(resource.id)
+          expect(inserted.amount).toBe(10)
+          expect(inserted.usageMeterId).toBeNull()
+          expect(inserted.renewalFrequency).toBeNull()
+          expect(inserted.organizationId).toBe(organization.id)
+          expect(inserted.pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should select a resource feature by id and return the complete record', async () => {
-      const inserted = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return insertFeature(createResourceFeatureInsert(), ctx)
-      })
+      const inserted = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await insertFeature(createResourceFeatureInsert(), ctx)
+          )
+        })
+      )
+        .unwrap()(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const selected = (
+              await selectFeatureById(inserted.id, transaction)
+            ).unwrap()
 
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const selected = (
-          await selectFeatureById(inserted.id, transaction)
-        ).unwrap()
-
-        expect(selected.id).toBe(inserted.id)
-        expect(selected.type).toBe(FeatureType.Resource)
-        expect(selected.resourceId).toBe(resource.id)
-        expect(selected.amount).toBe(5)
-      })
+            expect(selected.id).toBe(inserted.id)
+            expect(selected.type).toBe(FeatureType.Resource)
+            expect(selected.resourceId).toBe(resource.id)
+            expect(selected.amount).toBe(5)
+            return Result.ok(undefined)
+          })
+        )
+        .unwrap()
     })
   })
 
@@ -873,10 +912,14 @@ describe('Resource Feature schema and methods', () => {
 
   describe('resourceFeatureSelectSchema validation', () => {
     it('should validate a selected resource feature record with type=Resource', async () => {
-      const inserted = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return insertFeature(createResourceFeatureInsert(), ctx)
-      })
+      const inserted = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await insertFeature(createResourceFeatureInsert(), ctx)
+          )
+        })
+      ).unwrap()
 
       const result = resourceFeatureSelectSchema.safeParse(inserted)
       expect(result.success).toBe(true)

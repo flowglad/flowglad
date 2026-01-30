@@ -5,6 +5,7 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -14,7 +15,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionItemsWithPricesBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
@@ -117,19 +118,21 @@ describeIfRedisKey('cache recomputation integration', () => {
     keysToCleanup.push(cacheKey, metadataKey, registryKey)
 
     // Step 1: Populate cache by calling selectSubscriptionItemsWithPricesBySubscriptionId
-    const initialResult = await adminTransaction(
-      async ({ transaction }) => {
+    const initialResult = (
+      await adminTransactionWithResult(async ({ transaction }) => {
         const cacheRecomputationContext = {
           type: 'admin' as const,
           livemode: true,
         }
-        return selectSubscriptionItemsWithPricesBySubscriptionId(
-          subscription.id,
-          transaction,
-          cacheRecomputationContext
+        return Result.ok(
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
+            subscription.id,
+            transaction,
+            cacheRecomputationContext
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(initialResult).toHaveLength(1)
     expect(initialResult[0].subscriptionItem.id).toBe(
@@ -151,19 +154,22 @@ describeIfRedisKey('cache recomputation integration', () => {
       createdAt: number
     }>(metadataBeforeUpdate)
     expect(parsedMetadataBefore.createdAt).toBeGreaterThan(0)
-    const createdAtBefore = parsedMetadataBefore.createdAt
-
-    // Step 3: Update subscription item in database to simulate data change
-    await adminTransaction(async ({ transaction }) => {
-      await updateSubscriptionItem(
-        {
-          id: subscriptionItem.id,
-          quantity: 5,
-          type: SubscriptionItemType.Static,
-        },
-        transaction
+    const createdAtBefore = parsedMetadataBefore
+      .createdAt(
+        // Step 3: Update subscription item in database to simulate data change
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              quantity: 5,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
       )
-    })
+      .unwrap()
 
     // Step 4: Invalidate cache (triggers fire-and-forget recomputation internally)
     await invalidateDependencies([dependencyKey])
@@ -249,23 +255,31 @@ describeIfRedisKey('cache recomputation integration', () => {
       subscription.id
     )
     const registryKey = `${RedisKeyNamespace.CacheDependencyRegistry}:${dependencyKey}`
-    keysToCleanup.push(cacheKey, metadataKey, registryKey)
-
-    // Populate cache with testmode (livemode=false) context
-    await adminTransaction(
-      async ({ transaction }) => {
-        const cacheRecomputationContext = {
-          type: 'admin' as const,
-          livemode: false,
-        }
-        return selectSubscriptionItemsWithPricesBySubscriptionId(
-          subscription.id,
-          transaction,
-          cacheRecomputationContext
+    keysToCleanup
+      .push(
+        cacheKey,
+        metadataKey,
+        registryKey
+      )(
+        // Populate cache with testmode (livemode=false) context
+        await adminTransactionWithResult(
+          async ({ transaction }) => {
+            const cacheRecomputationContext = {
+              type: 'admin' as const,
+              livemode: false,
+            }
+            return Result.ok(
+              await selectSubscriptionItemsWithPricesBySubscriptionId(
+                subscription.id,
+                transaction,
+                cacheRecomputationContext
+              )
+            )
+          },
+          { livemode: false }
         )
-      },
-      { livemode: false }
-    )
+      )
+      .unwrap()
 
     // Verify cache key includes :false for testmode and contains correct data
     const cachedValue = await client.get(cacheKey)
@@ -360,20 +374,28 @@ describeIfRedisKey('cache recomputation integration', () => {
       subscription.id
     )
     const registryKey = `${RedisKeyNamespace.CacheDependencyRegistry}:${dependencyKey}`
-    keysToCleanup.push(cacheKey, metadataKey, registryKey)
-
-    // Populate cache
-    await adminTransaction(async ({ transaction }) => {
-      const cacheRecomputationContext = {
-        type: 'admin' as const,
-        livemode: true,
-      }
-      return selectSubscriptionItemsWithPricesBySubscriptionId(
-        subscription.id,
-        transaction,
-        cacheRecomputationContext
+    keysToCleanup
+      .push(
+        cacheKey,
+        metadataKey,
+        registryKey
+      )(
+        // Populate cache
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const cacheRecomputationContext = {
+            type: 'admin' as const,
+            livemode: true,
+          }
+          return Result.ok(
+            await selectSubscriptionItemsWithPricesBySubscriptionId(
+              subscription.id,
+              transaction,
+              cacheRecomputationContext
+            )
+          )
+        })
       )
-    })
+      .unwrap()
 
     // Invalidate cache
     await invalidateDependencies([dependencyKey])

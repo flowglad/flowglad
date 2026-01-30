@@ -13,6 +13,7 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Product } from '@db-core/schema/products'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -22,7 +23,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { insertSubscriptionMeterPeriodCalculation } from './subscriptionMeterPeriodCalculationMethods'
 
@@ -87,81 +88,90 @@ describe('insertSubscriptionMeterPeriodCalculation', () => {
   })
 
   it('should successfully insert subscription meter period calculation and derive pricingModelId from usage meter', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const calculation =
-        await insertSubscriptionMeterPeriodCalculation(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            billingRunId: billingRun.id,
-            totalRawUsageAmount: 1000,
-            creditsAppliedAmount: 0,
-            netBilledAmount: 1000,
-            status: SubscriptionMeterPeriodCalculationStatus.Active,
-            calculatedAt: Date.now(),
-            livemode: true,
-          },
-          transaction
-        )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const calculation =
+          await insertSubscriptionMeterPeriodCalculation(
+            {
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              billingRunId: billingRun.id,
+              totalRawUsageAmount: 1000,
+              creditsAppliedAmount: 0,
+              netBilledAmount: 1000,
+              status: SubscriptionMeterPeriodCalculationStatus.Active,
+              calculatedAt: Date.now(),
+              livemode: true,
+            },
+            transaction
+          )
 
-      // Verify pricingModelId is correctly derived from usage meter
-      expect(calculation.pricingModelId).toBe(
-        usageMeter.pricingModelId
-      )
-      expect(calculation.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify pricingModelId is correctly derived from usage meter
+        expect(calculation.pricingModelId).toBe(
+          usageMeter.pricingModelId
+        )
+        expect(calculation.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should use provided pricingModelId without derivation', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const calculation =
-        await insertSubscriptionMeterPeriodCalculation(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            billingRunId: billingRun.id,
-            totalRawUsageAmount: 1000,
-            creditsAppliedAmount: 0,
-            netBilledAmount: 1000,
-            status: SubscriptionMeterPeriodCalculationStatus.Active,
-            calculatedAt: Date.now(),
-            livemode: true,
-            pricingModelId: pricingModel.id, // Pre-provided
-          },
-          transaction
-        )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const calculation =
+          await insertSubscriptionMeterPeriodCalculation(
+            {
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              billingRunId: billingRun.id,
+              totalRawUsageAmount: 1000,
+              creditsAppliedAmount: 0,
+              netBilledAmount: 1000,
+              status: SubscriptionMeterPeriodCalculationStatus.Active,
+              calculatedAt: Date.now(),
+              livemode: true,
+              pricingModelId: pricingModel.id, // Pre-provided
+            },
+            transaction
+          )
 
-      // Verify the provided pricingModelId is used
-      expect(calculation.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify the provided pricingModelId is used
+        expect(calculation.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should throw an error when usageMeterId does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentUsageMeterId = `um_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-      await expect(
-        insertSubscriptionMeterPeriodCalculation(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: nonExistentUsageMeterId,
-            billingPeriodId: billingPeriod.id,
-            billingRunId: billingRun.id,
-            totalRawUsageAmount: 1000,
-            creditsAppliedAmount: 0,
-            netBilledAmount: 1000,
-            status: SubscriptionMeterPeriodCalculationStatus.Active,
-            calculatedAt: Date.now(),
-            livemode: true,
-          },
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          insertSubscriptionMeterPeriodCalculation(
+            {
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: nonExistentUsageMeterId,
+              billingPeriodId: billingPeriod.id,
+              billingRunId: billingRun.id,
+              totalRawUsageAmount: 1000,
+              creditsAppliedAmount: 0,
+              netBilledAmount: 1000,
+              status: SubscriptionMeterPeriodCalculationStatus.Active,
+              calculatedAt: Date.now(),
+              livemode: true,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })

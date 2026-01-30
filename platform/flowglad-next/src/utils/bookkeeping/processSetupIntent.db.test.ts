@@ -19,6 +19,7 @@ import { Invoice } from '@db-core/schema/invoices'
 import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { Purchase } from '@db-core/schema/purchases'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import Stripe from 'stripe'
 import {
   setupBillingPeriod,
@@ -34,7 +35,7 @@ import {
   setupSubscriptionItem,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
@@ -295,14 +296,16 @@ describe('Process setup intent', async () => {
     })
 
     it('returns the checkout session when all conditions are met', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return checkoutSessionFromSetupIntent(
-            succeededSetupIntent,
-            transaction
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await checkoutSessionFromSetupIntent(
+              succeededSetupIntent,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.unwrap().id).toEqual(checkoutSession.id)
@@ -312,18 +315,22 @@ describe('Process setup intent', async () => {
   describe('processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded', () => {
     it('throws an error when checkout session is in terminal state', async () => {
       // Update checkout session to a terminal state
-      await adminTransaction(async ({ transaction }) => {
-        await selectCheckoutSessionById(
-          checkoutSession.id,
-          transaction
-        )
-        const statusResult = await safelyUpdateCheckoutSessionStatus(
-          checkoutSession,
-          CheckoutSessionStatus.Succeeded,
-          transaction
-        )
-        statusResult.unwrap()
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await selectCheckoutSessionById(
+            checkoutSession.id,
+            transaction
+          )
+          const statusResult =
+            await safelyUpdateCheckoutSessionStatus(
+              checkoutSession,
+              CheckoutSessionStatus.Succeeded,
+              transaction
+            )
+          statusResult.unwrap()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -353,14 +360,16 @@ describe('Process setup intent', async () => {
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
       })
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
-            addPaymentMethodSetupIntent,
-            createDiscardingEffectsContext(transaction)
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+              addPaymentMethodSetupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toMatch(
@@ -370,18 +379,20 @@ describe('Process setup intent', async () => {
     })
 
     it('processes purchase bookkeeping for regular checkout sessions', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-          return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
-            succeededSetupIntent,
-            createDiscardingEffectsContext(transaction)
+          return Result.ok(
+            await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+              succeededSetupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const resultValue = result.unwrap()
       expect(resultValue.purchase).toMatchObject({})
@@ -397,27 +408,33 @@ describe('Process setup intent', async () => {
   describe('processAddPaymentMethodSetupIntentSucceeded', () => {
     it('returns early with organization and customer when checkout session is in terminal state', async () => {
       // Update checkout session to a terminal state
-      await adminTransaction(async ({ transaction }) => {
-        await selectCheckoutSessionById(
-          checkoutSession.id,
-          transaction
-        )
-        const statusResult = await safelyUpdateCheckoutSessionStatus(
-          checkoutSession,
-          CheckoutSessionStatus.Succeeded,
-          transaction
-        )
-        statusResult.unwrap()
-      })
-
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return processAddPaymentMethodSetupIntentSucceeded(
-            succeededSetupIntent,
-            createDiscardingEffectsContext(transaction)
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await selectCheckoutSessionById(
+            checkoutSession.id,
+            transaction
           )
-        }
-      )
+          const statusResult =
+            await safelyUpdateCheckoutSessionStatus(
+              checkoutSession,
+              CheckoutSessionStatus.Succeeded,
+              transaction
+            )
+          statusResult.unwrap()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await processAddPaymentMethodSetupIntentSucceeded(
+              succeededSetupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
+          )
+        })
+      ).unwrap()
 
       const resultValue = result.unwrap()
       expect(resultValue.checkoutSession).toMatchObject({})
@@ -429,14 +446,16 @@ describe('Process setup intent', async () => {
     })
 
     it('updates checkout session status based on setup intent status', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return processAddPaymentMethodSetupIntentSucceeded(
-            succeededSetupIntent,
-            createDiscardingEffectsContext(transaction)
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await processAddPaymentMethodSetupIntentSucceeded(
+              succeededSetupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.unwrap().checkoutSession.status).toEqual(
         CheckoutSessionStatus.Succeeded
@@ -469,40 +488,45 @@ describe('Process setup intent', async () => {
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        await processAddPaymentMethodSetupIntentSucceeded(
-          addPaymentMethodSetupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await processAddPaymentMethodSetupIntentSucceeded(
+            addPaymentMethodSetupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the subscription was updated with the new payment method
-      const updatedSubscription = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectSubscriptionById(
-              targetSubscription.id,
-              transaction
-            )
-          ).unwrap()
-        }
-      )
+      const updatedSubscription = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await (
+              await selectSubscriptionById(
+                targetSubscription.id,
+                transaction
+              )
+            ).unwrap()
+          )
+        })
+      ).unwrap()
 
       // Get the payment method from the setup intent
-      const [newPaymentMethod] = await adminTransaction(
-        async ({ transaction }) => {
-          return selectPaymentMethods(
-            {
-              stripePaymentMethodId: stripeIdFromObjectOrId(
-                addPaymentMethodSetupIntent.payment_method!
-              ),
-            },
-            transaction
+      const [newPaymentMethod] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectPaymentMethods(
+              {
+                stripePaymentMethodId: stripeIdFromObjectOrId(
+                  addPaymentMethodSetupIntent.payment_method!
+                ),
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(updatedSubscription.defaultPaymentMethodId).toEqual(
         newPaymentMethod.id
@@ -528,29 +552,44 @@ describe('Process setup intent', async () => {
       })
 
       // Get the original subscription
-      const originalSubscription = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectSubscriptionById(subscription.id, transaction)
-          ).unwrap()
-        }
+      const originalSubscription = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await (
+              await selectSubscriptionById(
+                subscription.id,
+                transaction
+              )
+            ).unwrap()
+          )
+        })
       )
-
-      await adminTransaction(async ({ transaction }) => {
-        await processAddPaymentMethodSetupIntentSucceeded(
-          addPaymentMethodSetupIntent,
-          createDiscardingEffectsContext(transaction)
+        .unwrap()(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await processAddPaymentMethodSetupIntentSucceeded(
+                addPaymentMethodSetupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+              return Result.ok(undefined)
+            }
+          )
         )
-      })
+        .unwrap()
 
       // Verify the subscription was not updated
-      const updatedSubscription = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectSubscriptionById(subscription.id, transaction)
-          ).unwrap()
-        }
-      )
+      const updatedSubscription = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await (
+              await selectSubscriptionById(
+                subscription.id,
+                transaction
+              )
+            ).unwrap()
+          )
+        })
+      ).unwrap()
 
       expect(updatedSubscription.defaultPaymentMethodId).toEqual(
         originalSubscription.defaultPaymentMethodId
@@ -583,19 +622,20 @@ describe('Process setup intent', async () => {
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })
-
-      // Execute the function
-      await adminTransaction(async ({ transaction }) => {
-        await processAddPaymentMethodSetupIntentSucceeded(
-          addPaymentMethodSetupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      })(
+        // Execute the function
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await processAddPaymentMethodSetupIntentSucceeded(
+            addPaymentMethodSetupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify subscriptions are updated
-      const [updatedFirstSubscription, updatedSecondSubscription] =
-        await adminTransaction(async ({ transaction }) => {
+      const [updatedFirstSubscription, updatedSecondSubscription] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const s1 = (
             await selectSubscriptionById(subscription.id, transaction)
           ).unwrap()
@@ -605,22 +645,25 @@ describe('Process setup intent', async () => {
               transaction
             )
           ).unwrap()
-          return [s1, s2]
+          return Result.ok(await [s1, s2])
         })
+      ).unwrap()
 
       // Get the new payment method from the setup intent
-      const [newPaymentMethod] = await adminTransaction(
-        async ({ transaction }) => {
-          return selectPaymentMethods(
-            {
-              stripePaymentMethodId: stripeIdFromObjectOrId(
-                addPaymentMethodSetupIntent.payment_method!
-              ),
-            },
-            transaction
+      const [newPaymentMethod] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectPaymentMethods(
+              {
+                stripePaymentMethodId: stripeIdFromObjectOrId(
+                  addPaymentMethodSetupIntent.payment_method!
+                ),
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(updatedFirstSubscription.defaultPaymentMethodId).toEqual(
         newPaymentMethod.id
@@ -660,17 +703,18 @@ describe('Process setup intent', async () => {
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })
+      })(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await processAddPaymentMethodSetupIntentSucceeded(
+            addPaymentMethodSetupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        await processAddPaymentMethodSetupIntentSucceeded(
-          addPaymentMethodSetupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
-
-      const [updatedFirstSubscription, updatedSecondSubscription] =
-        await adminTransaction(async ({ transaction }) => {
+      const [updatedFirstSubscription, updatedSecondSubscription] = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const s1 = (
             await selectSubscriptionById(subscription.id, transaction)
           ).unwrap()
@@ -680,8 +724,9 @@ describe('Process setup intent', async () => {
               transaction
             )
           ).unwrap()
-          return [s1, s2]
+          return Result.ok(await [s1, s2])
         })
+      ).unwrap()
 
       expect(updatedFirstSubscription.defaultPaymentMethodId).toEqual(
         paymentMethod.id
@@ -851,14 +896,16 @@ describe('Process setup intent', async () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return processSetupIntentSucceeded(
-            invalidSetupIntent,
-            createDiscardingEffectsContext(transaction)
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await processSetupIntentSucceeded(
+              invalidSetupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toMatch(/not checkout_session/)
@@ -884,14 +931,16 @@ describe('Process setup intent', async () => {
         stripeCustomerId: 'newcust_' + core.nanoid(),
       })
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             newCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-          return processSetupIntentSucceeded(
-            newSetupIntentSucceeded,
-            createDiscardingEffectsContext(transaction)
+          return Result.ok(
+            await processSetupIntentSucceeded(
+              newSetupIntentSucceeded,
+              createDiscardingEffectsContext(transaction)
+            )
           )
         })
       ).rejects.toThrow(/^Attempting to process checkout session/)
@@ -995,14 +1044,18 @@ describe('Process setup intent', async () => {
         )
 
         // Get billing periods after first delivery
-        const firstBillingPeriods = await adminTransaction(
-          async ({ transaction }) => {
-            return selectBillingPeriods(
-              { subscriptionId: incompleteSubscription.id },
-              transaction
-            )
-          }
-        )
+        const firstBillingPeriods = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await selectBillingPeriods(
+                  { subscriptionId: incompleteSubscription.id },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         expect(firstBillingPeriods.length).toBeGreaterThan(0)
         const firstBillingPeriodCount = firstBillingPeriods.length
@@ -1039,14 +1092,18 @@ describe('Process setup intent', async () => {
           secondActivationResult as ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
 
         // Get billing periods after replay
-        const secondBillingPeriods = await adminTransaction(
-          async ({ transaction }) => {
-            return selectBillingPeriods(
-              { subscriptionId: incompleteSubscription.id },
-              transaction
-            )
-          }
-        )
+        const secondBillingPeriods = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await selectBillingPeriods(
+                  { subscriptionId: incompleteSubscription.id },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         // Assertions: Should have same data (idempotent)
         expect(secondResult.subscription.id).toBe(
@@ -1150,14 +1207,18 @@ describe('Process setup intent', async () => {
         )
 
         // Get billing periods after first activation
-        const firstBillingPeriods = await adminTransaction(
-          async ({ transaction }) => {
-            return selectBillingPeriods(
-              { subscriptionId: incompleteSubscription.id },
-              transaction
-            )
-          }
-        )
+        const firstBillingPeriods = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await selectBillingPeriods(
+                  { subscriptionId: incompleteSubscription.id },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
         expect(firstBillingPeriods.length).toBeGreaterThan(0)
         const firstBillingPeriodCount = firstBillingPeriods.length
 
@@ -1198,14 +1259,18 @@ describe('Process setup intent', async () => {
         )
 
         // Get billing periods after replay to verify no duplicates were created
-        const secondBillingPeriods = await adminTransaction(
-          async ({ transaction }) => {
-            return selectBillingPeriods(
-              { subscriptionId: incompleteSubscription.id },
-              transaction
-            )
-          }
-        )
+        const secondBillingPeriods = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await selectBillingPeriods(
+                  { subscriptionId: incompleteSubscription.id },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         // Critical: Should not have created new billing periods
         expect(secondBillingPeriods.length).toBe(
@@ -1255,16 +1320,20 @@ describe('Process setup intent', async () => {
           throw new Error('Billing run not found')
         }
         expect(result.billingRun).toMatchObject({})
-        const subscription = await adminTransaction(
-          async ({ transaction }) => {
-            return (
-              await selectSubscriptionById(
-                result.billingRun!.subscriptionId,
-                transaction
+        const subscription = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await (
+                  await selectSubscriptionById(
+                    result.billingRun!.subscriptionId,
+                    transaction
+                  )
+                ).unwrap()
               )
-            ).unwrap()
-          }
-        )
+            }
+          )
+        ).unwrap()
         expect(currentSubscriptionStatuses).toContain(
           subscription.status
         )
@@ -1313,55 +1382,62 @@ describe('Process setup intent', async () => {
         })
 
         // Process the first setup intent
-        const firstResult = await adminTransaction(
-          async ({ transaction }) => {
-            await updateSubscription(
-              {
-                id: localOldSubscription.id,
-                status: SubscriptionStatus.Canceled,
-                renews: localOldSubscription.renews,
-              },
-              transaction
-            )
-            await createFeeCalculationForCheckoutSession(
-              localFirstCheckoutSession as CheckoutSession.FeeReadyRecord,
-              transaction
-            )
-            const result = (
-              await processSetupIntentSucceeded(
-                localFirstSetupIntent,
-                createDiscardingEffectsContext(transaction)
+        const firstResult = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await updateSubscription(
+                {
+                  id: localOldSubscription.id,
+                  status: SubscriptionStatus.Canceled,
+                  renews: localOldSubscription.renews,
+                },
+                transaction
               )
-            ).unwrap()
-            if (!('billingRun' in result)) {
-              throw new Error('Billing run not found')
-            }
-            expect(result.billingRun).toMatchObject({})
-            return {
-              ...result,
-              subscription: (
-                await selectSubscriptionById(
-                  result.billingRun!.subscriptionId,
-                  transaction
+              await createFeeCalculationForCheckoutSession(
+                localFirstCheckoutSession as CheckoutSession.FeeReadyRecord,
+                transaction
+              )
+              const result = (
+                await processSetupIntentSucceeded(
+                  localFirstSetupIntent,
+                  createDiscardingEffectsContext(transaction)
                 )
-              ).unwrap(),
+              ).unwrap()
+              if (!('billingRun' in result)) {
+                throw new Error('Billing run not found')
+              }
+              expect(result.billingRun).toMatchObject({})
+              return Result.ok(
+                await {
+                  ...result,
+                  subscription: (
+                    await selectSubscriptionById(
+                      result.billingRun!.subscriptionId,
+                      transaction
+                    )
+                  ).unwrap(),
+                }
+              )
             }
-          }
-        )
+          )
+        ).unwrap()
 
         // The result should include a trial end date for the new subscription
-        expect(typeof firstResult.subscription.trialEnd).toBe(
-          'object'
-        )
-
-        // Cancel the subscription so we can create a new one
-        await adminTransaction(async ({ transaction }) => {
-          await safelyUpdateSubscriptionStatus(
-            firstResult.subscription,
-            SubscriptionStatus.Canceled,
-            transaction
+        expect(typeof firstResult.subscription.trialEnd)
+          .toBe('object')(
+            // Cancel the subscription so we can create a new one
+            await adminTransactionWithResult(
+              async ({ transaction }) => {
+                await safelyUpdateSubscriptionStatus(
+                  firstResult.subscription,
+                  SubscriptionStatus.Canceled,
+                  transaction
+                )
+                return Result.ok(undefined)
+              }
+            )
           )
-        })
+          .unwrap()
 
         // Create a local second checkout session
         const localSecondCheckoutSession = await setupCheckoutSession(
@@ -1383,36 +1459,41 @@ describe('Process setup intent', async () => {
         })
 
         // Process the second setup intent
-        const { subscription: secondSubscription } =
-          await adminTransaction(async ({ transaction }) => {
-            await createFeeCalculationForCheckoutSession(
-              localSecondCheckoutSession as CheckoutSession.FeeReadyRecord,
-              transaction
-            )
-            const initialResult =
-              await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
-                localSecondSetupIntent,
-                createDiscardingEffectsContext(transaction)
+        const { subscription: secondSubscription } = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await createFeeCalculationForCheckoutSession(
+                localSecondCheckoutSession as CheckoutSession.FeeReadyRecord,
+                transaction
               )
-            const result = (
-              await createSubscriptionFromSetupIntentableCheckoutSession(
-                {
-                  ...initialResult.unwrap(),
-                  setupIntent: localSecondSetupIntent,
-                },
-                createDiscardingEffectsContext(transaction)
-              )
-            ).unwrap()
-            return {
-              ...result,
-              subscription: (
-                await selectSubscriptionById(
-                  result.billingRun!.subscriptionId,
-                  transaction
+              const initialResult =
+                await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+                  localSecondSetupIntent,
+                  createDiscardingEffectsContext(transaction)
                 )
-              ).unwrap(),
+              const result = (
+                await createSubscriptionFromSetupIntentableCheckoutSession(
+                  {
+                    ...initialResult.unwrap(),
+                    setupIntent: localSecondSetupIntent,
+                  },
+                  createDiscardingEffectsContext(transaction)
+                )
+              ).unwrap()
+              return Result.ok(
+                await {
+                  ...result,
+                  subscription: (
+                    await selectSubscriptionById(
+                      result.billingRun!.subscriptionId,
+                      transaction
+                    )
+                  ).unwrap(),
+                }
+              )
             }
-          })
+          )
+        ).unwrap()
 
         // The second subscription should not include a trial end date
         expect(secondSubscription.trialEnd).toBeNull()
@@ -1441,30 +1522,34 @@ describe('Process setup intent', async () => {
         })
 
         // Process the setup intent for the new customer
-        const newSubscription = await adminTransaction(
-          async ({ transaction }) => {
-            await createFeeCalculationForCheckoutSession(
-              newCheckoutSession as CheckoutSession.FeeReadyRecord,
-              transaction
-            )
-            const result = (
-              await processSetupIntentSucceeded(
-                newSetupIntent,
-                createDiscardingEffectsContext(transaction)
-              )
-            ).unwrap()
-            if (!('billingRun' in result)) {
-              throw new Error('Billing run not found')
-            }
-            expect(result.billingRun).toMatchObject({})
-            return (
-              await selectSubscriptionById(
-                result.billingRun!.subscriptionId,
+        const newSubscription = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await createFeeCalculationForCheckoutSession(
+                newCheckoutSession as CheckoutSession.FeeReadyRecord,
                 transaction
               )
-            ).unwrap()
-          }
-        )
+              const result = (
+                await processSetupIntentSucceeded(
+                  newSetupIntent,
+                  createDiscardingEffectsContext(transaction)
+                )
+              ).unwrap()
+              if (!('billingRun' in result)) {
+                throw new Error('Billing run not found')
+              }
+              expect(result.billingRun).toMatchObject({})
+              return Result.ok(
+                await (
+                  await selectSubscriptionById(
+                    result.billingRun!.subscriptionId,
+                    transaction
+                  )
+                ).unwrap()
+              )
+            }
+          )
+        ).unwrap()
 
         // The new subscription should include a trial end date
         expect(typeof newSubscription.trialEnd).toBe('object')
@@ -1474,19 +1559,26 @@ describe('Process setup intent', async () => {
     describe('Edge Cases', () => {
       it('handles cases where customer ID is missing', async () => {
         // Update checkout session to have no customer ID
-        await adminTransaction(async ({ transaction }) => {
-          await selectCheckoutSessionById(
-            checkoutSession.id,
-            transaction
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await selectCheckoutSessionById(
+                checkoutSession.id,
+                transaction
+              )
+              checkoutSession.customerId = null
+              return Result.ok(undefined)
+            }
           )
-          checkoutSession.customerId = null
-        })
+        ).unwrap()
 
         await expect(
-          adminTransaction(async ({ transaction }) => {
-            return processSetupIntentSucceeded(
-              succeededSetupIntent,
-              createDiscardingEffectsContext(transaction)
+          adminTransactionWithResult(async ({ transaction }) => {
+            return Result.ok(
+              await processSetupIntentSucceeded(
+                succeededSetupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
             )
           })
         ).rejects.toThrow()
@@ -1503,10 +1595,12 @@ describe('Process setup intent', async () => {
         } as CoreSripeSetupIntent
 
         await expect(
-          adminTransaction(async ({ transaction }) => {
-            return processSetupIntentSucceeded(
-              invalidSetupIntent,
-              createDiscardingEffectsContext(transaction)
+          adminTransactionWithResult(async ({ transaction }) => {
+            return Result.ok(
+              await processSetupIntentSucceeded(
+                invalidSetupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
             )
           })
         ).rejects.toThrow()

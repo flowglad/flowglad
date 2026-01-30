@@ -38,7 +38,7 @@ import {
   setupPurchase,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import {
@@ -407,8 +407,8 @@ describe('confirmCheckoutSessionTransaction', () => {
 
     it('should create free subscription when default product exists', async () => {
       // Ensure there is a free default price for this pricing model by creating one on the default product
-      const defaultProductId = await adminTransaction(
-        async ({ transaction }) => {
+      const defaultProductId = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const results =
             await selectPricesProductsAndPricingModelsForOrganization(
               { isDefault: true, livemode: true },
@@ -424,9 +424,9 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           if (!match.product)
             throw new Error('Product not found for default price')
-          return match.product.id
-        }
-      )
+          return Result.ok(await match.product.id)
+        })
+      ).unwrap()
       const freeDefaultPrice = await setupPrice({
         productId: defaultProductId,
         name: 'Free Plan',
@@ -479,15 +479,17 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer.email).toEqual('newcustomer@example.com')
 
       // Check for events in the database
-      const dbEvents = await adminTransaction(
-        async ({ transaction }) => {
-          return selectEventsByCustomer(
-            result.customer.id,
-            organization.id,
-            transaction
+      const dbEvents = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectEventsByCustomer(
+              result.customer.id,
+              organization.id,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify CustomerCreated event was created
       const customerCreatedEvent = dbEvents.find(
@@ -521,14 +523,16 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       // Verify a subscription record exists and is a free plan linked to the free default price
-      const subscriptions = await adminTransaction(
-        async ({ transaction }) => {
-          return selectSubscriptions(
-            { customerId: result.customer.id },
-            transaction
+      const subscriptions = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectSubscriptions(
+              { customerId: result.customer.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(subscriptions).toHaveLength(1)
       expect(subscriptions[0].isFreePlan).toBe(true)
       expect(subscriptions[0].priceId).toEqual(defaultPriceId)

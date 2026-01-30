@@ -16,7 +16,7 @@ import {
   setupProduct,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { CancellationReason } from '@/types'
 import { core } from '@/utils/core'
@@ -107,20 +107,21 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'Second Free Sub',
-      }
-
-      await adminTransaction(async ({ transaction }) => {
-        const result = await verifyCanCreateSubscription(
-          params,
-          transaction
-        )
-        expect(Result.isError(result)).toBe(true)
-        if (Result.isError(result)) {
-          expect(result.error.message).toMatch(
-            /already has an active free subscription.*Only one free subscription is allowed per customer/
+      }(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await verifyCanCreateSubscription(
+            params,
+            transaction
           )
-        }
-      })
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
+            expect(result.error.message).toMatch(
+              /already has an active free subscription.*Only one free subscription is allowed per customer/
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should allow creating a paid subscription when a free subscription exists', async () => {
@@ -158,25 +159,26 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'Paid Sub',
-      }
+      }(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Update organization to allow multiple subscriptions
+          await updateOrganization(
+            {
+              id: organization.id,
+              allowMultipleSubscriptionsPerCustomer: true,
+            },
+            transaction
+          )
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update organization to allow multiple subscriptions
-        await updateOrganization(
-          {
-            id: organization.id,
-            allowMultipleSubscriptionsPerCustomer: true,
-          },
-          transaction
-        )
-
-        // This should succeed
-        const result = await verifyCanCreateSubscription(
-          params,
-          transaction
-        )
-        expect(Result.isOk(result)).toBe(true)
-      })
+          // This should succeed
+          const result = await verifyCanCreateSubscription(
+            params,
+            transaction
+          )
+          expect(Result.isOk(result)).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should allow creating a free subscription when no active free subscription exists', async () => {
@@ -207,29 +209,33 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'New Free Sub',
-      }
-
-      await adminTransaction(async ({ transaction }) => {
-        // This should succeed
-        const result = await verifyCanCreateSubscription(
-          params,
-          transaction
-        )
-        expect(Result.isOk(result)).toBe(true)
-      })
+      }(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // This should succeed
+          const result = await verifyCanCreateSubscription(
+            params,
+            transaction
+          )
+          expect(Result.isOk(result)).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should allow multiple paid subscriptions when organization allows it', async () => {
       // Update organization to allow multiple subscriptions
-      await adminTransaction(async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: organization.id,
-            allowMultipleSubscriptionsPerCustomer: true,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: organization.id,
+              allowMultipleSubscriptionsPerCustomer: true,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create first paid subscription
       const paymentMethod = await setupPaymentMethod({
@@ -265,16 +271,17 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'Second Paid Sub',
-      }
-
-      await adminTransaction(async ({ transaction }) => {
-        // This should succeed
-        const result = await verifyCanCreateSubscription(
-          params,
-          transaction
-        )
-        expect(Result.isOk(result)).toBe(true)
-      })
+      }(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // This should succeed
+          const result = await verifyCanCreateSubscription(
+            params,
+            transaction
+          )
+          expect(Result.isOk(result)).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })

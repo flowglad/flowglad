@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import type { Organization } from '@db-core/schema/organizations'
+import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
   AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE,
   UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE,
   USAGE_LIMIT_SUBSCRIPTION_TEMPLATE,
 } from '@/constants/pricingModelTemplates'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
 
 let organization: Organization.Record
@@ -41,18 +42,22 @@ describe('Template Integration Tests', () => {
       ]
 
       for (const { template, expectedName } of templates) {
-        const result = await adminTransaction(async (ctx) =>
-          (
-            await setupPricingModelTransaction(
-              {
-                input: template.input,
-                organizationId: organization.id,
-                livemode: false,
-              },
-              ctx
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await (
+                await setupPricingModelTransaction(
+                  {
+                    input: template.input,
+                    organizationId: organization.id,
+                    livemode: false,
+                  },
+                  ctx
+                )
+              ).unwrap()
             )
-          ).unwrap()
-        )
+          })
+        ).unwrap()
 
         expect(typeof result.pricingModel.id).toBe('string')
         expect(result.pricingModel.name).toBe(expectedName)
@@ -66,35 +71,43 @@ describe('Template Integration Tests', () => {
         name: 'My Custom Usage Model',
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input: customInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input: customInput,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       expect(result.pricingModel.name).toBe('My Custom Usage Model')
     })
 
     it('should create template in correct environment', async () => {
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE.input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE.input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       expect(result.pricingModel.livemode).toBe(false)
       expect(result.products.every((p) => p.livemode === false)).toBe(

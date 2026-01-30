@@ -6,8 +6,9 @@ import type {
 } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
+import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   getMembershipNotificationPreferences,
@@ -84,14 +85,16 @@ describe('memberships RLS - notificationPreferences', () => {
     org1User = userApiKeyOrg1.user
 
     // Get the membership for org1User
-    const org1Memberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMemberships(
-          { userId: org1User.id, organizationId: org1.id },
-          transaction
+    const org1Memberships = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectMemberships(
+            { userId: org1User.id, organizationId: org1.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     org1Membership = org1Memberships[0]
 
     // Setup second organization with user and API key
@@ -109,14 +112,16 @@ describe('memberships RLS - notificationPreferences', () => {
     org2User = userApiKeyOrg2.user
 
     // Get the membership for org2User
-    const org2Memberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMemberships(
-          { userId: org2User.id, organizationId: org2.id },
-          transaction
+    const org2Memberships = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectMemberships(
+            { userId: org2User.id, organizationId: org2.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     org2Membership = org2Memberships[0]
   })
 
@@ -236,18 +241,21 @@ describe('memberships RLS - notificationPreferences', () => {
 
     it('preserves existing preferences when updating partial preferences', async () => {
       // First, set some initial preferences via admin
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: org1Membership.id,
-            notificationPreferences: {
-              subscriptionCreated: false,
-              paymentFailed: false,
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: org1Membership.id,
+              notificationPreferences: {
+                subscriptionCreated: false,
+                paymentFailed: false,
+              },
             },
-          },
-          transaction
-        )
-      })
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Now user updates only testModeNotifications via authenticated transaction
       const updatedMembership = await authenticatedTransaction(
@@ -301,16 +309,20 @@ describe('memberships RLS - notificationPreferences', () => {
         )
         // If we get here, the update might have "succeeded" but affected 0 rows
         // Check that the membership was NOT actually updated
-        const membership = await adminTransaction(
-          async ({ transaction }) => {
-            return (
-              await selectMembershipById(
-                org2Membership.id,
-                transaction
+        const membership = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await (
+                  await selectMembershipById(
+                    org2Membership.id,
+                    transaction
+                  )
+                ).unwrap()
               )
-            ).unwrap()
-          }
-        )
+            }
+          )
+        ).unwrap()
         const prefs = getMembershipNotificationPreferences(membership)
         // Should still be default, not modified
         expect(prefs.testModeNotifications).toBe(true) // default value
@@ -339,16 +351,20 @@ describe('memberships RLS - notificationPreferences', () => {
           { apiKey: org2ApiKey.token! }
         )
         // If we get here, check that the membership was NOT actually updated
-        const membership = await adminTransaction(
-          async ({ transaction }) => {
-            return (
-              await selectMembershipById(
-                org1Membership.id,
-                transaction
+        const membership = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await (
+                  await selectMembershipById(
+                    org1Membership.id,
+                    transaction
+                  )
+                ).unwrap()
               )
-            ).unwrap()
-          }
-        )
+            }
+          )
+        ).unwrap()
         const prefs = getMembershipNotificationPreferences(membership)
         // Should still be default (false), not true
         expect(prefs.testModeNotifications).toBe(false)
@@ -626,16 +642,20 @@ describe('memberships RLS - same-org different-user isolation', () => {
         })
 
         // If we get here, verify the membership was NOT actually updated
-        const membership = await adminTransaction(
-          async ({ transaction }) => {
-            return (
-              await selectMembershipById(
-                user1Membership.id,
-                transaction
+        const membership = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await (
+                  await selectMembershipById(
+                    user1Membership.id,
+                    transaction
+                  )
+                ).unwrap()
               )
-            ).unwrap()
-          }
-        )
+            }
+          )
+        ).unwrap()
         const prefs = getMembershipNotificationPreferences(membership)
         // Should still be default (true), not changed to false
         expect(prefs.testModeNotifications).toBe(true)
@@ -665,16 +685,20 @@ describe('memberships RLS - same-org different-user isolation', () => {
         })
 
         // If we get here, verify the membership was NOT actually updated
-        const membership = await adminTransaction(
-          async ({ transaction }) => {
-            return (
-              await selectMembershipById(
-                user2Membership.id,
-                transaction
+        const membership = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await (
+                  await selectMembershipById(
+                    user2Membership.id,
+                    transaction
+                  )
+                ).unwrap()
               )
-            ).unwrap()
-          }
-        )
+            }
+          )
+        ).unwrap()
         const prefs = getMembershipNotificationPreferences(membership)
         // Should still be default (true), not changed to false
         expect(prefs.testModeNotifications).toBe(true)

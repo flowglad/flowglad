@@ -19,7 +19,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import {
@@ -52,18 +52,20 @@ describe('Pay as You Go Workflow E2E', () => {
       pricingModel,
       product: freeProduct,
       price: freePrice,
-    } = await setupOrg()
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await updateOrganization(
-        {
-          id: organization.id,
-          stripeAccountId: 'acct_123' + core.nanoid(),
-          payoutsEnabled: true,
-        },
-        transaction
-      )
-    })
+    } = await setupOrg()(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await updateOrganization(
+          {
+            id: organization.id,
+            stripeAccountId: 'acct_123' + core.nanoid(),
+            payoutsEnabled: true,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'API Calls',
@@ -128,19 +130,21 @@ describe('Pay as You Go Workflow E2E', () => {
       livemode: pricingModel.livemode,
       isDefault: false,
       usageMeterId: usageMeter.id,
-    })
-    // Override unitPrice to 0 for the default/free price
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await updatePrice(
-        {
-          id: freePrice.id,
-          type: freePrice.type,
-          unitPrice: 0,
-        },
-        ctx
-      )
-    })
+    })(
+      // Override unitPrice to 0 for the default/free price
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await updatePrice(
+          {
+            id: freePrice.id,
+            type: freePrice.type,
+            unitPrice: 0,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
     const { customer, subscription } =
       await comprehensiveAdminTransaction(
         async ({
@@ -175,52 +179,54 @@ describe('Pay as You Go Workflow E2E', () => {
     if (!subscription) {
       throw new Error('No subscription')
     }
-
     // 1. Expect usage credits and initial billing
-    await adminTransaction(async (ctx) => {
-      const { transaction, livemode } = ctx
-      // expect there to be a usageCredit record for the meter and subscription
-      const usageCredits = await selectUsageCredits(
-        {
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-        },
-        transaction
-      )
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction, livemode } = ctx
+        // expect there to be a usageCredit record for the meter and subscription
+        const usageCredits = await selectUsageCredits(
+          {
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+          },
+          transaction
+        )
 
-      // For non-renewing subscriptions, Once credits are granted initially
-      expect(usageCredits).toHaveLength(1)
-      expect(usageCredits[0].usageMeterId).toBe(usageMeter.id)
-      expect(usageCredits[0].status).toBe(UsageCreditStatus.Posted)
+        // For non-renewing subscriptions, Once credits are granted initially
+        expect(usageCredits).toHaveLength(1)
+        expect(usageCredits[0].usageMeterId).toBe(usageMeter.id)
+        expect(usageCredits[0].status).toBe(UsageCreditStatus.Posted)
 
-      // Total should be 100 (Once)
-      const totalIssuedAmount = usageCredits.reduce(
-        (sum, credit) => sum + credit.issuedAmount,
-        0
-      )
-      expect(totalIssuedAmount).toBe(100)
+        // Total should be 100 (Once)
+        const totalIssuedAmount = usageCredits.reduce(
+          (sum, credit) => sum + credit.issuedAmount,
+          0
+        )
+        expect(totalIssuedAmount).toBe(100)
 
-      // call @customerBillingTransaction and check state
-      const cacheRecomputationContext: CacheRecomputationContext = {
-        type: 'admin',
-        livemode,
-      }
-      const billingState1 = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction,
-        cacheRecomputationContext
-      )
-      const sub1 = billingState1.subscriptions[0]
-      expect(sub1.status).toBe(SubscriptionStatus.Active)
-      expect(sub1.experimental?.featureItems).toHaveLength(1)
-      expect(sub1.experimental?.usageMeterBalances).toHaveLength(1)
-      expect(
-        sub1.experimental?.usageMeterBalances?.[0].availableBalance
-      ).toBe(100) // 100 (Once)
-    })
+        // call @customerBillingTransaction and check state
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState1 = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        const sub1 = billingState1.subscriptions[0]
+        expect(sub1.status).toBe(SubscriptionStatus.Active)
+        expect(sub1.experimental?.featureItems).toHaveLength(1)
+        expect(sub1.experimental?.usageMeterBalances).toHaveLength(1)
+        expect(
+          sub1.experimental?.usageMeterBalances?.[0].availableBalance
+        ).toBe(100) // 100 (Once)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // 2. Create a usage event for the subscription
     const staticTransctionId = 'test-' + core.nanoid()
@@ -242,31 +248,32 @@ describe('Pay as You Go Workflow E2E', () => {
         },
         ctx
       )
-    })
-
-    // 3. Call @customerBillingTransaction again and assert final state
-    await adminTransaction(async (ctx) => {
-      const { transaction, livemode } = ctx
-      const cacheRecomputationContext: CacheRecomputationContext = {
-        type: 'admin',
-        livemode,
-      }
-      const billingState2 = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction,
-        cacheRecomputationContext
-      )
-      const sub2 = billingState2.subscriptions[0]
-      expect(sub2.status).toBe(SubscriptionStatus.Active)
-      expect(sub2.experimental?.featureItems).toHaveLength(1)
-      expect(sub2.experimental?.usageMeterBalances).toHaveLength(1)
-      expect(
-        sub2.experimental?.usageMeterBalances?.[0].availableBalance
-      ).toBe(0) // 100 - 100 (usage)
-    })
+    })(
+      // 3. Call @customerBillingTransaction again and assert final state
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction, livemode } = ctx
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState2 = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        const sub2 = billingState2.subscriptions[0]
+        expect(sub2.status).toBe(SubscriptionStatus.Active)
+        expect(sub2.experimental?.featureItems).toHaveLength(1)
+        expect(sub2.experimental?.usageMeterBalances).toHaveLength(1)
+        expect(
+          sub2.experimental?.usageMeterBalances?.[0].availableBalance
+        ).toBe(0) // 100 - 100 (usage)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // 4. Create a usage event for the subscription
     await comprehensiveAdminTransaction(async (ctx) => {
@@ -287,38 +294,39 @@ describe('Pay as You Go Workflow E2E', () => {
         },
         ctx
       )
-    })
-
-    // 5. Call @customerBillingTransaction again and assert final state
-    await adminTransaction(async (ctx) => {
-      const { transaction, livemode } = ctx
-      const cacheRecomputationContext: CacheRecomputationContext = {
-        type: 'admin',
-        livemode,
-      }
-      const billingState2Prime = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction,
-        cacheRecomputationContext
-      )
-      const sub2Prime = billingState2Prime.subscriptions[0]
-      expect(sub2Prime.status).toBe(SubscriptionStatus.Active)
-      expect(sub2Prime.experimental?.featureItems).toHaveLength(1)
-      expect(sub2Prime.experimental?.usageMeterBalances).toHaveLength(
-        1
-      )
-      /**
-       * Expect the available balance to be 0
-       * (Started with 100 credits, used 100 credits)
-       */
-      expect(
-        sub2Prime.experimental?.usageMeterBalances?.[0]
-          .availableBalance
-      ).toBe(0)
-    })
+    })(
+      // 5. Call @customerBillingTransaction again and assert final state
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction, livemode } = ctx
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState2Prime = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        const sub2Prime = billingState2Prime.subscriptions[0]
+        expect(sub2Prime.status).toBe(SubscriptionStatus.Active)
+        expect(sub2Prime.experimental?.featureItems).toHaveLength(1)
+        expect(
+          sub2Prime.experimental?.usageMeterBalances
+        ).toHaveLength(1)
+        /**
+         * Expect the available balance to be 0
+         * (Started with 100 credits, used 100 credits)
+         */
+        expect(
+          sub2Prime.experimental?.usageMeterBalances?.[0]
+            .availableBalance
+        ).toBe(0)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
     const checkoutSession = await comprehensiveAdminTransaction(

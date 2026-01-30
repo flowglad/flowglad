@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { FlowgladEventType } from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
+import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { createWebhookTransaction } from './webhooks'
 
 describe('createWebhookTransaction', () => {
@@ -19,22 +20,24 @@ describe('createWebhookTransaction', () => {
 
   describe('pricingModelId validation', () => {
     it('creates webhook when pricingModelId belongs to the same organization and matches livemode', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createWebhookTransaction({
-            webhook: {
-              name: 'Test Webhook',
-              url: 'https://example.com/webhook',
-              filterTypes: [FlowgladEventType.SubscriptionCreated],
-              active: true,
-              pricingModelId: livePricingModelId,
-            },
-            organization,
-            livemode: true,
-            transaction,
-          })
-        }
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createWebhookTransaction({
+              webhook: {
+                name: 'Test Webhook',
+                url: 'https://example.com/webhook',
+                filterTypes: [FlowgladEventType.SubscriptionCreated],
+                active: true,
+                pricingModelId: livePricingModelId,
+              },
+              organization,
+              livemode: true,
+              transaction,
+            })
+          )
+        })
+      ).unwrap()
 
       expect(result.webhook.id).toStartWith('webhook_')
       expect(result.webhook.name).toBe('Test Webhook')
@@ -46,22 +49,24 @@ describe('createWebhookTransaction', () => {
     })
 
     it('creates webhook with testmode pricingModelId when webhook is testmode', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createWebhookTransaction({
-            webhook: {
-              name: 'Testmode Webhook',
-              url: 'https://example.com/webhook-testmode',
-              filterTypes: [FlowgladEventType.PaymentSucceeded],
-              active: true,
-              pricingModelId: testmodePricingModelId,
-            },
-            organization,
-            livemode: false,
-            transaction,
-          })
-        }
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createWebhookTransaction({
+              webhook: {
+                name: 'Testmode Webhook',
+                url: 'https://example.com/webhook-testmode',
+                filterTypes: [FlowgladEventType.PaymentSucceeded],
+                active: true,
+                pricingModelId: testmodePricingModelId,
+              },
+              organization,
+              livemode: false,
+              transaction,
+            })
+          )
+        })
+      ).unwrap()
 
       expect(result.webhook.id).toStartWith('webhook_')
       expect(result.webhook.pricingModelId).toBe(
@@ -77,19 +82,21 @@ describe('createWebhookTransaction', () => {
       const otherOrgPricingModelId = otherOrgSetup.pricingModel.id
 
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return createWebhookTransaction({
-            webhook: {
-              name: 'Should Not Create',
-              url: 'https://example.com/should-fail',
-              filterTypes: [],
-              active: true,
-              pricingModelId: otherOrgPricingModelId,
-            },
-            organization, // Original organization
-            livemode: true,
-            transaction,
-          })
+        adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createWebhookTransaction({
+              webhook: {
+                name: 'Should Not Create',
+                url: 'https://example.com/should-fail',
+                filterTypes: [],
+                active: true,
+                pricingModelId: otherOrgPricingModelId,
+              },
+              organization, // Original organization
+              livemode: true,
+              transaction,
+            })
+          )
         })
       ).rejects.toThrow(
         'Invalid pricing model for this organization and mode'
@@ -98,19 +105,21 @@ describe('createWebhookTransaction', () => {
 
     it('rejects webhook creation when pricingModelId has different livemode than the webhook', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return createWebhookTransaction({
-            webhook: {
-              name: 'Should Not Create',
-              url: 'https://example.com/should-fail',
-              filterTypes: [],
-              active: true,
-              pricingModelId: testmodePricingModelId, // testmode pricing model
-            },
-            organization,
-            livemode: true, // but livemode webhook
-            transaction,
-          })
+        adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createWebhookTransaction({
+              webhook: {
+                name: 'Should Not Create',
+                url: 'https://example.com/should-fail',
+                filterTypes: [],
+                active: true,
+                pricingModelId: testmodePricingModelId, // testmode pricing model
+              },
+              organization,
+              livemode: true, // but livemode webhook
+              transaction,
+            })
+          )
         })
       ).rejects.toThrow(
         'Invalid pricing model for this organization and mode'
@@ -119,19 +128,21 @@ describe('createWebhookTransaction', () => {
 
     it('rejects webhook creation when livemode pricingModelId is used with testmode webhook', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
-          return createWebhookTransaction({
-            webhook: {
-              name: 'Should Not Create',
-              url: 'https://example.com/should-fail',
-              filterTypes: [],
-              active: true,
-              pricingModelId: livePricingModelId, // livemode pricing model
-            },
-            organization,
-            livemode: false, // but testmode webhook
-            transaction,
-          })
+        adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createWebhookTransaction({
+              webhook: {
+                name: 'Should Not Create',
+                url: 'https://example.com/should-fail',
+                filterTypes: [],
+                active: true,
+                pricingModelId: livePricingModelId, // livemode pricing model
+              },
+              organization,
+              livemode: false, // but testmode webhook
+              transaction,
+            })
+          )
         })
       ).rejects.toThrow(
         'Invalid pricing model for this organization and mode'
@@ -148,44 +159,48 @@ describe('createWebhookTransaction', () => {
         FlowgladEventType.PaymentFailed,
       ]
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createWebhookTransaction({
-            webhook: {
-              name: 'Multi-Event Webhook',
-              url: 'https://example.com/multi-events',
-              filterTypes,
-              active: true,
-              pricingModelId: livePricingModelId,
-            },
-            organization,
-            livemode: true,
-            transaction,
-          })
-        }
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createWebhookTransaction({
+              webhook: {
+                name: 'Multi-Event Webhook',
+                url: 'https://example.com/multi-events',
+                filterTypes,
+                active: true,
+                pricingModelId: livePricingModelId,
+              },
+              organization,
+              livemode: true,
+              transaction,
+            })
+          )
+        })
+      ).unwrap()
 
       expect(result.webhook.filterTypes).toEqual(filterTypes)
       expect(result.webhook.filterTypes).toHaveLength(4)
     })
 
     it('creates webhook with empty filter types array (subscribes to all events)', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createWebhookTransaction({
-            webhook: {
-              name: 'All Events Webhook',
-              url: 'https://example.com/all-events',
-              filterTypes: [],
-              active: true,
-              pricingModelId: livePricingModelId,
-            },
-            organization,
-            livemode: true,
-            transaction,
-          })
-        }
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createWebhookTransaction({
+              webhook: {
+                name: 'All Events Webhook',
+                url: 'https://example.com/all-events',
+                filterTypes: [],
+                active: true,
+                pricingModelId: livePricingModelId,
+              },
+              organization,
+              livemode: true,
+              transaction,
+            })
+          )
+        })
+      ).unwrap()
 
       expect(result.webhook.filterTypes).toEqual([])
     })
@@ -195,8 +210,8 @@ describe('createWebhookTransaction', () => {
     it('allows creating webhooks for different pricing models in the same organization', async () => {
       // Note: There's a unique constraint that only allows one livemode=true pricing model per org
       // So we test with the existing livemode and testmode pricing models from setupOrg
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           // Create webhook for livemode pricing model
           const result1 = await createWebhookTransaction({
             webhook: {
@@ -225,12 +240,14 @@ describe('createWebhookTransaction', () => {
             transaction,
           })
 
-          return {
-            webhook1: result1.webhook,
-            webhook2: result2.webhook,
-          }
-        }
-      )
+          return Result.ok(
+            await {
+              webhook1: result1.webhook,
+              webhook2: result2.webhook,
+            }
+          )
+        })
+      ).unwrap()
 
       expect(result.webhook1.pricingModelId).toBe(livePricingModelId)
       expect(result.webhook2.pricingModelId).toBe(
