@@ -192,62 +192,63 @@ describe('Customer Role RLS Policies', () => {
 
     const org2Data = await setupOrg()
     org2 = org2Data.organization
-    org2Price = org2Data
-      .price(
-        // Setup users
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          userA = await insertUser(
-            {
-              id: `usr_${core.nanoid()}`,
-              email: `userA_${core.nanoid()}@test.com`,
-              name: 'User A',
-              betterAuthId: `bau_${core.nanoid()}`,
-            },
-            transaction
-          )
+    org2Price = org2Data.price
 
-          userB = await insertUser(
-            {
-              id: `usr_${core.nanoid()}`,
-              email: `userB_${core.nanoid()}@test.com`,
-              name: 'User B',
-              betterAuthId: `bau_${core.nanoid()}`,
-            },
-            transaction
-          )
+    // Setup users
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        userA = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userA_${core.nanoid()}@test.com`,
+            name: 'User A',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
 
-          userC = await insertUser(
-            {
-              id: `usr_${core.nanoid()}`,
-              email: `userC_${core.nanoid()}@test.com`,
-              name: 'User C',
-              betterAuthId: `bau_${core.nanoid()}`,
-            },
-            transaction
-          )
+        userB = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userB_${core.nanoid()}@test.com`,
+            name: 'User B',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
 
-          userD = await insertUser(
-            {
-              id: `usr_${core.nanoid()}`,
-              email: `userD_${core.nanoid()}@test.com`,
-              name: 'User D',
-              betterAuthId: `bau_${core.nanoid()}`,
-            },
-            transaction
-          )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+        userC = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userC_${core.nanoid()}@test.com`,
+            name: 'User C',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
+
+        userD = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userD_${core.nanoid()}@test.com`,
+            name: 'User D',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Setup customers for Org1
     customerA_Org1 = await setupCustomer({
       organizationId: org1.id,
       email: userA.email!,
       livemode: true,
-    })(
-      // Update with userId
+    })
+    // Update with userId
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         customerA_Org1 = await updateCustomer(
@@ -266,7 +267,8 @@ describe('Customer Role RLS Policies', () => {
       organizationId: org1.id,
       email: userB.email!,
       livemode: true,
-    })(
+    })
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         customerB_Org1 = await updateCustomer(
@@ -296,7 +298,8 @@ describe('Customer Role RLS Policies', () => {
       organizationId: org2.id,
       email: userC.email!,
       livemode: true,
-    })(
+    })
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         customerA_Org2 = await updateCustomer(
@@ -315,7 +318,8 @@ describe('Customer Role RLS Policies', () => {
       organizationId: org2.id,
       email: userD.email!,
       livemode: true,
-    })(
+    })
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         customerD_Org2 = await updateCustomer(
