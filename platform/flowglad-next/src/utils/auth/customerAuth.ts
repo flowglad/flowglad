@@ -41,7 +41,6 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
     }
   )
 
-  // Build the magic link URL with OTP
   // Send the magic link email
   await sendCustomerBillingPortalMagicLink({
     to: [email],
@@ -111,13 +110,13 @@ export const customerAuth = betterAuth({
     expiresIn: 60 * 60 * 24,
     additionalFields: {
       scope: {
-        type: 'string',
+        type: 'string' as const,
         required: true,
         defaultValue: 'customer',
         input: false, // server-only
       },
       contextOrganizationId: {
-        type: 'string',
+        type: 'string' as const,
         required: false,
         input: false, // set programmatically during sign-in
       },
@@ -139,37 +138,39 @@ export const customerAuth = betterAuth({
       async sendVerificationOTP({ email, otp }) {
         const customerBillingPortalOrganizationId =
           await getCustomerBillingPortalOrganizationId()
-        if (!customerBillingPortalOrganizationId) {
+        if (customerBillingPortalOrganizationId) {
+          await handleSendVerificationOTP({
+            email,
+            otp,
+            organizationId: customerBillingPortalOrganizationId,
+          })
+        } else {
           throw new Error(
-            'Customer billing portal organization ID not found in cookies'
+            'Customer OTP requires organization context'
           )
         }
-        await handleSendVerificationOTP({
-          email,
-          otp,
-          organizationId: customerBillingPortalOrganizationId,
-        })
       },
-      otpLength: 6, // 6-digit OTP code
-      expiresIn: 600, // 10 minutes in seconds (600 seconds)
-      allowedAttempts: 3, // Maximum 3 attempts before OTP becomes invalid
+      otpLength: 6,
+      expiresIn: 600,
+      allowedAttempts: 3,
     }),
     // Magic link plugin - fallback authentication method for customers
     magicLink({
       async sendMagicLink({ email, url, token }) {
         const customerBillingPortalOrganizationId =
           await getCustomerBillingPortalOrganizationId()
-        if (!customerBillingPortalOrganizationId) {
+        if (customerBillingPortalOrganizationId) {
+          await handleCustomerBillingPortalEmailOTP({
+            email,
+            url,
+            token,
+            organizationId: customerBillingPortalOrganizationId,
+          })
+        } else {
           throw new Error(
-            'Customer billing portal organization ID not found in cookies'
+            'Customer magic link requires organization context'
           )
         }
-        await handleCustomerBillingPortalEmailOTP({
-          email,
-          url,
-          token,
-          organizationId: customerBillingPortalOrganizationId,
-        })
       },
     }),
   ],

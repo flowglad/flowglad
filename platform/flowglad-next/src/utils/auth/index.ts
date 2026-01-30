@@ -1,14 +1,15 @@
-/**
- * Auth module exports.
- * This module provides both merchant and customer authentication instances.
- */
-
+// Export constants
 export * from './constants'
+// Export customer auth
 export * from './customerAuth'
+
+// Export merchant auth
 export * from './merchantAuth'
-// Re-export merchant auth as default for backward compatibility
+// Re-export merchantAuth as 'auth' for backward compatibility
+// This allows existing code that imports { auth } from '@/utils/auth' to continue working
 export {
   getMerchantSession as getSession,
   merchantAuth as auth,
 } from './merchantAuth'
+// Export shared configuration
 export * from './shared'
