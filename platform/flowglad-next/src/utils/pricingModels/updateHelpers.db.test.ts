@@ -752,33 +752,35 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: add feature-c to product A, add feature-y to product B
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [
-              {
-                productId: productA.id,
-                desiredFeatureSlugs: [
-                  'feature-a',
-                  'feature-b',
-                  'feature-c',
-                ],
-              },
-              {
-                productId: productB.id,
-                desiredFeatureSlugs: ['feature-x', 'feature-y'],
-              },
-            ],
-            featureSlugToIdMap,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const syncResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [
+                {
+                  productId: productA.id,
+                  desiredFeatureSlugs: [
+                    'feature-a',
+                    'feature-b',
+                    'feature-c',
+                  ],
+                },
+                {
+                  productId: productB.id,
+                  desiredFeatureSlugs: ['feature-x', 'feature-y'],
+                },
+              ],
+              featureSlugToIdMap,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Expect: creates productFeatures for c and y
     expect(syncResult.added.length).toBe(2)
@@ -906,29 +908,31 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: remove feature-c from product A, remove feature-y from product B
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [
-              {
-                productId: productA.id,
-                desiredFeatureSlugs: ['feature-a', 'feature-b'], // Remove c
-              },
-              {
-                productId: productB.id,
-                desiredFeatureSlugs: ['feature-x'], // Remove y
-              },
-            ],
-            featureSlugToIdMap,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const syncResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [
+                {
+                  productId: productA.id,
+                  desiredFeatureSlugs: ['feature-a', 'feature-b'], // Remove c
+                },
+                {
+                  productId: productB.id,
+                  desiredFeatureSlugs: ['feature-x'], // Remove y
+                },
+              ],
+              featureSlugToIdMap,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Expect: expires productFeatures for c and y
     expect(syncResult.removed.length).toBe(2)
@@ -1077,29 +1081,31 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Sync: completely replace features
     // Product A: [a, b] -> [c, d]
     // Product B: [x, y] -> [z]
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [
-              {
-                productId: productA.id,
-                desiredFeatureSlugs: ['feature-c', 'feature-d'],
-              },
-              {
-                productId: productB.id,
-                desiredFeatureSlugs: ['feature-z'],
-              },
-            ],
-            featureSlugToIdMap,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const syncResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [
+                {
+                  productId: productA.id,
+                  desiredFeatureSlugs: ['feature-c', 'feature-d'],
+                },
+                {
+                  productId: productB.id,
+                  desiredFeatureSlugs: ['feature-z'],
+                },
+              ],
+              featureSlugToIdMap,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Expect: removes a, b, x, y and adds c, d, z
     expect(syncResult.removed.length).toBe(4)
@@ -1276,33 +1282,35 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Product A: [a, b] -> [a, b] (no change)
     // Product B: [x] -> [x, y] (add y)
     // Product C: [p, q] -> [p] (remove q)
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [
-              {
-                productId: productA.id,
-                desiredFeatureSlugs: ['feature-a', 'feature-b'],
-              },
-              {
-                productId: productB.id,
-                desiredFeatureSlugs: ['feature-x', 'feature-y'],
-              },
-              {
-                productId: productC.id,
-                desiredFeatureSlugs: ['feature-p'],
-              },
-            ],
-            featureSlugToIdMap,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const syncResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [
+                {
+                  productId: productA.id,
+                  desiredFeatureSlugs: ['feature-a', 'feature-b'],
+                },
+                {
+                  productId: productB.id,
+                  desiredFeatureSlugs: ['feature-x', 'feature-y'],
+                },
+                {
+                  productId: productC.id,
+                  desiredFeatureSlugs: ['feature-p'],
+                },
+              ],
+              featureSlugToIdMap,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Expect: only y added and q removed
     expect(syncResult.added.length).toBe(1)
@@ -1327,20 +1335,22 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('returns empty added and removed arrays when given empty products list', async () => {
     // Test: call with empty productsWithFeatures array
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [],
-            featureSlugToIdMap: new Map(),
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const syncResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [],
+              featureSlugToIdMap: new Map(),
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Expect: returns empty added and removed arrays, no errors
     expect(syncResult.added).toEqual([])
@@ -1417,25 +1427,27 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Step 1: Remove feature-b (this will expire it)
-    const removeResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [
-              {
-                productId: productA.id,
-                desiredFeatureSlugs: ['feature-a'], // Remove feature-b
-              },
-            ],
-            featureSlugToIdMap,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const removeResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [
+                {
+                  productId: productA.id,
+                  desiredFeatureSlugs: ['feature-a'], // Remove feature-b
+                },
+              ],
+              featureSlugToIdMap,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Verify feature-b was removed (expired)
     expect(removeResult.removed.length).toBe(1)
@@ -1445,25 +1457,27 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(typeof removeResult.removed[0].expiredAt).toBe('number')
 
     // Step 2: Re-add feature-b (this should unexpire it)
-    const reAddResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [
-              {
-                productId: productA.id,
-                desiredFeatureSlugs: ['feature-a', 'feature-b'], // Re-add feature-b
-              },
-            ],
-            featureSlugToIdMap,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const reAddResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [
+                {
+                  productId: productA.id,
+                  desiredFeatureSlugs: ['feature-a', 'feature-b'], // Re-add feature-b
+                },
+              ],
+              featureSlugToIdMap,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Verify feature-b was added back (unexpired)
     expect(reAddResult.added.length).toBe(1)
@@ -1595,25 +1609,27 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Sync: request only feature-a (feature-b is already expired)
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
-        const result = await syncProductFeaturesForMultipleProducts(
-          {
-            productsWithFeatures: [
-              {
-                productId: productA.id,
-                desiredFeatureSlugs: ['feature-a'],
-              },
-            ],
-            featureSlugToIdMap,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          params
-        )
-        return Result.ok(result)
-      }
-    )
+    const syncResult = (
+      await comprehensiveAdminTransactionWithResult(
+        async (params) => {
+          const result = await syncProductFeaturesForMultipleProducts(
+            {
+              productsWithFeatures: [
+                {
+                  productId: productA.id,
+                  desiredFeatureSlugs: ['feature-a'],
+                },
+              ],
+              featureSlugToIdMap,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            params
+          )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     // Expect: no removals because feature-b was already expired
     expect(syncResult.removed.length).toBe(0)

@@ -194,14 +194,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processSetupIntentSucceeded(
-            setupIntent,
-            createDiscardingEffectsContext(transaction)
-          )
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await processSetupIntentSucceeded(
+                setupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            )
+          }
+        )
+      ).unwrap()
 
       // Verify free subscription was canceled
       const updatedFreeSubscription = (
@@ -303,12 +307,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await processSetupIntentSucceeded(
+                setupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Get the new subscription
       const allSubscriptions = (
@@ -399,12 +409,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await processSetupIntentSucceeded(
+                setupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Verify new subscription was created
       const allSubscriptions = (
@@ -520,12 +536,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await processSetupIntentSucceeded(
+                setupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Verify free subscription was canceled
       const updatedFreeSubscription = (
@@ -662,12 +684,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async ({ transaction }) => {
+            return Result.ok(
+              await processSetupIntentSucceeded(
+                setupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Verify free subscription remains active
       const updatedFreeSubscription = (

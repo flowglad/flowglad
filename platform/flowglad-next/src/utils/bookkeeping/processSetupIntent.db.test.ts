@@ -36,6 +36,7 @@ import {
 } from '@/../seedDatabase'
 import {
   adminTransactionWithResult,
+  comprehensiveAdminTransaction,
   comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
@@ -1013,15 +1014,18 @@ describe('Process setup intent', async () => {
         })
 
         // First webhook delivery - should succeed
-        const firstActivationResult =
-          await comprehensiveAdminTransaction(
+        const firstActivationResult = (
+          await comprehensiveAdminTransactionWithResult(
             async ({ transaction }) => {
-              return processSetupIntentSucceeded(
-                setupIntent,
-                createDiscardingEffectsContext(transaction)
+              return Result.ok(
+                await processSetupIntentSucceeded(
+                  setupIntent,
+                  createDiscardingEffectsContext(transaction)
+                )
               )
             }
           )
+        ).unwrap()
 
         // Verify the result type
         expect(firstActivationResult.type).toBe(
@@ -1067,15 +1071,18 @@ describe('Process setup intent', async () => {
           firstResult.subscription.billingCycleAnchorDate
 
         // Second webhook delivery (replay) - should be idempotent
-        const secondActivationResult =
-          await comprehensiveAdminTransaction(
+        const secondActivationResult = (
+          await comprehensiveAdminTransactionWithResult(
             async ({ transaction }) => {
-              return processSetupIntentSucceeded(
-                setupIntent,
-                createDiscardingEffectsContext(transaction)
+              return Result.ok(
+                await processSetupIntentSucceeded(
+                  setupIntent,
+                  createDiscardingEffectsContext(transaction)
+                )
               )
             }
           )
+        ).unwrap()
 
         // Verify idempotent behavior
         expect(secondActivationResult.type).toBe(
@@ -1176,15 +1183,18 @@ describe('Process setup intent', async () => {
         })
 
         // Process first activation
-        const firstActivationResult =
-          await comprehensiveAdminTransaction(
+        const firstActivationResult = (
+          await comprehensiveAdminTransactionWithResult(
             async ({ transaction }) => {
-              return processSetupIntentSucceeded(
-                setupIntent1,
-                createDiscardingEffectsContext(transaction)
+              return Result.ok(
+                await processSetupIntentSucceeded(
+                  setupIntent1,
+                  createDiscardingEffectsContext(transaction)
+                )
               )
             }
           )
+        ).unwrap()
 
         // Verify first activation succeeded and set stripeSetupIntentId
         expect(firstActivationResult.type).toBe(
@@ -1225,15 +1235,18 @@ describe('Process setup intent', async () => {
         // Process the SAME setup intent again (webhook replay)
         // The idempotency check should find the subscription by its stripeSetupIntentId
         // and short-circuit, returning the existing subscription without reprocessing
-        const secondActivationResult =
-          await comprehensiveAdminTransaction(
+        const secondActivationResult = (
+          await comprehensiveAdminTransactionWithResult(
             async ({ transaction }) => {
-              return processSetupIntentSucceeded(
-                setupIntent1, // Same setup intent as before
-                createDiscardingEffectsContext(transaction)
+              return Result.ok(
+                await processSetupIntentSucceeded(
+                  setupIntent1, // Same setup intent as before
+                  createDiscardingEffectsContext(transaction)
+                )
               )
             }
           )
+        ).unwrap()
 
         // Verify it short-circuited and returned the existing subscription
         expect(secondActivationResult.type).toBe(
@@ -1299,18 +1312,22 @@ describe('Process setup intent', async () => {
           stripeCustomerId: freshCustomer.stripeCustomerId!,
         })
 
-        const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            await createFeeCalculationForCheckoutSession(
-              freshCheckoutSession as CheckoutSession.FeeReadyRecord,
-              transaction
-            )
-            return processSetupIntentSucceeded(
-              freshSetupIntentSucceeded,
-              createDiscardingEffectsContext(transaction)
-            )
-          }
-        )
+        const result = (
+          await comprehensiveAdminTransactionWithResult(
+            async ({ transaction }) => {
+              await createFeeCalculationForCheckoutSession(
+                freshCheckoutSession as CheckoutSession.FeeReadyRecord,
+                transaction
+              )
+              return Result.ok(
+                await processSetupIntentSucceeded(
+                  freshSetupIntentSucceeded,
+                  createDiscardingEffectsContext(transaction)
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         expect(result.purchase?.status).toEqual(PurchaseStatus.Paid)
         expect(result.checkoutSession.status).toEqual(
