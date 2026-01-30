@@ -62,17 +62,18 @@ async function checkMockServerHealth(
   url: string,
   headers?: Record<string, string>
 ): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 1000)
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 1000)
     const response = await fetch(url, {
       signal: controller.signal,
       headers,
     })
-    clearTimeout(timeout)
     return response.ok
   } catch {
     return false
+  } finally {
+    clearTimeout(timeout)
   }
 }
 

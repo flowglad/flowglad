@@ -111,10 +111,13 @@ function handleRedisCommand(
     case 'EXISTS':
       return { result: 0 }
 
-    // Keys/Scan - return empty array
+    // Keys - return empty array
     case 'KEYS':
-    case 'SCAN':
       return { result: [] }
+
+    // Scan - return [cursor, keys[]] format per Redis semantics
+    case 'SCAN':
+      return { result: ['0', []] }
 
     // Ping - return PONG
     case 'PING':
