@@ -34,15 +34,6 @@ export interface SessionResponse {
   session: { id: string; expiresAt: string }
 }
 
-/**
- * Error codes returned by the device token endpoint during polling.
- */
-export type DeviceFlowError =
-  | 'authorization_pending'
-  | 'slow_down'
-  | 'expired_token'
-  | 'access_denied'
-
 export class DeviceFlowAuthorizationPendingError extends Error {
   constructor() {
     super('Authorization pending - user has not yet authorized')
@@ -113,7 +104,20 @@ export const requestDeviceCode = async (
     )
   }
 
-  const data = await response.json()
+  const data: unknown = await response.json()
+
+  // Validate device code response structure
+  if (
+    !isRecord(data) ||
+    typeof data.device_code !== 'string' ||
+    typeof data.user_code !== 'string' ||
+    typeof data.verification_uri !== 'string' ||
+    typeof data.verification_uri_complete !== 'string' ||
+    typeof data.expires_in !== 'number' ||
+    typeof data.interval !== 'number'
+  ) {
+    throw new Error('Invalid device code response')
+  }
 
   // Better Auth returns snake_case, we convert to camelCase
   return {
@@ -212,7 +216,33 @@ const fetchSession = async (
     )
   }
 
-  return response.json()
+  const data: unknown = await response.json()
+
+  // Validate session response structure
+  if (
+    !isRecord(data) ||
+    !isRecord(data.user) ||
+    typeof data.user.id !== 'string' ||
+    typeof data.user.email !== 'string' ||
+    typeof data.user.name !== 'string' ||
+    !isRecord(data.session) ||
+    typeof data.session.id !== 'string' ||
+    typeof data.session.expiresAt !== 'string'
+  ) {
+    throw new Error('Invalid session response')
+  }
+
+  return {
+    user: {
+      id: data.user.id,
+      email: data.user.email,
+      name: data.user.name,
+    },
+    session: {
+      id: data.session.id,
+      expiresAt: data.session.expiresAt,
+    },
+  }
 }
 
 /**
