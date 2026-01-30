@@ -14,6 +14,11 @@ name: Flowglad Next Unit Tests
 on:
   workflow_call:
 
+# Explicit permissions for GHCR access (required for private org packages)
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   # Unit tests are fast and don't need a database - run in a single job
   flowglad-next-unit-tests:
@@ -71,6 +76,22 @@ jobs:
         ports:
           - 12111:12111
           - 12112:12112
+      # Image name defined in packages/mock-server/src/docker-config.ts
+      flowglad-mock-server:
+        image: ghcr.io/flowglad/flowglad/mock-server:latest
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 9001:9001
+          - 9002:9002
+          - 9003:9003
+        options: >-
+          --health-cmd "curl -f http://localhost:9001/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
 
     defaults:
       run:
