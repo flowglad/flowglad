@@ -11,7 +11,7 @@ import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
   adminTransactionWithResult,
-  comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import {
   selectProductFeatures,

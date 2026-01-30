@@ -34,7 +34,7 @@ import {
 } from '@/../seedDatabase'
 import {
   adminTransactionWithResult,
-  comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
@@ -104,40 +104,42 @@ describe('createCustomerBookkeeping', () => {
       const emittedEvents: Event.Insert[] = []
 
       // Create customer through the bookkeeping function
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          // Wrap emitEvent to capture events
-          const capturingEmitEvent = (event: Event.Insert) => {
-            emittedEvents.push(event)
-            emitEvent(event)
-          }
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            // Wrap emitEvent to capture events
+            const capturingEmitEvent = (event: Event.Insert) => {
+              emittedEvents.push(event)
+              emitEvent(event)
+            }
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode,
-              invalidateCache,
-              emitEvent: capturingEmitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent: capturingEmitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // expects:
       // - customer should be created successfully
@@ -220,36 +222,38 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create customer with specified pricing model
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer with Custom Pricing',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
-                pricingModelId: customPricingModel.id,
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer with Custom Pricing',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                  pricingModelId: customPricingModel.id,
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode: customProduct.livemode,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode: customProduct.livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // expects:
       // - customer should be created with the specified pricing model
@@ -308,40 +312,42 @@ describe('createCustomerBookkeeping', () => {
       const emittedEvents: Event.Insert[] = []
 
       // Create customer with the empty pricing model
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const capturingEmitEvent = (event: Event.Insert) => {
-            emittedEvents.push(event)
-            emitEvent(event)
-          }
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer No Default Product',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
-                pricingModelId: emptyPricingModel.id,
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const capturingEmitEvent = (event: Event.Insert) => {
+              emittedEvents.push(event)
+              emitEvent(event)
+            }
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer No Default Product',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                  pricingModelId: emptyPricingModel.id,
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode,
-              invalidateCache,
-              emitEvent: capturingEmitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent: capturingEmitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // expects:
       // - customer should be created successfully
@@ -418,40 +424,42 @@ describe('createCustomerBookkeeping', () => {
       const emittedEvents: Event.Insert[] = []
 
       // Create customer
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const capturingEmitEvent = (event: Event.Insert) => {
-            emittedEvents.push(event)
-            emitEvent(event)
-          }
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer No Default Price',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
-                pricingModelId: pricingModelNoDefaultPrice.id,
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const capturingEmitEvent = (event: Event.Insert) => {
+              emittedEvents.push(event)
+              emitEvent(event)
+            }
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer No Default Price',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                  pricingModelId: pricingModelNoDefaultPrice.id,
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode,
-              invalidateCache,
-              emitEvent: capturingEmitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent: capturingEmitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
       // expects:
       // - customer should be created successfully
       // - no subscription should be created since there's no default price
@@ -492,35 +500,37 @@ describe('createCustomerBookkeeping', () => {
       // - default price already has 14 day trial period
       // - create a customer and verify trial end date is set
 
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer with Trial',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer with Trial',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // expects:
       // - customer and subscription should be created
@@ -588,35 +598,37 @@ describe('createCustomerBookkeeping', () => {
       // Attempt to create customer for the minimal org - should throw error
       let error: Error | null = null
       try {
-        await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            await createCustomerBookkeeping(
-              {
-                customer: {
-                  email: `test+${core.nanoid()}@example.com`,
-                  name: 'Test Customer No Pricing Model',
-                  organizationId: minimalOrg.id,
-                  externalId: `ext_${core.nanoid()}`,
+        ;(
+          await comprehensiveAdminTransactionWithResult(
+            async ({
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }) => {
+              await createCustomerBookkeeping(
+                {
+                  customer: {
+                    email: `test+${core.nanoid()}@example.com`,
+                    name: 'Test Customer No Pricing Model',
+                    organizationId: minimalOrg.id,
+                    externalId: `ext_${core.nanoid()}`,
+                  },
                 },
-              },
-              withAdminCacheContext({
-                transaction,
-                organizationId: minimalOrg.id,
-                livemode,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              })
-            )
-            return Result.ok(null)
-          }
-        )
+                withAdminCacheContext({
+                  transaction,
+                  organizationId: minimalOrg.id,
+                  livemode,
+                  invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
+                })
+              )
+              return Result.ok(null)
+            }
+          )
+        ).unwrap()
       } catch (err: unknown) {
         error = err as Error
       }
@@ -636,7 +648,7 @@ describe('createCustomerBookkeeping', () => {
 
       // Attempt to create a customer with mismatched organizationId
       await expect(
-        comprehensiveAdminTransaction(
+        comprehensiveAdminTransactionWithResult(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -674,35 +686,37 @@ describe('createCustomerBookkeeping', () => {
       // setup:
       // - create a customer and verify the subscription has proper metadata
 
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer Metadata',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer Metadata',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // expects:
       // - subscription should be created with proper name
@@ -744,34 +758,36 @@ describe('createCustomerBookkeeping', () => {
 
       const now = Date.now()
 
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Customer Billing Period Dates',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Customer Billing Period Dates',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // Verify subscription was created
       expect(result.subscription).toMatchObject({})
@@ -870,36 +886,38 @@ describe('createCustomerBookkeeping', () => {
       ).toBe(PriceType.SinglePayment)
 
       // Create a customer without specifying pricing model (uses default)
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test SinglePayment Customer',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
-                // No pricingModelId - will use default
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test SinglePayment Customer',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                  // No pricingModelId - will use default
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode: testLivemode,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode: testLivemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // Verify customer and subscription were created
       expect(result.customer).toMatchObject({})
@@ -953,36 +971,38 @@ describe('createCustomerBookkeeping', () => {
       ).toBe(PriceType.Subscription)
 
       // Create a customer without specifying pricing model (uses default)
-      const result = await comprehensiveAdminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          const output = await createCustomerBookkeeping(
-            {
-              customer: {
-                email: `test+${core.nanoid()}@example.com`,
-                name: 'Test Subscription Customer',
-                organizationId: organization.id,
-                externalId: `ext_${core.nanoid()}`,
-                // No pricingModelId - will use default
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const output = await createCustomerBookkeeping(
+              {
+                customer: {
+                  email: `test+${core.nanoid()}@example.com`,
+                  name: 'Test Subscription Customer',
+                  organizationId: organization.id,
+                  externalId: `ext_${core.nanoid()}`,
+                  // No pricingModelId - will use default
+                },
               },
-            },
-            withAdminCacheContext({
-              transaction,
-              organizationId: organization.id,
-              livemode: testLivemode,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            })
-          )
-          return Result.ok(output)
-        }
-      )
+              withAdminCacheContext({
+                transaction,
+                organizationId: organization.id,
+                livemode: testLivemode,
+                invalidateCache,
+                emitEvent,
+                enqueueLedgerCommand,
+              })
+            )
+            return Result.ok(output)
+          }
+        )
+      ).unwrap()
 
       // Verify customer and subscription were created
       expect(result.customer).toMatchObject({})
@@ -1059,8 +1079,8 @@ describe('createCustomerBookkeeping', () => {
       ).unwrap()
 
       // Test 1: Customer with SinglePayment pricing model
-      const singlePaymentCustomerResult =
-        await comprehensiveAdminTransaction(
+      const singlePaymentCustomerResult = (
+        await comprehensiveAdminTransactionWithResult(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -1092,6 +1112,7 @@ describe('createCustomerBookkeeping', () => {
             return Result.ok(output)
           }
         )
+      ).unwrap()
 
       // Verify SinglePayment subscription behavior
       const singlePaymentSub =
@@ -1101,8 +1122,8 @@ describe('createCustomerBookkeeping', () => {
       expect(singlePaymentSub.currentBillingPeriodEnd).toBeNull()
 
       // Test 2: Customer with Subscription pricing model
-      const subscriptionCustomerResult =
-        await comprehensiveAdminTransaction(
+      const subscriptionCustomerResult = (
+        await comprehensiveAdminTransactionWithResult(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -1133,6 +1154,7 @@ describe('createCustomerBookkeeping', () => {
             return Result.ok(output)
           }
         )
+      ).unwrap()
 
       // Verify Subscription behavior
       const subscriptionSub = subscriptionCustomerResult.subscription!
@@ -2428,31 +2450,35 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updatePurchaseStatusToReflectLatestPayment(payment, {
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        })
+        }) => {
+          await updatePurchaseStatusToReflectLatestPayment(payment, {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          })
 
-        // Verify purchase status was updated to Paid
-        const updatedPurchase = (
-          await selectPurchaseById(purchase.id, transaction)
-        ).unwrap()
-        expect(updatedPurchase.status).toBe(PurchaseStatus.Paid)
-        expect(updatedPurchase.purchaseDate).toBe(payment.chargeDate)
-        return Result.ok(null)
-      }
-    )
+          // Verify purchase status was updated to Paid
+          const updatedPurchase = (
+            await selectPurchaseById(purchase.id, transaction)
+          ).unwrap()
+          expect(updatedPurchase.status).toBe(PurchaseStatus.Paid)
+          expect(updatedPurchase.purchaseDate).toBe(
+            payment.chargeDate
+          )
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 
   it('should update purchase status to Failed when payment status is Canceled', async () => {
@@ -2468,30 +2494,32 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updatePurchaseStatusToReflectLatestPayment(payment, {
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        })
+        }) => {
+          await updatePurchaseStatusToReflectLatestPayment(payment, {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          })
 
-        // Verify purchase status was updated to Failed
-        const updatedPurchase = (
-          await selectPurchaseById(purchase.id, transaction)
-        ).unwrap()
-        expect(updatedPurchase.status).toBe(PurchaseStatus.Failed)
-        return Result.ok(null)
-      }
-    )
+          // Verify purchase status was updated to Failed
+          const updatedPurchase = (
+            await selectPurchaseById(purchase.id, transaction)
+          ).unwrap()
+          expect(updatedPurchase.status).toBe(PurchaseStatus.Failed)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 
   it('should update purchase status to Pending when payment status is Processing', async () => {
@@ -2507,30 +2535,32 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updatePurchaseStatusToReflectLatestPayment(payment, {
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        })
+        }) => {
+          await updatePurchaseStatusToReflectLatestPayment(payment, {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          })
 
-        // Verify purchase status was updated to Pending
-        const updatedPurchase = (
-          await selectPurchaseById(purchase.id, transaction)
-        ).unwrap()
-        expect(updatedPurchase.status).toBe(PurchaseStatus.Pending)
-        return Result.ok(null)
-      }
-    )
+          // Verify purchase status was updated to Pending
+          const updatedPurchase = (
+            await selectPurchaseById(purchase.id, transaction)
+          ).unwrap()
+          expect(updatedPurchase.status).toBe(PurchaseStatus.Pending)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 
   it('should not update any purchase when payment has no purchaseId', async () => {
@@ -2547,33 +2577,35 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updatePurchaseStatusToReflectLatestPayment(
-          paymentWithoutPurchase,
-          {
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }
-        )
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await updatePurchaseStatusToReflectLatestPayment(
+            paymentWithoutPurchase,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
 
-        // Verify purchase status was NOT updated (should remain Open)
-        const unchangedPurchase = (
-          await selectPurchaseById(purchase.id, transaction)
-        ).unwrap()
-        expect(unchangedPurchase.status).toBe(PurchaseStatus.Open)
-        return Result.ok(null)
-      }
-    )
+          // Verify purchase status was NOT updated (should remain Open)
+          const unchangedPurchase = (
+            await selectPurchaseById(purchase.id, transaction)
+          ).unwrap()
+          expect(unchangedPurchase.status).toBe(PurchaseStatus.Open)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 })
 
@@ -2627,30 +2659,32 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updateInvoiceStatusToReflectLatestPayment(payment, {
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        })
+        }) => {
+          await updateInvoiceStatusToReflectLatestPayment(payment, {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          })
 
-        // Verify invoice status was updated to Paid
-        const updatedInvoice = (
-          await selectInvoiceById(invoice.id, transaction)
-        ).unwrap()
-        expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
-        return Result.ok(null)
-      }
-    )
+          // Verify invoice status was updated to Paid
+          const updatedInvoice = (
+            await selectInvoiceById(invoice.id, transaction)
+          ).unwrap()
+          expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 
   it('should not update invoice when payment status is not Succeeded', async () => {
@@ -2665,30 +2699,32 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updateInvoiceStatusToReflectLatestPayment(payment, {
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        })
+        }) => {
+          await updateInvoiceStatusToReflectLatestPayment(payment, {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          })
 
-        // Verify invoice status was NOT updated (should remain Draft)
-        const unchangedInvoice = (
-          await selectInvoiceById(invoice.id, transaction)
-        ).unwrap()
-        expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
-        return Result.ok(null)
-      }
-    )
+          // Verify invoice status was NOT updated (should remain Draft)
+          const unchangedInvoice = (
+            await selectInvoiceById(invoice.id, transaction)
+          ).unwrap()
+          expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 
   it('should not update invoice when it is already Paid', async () => {
@@ -2711,30 +2747,32 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updateInvoiceStatusToReflectLatestPayment(payment, {
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        })
+        }) => {
+          await updateInvoiceStatusToReflectLatestPayment(payment, {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          })
 
-        // Verify invoice status is still Paid (no change)
-        const unchangedInvoice = (
-          await selectInvoiceById(paidInvoice.id, transaction)
-        ).unwrap()
-        expect(unchangedInvoice.status).toBe(InvoiceStatus.Paid)
-        return Result.ok(null)
-      }
-    )
+          // Verify invoice status is still Paid (no change)
+          const unchangedInvoice = (
+            await selectInvoiceById(paidInvoice.id, transaction)
+          ).unwrap()
+          expect(unchangedInvoice.status).toBe(InvoiceStatus.Paid)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 
   it('should not update invoice when total payments are less than invoice total', async () => {
@@ -2759,33 +2797,35 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updateInvoiceStatusToReflectLatestPayment(
-          partialPayment,
-          {
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }
-        )
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await updateInvoiceStatusToReflectLatestPayment(
+            partialPayment,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
 
-        // Verify invoice status was NOT updated (should remain Draft)
-        const unchangedInvoice = (
-          await selectInvoiceById(invoice.id, transaction)
-        ).unwrap()
-        expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
-        return Result.ok(null)
-      }
-    )
+          // Verify invoice status was NOT updated (should remain Draft)
+          const unchangedInvoice = (
+            await selectInvoiceById(invoice.id, transaction)
+          ).unwrap()
+          expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 
   it('should update invoice to Paid when multiple payments cover the total', async () => {
@@ -2822,32 +2862,34 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       chargeDate: Date.now(),
     })
 
-    await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        await updateInvoiceStatusToReflectLatestPayment(
-          secondPayment,
-          {
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }
-        )
+    ;(
+      await comprehensiveAdminTransactionWithResult(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await updateInvoiceStatusToReflectLatestPayment(
+            secondPayment,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
 
-        // Verify invoice status was updated to Paid
-        const updatedInvoice = (
-          await selectInvoiceById(invoice.id, transaction)
-        ).unwrap()
-        expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
-        return Result.ok(null)
-      }
-    )
+          // Verify invoice status was updated to Paid
+          const updatedInvoice = (
+            await selectInvoiceById(invoice.id, transaction)
+          ).unwrap()
+          expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
+          return Result.ok(null)
+        }
+      )
+    ).unwrap()
   })
 })

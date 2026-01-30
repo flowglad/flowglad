@@ -55,7 +55,7 @@ import {
 } from '@/../seedDatabase'
 import {
   adminTransactionWithResult,
-  comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import {
   selectBillingPeriods,
@@ -936,12 +936,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
@@ -1007,12 +1010,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
@@ -1055,12 +1061,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
@@ -1101,13 +1110,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async (params) =>
-          attemptToTransitionSubscriptionBillingPeriod(
-            pastBillingPeriod,
-            createProcessingEffectsContext(params)
-          )
+      const { subscription: updatedSub } = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
+      ).unwrap()
       canceledSub = updatedSub
 
       // expects:
@@ -1134,12 +1145,15 @@ describe('Ledger Interactions', () => {
 
     it('should not grant usage credits if the subscription has no credit entitlements', async () => {
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
@@ -1212,13 +1226,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async (params) =>
-          attemptToTransitionSubscriptionBillingPeriod(
-            pastBillingPeriod,
-            createProcessingEffectsContext(params)
-          )
+      const { subscription: updatedSub } = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
+      ).unwrap()
       pastDueSub = updatedSub
 
       // expects:
@@ -1311,12 +1327,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
@@ -1406,12 +1425,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
@@ -1514,12 +1536,15 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // Assertions:
       ;(
@@ -1588,12 +1613,15 @@ describe('Ledger Interactions', () => {
           },
         ],
       })
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       const expiredLedgerEntryResult = (
         await adminTransactionWithResult(async ({ transaction }) => {
@@ -1701,12 +1729,15 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
         await adminTransactionWithResult(async ({ transaction }) => {
@@ -1813,12 +1844,15 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
         await adminTransactionWithResult(async ({ transaction }) => {
@@ -1884,12 +1918,15 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
         await adminTransactionWithResult(async ({ transaction }) => {
@@ -1955,12 +1992,15 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
         await adminTransactionWithResult(async ({ transaction }) => {
@@ -2086,12 +2126,15 @@ describe('Ledger Interactions', () => {
       })
 
       // Action
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
       // Assertions
       ;(
         await adminTransactionWithResult(async ({ transaction }) => {
@@ -2213,12 +2256,15 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // Assertions:
       ;(
@@ -2366,12 +2412,15 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async (params) =>
-        attemptToTransitionSubscriptionBillingPeriod(
-          pastBillingPeriod,
-          createProcessingEffectsContext(params)
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) =>
+            attemptToTransitionSubscriptionBillingPeriod(
+              pastBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
         )
-      )
+      ).unwrap()
 
       // Assertions:
       ;(
@@ -2545,12 +2594,14 @@ describe('Resource claim expiration during billing period transition', async () 
     )
 
     // Transition the billing period
-    await comprehensiveAdminTransaction(async (params) =>
-      attemptToTransitionSubscriptionBillingPeriod(
-        billingPeriod,
-        createProcessingEffectsContext(params)
+    ;(
+      await comprehensiveAdminTransactionWithResult(async (params) =>
+        attemptToTransitionSubscriptionBillingPeriod(
+          billingPeriod,
+          createProcessingEffectsContext(params)
+        )
       )
-    )
+    ).unwrap()
 
     // Verify claims after transition
     const claimsAfter = (
