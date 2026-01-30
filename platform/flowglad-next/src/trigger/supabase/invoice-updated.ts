@@ -42,23 +42,10 @@ export const invoiceUpdatedTask = task({
             transaction
           )
 
-          const customerRows =
-            await selectCustomerAndCustomerTableRows(
-              {
-                id: newRecord.customerId,
-              },
-              transaction
-            )
-          const customer = customerRows[0]?.customer
-          if (!customer) {
-            return Result.err(
-              new NotFoundError('Customer', newRecord.customerId)
-            )
-          }
-
+          // First get the organization for the invoice to scope the customer query
           const organization = (
             await selectOrganizationById(
-              customer.organizationId,
+              newRecord.organizationId,
               transaction
             )
           ).unwrap()
@@ -66,8 +53,23 @@ export const invoiceUpdatedTask = task({
             return Result.err(
               new NotFoundError(
                 'Organization',
-                customer.organizationId
+                newRecord.organizationId
               )
+            )
+          }
+
+          const customerRows =
+            await selectCustomerAndCustomerTableRows(
+              {
+                id: newRecord.customerId,
+              },
+              newRecord.organizationId,
+              transaction
+            )
+          const customer = customerRows[0]?.customer
+          if (!customer) {
+            return Result.err(
+              new NotFoundError('Customer', newRecord.customerId)
             )
           }
           logger.info(

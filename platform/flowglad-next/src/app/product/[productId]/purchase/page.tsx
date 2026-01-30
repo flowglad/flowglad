@@ -1,8 +1,9 @@
+import { Result } from 'better-result'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import CheckoutNotValidPage from '@/components/CheckoutNotValidPage'
 import CheckoutPage from '@/components/CheckoutPage'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { checkoutInfoForPriceWhere } from '@/utils/checkoutHelpers'
 
@@ -18,14 +19,16 @@ export async function generateMetadata({
   const { productId } = await params
 
   try {
-    const [{ product, organization }] = await adminTransaction(
-      async ({ transaction }) => {
-        return await selectPriceProductAndOrganizationByPriceWhere(
-          { productId, isDefault: true },
-          transaction
+    const [{ product, organization }] = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectPriceProductAndOrganizationByPriceWhere(
+            { productId, isDefault: true },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     return {
       title: `${organization.name} | ${product.name}`,
