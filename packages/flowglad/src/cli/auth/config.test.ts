@@ -90,10 +90,18 @@ describe('CLI credential storage', () => {
 
       const stats = await stat(testConfigDir)
       expect(stats.isDirectory()).toBe(true)
-      expect(stats.mode & 0o777).toBe(0o700)
+      // POSIX permissions only work on non-Windows platforms
+      if (process.platform !== 'win32') {
+        expect(stats.mode & 0o777).toBe(0o700)
+      }
     })
 
     it('fixes permissions to 700 when the directory exists with different permissions', async () => {
+      // Skip permission tests on Windows as chmod/mode don't work the same way
+      if (process.platform === 'win32') {
+        return
+      }
+
       // Set incorrect permissions
       await chmod(testConfigDir, 0o755)
 
@@ -127,7 +135,10 @@ describe('CLI credential storage', () => {
 
       // Verify file exists and has correct permissions
       expect(stats.isFile()).toBe(true)
-      expect(stats.mode & 0o777).toBe(0o600)
+      // POSIX permissions only work on non-Windows platforms
+      if (process.platform !== 'win32') {
+        expect(stats.mode & 0o777).toBe(0o600)
+      }
 
       // Verify content is correct
       const loaded = await loadCredentials()
