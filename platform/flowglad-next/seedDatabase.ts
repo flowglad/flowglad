@@ -1290,8 +1290,10 @@ export const setupPayment = async ({
 
 export const setupMemberships = async ({
   organizationId,
+  focusedPricingModelId,
 }: {
   organizationId: string
+  focusedPricingModelId: string
 }) => {
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
@@ -1312,6 +1314,7 @@ export const setupMemberships = async ({
             focused: true,
             livemode: true,
             role: MembershipRole.Member,
+            focusedPricingModelId,
           },
           transaction
         )
@@ -1901,6 +1904,7 @@ export const setupUserAndApiKey = async ({
             organizationId,
             focused: true,
             livemode,
+            focusedPricingModelId: targetPricingModel.id,
           })
           .returning()
           .then(R.head)

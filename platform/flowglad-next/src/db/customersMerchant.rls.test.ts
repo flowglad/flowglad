@@ -61,6 +61,7 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
           focused: false,
           livemode: true,
           role: MembershipRole.Member,
+          focusedPricingModelId: pricingModel2Id,
         },
         transaction
       )

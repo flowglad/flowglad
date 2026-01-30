@@ -3,6 +3,7 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Resource } from '@db-core/schema/resources'
 import {
   Check,
+  Circle,
   CopyPlus,
   Download,
   Pencil,
@@ -203,20 +204,28 @@ function InnerPricingModelDetailsPage({
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={pricingModel.name}
-          breadcrumb="All Pricing"
-          onBreadcrumbClick={() => router.push('/pricing-models')}
           className="pb-4"
           badges={
-            pricingModel.isDefault
+            pricingModel.livemode
               ? [
                   {
                     icon: <Check className="h-3.5 w-3.5" />,
-                    label: 'Default',
+                    label: 'Live',
                     variant: 'active' as const,
-                    tooltip: 'Assigned to new customers by default',
                   },
                 ]
-              : []
+              : [
+                  {
+                    icon: <Circle className="h-3.5 w-3.5" />,
+                    label: pricingModel.isDefault
+                      ? 'Test - Default'
+                      : 'Test',
+                    variant: 'warning' as const,
+                    ...(pricingModel.isDefault && {
+                      tooltip: 'Assigned to new customers by default',
+                    }),
+                  },
+                ]
           }
           description={
             <div className="flex items-center gap-2">

@@ -12,7 +12,14 @@ import {
 import { Input } from '@/components/ui/input'
 import PricingModelSelect from './PricingModelSelect'
 
-const ApiKeyFormFields = () => {
+interface ApiKeyFormFieldsProps {
+  /** When true, hides the pricing model selector (PM is auto-set from focused membership) */
+  hidePricingModelSelector?: boolean
+}
+
+const ApiKeyFormFields = ({
+  hidePricingModelSelector = false,
+}: ApiKeyFormFieldsProps) => {
   const form = useFormContext<CreateApiKeyInput>()
   const {
     formState: { errors },
@@ -40,10 +47,12 @@ const ApiKeyFormFields = () => {
           </FormItem>
         )}
       />
-      <PricingModelSelect
-        name="apiKey.pricingModelId"
-        control={form.control}
-      />
+      {!hidePricingModelSelector && (
+        <PricingModelSelect
+          name="apiKey.pricingModelId"
+          control={form.control}
+        />
+      )}
     </div>
   )
 }
