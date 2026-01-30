@@ -71,6 +71,7 @@ jobs:
         ports:
           - 12111:12111
           - 12112:12112
+      # Image name defined in packages/mock-server/src/docker-config.ts
       flowglad-mock-server:
         image: ghcr.io/flowglad/flowglad/mock-server:latest
         credentials:
