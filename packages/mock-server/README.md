@@ -106,6 +106,42 @@ bun run check
 bun test
 ```
 
+## Performance Benchmarking
+
+The benchmark script validates that the mock server meets performance criteria:
+
+```bash
+# Run all benchmarks (endpoints + test suite comparison)
+bun run benchmark
+
+# Only benchmark endpoint response times
+bun run benchmark --endpoints-only
+
+# Only compare test suite times (MSW vs mock server)
+bun run benchmark --suite-only
+
+# Custom iteration count (default: 3)
+bun run benchmark --iterations 5
+```
+
+### Acceptance Criteria
+
+| Metric | Threshold |
+|--------|-----------|
+| Health check response | < 10ms |
+| Mock endpoint response | < 5ms average |
+| Docker image size | < 100MB |
+| Test suite regression | < 5% vs MSW |
+
+The benchmark outputs a comparison object:
+```json
+{
+  "mswAvg": 1234,
+  "mockServerAvg": 1245,
+  "regressionPct": 0.9
+}
+```
+
 ## Adding New Mock Endpoints
 
 1. Add the route handler in `src/index.ts`

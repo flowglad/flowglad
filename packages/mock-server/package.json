@@ -10,6 +10,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "biome check . && bun run typecheck",
+    "benchmark": "bun run src/scripts/benchmark.ts",
     "docker:build": "bun run src/scripts/docker-build-push.ts",
     "docker:push": "bun run src/scripts/docker-build-push.ts --push",
     "ghcr:login": "bun run src/scripts/ghcr-login.ts"
