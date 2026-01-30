@@ -11,8 +11,7 @@
  * Import this file FIRST in test setup files.
  *
  * NOTE: Trigger.dev tasks are NOT mocked here. They route to the mock server
- * via TRIGGER_API_URL when set. The testSafeTriggerInvoker wrapper in
- * @/utils/backendCore handles test-mode behavior.
+ * via TRIGGER_API_URL when set in .env.test.
  */
 import { mock } from 'bun:test'
 

@@ -148,7 +148,9 @@ export async function handleCloudflareRoute(
   }
 
   // POST with delete query - Batch delete (simplified)
-  if (method === 'POST' && pathname.includes('?delete')) {
+  // Note: Query string is not part of pathname, need to check request URL
+  const url = new URL(req.url)
+  if (method === 'POST' && url.searchParams.has('delete')) {
     // For simplicity, just return success
     return new Response(
       `<?xml version="1.0" encoding="UTF-8"?>

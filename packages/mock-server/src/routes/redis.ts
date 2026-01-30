@@ -50,15 +50,23 @@ function handleRedisCommand(
   const upperCmd = cmd?.toUpperCase()
 
   switch (upperCmd) {
-    // Read commands - return null (cache miss)
+    // Single-value read commands - return null (cache miss)
     case 'GET':
     case 'HGET':
+      return { result: null }
+
+    // Collection read commands - return empty arrays (Redis returns [] when key doesn't exist)
     case 'HGETALL':
-    case 'MGET':
     case 'LRANGE':
     case 'SMEMBERS':
     case 'ZRANGE':
-      return { result: null }
+      return { result: [] }
+
+    // MGET returns array of nulls (one per key requested)
+    case 'MGET':
+      // Return array of nulls matching the number of keys requested
+      const keyCount = command.length - 1 // command[0] is 'MGET', rest are keys
+      return { result: Array(keyCount).fill(null) }
 
     // Write commands - return OK or count
     case 'SET':

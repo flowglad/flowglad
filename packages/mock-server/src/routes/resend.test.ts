@@ -59,7 +59,7 @@ describe('handleResendRoute', () => {
     expect(response).toBeInstanceOf(Response)
     expect(response!.status).toBe(200)
     const body = await response!.json()
-    expect(body.data).toBeArray()
+    expect(Array.isArray(body.data)).toBe(true)
     expect(body.data.length).toBe(2)
   })
 
