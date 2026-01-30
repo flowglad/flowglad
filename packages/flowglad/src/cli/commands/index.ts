@@ -1,5 +1,6 @@
 import type { CAC } from 'cac'
 import { registerHelpCommand } from './help'
+import { registerLoginCommand } from './login'
 
 /**
  * Register all CLI commands with the CLI instance.
@@ -7,9 +8,9 @@ import { registerHelpCommand } from './help'
  */
 export const registerCommands = (cli: CAC): void => {
   registerHelpCommand(cli)
+  registerLoginCommand(cli)
 
   // Future commands (Milestone 1+):
-  // registerLoginCommand(cli)
   // registerLogoutCommand(cli)
   // registerLinkCommand(cli)
   // registerPullCommand(cli)
