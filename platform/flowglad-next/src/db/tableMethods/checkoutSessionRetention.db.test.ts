@@ -105,18 +105,17 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     expect(deleted.find((s) => s.id === old.id)).toMatchObject({
       id: old.id,
     })
-    expect(deleted.find((s) => s.id === recent.id))
-      .toBeUndefined()(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const result = await selectCheckoutSessionById(
-            old.id,
-            transaction
-          )
-          expect(Result.isError(result)).toBe(true)
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    expect(deleted.find((s) => s.id === recent.id)).toBeUndefined()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await selectCheckoutSessionById(
+          old.id,
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
     const recentStillThere = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(

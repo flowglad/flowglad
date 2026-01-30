@@ -1111,7 +1111,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const createdSifs = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectSubscriptionItemFeatures(
+          await selectSubscriptionItemFeatures(
             { subscriptionItemId: [subItem.id] },
             transaction
           )
@@ -1220,7 +1220,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const createdSifs = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectSubscriptionItemFeatures(
+          await selectSubscriptionItemFeatures(
             { subscriptionItemId: [subItem.id] },
             transaction
           )
@@ -1302,7 +1302,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const createdSifs = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectSubscriptionItemFeatures(
+          await selectSubscriptionItemFeatures(
             { subscriptionItemId: [subItem.id] },
             transaction
           )
@@ -1362,7 +1362,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const queriedSifs = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectSubscriptionItemFeatures(
+          await selectSubscriptionItemFeatures(
             { subscriptionItemId: [subItem.id] },
             transaction
           )
@@ -1438,7 +1438,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const createdSifs = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectSubscriptionItemFeatures(
+          await selectSubscriptionItemFeatures(
             { subscriptionItemId: [subItem.id] },
             transaction
           )
@@ -1562,7 +1562,7 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
     const ledgerAccounts = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectLedgerAccounts(
+          await selectLedgerAccounts(
             { subscriptionId: subscription.id },
             transaction
           )
@@ -1848,7 +1848,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       const newPricingModel = (
         await adminTransactionWithResult(async ({ transaction }) => {
           return Result.ok(
-            insertPricingModel(
+            await insertPricingModel(
               {
                 name: 'Test Pricing Model',
                 organizationId: organization.id,

@@ -3450,7 +3450,7 @@ describe('billingRunHelpers', async () => {
       const invoiceLineItems = (
         await adminTransactionWithResult(async ({ transaction }) => {
           return Result.ok(
-            selectInvoiceLineItems(
+            await selectInvoiceLineItems(
               { invoiceId: result.invoice.id },
               transaction
             )
@@ -3466,7 +3466,7 @@ describe('billingRunHelpers', async () => {
       const entries = (
         await adminTransactionWithResult(async ({ transaction }) => {
           return Result.ok(
-            selectLedgerEntries(
+            await selectLedgerEntries(
               { ledgerAccountId: ledgerAccount.id },
               transaction
             )

@@ -95,7 +95,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     const updatedCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               email: targetEmail,
             },
@@ -155,7 +155,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     const updatedCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               organizationId: org1Id,
               email: targetEmail,
@@ -225,7 +225,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     const updatedCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               organizationId: org1Id,
               email: targetEmail,
@@ -300,7 +300,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     const updatedCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               organizationId: org1Id,
             },
@@ -387,7 +387,7 @@ describe('setUserIdForCustomerRecords', () => {
     const updatedCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               email: targetEmail,
             },
@@ -434,7 +434,7 @@ describe('setUserIdForCustomerRecords', () => {
     const targetEmailCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               email: targetEmail,
             },
@@ -446,7 +446,7 @@ describe('setUserIdForCustomerRecords', () => {
     const differentEmailCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               email: differentEmail,
             },
@@ -551,7 +551,7 @@ describe('setUserIdForCustomerRecords', () => {
     const customers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               email: nonExistentEmail,
             },
@@ -596,7 +596,7 @@ describe('setUserIdForCustomerRecords', () => {
     const updatedCustomers = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomers(
+          await selectCustomers(
             {
               email: targetEmail,
             },
@@ -651,7 +651,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerByExternalIdAndOrganizationId(
+          await selectCustomerByExternalIdAndOrganizationId(
             {
               externalId,
               organizationId: organization.id,
@@ -689,7 +689,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerByExternalIdAndOrganizationId(
+          await selectCustomerByExternalIdAndOrganizationId(
             {
               externalId,
               organizationId: organization.id,
@@ -721,7 +721,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const resultDefault = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerByExternalIdAndOrganizationId(
+          await selectCustomerByExternalIdAndOrganizationId(
             {
               externalId,
               organizationId: organization.id,
@@ -741,7 +741,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const resultIncludeArchived = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerByExternalIdAndOrganizationId(
+          await selectCustomerByExternalIdAndOrganizationId(
             {
               externalId,
               organizationId: organization.id,
@@ -763,7 +763,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerByExternalIdAndOrganizationId(
+          await selectCustomerByExternalIdAndOrganizationId(
             {
               externalId: `non_existent_${core.nanoid()}`,
               organizationId: organization.id,
@@ -793,7 +793,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerByExternalIdAndOrganizationId(
+          await selectCustomerByExternalIdAndOrganizationId(
             {
               externalId,
               organizationId: organization2.id,
@@ -810,7 +810,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const resultOrg1 = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerByExternalIdAndOrganizationId(
+          await selectCustomerByExternalIdAndOrganizationId(
             {
               externalId,
               organizationId: organization.id,
@@ -2146,7 +2146,10 @@ describe('selectCustomerPricingInfoBatch', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerPricingInfoBatch(customerIds, transaction)
+          await selectCustomerPricingInfoBatch(
+            customerIds,
+            transaction
+          )
         )
       })
     ).unwrap()
@@ -2186,7 +2189,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerPricingInfoBatch([], transaction)
+          await selectCustomerPricingInfoBatch([], transaction)
         )
       })
     ).unwrap()
@@ -2210,7 +2213,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerPricingInfoBatch(
+          await selectCustomerPricingInfoBatch(
             [customer1.id, customer2.id],
             transaction
           )
@@ -2242,7 +2245,10 @@ describe('selectCustomerPricingInfoBatch', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerPricingInfoBatch(customerIds, transaction)
+          await selectCustomerPricingInfoBatch(
+            customerIds,
+            transaction
+          )
         )
       })
     ).unwrap()
@@ -2272,7 +2278,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectCustomerPricingInfoBatch(
+          await selectCustomerPricingInfoBatch(
             [customerLive.id, customerTest.id],
             transaction
           )
