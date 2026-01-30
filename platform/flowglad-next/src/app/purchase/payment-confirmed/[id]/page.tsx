@@ -1,10 +1,6 @@
-import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { adminTransactionWithResult } from '@/db/adminTransaction'
-import {
-  selectPurchaseById,
-  selectPurchases,
-} from '@/db/tableMethods/purchaseMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import InnerPaymentConfirmedPage from './InnerPaymentConfirmedPage'
 
 interface PageProps {

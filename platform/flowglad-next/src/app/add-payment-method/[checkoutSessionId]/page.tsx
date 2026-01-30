@@ -32,10 +32,16 @@ const CheckoutSessionPage = async ({
           transaction
         )
       ).unwrap()
+      // For non-AddPaymentMethod sessions or missing customerId, return early
+      // and let the outer code handle with notFound()
       if (
-        checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
+        checkoutSession.type !==
+          CheckoutSessionType.AddPaymentMethod ||
+        !checkoutSession.customerId
       ) {
-        notFound()
+        return Result.err(
+          new Error('Invalid checkout session for add payment method')
+        )
       }
       const customer = (
         await selectCustomerById(
@@ -55,9 +61,15 @@ const CheckoutSessionPage = async ({
         customer,
       })
     })
-  ).unwrap()
+  )
+    .mapError(() => null)
+    .unwrapOr({
+      checkoutSession: null,
+      sellerOrganization: null,
+      customer: null,
+    })
 
-  if (!checkoutSession) {
+  if (!checkoutSession || !customer || !sellerOrganization) {
     notFound()
   }
 

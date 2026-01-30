@@ -197,18 +197,18 @@ const processSetupIntent = async ({
   checkoutSession: CheckoutSession.Record
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
-  const setupSuceededResult = (
+  const setupSucceededResult = (
     await adminTransactionWithResult(async (ctx) => {
       return processSetupIntentSucceeded(setupIntent, ctx)
     })
   ).unwrap()
 
-  const { purchase, checkoutSession } = setupSuceededResult
+  const { purchase, checkoutSession } = setupSucceededResult
   if (
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
-    setupSuceededResult.billingRun?.id
+    setupSucceededResult.billingRun?.id
   ) {
-    const { billingRun } = setupSuceededResult
+    const { billingRun } = setupSucceededResult
     await executeBillingRun(billingRun.id)
   }
 
