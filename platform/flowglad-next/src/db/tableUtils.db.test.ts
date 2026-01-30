@@ -1930,7 +1930,8 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should handle backward pagination boundary with identical createdAt deterministically', async () => {
-    const fixed = new Date('2020-01-02T00:00:00Z')(
+    const fixed = new Date('2020-01-02T00:00:00Z')
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         // Force many rows to share the same timestamp for a robust boundary test

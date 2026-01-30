@@ -1297,28 +1297,27 @@ describe('insertProductFeature', () => {
   })
 
   it('should use provided pricingModelId without derivation', async () => {
-    const customPricingModelId = product
-      .pricingModelId(
-        await adminTransactionWithResult(async (ctx) => {
-          const productFeature = await insertProductFeature(
-            {
-              productId: product.id,
-              featureId: featureA.id,
-              organizationId: organization.id,
-              livemode: true,
-              pricingModelId: customPricingModelId, // Pre-provided
-            },
-            ctx
-          )
+    const customPricingModelId = product.pricingModelId
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const productFeature = await insertProductFeature(
+          {
+            productId: product.id,
+            featureId: featureA.id,
+            organizationId: organization.id,
+            livemode: true,
+            pricingModelId: customPricingModelId, // Pre-provided
+          },
+          ctx
+        )
 
-          // Verify the provided pricingModelId is used
-          expect(productFeature.pricingModelId).toBe(
-            customPricingModelId
-          )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+        // Verify the provided pricingModelId is used
+        expect(productFeature.pricingModelId).toBe(
+          customPricingModelId
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should throw an error when productId does not exist', async () => {

@@ -173,21 +173,20 @@ describe('safelyUpdatePricingModel', () => {
     // The beforeEach creates our primary organization and its pricingModels.
     // Now, set up a completely separate organization with its own default pricingModel.
     const otherOrgData = await setupOrg()
-    const otherOrgDefaultPricingModel = otherOrgData
-      .pricingModel(
-        // Action: Make testmodeNonDefaultPricingModel the new default for the FIRST organization (testmode).
-        await adminTransactionWithResult(async (ctx) => {
-          await safelyUpdatePricingModel(
-            {
-              id: testmodeNonDefaultPricingModel.id,
-              isDefault: true,
-            },
-            ctx
-          )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    const otherOrgDefaultPricingModel = otherOrgData.pricingModel
+    // Action: Make testmodeNonDefaultPricingModel the new default for the FIRST organization (testmode).
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        await safelyUpdatePricingModel(
+          {
+            id: testmodeNonDefaultPricingModel.id,
+            isDefault: true,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Expect: The default pricingModel for the second organization remains unchanged.
     const refreshedOtherOrgPricingModel = (
@@ -390,24 +389,23 @@ describe('safelyInsertPricingModel', () => {
   it('should not affect the default pricingModel of another organization when inserting a new default', async () => {
     // Setup a second organization with its own default pricingModel
     const otherOrgData = await setupOrg()
-    const otherOrgDefaultPricingModel = otherOrgData
-      .pricingModel(
-        // Insert a new default pricingModel for the FIRST organization (testmode)
-        await adminTransactionWithResult(async (ctx) => {
-          return Result.ok(
-            await safelyInsertPricingModel(
-              {
-                name: 'New Default PricingModel for Org 1',
-                organizationId: organization.id,
-                isDefault: true,
-                livemode: false, // Use testmode
-              },
-              ctx
-            )
+    const otherOrgDefaultPricingModel = otherOrgData.pricingModel
+    // Insert a new default pricingModel for the FIRST organization (testmode)
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await safelyInsertPricingModel(
+            {
+              name: 'New Default PricingModel for Org 1',
+              organizationId: organization.id,
+              isDefault: true,
+              livemode: false, // Use testmode
+            },
+            ctx
           )
-        })
-      )
-      .unwrap()
+        )
+      })
+    ).unwrap()
 
     // Check that the second org's default pricingModel is untouched
     const refreshedOtherOrgPricingModel = (

@@ -3007,36 +3007,35 @@ describe('priceMethods.ts', () => {
     })
 
     it('uses the provided pricingModelId when already set', async () => {
-      const explicitPricingModelId = product
-        .pricingModelId(
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            const priceInsert = {
-              ...nulledPriceColumns,
-              productId: product.id,
-              pricingModelId: explicitPricingModelId,
-              name: 'Test Explicit PricingModelId',
-              type: PriceType.Subscription,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              currency: CurrencyCode.USD,
-              slug: `explicit-pm-test-${core.nanoid()}`,
-              isDefault: false,
-            } as Price.Insert
+      const explicitPricingModelId = product.pricingModelId
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const priceInsert = {
+            ...nulledPriceColumns,
+            productId: product.id,
+            pricingModelId: explicitPricingModelId,
+            name: 'Test Explicit PricingModelId',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            currency: CurrencyCode.USD,
+            slug: `explicit-pm-test-${core.nanoid()}`,
+            isDefault: false,
+          } as Price.Insert
 
-            const derivedPricingModelId =
-              await derivePricingModelIdForPrice(
-                priceInsert,
-                transaction
-              )
+          const derivedPricingModelId =
+            await derivePricingModelIdForPrice(
+              priceInsert,
+              transaction
+            )
 
-            expect(derivedPricingModelId).toBe(explicitPricingModelId)
-            return Result.ok(undefined)
-          })
-        )
-        .unwrap()
+          expect(derivedPricingModelId).toBe(explicitPricingModelId)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('throws an error when neither productId nor usageMeterId is provided and pricingModelId is not set', async () => {
