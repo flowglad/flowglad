@@ -1,5 +1,5 @@
 {
-  "id": "89cf256b-f134-4d61-a1d7-ec5487cbf52f",
+  "id": "070687a1-e0a0-4163-b22a-608d0121a73e",
   "prevId": "d7a46c08-ecf2-4eb3-b271-60142d3f7ea2",
   "version": "7",
   "dialect": "postgresql",
@@ -373,7 +373,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "better_auth_device_code_user_id_idx": {
+          "name": "better_auth_device_code_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "better_auth_device_code_user_id_better_auth_user_id_fk": {
           "name": "better_auth_device_code_user_id_better_auth_user_id_fk",

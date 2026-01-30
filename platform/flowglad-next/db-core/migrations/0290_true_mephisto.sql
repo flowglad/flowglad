@@ -21,3 +21,5 @@ DO $$ BEGIN
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "better_auth_device_code_user_id_idx" ON "better_auth_device_code" USING btree ("user_id");
