@@ -32,6 +32,7 @@ mock.module('@/utils/email', () => ({
 describe('innerInviteUserToOrganizationHandler', () => {
   let organization: Organization.Record
   let inviterUser: User.Record
+  let testmodePricingModelId: string
   let focusedMembership: {
     organization: Pick<Organization.Record, 'id' | 'name'>
     membership: Pick<Membership.Record, 'userId'>
@@ -42,8 +43,10 @@ describe('innerInviteUserToOrganizationHandler', () => {
     ;(
       sendOrganizationInvitationEmail as ReturnType<typeof mock>
     ).mockClear()
-    const { organization: org } = await setupOrg()
+    const { organization: org, testmodePricingModel } =
+      await setupOrg()
     organization = org
+    testmodePricingModelId = testmodePricingModel.id
 
     const { user } = await setupUserAndApiKey({
       organizationId: organization.id,
@@ -74,7 +77,8 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
-        inviterUser
+        inviterUser,
+        testmodePricingModelId
       )
 
       expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
@@ -110,7 +114,8 @@ describe('innerInviteUserToOrganizationHandler', () => {
       await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
-        inviterUserWithoutName
+        inviterUserWithoutName,
+        testmodePricingModelId
       )
 
       expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith(
@@ -127,7 +132,8 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
-        inviterUser
+        inviterUser,
+        testmodePricingModelId
       )
 
       expect(result).toEqual({ action: 'created' })
@@ -160,7 +166,8 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
-        inviterUser
+        inviterUser,
+        testmodePricingModelId
       )
 
       expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
@@ -207,7 +214,8 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
-        inviterUser
+        inviterUser,
+        testmodePricingModelId
       )
 
       expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
@@ -261,7 +269,8 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
-        inviterUser
+        inviterUser,
+        testmodePricingModelId
       )
 
       // Should send invitation email for reactivation
@@ -308,7 +317,8 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
-        inviterUserWithoutName
+        inviterUserWithoutName,
+        testmodePricingModelId
       )
 
       expect(result).toEqual({ action: 'reactivated' })

@@ -129,7 +129,8 @@ function configureMockGetStripeCharge() {
 }
 
 describe('processOutcomeForBillingRun integration tests', async () => {
-  const { organization, price, product } = await setupOrg()
+  const { organization, price, product, pricingModel } =
+    await setupOrg()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -647,6 +648,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
     await setupMemberships({
       organizationId: organization.id,
+      focusedPricingModelId: pricingModel.id,
     })
     await adminTransaction(async ({ transaction }) => {
       const { ctx, effects } =

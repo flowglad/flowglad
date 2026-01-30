@@ -1,20 +1,18 @@
-/**
- * @vitest-environment jsdom
- */
-import {
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query'
-import { act, renderHook, waitFor } from '@testing-library/react'
-import type React from 'react'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
 import { useBilling } from './FlowgladContext'
 import {
@@ -211,17 +209,17 @@ const createWrapperWithQueryClient = () => {
 
 describe('useUsageMeters', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   it('returns balances after successful fetch', async () => {
@@ -364,17 +362,17 @@ describe('useUsageMeters', () => {
 
 describe('useUsageMeter', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   it('returns single balance by slug', async () => {
@@ -435,17 +433,17 @@ describe('useUsageMeter', () => {
 
 describe('createUsageEvent invalidation', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   it('invalidates usage meter query keys only', async () => {
@@ -474,8 +472,7 @@ describe('createUsageEvent invalidation', () => {
       })
     })
 
-    // biome-ignore lint/plugin: Testing query invalidation behavior requires spying on queryClient
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    const invalidateSpy = spyOn(queryClient, 'invalidateQueries')
 
     const { result } = renderHook(() => useBilling(), { wrapper })
 

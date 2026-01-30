@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   fetchCustomerBilling,
   getFlowgladRoute,
@@ -228,7 +228,9 @@ describe('fetchCustomerBilling', () => {
       },
     })
 
-    expect(result).toEqual(mockBillingData)
+    expect(result).toEqual(
+      mockBillingData as unknown as typeof result
+    )
   })
 
   it('returns error object when response contains error field', async () => {

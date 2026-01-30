@@ -2,7 +2,7 @@ import { InvoiceStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -34,7 +34,7 @@ export const stripePaymentIntentSucceededTask = task({
          * process it on own track, and then terminate
          */
         if ('billingRunId' in metadata) {
-          const result = await comprehensiveAdminTransaction(
+          const result = await adminTransactionWithResult(
             async (params) => {
               const effectsCtx: TransactionEffectsContext = {
                 transaction: params.transaction,
@@ -50,11 +50,11 @@ export const stripePaymentIntentSucceededTask = task({
               )
             }
           )
-          return result
+          return result.unwrap()
         }
 
-        const { invoice, organization, customer, payment, purchase } =
-          await comprehensiveAdminTransaction(async (ctx) => {
+        const transactionResult = await adminTransactionWithResult(
+          async (ctx) => {
             const { transaction } = ctx
             const paymentResult =
               await processPaymentIntentStatusUpdated(
@@ -111,9 +111,13 @@ export const stripePaymentIntentSucceededTask = task({
             }
 
             return Result.ok(result)
-          }, {})
+          },
+          {}
+        )
+        const { invoice, organization, customer, payment, purchase } =
+          transactionResult.unwrap()
 
-        await comprehensiveAdminTransaction(
+        const taxResult = await adminTransactionWithResult(
           async ({ transaction }) => {
             await createStripeTaxTransactionIfNeededForPayment(
               { organization, payment, invoice },
@@ -122,6 +126,7 @@ export const stripePaymentIntentSucceededTask = task({
             return Result.ok(null)
           }
         )
+        taxResult.unwrap()
 
         /**
          * Generate the invoice PDF, which should be finalized now

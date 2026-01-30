@@ -393,7 +393,8 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       const result = await selectCustomerFacingInvoicesWithLineItems(
         customer.id,
         transaction,
-        true
+        true,
+        { ignoreCache: true }
       )
 
       expect(result.length).toBeGreaterThanOrEqual(1)
@@ -423,7 +424,8 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       const result = await selectCustomerFacingInvoicesWithLineItems(
         customerWithNoInvoices.id,
         transaction,
-        true
+        true,
+        { ignoreCache: true }
       )
 
       expect(result).toEqual([])
@@ -443,7 +445,8 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       const result = await selectCustomerFacingInvoicesWithLineItems(
         customer.id,
         transaction,
-        true
+        true,
+        { ignoreCache: true }
       )
 
       const invoiceIds = result.map((item) => item.invoice.id)
@@ -472,7 +475,8 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       const result = await selectCustomerFacingInvoicesWithLineItems(
         customer.id,
         transaction,
-        true
+        true,
+        { ignoreCache: true }
       )
 
       const invoiceIds = result.map((item) => item.invoice.id)
