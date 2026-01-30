@@ -13,6 +13,7 @@ import {
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
+import { getFeatureAccessItems } from './featureHandlers'
 import { getPricingModel } from './pricingModelHandlers'
 import {
   claimResource,
@@ -24,6 +25,7 @@ import {
 import {
   adjustSubscription,
   cancelSubscription,
+  getSubscriptions,
   uncancelSubscription,
 } from './subscriptionHandlers'
 import type { HybridSubRouteHandler, SubRouteHandler } from './types'
@@ -54,6 +56,7 @@ export const routeToHandlerMap: {
       },
     }
   },
+  [FlowgladActionKey.GetSubscriptions]: getSubscriptions,
   [FlowgladActionKey.CreateUsageEvent]: createUsageEvent,
   [FlowgladActionKey.GetResourceUsages]: getResources,
   [FlowgladActionKey.GetResourceUsage]: getResourceUsage,
@@ -61,6 +64,7 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.ReleaseResource]: releaseResource,
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
   [FlowgladActionKey.GetUsageMeterBalances]: getUsageMeterBalances,
+  [FlowgladActionKey.GetFeatureAccess]: getFeatureAccessItems,
 }
 
 export const hybridRouteToHandlerMap: {

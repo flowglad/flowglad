@@ -715,6 +715,13 @@ export const createBillingEndpoints = (
         routeToHandlerMap[FlowgladActionKey.CreateSubscription],
       options,
     }),
+    getSubscriptions: createFlowgladBillingEndpoint({
+      actionKey: FlowgladActionKey.GetSubscriptions,
+      validator:
+        flowgladActionValidators[FlowgladActionKey.GetSubscriptions],
+      handler: routeToHandlerMap[FlowgladActionKey.GetSubscriptions],
+      options,
+    }),
     updateCustomer: createFlowgladBillingEndpoint({
       actionKey: FlowgladActionKey.UpdateCustomer,
       validator:
@@ -777,6 +784,14 @@ export const createBillingEndpoints = (
         ],
       handler:
         routeToHandlerMap[FlowgladActionKey.GetUsageMeterBalances],
+      options,
+    }),
+    // Feature access endpoints
+    getFeatureAccess: createFlowgladBillingEndpoint({
+      actionKey: FlowgladActionKey.GetFeatureAccess,
+      validator:
+        flowgladActionValidators[FlowgladActionKey.GetFeatureAccess],
+      handler: routeToHandlerMap[FlowgladActionKey.GetFeatureAccess],
       options,
     }),
   }

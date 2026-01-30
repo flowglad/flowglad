@@ -23,6 +23,7 @@ export const endpointKeyToActionKey: Record<
   uncancelSubscription: FlowgladActionKey.UncancelSubscription,
   adjustSubscription: FlowgladActionKey.AdjustSubscription,
   createSubscription: FlowgladActionKey.CreateSubscription,
+  getSubscriptions: FlowgladActionKey.GetSubscriptions,
   updateCustomer: FlowgladActionKey.UpdateCustomer,
   createUsageEvent: FlowgladActionKey.CreateUsageEvent,
   getResources: FlowgladActionKey.GetResourceUsages,
@@ -31,6 +32,7 @@ export const endpointKeyToActionKey: Record<
   releaseResource: FlowgladActionKey.ReleaseResource,
   listResourceClaims: FlowgladActionKey.ListResourceClaims,
   getUsageMeterBalances: FlowgladActionKey.GetUsageMeterBalances,
+  getFeatureAccess: FlowgladActionKey.GetFeatureAccess,
 }
 
 /**
@@ -56,6 +58,7 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.UncancelSubscription]: 'uncancelSubscription',
   [FlowgladActionKey.AdjustSubscription]: 'adjustSubscription',
   [FlowgladActionKey.CreateSubscription]: 'createSubscription',
+  [FlowgladActionKey.GetSubscriptions]: 'getSubscriptions',
   [FlowgladActionKey.UpdateCustomer]: 'updateCustomer',
   [FlowgladActionKey.CreateUsageEvent]: 'createUsageEvent',
   [FlowgladActionKey.GetResourceUsages]: 'getResources',
@@ -64,6 +67,7 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.ReleaseResource]: 'releaseResource',
   [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
   [FlowgladActionKey.GetUsageMeterBalances]: 'getUsageMeterBalances',
+  [FlowgladActionKey.GetFeatureAccess]: 'getFeatureAccess',
 } satisfies Record<
   AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey

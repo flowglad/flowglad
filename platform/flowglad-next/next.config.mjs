@@ -53,27 +53,16 @@ const nextConfig = {
     ]
   },
   async headers() {
-    return [
-      {
-        // Apply these headers to all routes
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*', // Or specify your domain
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value:
-              'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-vercel-protection-bypass',
-          },
-        ],
-      },
-    ]
+    // SECURITY: Global CORS headers removed to prevent cross-origin data exposure.
+    // Wildcard Access-Control-Allow-Origin (*) allows any website to read responses,
+    // bypassing browser Same-Origin Policy protections.
+    //
+    // If specific routes need CORS (e.g., public APIs consumed by third parties),
+    // configure them individually in their route handlers with appropriate origin
+    // restrictions rather than using a global wildcard.
+    //
+    // Reference: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing
+    return []
   },
   experimental: {
     webpackMemoryOptimizations: true,
