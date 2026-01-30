@@ -61,8 +61,8 @@ const processPaymentIntent = async ({
       }
       const { payment } = paymentResult.value
       if (!payment.purchaseId) {
-        throw new Error(
-          `No purchase id found for payment ${payment.id}`
+        return Result.err(
+          new Error(`No purchase id found for payment ${payment.id}`)
         )
       }
       const purchase = (
@@ -92,8 +92,10 @@ const processPaymentIntent = async ({
           )
         checkoutSession = checkoutSessionsForPaymentIntent[0]
         if (!checkoutSession) {
-          throw new Error(
-            `Post-payment: Checkout session not found for payment intent: ${paymentIntentId}`
+          return Result.err(
+            new Error(
+              `Post-payment: Checkout session not found for payment intent: ${paymentIntentId}`
+            )
           )
         }
       }
@@ -143,8 +145,10 @@ const processCheckoutSession = async ({
         transaction
       )
       if (!checkoutSession) {
-        throw new Error(
-          `Purchase session not found: ${checkoutSessionId}`
+        return Result.err(
+          new Error(
+            `Purchase session not found: ${checkoutSessionId}`
+          )
         )
       }
       const { purchase, invoice } =

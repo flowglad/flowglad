@@ -34,6 +34,11 @@ const AddPaymentCheckoutSuccessPage = async ({
               { id: subscription.priceId },
               transaction
             )
+          if (!data) {
+            return Result.err(
+              new Error('Price or organization not found')
+            )
+          }
 
           return Result.ok({
             subscription,

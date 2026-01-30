@@ -112,7 +112,6 @@ const SubscriptionPage = async ({
           subscription,
           defaultPaymentMethod,
           customer,
-          product,
           pricingModel,
           productNames,
         })
@@ -128,7 +127,6 @@ const SubscriptionPage = async ({
     subscription,
     defaultPaymentMethod,
     customer,
-    product,
     pricingModel,
     productNames,
   } = result

@@ -36,6 +36,11 @@ const SubscriptionCheckoutSuccessPage = async ({
             { id: checkoutSession.priceId! },
             transaction
           )
+        if (!data) {
+          return Result.err(
+            new Error('Price or organization not found')
+          )
+        }
         return Result.ok(data)
       })
     ).unwrap()

@@ -21,6 +21,7 @@ const CustomerPage = async ({
   const result = (
     await authenticatedTransactionWithResult(
       async ({ transaction, userId }) => {
+        // Verify user has membership access (authorization check)
         await selectMembershipAndOrganizations(
           {
             userId,

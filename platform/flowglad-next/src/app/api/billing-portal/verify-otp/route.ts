@@ -51,12 +51,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const { otp, organizationId, customerId } = parseResult.data
-    if (!otp || typeof otp !== 'string' || otp.length !== 6) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid OTP format' },
-        { status: 400 }
-      )
-    }
+    // Note: otp format already validated by Zod schema above
 
     if (!organizationId || !customerId) {
       return NextResponse.json(
