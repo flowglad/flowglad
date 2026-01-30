@@ -316,7 +316,7 @@ jobs:
         run: bun run install-packages --no-progress
       - name: Verify API contract
         env:
-          TELEMETRY_TEST_API_KEY: ${{ secrets.FLOWGLAD_PROD_API_KEY }}
+          FLOWGLAD_PROD_API_KEY: ${{ secrets.FLOWGLAD_PROD_API_KEY }}
           FLOWGLAD_PROD_API_URL: ${{ secrets.FLOWGLAD_PROD_API_URL }}
         run: bun run verify:api-contract
         
