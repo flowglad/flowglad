@@ -350,6 +350,70 @@ describe('useFeatures', () => {
     expect(result.current.features).toEqual([])
     expect(result.current.error).toBe(null)
   })
+
+  it('returns error on HTTP failure (non-2xx status)', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => Promise.resolve({}),
+    })
+
+    const { result } = renderHook(() => useFeatures(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.error).not.toBe(null)
+    expect(result.current.error?.message).toBe(
+      'HTTP 500: Internal Server Error'
+    )
+    expect(result.current.features).toBeUndefined()
+  })
+
+  it('uses betterAuthBasePath route when configured', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockFeatureAccessResponse),
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+
+    const wrapperWithBetterAuth = ({
+      children,
+    }: {
+      children: React.ReactNode
+    }) => (
+      <QueryClientProvider client={queryClient}>
+        <FlowgladConfigProvider betterAuthBasePath="/api/auth">
+          {children}
+        </FlowgladConfigProvider>
+      </QueryClientProvider>
+    )
+
+    const { result } = renderHook(() => useFeatures(), {
+      wrapper: wrapperWithBetterAuth,
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Verify the fetch was called with the betterAuth route
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    const fetchCall = mockFetch.mock.calls[0]
+    expect(fetchCall[0]).toBe('/api/auth/flowglad/features/access')
+    expect(fetchCall[1].method).toBe('POST')
+  })
 })
 
 describe('useFeature', () => {
