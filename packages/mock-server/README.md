@@ -9,6 +9,8 @@ A lightweight HTTP mock server that stubs external service APIs for testing. Use
 | Svix        | 9001 | Webhook delivery                 |
 | Unkey       | 9002 | API key management               |
 | Trigger.dev | 9003 | Background job orchestration     |
+| Redis       | 9004 | In-memory cache (Upstash REST)   |
+| Resend      | 9005 | Email delivery                   |
 
 ## Quick Start
 
@@ -29,7 +31,7 @@ bun run start
 bun run docker:build
 
 # Run the container
-docker run -p 9001:9001 -p 9002:9002 -p 9003:9003 ghcr.io/flowglad/flowglad/mock-server:latest
+docker run -p 9001:9001 -p 9002:9002 -p 9003:9003 -p 9004:9004 -p 9005:9005 ghcr.io/flowglad/flowglad/mock-server:latest
 ```
 
 ## Environment Variables
@@ -41,6 +43,8 @@ Configure your test environment to use the mock server:
 SVIX_MOCK_HOST=http://localhost:9001
 UNKEY_MOCK_HOST=http://localhost:9002
 TRIGGER_API_URL=http://localhost:9003
+UPSTASH_REDIS_REST_URL=http://localhost:9004
+RESEND_BASE_URL=http://localhost:9005
 ```
 
 ## Docker Image Management
@@ -89,6 +93,8 @@ services:
       - 9001:9001
       - 9002:9002
       - 9003:9003
+      - 9004:9004
+      - 9005:9005
 ```
 
 A separate workflow (`.github/workflows/build-mock-server.yml`) automatically builds and pushes the image when changes are made to `packages/mock-server/**`.

@@ -9,10 +9,7 @@ import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { OrganizationPaymentFailedNotificationEmail } from '@/email-templates/organization/organization-payment-failed'
 import { ValidationError } from '@/errors'
-import {
-  createTriggerIdempotencyKey,
-  testSafeTriggerInvoker,
-} from '@/utils/backendCore'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import {
   formatEmailSubject,
@@ -155,17 +152,15 @@ const sendOrganizationPaymentFailedNotificationTask = task({
 })
 
 export const idempotentSendOrganizationPaymentFailedNotification =
-  testSafeTriggerInvoker(
-    async (paymentData: PaymentFailedNotificationData) => {
-      await sendOrganizationPaymentFailedNotificationTask.trigger(
-        {
-          paymentData,
-        },
-        {
-          idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payment-failed-notification-${paymentData.paymentId}`
-          ),
-        }
-      )
-    }
-  )
+  async (paymentData: PaymentFailedNotificationData) => {
+    await sendOrganizationPaymentFailedNotificationTask.trigger(
+      {
+        paymentData,
+      },
+      {
+        idempotencyKey: await createTriggerIdempotencyKey(
+          `send-organization-payment-failed-notification-${paymentData.paymentId}`
+        ),
+      }
+    )
+  }

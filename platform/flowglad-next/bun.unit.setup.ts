@@ -10,56 +10,34 @@
  * Features:
  * - Database access BLOCKED (throws error if attempted)
  * - MSW in STRICT mode (errors on unhandled requests)
+ * - External services route to mock server containers (same as db tests)
  * - Environment variables auto-tracked and restored
  * - Spies auto-restored via globalSpyManager
  * - Global mock state reset after each test
+ *
+ * External Services (via mock server containers):
+ * - Stripe → stripe-mock (localhost:12111)
+ * - Svix → flowglad-mock-server (localhost:9001)
+ * - Unkey → flowglad-mock-server (localhost:9002)
+ * - Trigger.dev → flowglad-mock-server (localhost:9003)
+ * - Redis → flowglad-mock-server (localhost:9004)
+ * - Resend → flowglad-mock-server (localhost:9005)
  */
 
 /// <reference types="@testing-library/jest-dom" />
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  mock,
-} from 'bun:test'
 
-// BLOCK database imports FIRST - before any other imports that might load them
-// This ensures unit tests cannot accidentally access the database
-mock.module('@/db/client', () => {
-  throw new Error(
-    'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.db.test.ts'
-  )
-})
-
-mock.module('@/db/adminTransaction', () => {
-  throw new Error(
-    'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.db.test.ts'
-  )
-})
-
-mock.module('@/db/authenticatedTransaction', () => {
-  throw new Error(
-    'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.db.test.ts'
-  )
-})
-
-mock.module('@/db/recomputeTransaction', () => {
-  throw new Error(
-    'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.db.test.ts'
-  )
-})
-
+// IMPORTANT: Import unit mocks FIRST - blocks database access before any other imports
+import './bun.unit.mocks'
 // Import standard mocks (after db blockers)
 import './bun.mocks'
-// Import unit-test-only mocks (Svix, Unkey, Redis - no network calls)
-import './bun.unit.mocks'
 
-// Now import isolation utilities and other modules
+// Import consolidated global type declarations (after mocks)
+import '@/test/globals'
+
+// Initialize auth session mock to null (will be reset after each test)
+globalThis.__mockedAuthSession = null
+
+import { afterAll, afterEach, beforeAll, beforeEach } from 'bun:test'
 import { cleanup } from '@testing-library/react'
 import { createAutoEnvTracker } from '@/test/isolation/envTracker'
 import {
@@ -74,10 +52,92 @@ const envTracker = createAutoEnvTracker()
 // Initialize global state once at setup load time
 initializeGlobalMockState()
 
-beforeAll(() => {
-  // MSW STRICT mode - fail on unhandled requests
-  // Unit tests should have all external calls mocked
+/**
+ * Check if a mock server is healthy by hitting its health endpoint.
+ * Returns true if healthy, false if not reachable.
+ */
+async function checkMockServerHealth(
+  url: string,
+  headers?: Record<string, string>
+): Promise<boolean> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 1000)
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers,
+    })
+    clearTimeout(timeout)
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Verify all required mock servers are running.
+ * Throws descriptive error if any are missing.
+ */
+async function verifyMockServers(): Promise<void> {
+  const servers = [
+    {
+      name: 'stripe-mock',
+      url: 'http://localhost:12111/v1/customers',
+      envVar: 'STRIPE_MOCK_HOST',
+      // stripe-mock requires authentication
+      headers: { Authorization: 'Bearer sk_test_xxx' },
+    },
+    {
+      name: 'flowglad-mock-server (Svix)',
+      url: 'http://localhost:9001/health',
+      envVar: 'SVIX_MOCK_HOST',
+    },
+    {
+      name: 'flowglad-mock-server (Unkey)',
+      url: 'http://localhost:9002/health',
+      envVar: 'UNKEY_MOCK_HOST',
+    },
+    {
+      name: 'flowglad-mock-server (Trigger)',
+      url: 'http://localhost:9003/health',
+      envVar: 'TRIGGER_API_URL',
+    },
+    {
+      name: 'flowglad-mock-server (Redis)',
+      url: 'http://localhost:9004/health',
+      envVar: 'UPSTASH_REDIS_REST_URL',
+    },
+    {
+      name: 'flowglad-mock-server (Resend)',
+      url: 'http://localhost:9005/health',
+      envVar: 'RESEND_BASE_URL',
+    },
+  ]
+
+  const results = await Promise.all(
+    servers.map(async (s) => ({
+      ...s,
+      healthy: await checkMockServerHealth(s.url, s.headers),
+    }))
+  )
+
+  const unhealthy = results.filter((r) => !r.healthy)
+  if (unhealthy.length > 0) {
+    const missing = unhealthy.map((r) => `  - ${r.name}`).join('\n')
+    throw new Error(
+      `Mock server(s) not running:\n${missing}\n\n` +
+        `Start them with: bun run test:setup\n` +
+        `Or: docker-compose -f docker-compose.test.yml up -d`
+    )
+  }
+}
+
+beforeAll(async () => {
+  // MSW STRICT mode - fail on unhandled external requests
   server.listen({ onUnhandledRequest: 'error' })
+
+  // Verify mock servers are running before proceeding
+  await verifyMockServers()
 })
 
 beforeEach(() => {

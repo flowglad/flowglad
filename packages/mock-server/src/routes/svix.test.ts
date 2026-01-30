@@ -303,12 +303,12 @@ describe('handleSendMessage', () => {
 })
 
 describe('handleSvixRoute', () => {
-  it('returns null for unmatched routes', () => {
+  it('returns null for unmatched routes', async () => {
     const req = new Request('http://localhost:9001/unknown/path', {
       method: 'GET',
     })
 
-    const response = handleSvixRoute(req, '/unknown/path')
+    const response = await handleSvixRoute(req, '/unknown/path')
     expect(response).toBeNull()
   })
 
@@ -335,7 +335,10 @@ describe('handleSvixRoute', () => {
       }
     )
 
-    const response = handleSvixRoute(req, '/api/v1/app/app_test123')
+    const response = await handleSvixRoute(
+      req,
+      '/api/v1/app/app_test123'
+    )
     expect(response).toBeInstanceOf(Response)
 
     const body = await (response as Response).json()
@@ -350,7 +353,10 @@ describe('handleSvixRoute', () => {
       }
     )
 
-    const response = handleSvixRoute(req, '/api/v1/app/app_test123/')
+    const response = await handleSvixRoute(
+      req,
+      '/api/v1/app/app_test123/'
+    )
     expect(response).toBeInstanceOf(Response)
 
     const body = await (response as Response).json()
@@ -404,7 +410,7 @@ describe('handleSvixRoute', () => {
       { method: 'GET' }
     )
 
-    const response = handleSvixRoute(
+    const response = await handleSvixRoute(
       req,
       '/api/v1/app/app_123/endpoint/ep_456/secret'
     )
@@ -435,12 +441,12 @@ describe('handleSvixRoute', () => {
     expect(body.eventType).toBe('routed.event')
   })
 
-  it('returns null for wrong HTTP method on existing path', () => {
+  it('returns null for wrong HTTP method on existing path', async () => {
     const req = new Request('http://localhost:9001/api/v1/app', {
       method: 'GET',
     })
 
-    const response = handleSvixRoute(req, '/api/v1/app')
+    const response = await handleSvixRoute(req, '/api/v1/app')
     expect(response).toBeNull()
   })
 })

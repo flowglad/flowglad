@@ -58,11 +58,17 @@ initializeGlobalMockState()
  * Check if a mock server is healthy by hitting its health endpoint.
  * Returns true if healthy, false if not reachable.
  */
-async function checkMockServerHealth(url: string): Promise<boolean> {
+async function checkMockServerHealth(
+  url: string,
+  headers?: Record<string, string>
+): Promise<boolean> {
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 1000)
-    const response = await fetch(url, { signal: controller.signal })
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers,
+    })
     clearTimeout(timeout)
     return response.ok
   } catch {
@@ -80,6 +86,8 @@ async function verifyMockServers(): Promise<void> {
       name: 'stripe-mock',
       url: 'http://localhost:12111/v1/customers',
       envVar: 'STRIPE_MOCK_HOST',
+      // stripe-mock requires authentication
+      headers: { Authorization: 'Bearer sk_test_xxx' },
     },
     {
       name: 'flowglad-mock-server (Svix)',
@@ -96,12 +104,22 @@ async function verifyMockServers(): Promise<void> {
       url: 'http://localhost:9003/health',
       envVar: 'TRIGGER_API_URL',
     },
+    {
+      name: 'flowglad-mock-server (Redis)',
+      url: 'http://localhost:9004/health',
+      envVar: 'UPSTASH_REDIS_REST_URL',
+    },
+    {
+      name: 'flowglad-mock-server (Resend)',
+      url: 'http://localhost:9005/health',
+      envVar: 'RESEND_BASE_URL',
+    },
   ]
 
   const results = await Promise.all(
     servers.map(async (s) => ({
       ...s,
-      healthy: await checkMockServerHealth(s.url),
+      healthy: await checkMockServerHealth(s.url, s.headers),
     }))
   )
 

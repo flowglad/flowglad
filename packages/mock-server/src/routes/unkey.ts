@@ -1,3 +1,8 @@
+import {
+  createErrorResponse,
+  delay,
+  parseErrorConfig,
+} from '../utils/errors'
 import { generateId } from '../utils/ids'
 
 /**
@@ -128,13 +133,26 @@ export function handleVerifyKeyV1(): Response {
 /**
  * Route handler for Unkey mock server.
  * Returns a Response if the route matches, null otherwise.
+ *
+ * Supports error simulation via headers:
+ * - X-Mock-Error: true | <status-code> | timeout
+ * - X-Mock-Error-Message: <custom message>
  */
-export function handleUnkeyRoute(
+export async function handleUnkeyRoute(
   req: Request,
   pathname: string
-): Response | null {
+): Promise<Response | null> {
   if (req.method !== 'POST') {
     return null
+  }
+
+  // Check for error simulation
+  const errorConfig = parseErrorConfig(req)
+  if (errorConfig) {
+    if (errorConfig.isTimeout) {
+      await delay(5000) // 5 second delay for timeout simulation
+    }
+    return createErrorResponse('unkey', errorConfig)
   }
 
   switch (pathname) {

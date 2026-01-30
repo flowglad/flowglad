@@ -436,22 +436,15 @@ describe('apiKeyHelpers', () => {
       })
     })
 
-    // Skip: This test requires mocking Unkey to fail, which isn't possible with
-    // the stateless mock server. The mock server always returns success.
-    // TODO: Either move to unit test or add error simulation to mock server.
+    // Skip: This test requires the Unkey SDK to send X-Mock-Error headers to trigger
+    // error simulation in the mock server. The mock server now supports error simulation
+    // via X-Mock-Error headers, but injecting headers into SDK requests is not straightforward.
+    // TODO: Implement this test in a unit test file with SDK mocking, or configure
+    // MSW to inject error headers based on test context.
     it.skip('should NOT delete the database record if Unkey deletion fails', async () => {
-      // Configure the mock to reject for this test
-      // Note: This used to work with module-level mocks but now db tests use the mock server
-      const mockDeleteApiKey = globalThis.__mockUnkeyDeleteApiKey
-      if (!mockDeleteApiKey) {
-        throw new Error(
-          'This test requires __mockUnkeyDeleteApiKey which is not available in db tests. ' +
-            'Move this test to a unit test file or add error simulation to the mock server.'
-        )
-      }
-      mockDeleteApiKey.mockRejectedValueOnce(
-        new Error('Unkey API error: Key not found')
-      )
+      // This test verifies atomicity: if Unkey deletion fails, the DB record should not be deleted.
+      // The mock server supports error simulation via X-Mock-Error header, but that header
+      // needs to be on the HTTP request made by the Unkey SDK internally.
 
       // Create a livemode API key WITH a fake unkeyId
       const apiKeyWithUnkeyId = await adminTransaction(

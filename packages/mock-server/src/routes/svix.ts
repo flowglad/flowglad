@@ -1,4 +1,9 @@
 import {
+  createErrorResponse,
+  delay,
+  parseErrorConfig,
+} from '../utils/errors'
+import {
   generateId,
   generateSvixEndpointId,
   generateSvixMessageId,
@@ -177,12 +182,25 @@ export async function handleSendMessage(
 /**
  * Route handler for Svix mock server
  * Matches paths against Svix API patterns and dispatches to appropriate handlers
+ *
+ * Supports error simulation via headers:
+ * - X-Mock-Error: true | <status-code> | timeout
+ * - X-Mock-Error-Message: <custom message>
  */
-export function handleSvixRoute(
+export async function handleSvixRoute(
   req: Request,
   pathname: string
-): Response | Promise<Response> | null {
+): Promise<Response | null> {
   const method = req.method
+
+  // Check for error simulation
+  const errorConfig = parseErrorConfig(req)
+  if (errorConfig) {
+    if (errorConfig.isTimeout) {
+      await delay(5000) // 5 second delay for timeout simulation
+    }
+    return createErrorResponse('svix', errorConfig)
+  }
 
   // POST /api/v1/app - Create application
   if (method === 'POST' && pathname === '/api/v1/app') {

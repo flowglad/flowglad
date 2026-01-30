@@ -128,8 +128,8 @@ describe('checkSvixApplicationExists', () => {
   // We only need to use server.use() for test-specific handler overrides
 
   it('returns true when Svix application exists (200 response)', async () => {
-    // The default svixHandlers in mocks/svixServer.ts return 200 for GET /app/:appId
-    // So calling checkSvixApplicationExists with any ID should return true
+    // The flowglad-mock-server returns 200 for GET /app/:appId by default
+    // Note: This test requires SVIX_MOCK_HOST to be set (via .env.test)
     const exists = await checkSvixApplicationExists(
       'app_existing_123'
     )
