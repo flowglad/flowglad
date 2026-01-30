@@ -2290,7 +2290,8 @@ describe('ledgerEntryMethods', () => {
     })
 
     it('should return correct balance for a single usage credit ID with zero balance', async () => {
-      const amount = 2500(
+      const amount = 2500
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupLedgerEntries({
             organizationId: organization.id,

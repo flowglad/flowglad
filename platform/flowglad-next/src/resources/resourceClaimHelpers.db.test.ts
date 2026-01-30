@@ -1693,26 +1693,21 @@ describe('expired_at functionality', () => {
       // First, create 2 existing claims (within future capacity of 0 after cancellation)
       // Actually, future capacity is 0, so all claims should be temporary
       // Let's schedule cancellation in 7 days
-      const sevenDaysFromNow =
-        Date.now() +
-        7 *
-          24 *
-          60 *
-          60 *
-          1000(
-            await adminTransactionWithResult(async (ctx) => {
-              const { transaction } = ctx
-              await updateSubscription(
-                {
-                  id: subscription.id,
-                  cancelScheduledAt: sevenDaysFromNow,
-                  renews: false,
-                },
-                transaction
-              )
-              return Result.ok(undefined)
-            })
-          ).unwrap()
+      const sevenDaysFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateSubscription(
+            {
+              id: subscription.id,
+              cancelScheduledAt: sevenDaysFromNow,
+              renews: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Now claim a resource
       const result = (
@@ -1782,24 +1777,21 @@ describe('expired_at functionality', () => {
 
     it('when cancelScheduledAt is in the past (already passed), claims are created normally without expiredAt', async () => {
       // Set cancelScheduledAt in the past (should have already executed)
-      const oneHourAgo =
-        Date.now() -
-        60 *
-          60 *
-          1000(
-            await adminTransactionWithResult(async (ctx) => {
-              const { transaction } = ctx
-              await updateSubscription(
-                {
-                  id: subscription.id,
-                  cancelScheduledAt: oneHourAgo,
-                  renews: false,
-                },
-                transaction
-              )
-              return Result.ok(undefined)
-            })
-          ).unwrap()
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateSubscription(
+            {
+              id: subscription.id,
+              cancelScheduledAt: oneHourAgo,
+              renews: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const result = (
         await adminTransactionWithResult(async (ctx) => {
