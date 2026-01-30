@@ -20,7 +20,7 @@ const commands: CommandInfo[] = [
   {
     name: 'logout',
     description: 'Clear stored credentials',
-    status: 'coming-soon',
+    status: 'available',
   },
   {
     name: 'link',
