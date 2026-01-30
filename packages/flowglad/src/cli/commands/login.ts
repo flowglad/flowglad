@@ -62,7 +62,16 @@ export const loginFlow = async (
 
   // Request device code
   console.log('Requesting authorization...')
-  const deviceCodeResponse = await requestDeviceCode(baseUrl)
+  let deviceCodeResponse
+  try {
+    deviceCodeResponse = await requestDeviceCode(baseUrl)
+  } catch {
+    console.error(
+      'Error: Failed to connect to Flowglad. Please check your internet connection.'
+    )
+    process.exit(1)
+    return
+  }
 
   // Display verification info
   console.log('')

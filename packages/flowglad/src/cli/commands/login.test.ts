@@ -2,12 +2,12 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  afterAll,
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  type MockInstance,
   vi,
 } from 'vitest'
 import {
@@ -18,6 +18,7 @@ import { getBaseUrl, loginFlow } from './login'
 
 // Mock fetch globally
 const mockFetch = vi.fn()
+const originalFetch = globalThis.fetch
 vi.stubGlobal('fetch', mockFetch)
 
 // Mock the open package
@@ -30,9 +31,16 @@ describe('login command', () => {
   let testConfigDir: string
   let originalConfigDir: string | undefined
   let originalApiUrl: string | undefined
-  let consoleLogSpy: MockInstance
-  let consoleErrorSpy: MockInstance
-  let processExitSpy: MockInstance
+
+  // Console capture (following help.test.ts pattern)
+  let consoleLogOutput: string[]
+  let consoleErrorOutput: string[]
+  const originalConsoleLog = console.log
+  const originalConsoleError = console.error
+
+  // Process.exit capture
+  let exitCode: number | null
+  const originalProcessExit = process.exit
 
   beforeEach(async () => {
     // Save original env vars
@@ -55,18 +63,21 @@ describe('login command', () => {
     mockOpen.mockReset()
     mockOpen.mockResolvedValue(undefined)
 
-    // biome-ignore lint/plugin: capturing console output for test assertions
-    consoleLogSpy = vi
-      .spyOn(console, 'log')
-      .mockImplementation(() => {})
-    // biome-ignore lint/plugin: capturing console output for test assertions
-    consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-    // biome-ignore lint/plugin: mocking process.exit to prevent test process from exiting
-    processExitSpy = vi
-      .spyOn(process, 'exit')
-      .mockImplementation(() => undefined as never)
+    // Capture console output (following help.test.ts pattern)
+    consoleLogOutput = []
+    consoleErrorOutput = []
+    console.log = (...args: unknown[]) => {
+      consoleLogOutput.push(args.map(String).join(' '))
+    }
+    console.error = (...args: unknown[]) => {
+      consoleErrorOutput.push(args.map(String).join(' '))
+    }
+
+    // Capture process.exit
+    exitCode = null
+    process.exit = ((code?: number) => {
+      exitCode = code ?? 0
+    }) as typeof process.exit
   })
 
   afterEach(async () => {
@@ -82,10 +93,10 @@ describe('login command', () => {
       delete process.env.FLOWGLAD_API_URL
     }
 
-    // Restore spies
-    consoleLogSpy.mockRestore()
-    consoleErrorSpy.mockRestore()
-    processExitSpy.mockRestore()
+    // Restore console and process.exit
+    console.log = originalConsoleLog
+    console.error = originalConsoleError
+    process.exit = originalProcessExit
 
     // Clean up test directory
     try {
@@ -93,6 +104,11 @@ describe('login command', () => {
     } catch {
       // Ignore cleanup errors
     }
+  })
+
+  afterAll(() => {
+    // Restore global fetch
+    globalThis.fetch = originalFetch
   })
 
   describe('getBaseUrl', () => {
@@ -159,23 +175,21 @@ describe('login command', () => {
 
       await loginFlow({ browser: false })
 
+      const output = consoleLogOutput.join('\n')
+
       // Verify verification URL was displayed
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        '  https://flowglad.com/device?user_code=ABCD-EFGH'
+      expect(output).toContain(
+        'https://flowglad.com/device?user_code=ABCD-EFGH'
       )
 
       // Verify user code was displayed
-      expect(consoleLogSpy).toHaveBeenCalledWith('  ABCD-EFGH')
+      expect(output).toContain('ABCD-EFGH')
 
       // Verify verification URI was displayed
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('https://flowglad.com/device')
-      )
+      expect(output).toContain('https://flowglad.com/device')
 
       // Verify success message
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Logged in as dev@example.com'
-      )
+      expect(output).toContain('Logged in as dev@example.com')
     })
 
     it('shows already logged in message when valid credentials exist', async () => {
@@ -198,13 +212,13 @@ describe('login command', () => {
 
       await loginFlow({ browser: false })
 
+      const output = consoleLogOutput.join('\n')
+
       // Should show already logged in message
-      expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect(output).toContain(
         'Already logged in as existing@example.com'
       )
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Run `flowglad logout` to sign out.'
-      )
+      expect(output).toContain('Run `flowglad logout` to sign out.')
 
       // Should not have called fetch (no device code request)
       expect(mockFetch).not.toHaveBeenCalled()
@@ -251,9 +265,8 @@ describe('login command', () => {
       expect(mockFetch).toHaveBeenCalled()
 
       // Should show new login success
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Logged in as dev@example.com'
-      )
+      const output = consoleLogOutput.join('\n')
+      expect(output).toContain('Logged in as dev@example.com')
     })
 
     it('exits with code 1 and displays error when user denies access', async () => {
@@ -276,10 +289,10 @@ describe('login command', () => {
 
       await loginFlow({ browser: false })
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(consoleErrorOutput.join('\n')).toContain(
         'Error: Authorization was denied.'
       )
-      expect(processExitSpy).toHaveBeenCalledWith(1)
+      expect(exitCode).toBe(1)
     })
 
     it('exits with code 1 and displays error when device code expires', async () => {
@@ -302,13 +315,13 @@ describe('login command', () => {
 
       await loginFlow({ browser: false })
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(consoleErrorOutput.join('\n')).toContain(
         'Error: Authorization code expired. Please try again.'
       )
-      expect(processExitSpy).toHaveBeenCalledWith(1)
+      expect(exitCode).toBe(1)
     })
 
-    it('saves credentials after successful authentication', async () => {
+    it('saves credentials with correct values including refreshTokenExpiresAt after successful authentication', async () => {
       // Mock device code request
       mockFetch
         .mockResolvedValueOnce({
@@ -335,6 +348,22 @@ describe('login command', () => {
       expect(savedCredentials?.userId).toBe('user_123')
       expect(savedCredentials?.email).toBe('dev@example.com')
       expect(savedCredentials?.name).toBe('Developer')
+
+      // Verify refreshTokenExpiresAt is a valid timestamp (not NaN)
+      expect(typeof savedCredentials?.refreshTokenExpiresAt).toBe(
+        'number'
+      )
+      expect(
+        Number.isNaN(savedCredentials?.refreshTokenExpiresAt)
+      ).toBe(false)
+
+      // The expiresAt from session is '2026-04-29T12:00:00.000Z'
+      const expectedTimestamp = new Date(
+        '2026-04-29T12:00:00.000Z'
+      ).getTime()
+      expect(savedCredentials?.refreshTokenExpiresAt).toBe(
+        expectedTimestamp
+      )
     })
 
     it('attempts to open browser when browser option is true', async () => {
@@ -383,6 +412,58 @@ describe('login command', () => {
       await loginFlow({ browser: false })
 
       expect(mockOpen).not.toHaveBeenCalled()
+    })
+
+    it('displays fallback message when browser fails to open', async () => {
+      // Make open() throw an error
+      mockOpen.mockRejectedValueOnce(
+        new Error('Failed to open browser')
+      )
+
+      // Mock device code request
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockDeviceCodeResponse),
+        })
+        // Mock token response
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockTokenResponse),
+        })
+        // Mock session response
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockSessionResponse),
+        })
+
+      await loginFlow({ browser: true })
+
+      const output = consoleLogOutput.join('\n')
+
+      // Should have attempted to open browser
+      expect(mockOpen).toHaveBeenCalled()
+
+      // Should display fallback messages
+      expect(output).toContain(
+        'Could not open browser automatically.'
+      )
+      expect(output).toContain('Please open the URL above manually.')
+
+      // Should still complete successfully
+      expect(output).toContain('Logged in as dev@example.com')
+    })
+
+    it('exits with code 1 and displays connection error when device code request fails', async () => {
+      // Mock device code request failure
+      mockFetch.mockRejectedValueOnce(new Error('Network error'))
+
+      await loginFlow({ browser: false })
+
+      expect(consoleErrorOutput.join('\n')).toContain(
+        'Error: Failed to connect to Flowglad'
+      )
+      expect(exitCode).toBe(1)
     })
   })
 })
