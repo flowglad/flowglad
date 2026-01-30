@@ -1,5 +1,9 @@
 import { getBaselinePathForPackage, readBaseline } from '../baseline'
-import { countViolationsByFile, runBiomeLint } from '../biome'
+import {
+  countViolationsByFile,
+  getDiagnosticsForFile,
+  runBiomeLint,
+} from '../biome'
 import { loadConfig, resolvePackagePaths } from '../config'
 import type { BiomeDiagnostic, RatchetRule } from '../types'
 
@@ -78,9 +82,10 @@ const checkPackageForRule = async (
     const baselineCount = baselineMap.get(filePath) ?? 0
 
     if (currentCount > baselineCount) {
-      // New violations - this is a failure
-      const fileDiagnostics = diagnostics.filter(
-        (d) => d.filePath === filePath
+      const fileDiagnostics = getDiagnosticsForFile(
+        diagnostics,
+        filePath,
+        rule.name
       )
       filesWithNewViolations.push({
         path: filePath,
