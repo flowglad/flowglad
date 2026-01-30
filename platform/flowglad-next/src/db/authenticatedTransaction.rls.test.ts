@@ -38,6 +38,8 @@ describe('RLS Access Control with selectOrganizations', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
+  let pricingModel1: PricingModel.Record
+  let pricingModel2: PricingModel.Record
   let userA: User.Record
   let userB: User.Record
   let apiKeyA: ApiKey.Record
@@ -47,9 +49,11 @@ describe('RLS Access Control with selectOrganizations', () => {
     // Setup two test organizations
     const org1Setup = await setupOrg()
     testOrg1 = org1Setup.organization
+    pricingModel1 = org1Setup.pricingModel
 
     const org2Setup = await setupOrg()
     testOrg2 = org2Setup.organization
+    pricingModel2 = org2Setup.pricingModel
 
     // Setup users and API keys for each organization
     const userApiKeyA = await setupUserAndApiKey({
@@ -77,6 +81,7 @@ describe('RLS Access Control with selectOrganizations', () => {
           focused: false,
           livemode: true,
           role: MembershipRole.Member,
+          focusedPricingModelId: pricingModel2.id,
         },
         transaction
       )
@@ -220,6 +225,7 @@ describe('RLS Access Control with selectMemberships', () => {
           focused: false,
           livemode: true,
           role: MembershipRole.Member,
+          focusedPricingModelId: org2PricingModelIdLive,
         },
         transaction
       )
@@ -393,6 +399,7 @@ describe('RLS for selectProducts', () => {
           focused: false,
           livemode: true,
           role: MembershipRole.Member,
+          focusedPricingModelId: prodPricingModel2.id,
         },
         transaction
       )
@@ -666,6 +673,7 @@ describe('RLS for selectPricingModels', () => {
           focused: false,
           livemode: true,
           role: MembershipRole.Member,
+          focusedPricingModelId: pricingModel2.id,
         },
         transaction
       )
@@ -1024,7 +1032,7 @@ describe('Second-order RLS defense in depth', () => {
 describe('Edge cases and robustness for second-order RLS', () => {
   it('API key always accesses its own org regardless of focused state', async () => {
     const { organization: o1 } = await setupOrg()
-    const { organization: o2 } = await setupOrg()
+    const { organization: o2, pricingModel: pm2 } = await setupOrg()
     const { user, apiKey } = await setupUserAndApiKey({
       organizationId: o1.id,
       livemode: true,
@@ -1045,6 +1053,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
           focused: true,
           livemode: true,
           role: MembershipRole.Member,
+          focusedPricingModelId: pm2.id,
         },
         transaction
       )

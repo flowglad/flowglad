@@ -31,6 +31,9 @@ let webUser: User.Record
 let webOrgA: Organization.Record
 let webOrgB: Organization.Record
 let webOrgC: Organization.Record
+let webPmA: string // pricing model ID for webOrgA
+let webPmB: string // pricing model ID for webOrgB
+let webPmC: string // pricing model ID for webOrgC
 let webMemA: Membership.Record
 let webMemB: Membership.Record
 let webMemC: Membership.Record
@@ -56,6 +59,10 @@ beforeEach(async () => {
   webOrgA = webOrgSetupA.organization
   webOrgB = webOrgSetupB.organization
   webOrgC = webOrgSetupC.organization
+  // Use testmode pricing models since livemode: false is used for membership inserts
+  webPmA = webOrgSetupA.testmodePricingModel.id
+  webPmB = webOrgSetupB.pricingModel.id // livemode: true membership
+  webPmC = webOrgSetupC.testmodePricingModel.id
 
   webBetterAuthId = `bau_${core.nanoid()}`
   webUserEmail = `webapp+${core.nanoid()}@test.com`
@@ -78,6 +85,7 @@ beforeEach(async () => {
         organizationId: webOrgA.id,
         focused: false,
         livemode: false,
+        focusedPricingModelId: webPmA,
       })
       .returning()
     const [mB] = await transaction
@@ -87,6 +95,7 @@ beforeEach(async () => {
         organizationId: webOrgB.id,
         focused: true,
         livemode: true,
+        focusedPricingModelId: webPmB,
       })
       .returning()
     const [mC] = await transaction
@@ -96,6 +105,7 @@ beforeEach(async () => {
         organizationId: webOrgC.id,
         focused: false,
         livemode: false,
+        focusedPricingModelId: webPmC,
       })
       .returning()
     webMemA = mA as Membership.Record
@@ -128,6 +138,7 @@ beforeEach(async () => {
         organizationId: secretOrg.id,
         focused: true,
         livemode: false,
+        focusedPricingModelId: secretOrgTestPricingModelId,
       })
       .returning()
     secretMembership = m as Membership.Record
@@ -266,7 +277,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // expects: jwtClaim.organization_id === ''
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `deactivated+${core.nanoid()}@test.com`
-    const testOrg = (await setupOrg()).organization
+    const { organization: testOrg, testmodePricingModel: testPm } =
+      await setupOrg()
 
     await adminTransaction(async ({ transaction }) => {
       const [testUser] = await transaction
@@ -287,6 +299,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
           organizationId: testOrg.id,
           focused: true,
           livemode: false,
+          focusedPricingModelId: testPm.id,
         })
         .returning()
 
@@ -319,7 +332,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // expects: jwtClaim.organization_id === the org's id
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `active+${core.nanoid()}@test.com`
-    const testOrg = (await setupOrg()).organization
+    const { organization: testOrg, pricingModel: testPm } =
+      await setupOrg()
 
     let testUserId: string
     await adminTransaction(async ({ transaction }) => {
@@ -340,6 +354,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         organizationId: testOrg.id,
         focused: true,
         livemode: true,
+        focusedPricingModelId: testPm.id,
       })
     })
 
@@ -366,7 +381,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // This tests the AND condition: both focused=true AND deactivatedAt IS NULL must be true
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `focused-deactivated+${core.nanoid()}@test.com`
-    const testOrg = (await setupOrg()).organization
+    const { organization: testOrg, testmodePricingModel: testPm } =
+      await setupOrg()
 
     await adminTransaction(async ({ transaction }) => {
       const [testUser] = await transaction
@@ -387,6 +403,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         focused: true,
         livemode: false,
         deactivatedAt: new Date(), // Deactivated at current time
+        focusedPricingModelId: testPm.id,
       })
     })
 
@@ -1229,8 +1246,9 @@ describe('Focused membership consistency between databaseAuthentication and trpc
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `consistency-test+${core.nanoid()}@test.com`
 
-    const org1 = (await setupOrg()).organization
-    const org2 = (await setupOrg()).organization
+    const { organization: org1, testmodePricingModel: pm1 } =
+      await setupOrg()
+    const { organization: org2, pricingModel: pm2 } = await setupOrg()
 
     await adminTransaction(async ({ transaction }) => {
       const [testUser] = await transaction
@@ -1250,12 +1268,14 @@ describe('Focused membership consistency between databaseAuthentication and trpc
           organizationId: org1.id,
           focused: false,
           livemode: false,
+          focusedPricingModelId: pm1.id,
         },
         {
           userId: testUser.id,
           organizationId: org2.id,
           focused: false,
           livemode: true,
+          focusedPricingModelId: pm2.id,
         },
       ])
     })
@@ -1296,9 +1316,11 @@ describe('Focused membership consistency between databaseAuthentication and trpc
     const testBetterAuthId = `bau_${core.nanoid()}`
     const testEmail = `consistency-focused+${core.nanoid()}@test.com`
 
-    const org1 = (await setupOrg()).organization
-    const org2 = (await setupOrg()).organization
-    const org3 = (await setupOrg()).organization
+    const { organization: org1, testmodePricingModel: pm1 } =
+      await setupOrg()
+    const { organization: org2, pricingModel: pm2 } = await setupOrg()
+    const { organization: org3, testmodePricingModel: pm3 } =
+      await setupOrg()
 
     let focusedOrgId: string
     let testUserId: string
@@ -1323,18 +1345,21 @@ describe('Focused membership consistency between databaseAuthentication and trpc
           organizationId: org1.id,
           focused: false,
           livemode: false,
+          focusedPricingModelId: pm1.id,
         },
         {
           userId: testUser.id,
           organizationId: org2.id,
           focused: true, // This one is focused
           livemode: true,
+          focusedPricingModelId: pm2.id,
         },
         {
           userId: testUser.id,
           organizationId: org3.id,
           focused: false,
           livemode: false,
+          focusedPricingModelId: pm3.id,
         },
       ])
     })
