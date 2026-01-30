@@ -1,5 +1,6 @@
 import {
   boolean,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -65,4 +66,29 @@ export const verification = pgTable('better_auth_verification', {
   updatedAt: timestamp('updated_at').$defaultFn(
     () => /* @__PURE__ */ new Date()
   ),
+}).enableRLS()
+
+/**
+ * Device code table for Better Auth Device Authorization plugin.
+ * Used for CLI authentication via OAuth Device Flow (RFC 8628).
+ */
+export const deviceCode = pgTable('better_auth_device_code', {
+  id: text('id').primaryKey(),
+  deviceCode: text('device_code').notNull().unique(),
+  userCode: text('user_code').notNull().unique(),
+  userId: text('user_id').references(() => user.id, {
+    onDelete: 'cascade',
+  }),
+  clientId: text('client_id'),
+  scope: text('scope'),
+  status: text('status').notNull().default('pending'),
+  expiresAt: timestamp('expires_at').notNull(),
+  lastPolledAt: timestamp('last_polled_at'),
+  pollingInterval: integer('polling_interval'),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  updatedAt: timestamp('updated_at')
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
 }).enableRLS()
