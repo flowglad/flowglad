@@ -25,6 +25,35 @@ interface RedisErrorResponse {
 }
 
 /**
+ * Type guard to check if a value is a valid Redis command (array of strings)
+ */
+function isRedisCommand(value: unknown): value is RedisCommand {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((item) => typeof item === 'string')
+  )
+}
+
+/**
+ * Type guard to check if a value is a pipeline (array of Redis commands)
+ */
+function isRedisCommandArray(
+  value: unknown
+): value is RedisCommand[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    Array.isArray(value[0]) &&
+    value.every(
+      (cmd) =>
+        Array.isArray(cmd) &&
+        cmd.every((arg) => typeof arg === 'string')
+    )
+  )
+}
+
+/**
  * Create a JSON response
  */
 function jsonResponse(
@@ -139,22 +168,12 @@ async function parseRedisCommand(
   try {
     const body = await req.json()
     // Can be a single command array or array of command arrays (pipeline)
-    if (Array.isArray(body) && body.length > 0) {
-      // Pipeline: array of arrays where each inner array contains strings
-      if (
-        Array.isArray(body[0]) &&
-        body.every(
-          (cmd) =>
-            Array.isArray(cmd) &&
-            cmd.every((arg) => typeof arg === 'string')
-        )
-      ) {
-        return body as RedisCommand[]
-      }
-      // Single command: array of strings
-      if (body.every((item) => typeof item === 'string')) {
-        return body as RedisCommand
-      }
+    // Check pipeline first (array of arrays) before single command (array of strings)
+    if (isRedisCommandArray(body)) {
+      return body
+    }
+    if (isRedisCommand(body)) {
+      return body
     }
     return null
   } catch {

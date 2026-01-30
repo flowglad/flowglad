@@ -87,11 +87,9 @@ if (process.env.STRIPE_MOCK_HOST) {
 delete process.env.STRIPE_MOCK_HOST
 
 // Guard against mock server hosts being set - integration tests should use real APIs
-const mockHostVars = [
-  'SVIX_MOCK_HOST',
-  'UNKEY_MOCK_HOST',
-  'TRIGGER_API_URL',
-] as const
+// Note: TRIGGER_API_URL is intentionally NOT included here because we want integration
+// tests to use the mock server for Trigger.dev to avoid triggering real background jobs
+const mockHostVars = ['SVIX_MOCK_HOST', 'UNKEY_MOCK_HOST'] as const
 
 // Check for localhost variants: hostname, IPv4 loopback, IPv6 loopback
 const isLocalhostUrl = (url: string): boolean => {

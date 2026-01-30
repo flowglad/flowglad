@@ -123,10 +123,21 @@ async function verifyMockServers(): Promise<void> {
   ]
 
   const results = await Promise.all(
-    servers.map(async (s) => ({
-      ...s,
-      healthy: await checkMockServerHealth(s.url, s.headers),
-    }))
+    servers.map(async (s) => {
+      // Use environment variable if set, otherwise fall back to default URL
+      const baseUrl =
+        process.env[s.envVar] || s.url.replace(/\/[^/]*$/, '')
+      // For stripe-mock, the env var is just the host, not the full health check path
+      const effectiveUrl =
+        s.envVar === 'STRIPE_MOCK_HOST'
+          ? `${baseUrl}/v1/customers`
+          : `${baseUrl}/health`
+      return {
+        ...s,
+        effectiveUrl,
+        healthy: await checkMockServerHealth(effectiveUrl, s.headers),
+      }
+    })
   )
 
   const unhealthy = results.filter((r) => !r.healthy)
