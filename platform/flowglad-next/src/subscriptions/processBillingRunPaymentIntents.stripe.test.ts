@@ -999,7 +999,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     const scheduledBillingRuns = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectBillingRuns(
+          await selectBillingRuns(
             {
               subscriptionId: testSubscription.id,
               status: BillingRunStatus.Scheduled,
@@ -1156,7 +1156,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     const scheduledBillingRuns = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectBillingRuns(
+          await selectBillingRuns(
             {
               subscriptionId: testSubscription.id,
               status: BillingRunStatus.Scheduled,
@@ -1350,7 +1350,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     const scheduledRetries = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectBillingRuns(
+          await selectBillingRuns(
             {
               subscriptionId: testSubscription.id,
               status: BillingRunStatus.Scheduled,
@@ -1450,7 +1450,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     const billingRuns = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectBillingRuns(
+          await selectBillingRuns(
             { subscriptionId: testSubscription.id },
             transaction
           )
@@ -1643,7 +1643,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     const billingRuns = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectBillingRuns(
+          await selectBillingRuns(
             { subscriptionId: testSubscription.id },
             transaction
           )
@@ -1830,7 +1830,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     const billingRuns = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectBillingRuns(
+          await selectBillingRuns(
             { subscriptionId: testSubscription.id },
             transaction
           )
@@ -1920,7 +1920,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     const creditsAfterFirst = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectUsageCredits(
+          await selectUsageCredits(
             { subscriptionId: testSubscription.id },
             transaction
           )
@@ -1980,7 +1980,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     const creditsAfterSecond = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectUsageCredits(
+          await selectUsageCredits(
             { subscriptionId: testSubscription.id },
             transaction
           )
@@ -1997,7 +1997,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     const allTransitions = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
-          selectLedgerTransactions(
+          await selectLedgerTransactions(
             {
               subscriptionId: testSubscription.id,
               type: LedgerTransactionType.BillingPeriodTransition,

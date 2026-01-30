@@ -61,7 +61,9 @@ describe('memberships notificationPreferences', () => {
       const partialPrefs: Partial<NotificationPreferences> = {
         testModeNotifications: true,
         subscriptionCreated: false,
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateMembership(
             {
@@ -127,7 +129,9 @@ describe('memberships notificationPreferences', () => {
         testModeNotifications: true,
         subscriptionCreated: false,
         paymentFailed: false,
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateMembership(
             {

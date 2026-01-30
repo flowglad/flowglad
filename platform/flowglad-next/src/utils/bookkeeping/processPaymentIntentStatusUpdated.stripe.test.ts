@@ -683,7 +683,9 @@ describe('Process payment intent status updated', async () => {
       const updatedPayment = {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -727,7 +729,9 @@ describe('Process payment intent status updated', async () => {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
         purchaseId: purchase.id,
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -796,7 +800,9 @@ describe('Process payment intent status updated', async () => {
       const updatedPayment = {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -826,7 +832,9 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('maintains idempotency when called multiple times with the same charge status', async () => {
-      fakePayment.status = PaymentStatus.Succeeded(
+      fakePayment.status = PaymentStatus.Succeeded
+
+        ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -864,7 +872,9 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('updates the payment status to Failed when the charge status is failed', async () => {
-      fakePayment.status = PaymentStatus.Processing(
+      fakePayment.status = PaymentStatus.Processing
+
+        ;(
         await adminTransactionWithResult(
           async ({
             transaction,
@@ -894,7 +904,9 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('updates the failure message when the charge status is failed', async () => {
-      fakePayment.status = PaymentStatus.Processing(
+      fakePayment.status = PaymentStatus.Processing
+
+        ;(
         await adminTransactionWithResult(
           async ({
             transaction,

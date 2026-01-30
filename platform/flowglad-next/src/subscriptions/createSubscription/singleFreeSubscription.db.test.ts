@@ -107,7 +107,9 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'Second Free Sub',
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await verifyCanCreateSubscription(
             params,
@@ -159,7 +161,9 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'Paid Sub',
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // Update organization to allow multiple subscriptions
           await updateOrganization(
@@ -209,7 +213,9 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'New Free Sub',
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // This should succeed
           const result = await verifyCanCreateSubscription(
@@ -271,7 +277,9 @@ describe('Single Free Subscription Constraint', () => {
         discountRedemption: null,
         metadata: {},
         name: 'Second Paid Sub',
-      }(
+      }
+
+        ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // This should succeed
           const result = await verifyCanCreateSubscription(

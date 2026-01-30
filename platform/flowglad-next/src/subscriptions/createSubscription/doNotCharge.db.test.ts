@@ -228,7 +228,9 @@ describe('doNotCharge subscription creation', () => {
       autoStart: true,
       defaultPaymentMethod: paymentMethod,
       doNotCharge: true,
-    }(
+    }
+
+      ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await createSubscriptionWorkflow(
           params,

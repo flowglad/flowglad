@@ -194,8 +194,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      const result = (
-        await comprehensiveAdminTransaction(
+      const result = await comprehensiveAdminTransaction(
           async ({ transaction }) => {
             return Result.ok(
               await processSetupIntentSucceeded(
@@ -219,7 +218,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
             ).unwrap()
           )
         })
-      ).unwrap()
       expect(updatedFreeSubscription.status).toBe(
         SubscriptionStatus.Canceled
       )
