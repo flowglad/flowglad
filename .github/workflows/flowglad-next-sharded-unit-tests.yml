@@ -15,43 +15,6 @@ on:
   workflow_call:
 
 jobs:
-  # Build mock server image for use in db tests
-  build-mock-server:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image: ${{ steps.meta.outputs.tags }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          ref: ${{ github.event.inputs.branch || github.ref }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/mock-server
-          tags: |
-            type=sha,prefix=
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: packages/mock-server
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   # Unit tests are fast and don't need a database - run in a single job
   flowglad-next-unit-tests:
     runs-on: ubuntu-latest
@@ -81,7 +44,6 @@ jobs:
 
   # DB tests require postgres and are sharded for performance
   flowglad-next-db-tests:
-    needs: build-mock-server
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -110,7 +72,7 @@ jobs:
           - 12111:12111
           - 12112:12112
       flowglad-mock-server:
-        image: ${{ needs.build-mock-server.outputs.image }}
+        image: ghcr.io/flowglad/flowglad/mock-server:latest
         credentials:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
@@ -283,13 +245,12 @@ jobs:
   # Summary job that waits for all test jobs to complete
   test-summary:
     if: ${{ !cancelled() }}
-    needs: [build-mock-server, flowglad-next-unit-tests, flowglad-next-db-tests, flowglad-next-stripe-tests, flowglad-next-rls-tests, flowglad-next-frontend-tests]
+    needs: [flowglad-next-unit-tests, flowglad-next-db-tests, flowglad-next-stripe-tests, flowglad-next-rls-tests, flowglad-next-frontend-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check test results
         run: |
           echo "All test jobs completed"
-          echo "Build mock server: ${{ needs.build-mock-server.result }}"
           echo "Unit tests: ${{ needs.flowglad-next-unit-tests.result }}"
           echo "DB tests: ${{ needs.flowglad-next-db-tests.result }}"
           echo "Stripe tests: ${{ needs.flowglad-next-stripe-tests.result }}"
@@ -297,8 +258,7 @@ jobs:
           echo "Frontend tests: ${{ needs.flowglad-next-frontend-tests.result }}"
 
           # Fail if any job failed
-          if [ "${{ needs.build-mock-server.result }}" = "failure" ] || \
-             [ "${{ needs.flowglad-next-unit-tests.result }}" = "failure" ] || \
+          if [ "${{ needs.flowglad-next-unit-tests.result }}" = "failure" ] || \
              [ "${{ needs.flowglad-next-db-tests.result }}" = "failure" ] || \
              [ "${{ needs.flowglad-next-stripe-tests.result }}" = "failure" ] || \
              [ "${{ needs.flowglad-next-rls-tests.result }}" = "failure" ] || \
