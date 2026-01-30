@@ -80,59 +80,89 @@ async function checkMockServerHealth(
  * Throws descriptive error if any are missing.
  */
 async function verifyMockServers(): Promise<void> {
+  // Helper to construct health check URL for standard servers
+  const standardHealthUrl = (
+    envVar: string,
+    defaultUrl: string,
+    healthPath: string
+  ) => {
+    const baseUrl = process.env[envVar] || defaultUrl
+    return `${baseUrl}${healthPath}`
+  }
+
+  // stripe-mock is special: STRIPE_MOCK_HOST is just a hostname (e.g., 'localhost'),
+  // not a full URL. The Stripe SDK adds protocol/port separately (see src/utils/stripe.ts).
+  const stripeMockHealthUrl = () => {
+    const host = process.env.STRIPE_MOCK_HOST || 'localhost'
+    return `http://${host}:12111/v1/balance`
+  }
+
   const servers = [
     {
       name: 'stripe-mock',
-      defaultUrl: 'http://localhost:12111',
-      envVar: 'STRIPE_MOCK_HOST',
-      // Use /v1/balance which is a simple GET endpoint
-      healthPath: '/v1/balance',
+      getHealthUrl: stripeMockHealthUrl,
       // stripe-mock requires any valid test API key
       headers: { Authorization: 'Bearer sk_test_xxx' },
     },
     {
       name: 'flowglad-mock-server (Svix)',
-      defaultUrl: 'http://localhost:9001',
-      envVar: 'SVIX_MOCK_HOST',
-      healthPath: '/health',
+      getHealthUrl: () =>
+        standardHealthUrl(
+          'SVIX_MOCK_HOST',
+          'http://localhost:9001',
+          '/health'
+        ),
     },
     {
       name: 'flowglad-mock-server (Unkey)',
-      defaultUrl: 'http://localhost:9002',
-      envVar: 'UNKEY_MOCK_HOST',
-      healthPath: '/health',
+      getHealthUrl: () =>
+        standardHealthUrl(
+          'UNKEY_MOCK_HOST',
+          'http://localhost:9002',
+          '/health'
+        ),
     },
     {
       name: 'flowglad-mock-server (Trigger)',
-      defaultUrl: 'http://localhost:9003',
-      envVar: 'TRIGGER_API_URL',
-      healthPath: '/health',
+      getHealthUrl: () =>
+        standardHealthUrl(
+          'TRIGGER_API_URL',
+          'http://localhost:9003',
+          '/health'
+        ),
     },
     {
       name: 'flowglad-mock-server (Redis)',
-      defaultUrl: 'http://localhost:9004',
-      envVar: 'UPSTASH_REDIS_REST_URL',
-      healthPath: '/health',
+      getHealthUrl: () =>
+        standardHealthUrl(
+          'UPSTASH_REDIS_REST_URL',
+          'http://localhost:9004',
+          '/health'
+        ),
     },
     {
       name: 'flowglad-mock-server (Resend)',
-      defaultUrl: 'http://localhost:9005',
-      envVar: 'RESEND_BASE_URL',
-      healthPath: '/health',
+      getHealthUrl: () =>
+        standardHealthUrl(
+          'RESEND_BASE_URL',
+          'http://localhost:9005',
+          '/health'
+        ),
     },
     {
       name: 'flowglad-mock-server (Cloudflare)',
-      defaultUrl: 'http://localhost:9006',
-      envVar: 'CLOUDFLARE_R2_ENDPOINT',
-      healthPath: '/health',
+      getHealthUrl: () =>
+        standardHealthUrl(
+          'CLOUDFLARE_R2_ENDPOINT',
+          'http://localhost:9006',
+          '/health'
+        ),
     },
   ]
 
   const results = await Promise.all(
     servers.map(async (s) => {
-      // Use environment variable if set, otherwise fall back to default URL
-      const baseUrl = process.env[s.envVar] || s.defaultUrl
-      const effectiveUrl = `${baseUrl}${s.healthPath}`
+      const effectiveUrl = s.getHealthUrl()
       return {
         ...s,
         effectiveUrl,
