@@ -119,6 +119,7 @@ describe('API Key RLS', () => {
             focused: true,
             livemode: false,
             role: MembershipRole.Member,
+            focusedPricingModelId: orgBPricingModelIdTest,
           },
           transaction
         )

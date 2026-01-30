@@ -15,6 +15,7 @@ import {
   organizationsClientSelectSchema,
 } from '@db-core/schema/organizations'
 import { getRevenueDataInputSchema } from '@db-core/schema/payments'
+import { pricingModelsClientSelectSchema } from '@db-core/schema/pricingModels'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -24,7 +25,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   adminTransaction,
-  comprehensiveAdminTransaction,
+  adminTransactionWithResult,
 } from '@/db/adminTransaction'
 import {
   authenticatedProcedureTransaction,
@@ -33,6 +34,7 @@ import {
 import {
   getMembershipNotificationPreferences,
   selectFocusedMembershipAndOrganization,
+  selectFocusedMembershipAndOrganizationAndPricingModel,
   selectMembershipAndOrganizationsByBetterAuthUserId,
   selectMemberships,
   selectMembershipsAndOrganizationsByMembershipWhere,
@@ -68,6 +70,7 @@ import {
 } from '@/utils/textContent'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 import { removeMemberFromOrganization } from '../mutations/removeMemberFromOrganization'
+import { updateFocusedPricingModelTransaction } from '../mutations/updateFocusedPricingModel'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -119,6 +122,7 @@ const getFocusedMembership = protectedProcedure
     z.object({
       membership: membershipsClientSelectSchema,
       organization: organizationsClientSelectSchema,
+      pricingModel: pricingModelsClientSelectSchema,
     })
   )
   .query(
@@ -133,7 +137,7 @@ const getFocusedMembership = protectedProcedure
           })
         }
         const focusedMembership =
-          await selectFocusedMembershipAndOrganization(
+          await selectFocusedMembershipAndOrganizationAndPricingModel(
             userId,
             transaction
           )
@@ -144,7 +148,7 @@ const getFocusedMembership = protectedProcedure
           })
         }
         // Explicitly parse through client schemas to ensure output validation passes.
-        // selectFocusedMembershipAndOrganization returns server schemas which include
+        // selectFocusedMembershipAndOrganizationAndPricingModel returns server schemas which include
         // hidden columns (position, createdByCommit, etc.) that must be stripped.
         return {
           membership: membershipsClientSelectSchema.parse(
@@ -152,6 +156,9 @@ const getFocusedMembership = protectedProcedure
           ),
           organization: organizationsClientSelectSchema.parse(
             focusedMembership.organization
+          ),
+          pricingModel: pricingModelsClientSelectSchema.parse(
+            focusedMembership.pricingModel
           ),
         }
       }
@@ -451,28 +458,30 @@ const createOrganization = protectedProcedure
       throw new Error('User not found')
     }
 
-    const result = await comprehensiveAdminTransaction(
-      async ({ transaction, cacheRecomputationContext }) => {
-        const [user] = await selectUsers(
-          {
-            betterAuthId: session.user.id,
-          },
-          transaction
-        )
-        const organizationResult =
-          await createOrganizationTransaction(
-            input,
+    const result = (
+      await adminTransactionWithResult(
+        async ({ transaction, cacheRecomputationContext }) => {
+          const [user] = await selectUsers(
             {
-              id: user.id,
-              email: user.email!,
-              fullName: user.name ?? undefined,
+              betterAuthId: session.user.id,
             },
-            transaction,
-            cacheRecomputationContext
+            transaction
           )
-        return Result.ok(organizationResult)
-      }
-    )
+          const organizationResult =
+            await createOrganizationTransaction(
+              input,
+              {
+                id: user.id,
+                email: user.email!,
+                fullName: user.name ?? undefined,
+              },
+              transaction,
+              cacheRecomputationContext
+            )
+          return Result.ok(organizationResult)
+        }
+      )
+    ).unwrap()
     if (input.codebaseMarkdown) {
       await saveOrganizationCodebaseMarkdown({
         organizationId: result.organization.id,
@@ -559,6 +568,57 @@ const updateFocusedMembership = protectedProcedure
         transaction
       )
     })
+  })
+
+const updateFocusedPricingModelSchema = z.object({
+  pricingModelId: z.string(),
+})
+
+/**
+ * Updates the focused pricing model for the current user's focused membership.
+ * Also auto-syncs the membership's livemode to match the pricing model's livemode.
+ */
+const updateFocusedPricingModel = protectedProcedure
+  .input(updateFocusedPricingModelSchema)
+  .output(
+    z.object({
+      membership: membershipsClientSelectSchema,
+      pricingModel: pricingModelsClientSelectSchema,
+    })
+  )
+  .mutation(async ({ input, ctx }) => {
+    const organizationId = ctx.organizationId
+    const userId = ctx.user?.id
+    if (!organizationId || !userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User and organization context required',
+      })
+    }
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return updateFocusedPricingModelTransaction(
+        {
+          pricingModelId: input.pricingModelId,
+          userId,
+          organizationId,
+        },
+        transaction
+      )
+    })
+
+    if (Result.isError(result)) {
+      throw result.error
+    }
+
+    return {
+      membership: membershipsClientSelectSchema.parse(
+        result.value.membership
+      ),
+      pricingModel: pricingModelsClientSelectSchema.parse(
+        result.value.pricingModel
+      ),
+    }
   })
 
 const getMembersTableRowData = protectedProcedure
@@ -721,6 +781,7 @@ export const organizationsRouter = router({
   getMembersTableRowData: getMembersTableRowData,
   getFocusedMembership: getFocusedMembership,
   updateFocusedMembership: updateFocusedMembership,
+  updateFocusedPricingModel: updateFocusedPricingModel,
   getOrganizations: getOrganizations,
   inviteUser: inviteUserToOrganization,
   removeMember: removeMemberFromOrganization,

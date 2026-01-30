@@ -1,7 +1,12 @@
-/**
- * @vitest-environment jsdom
- */
-
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import type { CustomerBillingDetails } from '@flowglad/shared'
 import {
   QueryClient,
@@ -9,14 +14,6 @@ import {
 } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
 import {
   fetchCustomerBilling,
@@ -473,17 +470,17 @@ describe('fetchPricingModel', () => {
 
 describe('useBilling', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   describe('when __devMode is true', () => {
@@ -772,17 +769,17 @@ describe('useBilling', () => {
 
 describe('usePricingModel', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   describe('when __devMode is true', () => {

@@ -3,7 +3,7 @@ import { BusinessOnboardingStatus } from '@db-core/enums'
 import type { LucideIcon } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import {
   ChevronDown,
@@ -33,10 +33,8 @@ import {
 import { SIDEBAR_BANNER_SLIDES } from '@/config/sidebarBannerConfig'
 import { useAuthContext } from '@/contexts/authContext'
 import { useClickOutside } from '@/hooks/use-click-outside'
-import { useContextAwareNavigation } from '@/hooks/useContextAwareNavigation'
 import { cn } from '@/lib/utils'
 import { signOut, useSession } from '@/utils/authClient'
-import { Skeleton } from '../ui/skeleton'
 import {
   Tooltip,
   TooltipContent,
@@ -58,32 +56,8 @@ export const SideNavigation = () => {
   const pathname = usePathname()
   const { organization } = useAuthContext()
   const { data: session } = useSession()
-  const { navigateToParentIfNeeded } = useContextAwareNavigation()
-  const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
-    onSuccess: async () => {
-      await invalidateTRPC()
-      await focusedMembership.refetch()
-      // Navigate to parent page if on a detail page to avoid 404s after livemode switch
-      // Only refresh if staying on current page (navigation handles its own refresh)
-      if (!navigateToParentIfNeeded()) {
-        router.refresh()
-      }
-    },
-  })
-  const { invalidate: invalidateTRPC } = trpc.useUtils()
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
-  const [
-    initialFocusedMembershipLoading,
-    setInitialFocusedMembershipLoading,
-  ] = useState(true)
-  const focusedMembershipData = focusedMembership.data
-  useEffect(() => {
-    if (focusedMembershipData) {
-      setInitialFocusedMembershipLoading(false)
-    }
-  }, [focusedMembershipData])
-  const livemode = focusedMembership.data?.membership.livemode
   const router = useRouter()
   const { state, toggleSidebar } = useSidebar()
   const isCollapsed = state === 'collapsed'
@@ -144,7 +118,9 @@ export const SideNavigation = () => {
     },
     {
       title: 'Pricing',
-      url: '/pricing-models',
+      url: focusedMembership.data?.pricingModel?.id
+        ? `/pricing-models/${focusedMembership.data.pricingModel.id}`
+        : '/dashboard',
       icon: DollarSign,
       isActive: isActive('/pricing-models'),
     },
@@ -311,118 +287,8 @@ export const SideNavigation = () => {
           isCollapsed ? 'px-0 py-2' : 'gap-2'
         )}
       >
-        {/* Banner Carousel - above test mode toggle */}
+        {/* Banner Carousel */}
         <SidebarBannerCarousel slides={SIDEBAR_BANNER_SLIDES} />
-
-        {/* Test Mode Toggle - using official sidebar components */}
-        <div
-          className={cn('px-0', isCollapsed && 'flex justify-start')}
-        >
-          <SidebarGroup className={cn(isCollapsed && 'p-0')}>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                {initialFocusedMembershipLoading ? (
-                  <Skeleton
-                    className={cn(
-                      'rounded-md',
-                      isCollapsed ? 'w-9 h-5' : 'w-full h-8'
-                    )}
-                  />
-                ) : isCollapsed ? (
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            await toggleTestMode.mutateAsync({
-                              livemode: !livemode,
-                            })
-                          }}
-                          disabled={
-                            toggleTestMode.isPending ||
-                            focusedMembership.isPending
-                          }
-                          className={cn(
-                            'flex w-full items-center justify-center rounded transition-colors',
-                            'hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                            'p-3 disabled:opacity-50'
-                          )}
-                          aria-label="Toggle test mode"
-                          data-testid="test-mode-toggle-collapsed"
-                        >
-                          <div
-                            className={cn(
-                              'inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent shadow-sm transition-colors cursor-pointer',
-                              !livemode
-                                ? 'bg-citrine-muted-foreground'
-                                : 'bg-input'
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                'block h-4 w-4 rounded-full bg-white shadow-lg transition-transform',
-                                !livemode
-                                  ? 'translate-x-4'
-                                  : 'translate-x-0'
-                              )}
-                            />
-                          </div>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        {!livemode
-                          ? 'Deactivate Test Mode'
-                          : 'Activate Test Mode'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  <SidebarMenuButton
-                    onClick={async () => {
-                      await toggleTestMode.mutateAsync({
-                        livemode: !livemode,
-                      })
-                    }}
-                    disabled={
-                      toggleTestMode.isPending ||
-                      focusedMembership.isPending
-                    }
-                    tooltip="Test Mode"
-                  >
-                    <span
-                      className={cn(
-                        'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap max-w-xs opacity-100 truncate',
-                        !livemode && 'text-citrine-foreground'
-                      )}
-                    >
-                      Test Mode
-                    </span>
-                    <span className="ml-auto shrink-0">
-                      <div
-                        className={cn(
-                          'inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent shadow-sm transition-colors',
-                          !livemode
-                            ? 'bg-citrine-muted-foreground'
-                            : 'bg-input'
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'block h-4 w-4 rounded-full bg-white shadow-lg transition-transform',
-                            !livemode
-                              ? 'translate-x-4'
-                              : 'translate-x-0'
-                          )}
-                        />
-                      </div>
-                    </span>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        </div>
 
         {/* NavUser - shows user info and dropdown menu */}
         <div className={cn(isCollapsed && 'flex justify-start')}>
@@ -436,7 +302,18 @@ export const SideNavigation = () => {
               organization={{
                 id: organization.id,
                 name: organization.name,
+                logoURL: organization.logoURL,
               }}
+              pricingModel={
+                focusedMembership.data?.pricingModel
+                  ? {
+                      id: focusedMembership.data.pricingModel.id,
+                      name: focusedMembership.data.pricingModel.name,
+                      livemode:
+                        focusedMembership.data.pricingModel.livemode,
+                    }
+                  : undefined
+              }
               onSignOut={() =>
                 signOut({
                   fetchOptions: {

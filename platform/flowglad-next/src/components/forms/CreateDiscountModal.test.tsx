@@ -38,11 +38,30 @@ mock.module('@/contexts/authContext', () => ({
   })),
 }))
 
+const mockFocusedMembershipData = {
+  pricingModel: {
+    id: 'pm-focused-123',
+    name: 'Focused PM',
+    livemode: true,
+  },
+  membership: {
+    livemode: true,
+  },
+}
+
 mock.module('@/app/_trpc/client', () => ({
   trpc: {
     discounts: {
       create: {
         useMutation: mockUseMutation,
+      },
+    },
+    organizations: {
+      getFocusedMembership: {
+        useQuery: () => ({
+          data: mockFocusedMembershipData,
+          isPending: false,
+        }),
       },
     },
   },
@@ -90,14 +109,21 @@ mock.module('@/components/forms/FormModal', () => {
   }: {
     children: ReactNode
     onSubmit: (data: unknown) => Promise<void>
-    defaultValues?: Record<string, unknown>
+    defaultValues?:
+      | (() => Record<string, unknown>)
+      | Record<string, unknown>
   }) {
-    const form = useForm({ defaultValues })
+    // Handle defaultValues being a function (which is what the component uses)
+    const resolvedDefaultValues =
+      typeof defaultValues === 'function'
+        ? defaultValues()
+        : defaultValues
+    const form = useForm({ defaultValues: resolvedDefaultValues })
     return (
       <FormProvider {...form}>
         <div data-testid="form-modal">
           <div data-testid="default-values">
-            {JSON.stringify(defaultValues)}
+            {JSON.stringify(resolvedDefaultValues)}
           </div>
           <button
             type="button"
@@ -165,7 +191,7 @@ describe('CreateDiscountModal', () => {
       expect(screen.getByTestId('currency-input')).toBeInTheDocument()
     })
 
-    it('renders with correct default values', () => {
+    it('renders with correct default values including auto-set pricingModelId from focused membership', () => {
       render(
         <CreateDiscountModal
           isOpen={true}
@@ -184,9 +210,27 @@ describe('CreateDiscountModal', () => {
           duration: DiscountDuration.Once,
           active: true,
           numberOfPayments: null,
+          pricingModelId: 'pm-focused-123',
         },
         __rawAmountString: '0',
       })
+    })
+
+    it('auto-sets pricingModelId from focused membership data', () => {
+      render(
+        <CreateDiscountModal
+          isOpen={true}
+          setIsOpen={mock(() => {})}
+        />
+      )
+
+      const defaultValues = JSON.parse(
+        screen.getByTestId('default-values').textContent!
+      )
+      // The pricingModelId should be set to the focused PM's ID
+      expect(defaultValues.discount.pricingModelId).toBe(
+        'pm-focused-123'
+      )
     })
   })
 

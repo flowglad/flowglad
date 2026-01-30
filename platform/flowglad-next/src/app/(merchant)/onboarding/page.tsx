@@ -3,11 +3,17 @@ import {
   FlowgladApiKeyType,
 } from '@db-core/enums'
 import type { ApiKey } from '@db-core/schema/apiKeys'
+import type { Discount } from '@db-core/schema/discounts'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
 import PageContainer from '@/components/PageContainer'
-import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
@@ -23,60 +29,77 @@ import { auth, getSession } from '@/utils/auth'
 import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
 import OnboardingStatusTable from './OnboardingStatusTable'
 
+interface OnboardingPageData {
+  organization: Organization.Record | undefined
+  products:
+    | { price: Price.Record; product: Product.Record }[]
+    | undefined
+  discounts: Discount.Record[] | undefined
+  pricingModels: PricingModel.Record[] | undefined
+}
+
 const OnboardingPage = async () => {
-  const results = await authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      const membershipsAndOrganizations =
-        await selectMembershipAndOrganizations(
-          {
-            userId,
-            focused: true,
-          },
+  const results = (
+    await authenticatedTransactionWithResult(
+      async ({
+        transaction,
+        userId,
+      }): Promise<Result<OnboardingPageData, Error>> => {
+        const membershipsAndOrganizations =
+          await selectMembershipAndOrganizations(
+            {
+              userId,
+              focused: true,
+            },
+            transaction
+          )
+        if (membershipsAndOrganizations.length === 0) {
+          return Result.ok({
+            organization: undefined,
+            products: undefined,
+            discounts: undefined,
+            pricingModels: undefined,
+          })
+        }
+        const organization =
+          membershipsAndOrganizations[0].organization
+        const products = await selectPricesAndProductsForOrganization(
+          {},
+          organization.id,
           transaction
         )
-      if (membershipsAndOrganizations.length === 0) {
-        return {
-          organization: undefined,
-          products: undefined,
-          discounts: undefined,
-          pricingModels: undefined,
-        }
+        const discounts = await selectDiscounts(
+          { organizationId: organization.id },
+          transaction
+        )
+        const pricingModels = await selectPricingModels(
+          { organizationId: organization.id },
+          transaction
+        )
+        return Result.ok({
+          organization,
+          products,
+          discounts,
+          pricingModels,
+        })
       }
-      const organization = membershipsAndOrganizations[0].organization
-      const products = await selectPricesAndProductsForOrganization(
-        {},
-        organization.id,
-        transaction
-      )
-      const discounts = await selectDiscounts(
-        { organizationId: organization.id },
-        transaction
-      )
-      const pricingModels = await selectPricingModels(
-        { organizationId: organization.id },
-        transaction
-      )
-      return {
-        organization,
-        products,
-        discounts,
-        pricingModels,
-      }
-    }
-  )
+    )
+  ).unwrap()
 
   if (!results.organization) {
     return redirect('/onboarding/business-details')
   }
   let organization = results.organization
-  const testmodeApiKeys: ApiKey.Record[] = await adminTransaction(
-    async ({ transaction }) => {
-      return selectApiKeys(
-        { organizationId: organization.id, livemode: false },
-        transaction
+  const testmodeApiKeys: ApiKey.Record[] = (
+    await adminTransactionWithResult(async ({ transaction }) => {
+      return Result.ok(
+        await selectApiKeys(
+          { organizationId: organization.id, livemode: false },
+          transaction
+        )
       )
-    }
-  )
+    })
+  ).unwrap()
   let secretApiKey: ApiKey.Record | undefined = testmodeApiKeys.find(
     (key) => key.type === FlowgladApiKeyType.Secret
   )
@@ -94,36 +117,45 @@ const OnboardingPage = async () => {
     if (!defaultTestmodePricingModel) {
       throw new Error('No default testmode pricing model found')
     }
-    secretApiKey = await adminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-      }): Promise<ApiKey.Record> => {
-        const [user] = await selectUsers(
-          {
-            betterAuthId,
-          },
-          transaction
-        )
-        const { apiKey } = await createSecretApiKeyTransaction(
-          {
-            apiKey: {
-              name: 'Secret Testmode Key',
-              type: FlowgladApiKeyType.Secret,
-              pricingModelId: defaultTestmodePricingModel.id,
+    secretApiKey = (
+      await adminTransactionWithResult(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+        }): Promise<Result<ApiKey.Record, Error>> => {
+          const [user] = await selectUsers(
+            {
+              betterAuthId,
             },
-          },
-          {
-            transaction,
-            livemode: false,
-            userId: user!.id,
-            organizationId: organization.id,
-            cacheRecomputationContext,
+            transaction
+          )
+          if (!user) {
+            return Result.err(
+              new Error(
+                `User not found for betterAuthId: ${betterAuthId}`
+              )
+            )
           }
-        )
-        return apiKey
-      }
-    )
+          const { apiKey } = await createSecretApiKeyTransaction(
+            {
+              apiKey: {
+                name: 'Secret Testmode Key',
+                type: FlowgladApiKeyType.Secret,
+                pricingModelId: defaultTestmodePricingModel.id,
+              },
+            },
+            {
+              transaction,
+              livemode: false,
+              userId: user.id,
+              organizationId: organization.id,
+              cacheRecomputationContext,
+            }
+          )
+          return Result.ok(apiKey)
+        }
+      )
+    ).unwrap()
   }
   /**
    * Sync the organization's payouts enabled status if they have a stripe account

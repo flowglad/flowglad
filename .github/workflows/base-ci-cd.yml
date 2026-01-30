@@ -240,6 +240,8 @@ jobs:
         run: cd packages/server && bun run test
       - name: Run mock-server tests
         run: cd packages/mock-server && bun run test
+      - name: Run react tests
+        run: cd packages/react && bun run test
 
   check-todo:
     if: github.event_name == 'merge_group'
