@@ -44,7 +44,7 @@ services:
       - '9005:9005'  # Resend
       - '9006:9006'  # Cloudflare R2
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://localhost:9001/health > /dev/null']
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:9001/health']
       interval: 2s
       timeout: 5s
       retries: 5

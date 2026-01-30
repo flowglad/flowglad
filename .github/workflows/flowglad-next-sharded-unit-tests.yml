@@ -64,7 +64,7 @@ x-services:
       - 9005:9005  # Resend
       - 9006:9006  # Cloudflare R2
     options: >-
-      --health-cmd "curl -f http://localhost:9001/health || exit 1"
+      --health-cmd "wget -q --spider http://localhost:9001/health || exit 1"
       --health-interval 10s
       --health-timeout 5s
       --health-retries 5

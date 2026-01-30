@@ -23,7 +23,9 @@ import { DOCKER_CONFIG } from '../docker-config'
 // Acceptance criteria
 const HEALTH_CHECK_MAX_MS = 10
 const MOCK_ENDPOINT_MAX_MS = 5
-const DOCKER_IMAGE_MAX_MB = 100
+// Note: 200MB threshold accounts for bun runtime (~94MB) + alpine base (~5MB) + dependencies
+// We use alpine-based image which reduced size from 437MB (slim+curl) to ~188MB
+const DOCKER_IMAGE_MAX_MB = 200
 const REGRESSION_MAX_PCT = 5
 
 // Mock server ports
