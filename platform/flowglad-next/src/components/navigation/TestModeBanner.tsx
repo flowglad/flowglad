@@ -9,10 +9,10 @@ interface TestModeBannerProps {
 }
 
 /**
- * Full-width amber banner that appears when the user is in a test pricing model.
+ * Full-width yellow banner that appears when the user is in a test pricing model.
  * Displays above the sidebar and main content area, sticky at the top of the viewport.
  *
- * Uses amber-200 (#fde68a) background per Figma design system.
+ * Uses citrine-background from the design system CSS variables.
  */
 export const TestModeBanner: React.FC<TestModeBannerProps> = ({
   pricingModelName,
@@ -21,7 +21,7 @@ export const TestModeBanner: React.FC<TestModeBannerProps> = ({
   return (
     <div
       className={cn(
-        'w-full bg-amber-200 border-b border-border',
+        'w-full bg-citrine-background border-b border-border',
         'flex items-center justify-center gap-2 px-4 py-2',
         'sticky top-0 z-50',
         className
