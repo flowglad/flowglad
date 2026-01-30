@@ -203,6 +203,12 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 90, // 90 days in seconds
     updateAge: 60 * 60 * 24, // Update session every 24 hours
     additionalFields: {
+      scope: {
+        type: 'string',
+        required: true,
+        defaultValue: 'merchant',
+        input: false, // don't allow user to set scope
+      },
       contextOrganizationId: {
         type: 'string',
         required: false,
