@@ -14,7 +14,7 @@
  *     Run: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
  */
 
-import { spawn } from 'bun'
+import { $ } from 'bun'
 import { dirname, resolve } from 'path'
 import { DOCKER_CONFIG } from '../docker-config'
 
@@ -75,18 +75,6 @@ Image: ${DOCKER_CONFIG.fullImage}
 `)
 }
 
-const runCommand = async (
-  cmd: string,
-  args: string[]
-): Promise<{ exitCode: number }> => {
-  console.log(`$ ${cmd} ${args.join(' ')}`)
-  const proc = spawn([cmd, ...args], {
-    stdout: 'inherit',
-    stderr: 'inherit',
-  })
-  return proc.exited.then((exitCode) => ({ exitCode }))
-}
-
 const main = async () => {
   const args = parseArgs()
 
@@ -98,6 +86,7 @@ const main = async () => {
   // Get the package directory (parent of src/scripts)
   const scriptPath = import.meta.path
   const packageDir = resolve(dirname(scriptPath), '..', '..')
+  const dockerfile = resolve(packageDir, 'Dockerfile')
 
   const fullImageWithTag = `${DOCKER_CONFIG.fullImage}:${args.tag}`
 
@@ -106,34 +95,13 @@ const main = async () => {
   console.log(`  Context: ${packageDir}`)
 
   // Build the image
-  const buildResult = await runCommand('docker', [
-    'build',
-    '-t',
-    fullImageWithTag,
-    '-f',
-    resolve(packageDir, 'Dockerfile'),
-    packageDir,
-  ])
-
-  if (buildResult.exitCode !== 0) {
-    console.error('Build failed')
-    process.exit(buildResult.exitCode)
-  }
+  await $`docker build -t ${fullImageWithTag} -f ${dockerfile} ${packageDir}`
 
   console.log(`\n✓ Build complete: ${fullImageWithTag}`)
 
   if (args.push) {
     console.log('\nPushing to registry...')
-    const pushResult = await runCommand('docker', [
-      'push',
-      fullImageWithTag,
-    ])
-
-    if (pushResult.exitCode !== 0) {
-      console.error('Push failed')
-      process.exit(pushResult.exitCode)
-    }
-
+    await $`docker push ${fullImageWithTag}`
     console.log(`✓ Push complete: ${fullImageWithTag}`)
   } else {
     console.log('\nSkipping push (use --push to push to registry)')
