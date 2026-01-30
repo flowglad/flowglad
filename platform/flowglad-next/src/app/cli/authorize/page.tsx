@@ -121,23 +121,33 @@ export default function CliAuthorizePage() {
 
   const handleApprove = async () => {
     setState('approving')
-    const result = await approveMutation.mutateAsync({ userCode })
-    if (result.success) {
-      setState('approved')
-    } else {
+    try {
+      const result = await approveMutation.mutateAsync({ userCode })
+      if (result.success) {
+        setState('approved')
+      } else {
+        setState('error')
+        setErrorMessage(result.error || 'Failed to approve')
+      }
+    } catch {
       setState('error')
-      setErrorMessage(result.error || 'Failed to approve')
+      setErrorMessage('Network error. Please try again.')
     }
   }
 
   const handleDeny = async () => {
     setState('denying')
-    const result = await denyMutation.mutateAsync({ userCode })
-    if (result.success) {
-      setState('denied')
-    } else {
+    try {
+      const result = await denyMutation.mutateAsync({ userCode })
+      if (result.success) {
+        setState('denied')
+      } else {
+        setState('error')
+        setErrorMessage(result.error || 'Failed to deny')
+      }
+    } catch {
       setState('error')
-      setErrorMessage(result.error || 'Failed to deny')
+      setErrorMessage('Network error. Please try again.')
     }
   }
 

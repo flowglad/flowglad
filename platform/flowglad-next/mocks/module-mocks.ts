@@ -41,6 +41,10 @@ mock.module('@/utils/auth', () => ({
       signInMagicLink: mock(async () => ({ success: true })),
       createUser: mock(async () => ({})),
       getSession: async () => globalThis.__mockedAuthSession,
+      // Device authorization endpoints for CLI auth
+      deviceApprove: mock(async () => ({ success: true })),
+      deviceDeny: mock(async () => ({ success: true })),
+      sendVerificationOTP: mock(async () => ({ success: true })),
     },
   },
   getSession: async () => globalThis.__mockedAuthSession,

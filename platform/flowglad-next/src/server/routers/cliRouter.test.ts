@@ -2,9 +2,10 @@
  * Tests for CLI Router - Device Authorization
  *
  * Tests the tRPC procedures for CLI device authorization flow.
+ * Note: @/utils/auth is mocked globally in mocks/module-mocks.ts
+ * with deviceApprove and deviceDeny methods.
  */
 
-import type { Mock } from 'bun:test'
 import {
   afterEach,
   beforeEach,
@@ -24,22 +25,14 @@ mock.module('next/headers', () => ({
   })),
 }))
 
-// Note: @/utils/auth is mocked globally in bun.setup.ts
-// Tests can set globalThis.__mockedAuthSession to configure the session
-
 import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
-import { TRPCError } from '@trpc/server'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { cliRouter } from '@/server/routers/cliRouter'
 import type { TRPCContext } from '@/server/trpcContext'
-import { createSpyTracker } from '@/test/spyTracker'
-import { auth } from '@/utils/auth'
 
 let organization: Organization.Record
 let user: User.Record
-
-const spyTracker = createSpyTracker()
 
 // Helper to create a caller with a user context
 const createAuthenticatedCaller = (user: User.Record) => {
@@ -72,7 +65,6 @@ const createPublicCaller = () => {
 }
 
 beforeEach(async () => {
-  spyTracker.reset()
   globalThis.__mockedAuthSession = null
 
   // Set up organization with products and prices
@@ -88,7 +80,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
-  spyTracker.restoreAll()
+  globalThis.__mockedAuthSession = null
 })
 
 describe('cli.verifyDeviceCode', () => {
@@ -140,48 +132,9 @@ describe('cli.verifyDeviceCode', () => {
 })
 
 describe('cli.approveDevice', () => {
-  it('approves device and returns success', async () => {
-    // Set up the mocked auth session
-    globalThis.__mockedAuthSession = {
-      user: {
-        id: user.betterAuthId!,
-        email: user.email,
-        name: user.name || '',
-        image: null,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      session: {
-        id: 'session_123',
-        userId: user.betterAuthId!,
-        expiresAt: new Date(Date.now() + 86400000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        token: 'test_token',
-      },
-    }
-
-    // Mock the auth.api.deviceApprove call
-    const deviceApproveMock = mock(() =>
-      Promise.resolve({ success: true })
-    )
-    spyTracker.track(
-      mock.module('@/utils/auth', () => ({
-        auth: {
-          api: {
-            deviceApprove: deviceApproveMock,
-            getSession: mock(() =>
-              Promise.resolve(globalThis.__mockedAuthSession)
-            ),
-          },
-        },
-        getSession: mock(() =>
-          Promise.resolve(globalThis.__mockedAuthSession)
-        ),
-      }))
-    )
-
+  it('approves device and returns success when auth.api.deviceApprove succeeds', async () => {
+    // The global mock in module-mocks.ts provides deviceApprove
+    // that returns { success: true }
     const caller = createAuthenticatedCaller(user)
     const result = await caller.approveDevice({
       userCode: 'ABCD-1234',
@@ -193,48 +146,9 @@ describe('cli.approveDevice', () => {
 })
 
 describe('cli.denyDevice', () => {
-  it('denies device and returns success', async () => {
-    // Set up the mocked auth session
-    globalThis.__mockedAuthSession = {
-      user: {
-        id: user.betterAuthId!,
-        email: user.email,
-        name: user.name || '',
-        image: null,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      session: {
-        id: 'session_123',
-        userId: user.betterAuthId!,
-        expiresAt: new Date(Date.now() + 86400000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        token: 'test_token',
-      },
-    }
-
-    // Mock the auth.api.deviceDeny call
-    const deviceDenyMock = mock(() =>
-      Promise.resolve({ success: true })
-    )
-    spyTracker.track(
-      mock.module('@/utils/auth', () => ({
-        auth: {
-          api: {
-            deviceDeny: deviceDenyMock,
-            getSession: mock(() =>
-              Promise.resolve(globalThis.__mockedAuthSession)
-            ),
-          },
-        },
-        getSession: mock(() =>
-          Promise.resolve(globalThis.__mockedAuthSession)
-        ),
-      }))
-    )
-
+  it('denies device and returns success when auth.api.deviceDeny succeeds', async () => {
+    // The global mock in module-mocks.ts provides deviceDeny
+    // that returns { success: true }
     const caller = createAuthenticatedCaller(user)
     const result = await caller.denyDevice({ userCode: 'ABCD-1234' })
 
