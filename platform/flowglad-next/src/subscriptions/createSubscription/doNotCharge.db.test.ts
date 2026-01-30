@@ -535,23 +535,20 @@ describe('doNotCharge subscription creation', () => {
       .unwrap()
 
     // Should be treated as paid plan (isFreePlan = false)
-    expect(subscription.isFreePlan)
-      .toBe(false)(
-        // Should cancel existing free subscription (paid plan behavior)
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const canceledFree = (
-            await selectSubscriptionById(
-              existingFreeSubscription.id,
-              transaction
-            )
-          ).unwrap()
-          expect(canceledFree.status).toBe(
-            SubscriptionStatus.Canceled
+    expect(subscription.isFreePlan).toBe(false)
+    // Should cancel existing free subscription (paid plan behavior)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const canceledFree = (
+          await selectSubscriptionById(
+            existingFreeSubscription.id,
+            transaction
           )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+        ).unwrap()
+        expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should create subscription as Active when doNotCharge is true and no payment method is provided', async () => {
@@ -589,18 +586,17 @@ describe('doNotCharge subscription creation', () => {
     expect(subscription.status).toBe(SubscriptionStatus.Active)
     expect(subscription.isFreePlan).toBe(false)
     // Verify doNotCharge flag is stored
-    expect(subscription.doNotCharge)
-      .toBe(true)(
-        // Verify it persists when queried later
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const retrieved = (
-            await selectSubscriptionById(subscription.id, transaction)
-          ).unwrap()
-          expect(retrieved.doNotCharge).toBe(true)
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    expect(subscription.doNotCharge).toBe(true)
+    // Verify it persists when queried later
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const retrieved = (
+          await selectSubscriptionById(subscription.id, transaction)
+        ).unwrap()
+        expect(retrieved.doNotCharge).toBe(true)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should create subscription as Incomplete when doNotCharge is false and no payment method is provided', async () => {

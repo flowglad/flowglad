@@ -4223,19 +4223,18 @@ describe('cancelSubscription with resources', async () => {
     const activeClaimsBefore = claimsBefore.filter(
       (c) => c.releasedAt === null
     )
-    expect(activeClaimsBefore.length)
-      .toBe(5)(
-        // Cancel the subscription immediately
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          await cancelSubscriptionImmediately(
-            { subscription, customer, skipNotifications: true },
-            createDiscardingEffectsContext(transaction)
-          )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    expect(activeClaimsBefore.length).toBe(5)
+    // Cancel the subscription immediately
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await cancelSubscriptionImmediately(
+          { subscription, customer, skipNotifications: true },
+          createDiscardingEffectsContext(transaction)
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Verify all claims are now released with subscription_canceled reason
     const claimsAfter = (
@@ -4393,27 +4392,26 @@ describe('cancelSubscription with resources', async () => {
     const activeClaimsBefore = claimsBefore.filter(
       (c) => c.releasedAt === null
     )
-    expect(activeClaimsBefore.length)
-      .toBe(5)(
-        // Schedule the subscription cancellation for end of billing period
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          ;(
-            await scheduleSubscriptionCancellation(
-              {
-                id: subscription.id,
-                cancellation: {
-                  timing:
-                    SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-                },
+    expect(activeClaimsBefore.length).toBe(5)
+    // Schedule the subscription cancellation for end of billing period
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        ;(
+          await scheduleSubscriptionCancellation(
+            {
+              id: subscription.id,
+              cancellation: {
+                timing:
+                  SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
               },
-              createDiscardingEffectsContext(transaction)
-            )
-          ).unwrap()
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Verify claims remain active (should NOT be released)
     const claimsAfter = (

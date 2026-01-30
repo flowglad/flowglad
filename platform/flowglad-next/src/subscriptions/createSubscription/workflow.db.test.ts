@@ -310,20 +310,19 @@ describe('createSubscriptionWorkflow', async () => {
     expect(trialSubscription.trialEnd).toBe(trialEnd)
     expect(trialBillingPeriod).toMatchObject({ startDate: startDate })
     expect(trialBillingPeriod!.startDate).toBe(startDate)
-    expect(trialBillingPeriod!.endDate)
-      .toBe(trialEnd)(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const billingPeriodItems = await selectBillingPeriodItems(
-            {
-              billingPeriodId: trialBillingPeriod!.id,
-            },
-            transaction
-          )
-          expect(billingPeriodItems).toHaveLength(0)
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    expect(trialBillingPeriod!.endDate).toBe(trialEnd)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const billingPeriodItems = await selectBillingPeriodItems(
+          {
+            billingPeriodId: trialBillingPeriod!.id,
+          },
+          transaction
+        )
+        expect(billingPeriodItems).toHaveLength(0)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   describe('price type behavior', () => {

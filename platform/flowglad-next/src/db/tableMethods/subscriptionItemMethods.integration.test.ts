@@ -383,27 +383,26 @@ describeIfRedisKey(
 
       // Verify subscription1 is cached
       const cached1Before = await client.get(cacheKey1)
-      expect(Array.isArray(cached1Before))
-        .toBe(true)(
-          // Now call bulk function for both - subscription1 should be a cache hit
-          await adminTransactionWithResult(
-            async ({ transaction, livemode }) => {
-              const results =
-                await selectSubscriptionItemsWithPricesBySubscriptionIds(
-                  [subscription1.id, subscription2.id],
-                  transaction,
-                  livemode
-                )
+      expect(Array.isArray(cached1Before)).toBe(true)
+      // Now call bulk function for both - subscription1 should be a cache hit
+      ;(
+        await adminTransactionWithResult(
+          async ({ transaction, livemode }) => {
+            const results =
+              await selectSubscriptionItemsWithPricesBySubscriptionIds(
+                [subscription1.id, subscription2.id],
+                transaction,
+                livemode
+              )
 
-              expect(results.length).toBe(2)
-              const ids = results.map((r) => r.subscriptionItem.id)
-              expect(ids).toContain(subscriptionItem1.id)
-              expect(ids).toContain(subscriptionItem2.id)
-              return Result.ok(undefined)
-            }
-          )
+            expect(results.length).toBe(2)
+            const ids = results.map((r) => r.subscriptionItem.id)
+            expect(ids).toContain(subscriptionItem1.id)
+            expect(ids).toContain(subscriptionItem2.id)
+            return Result.ok(undefined)
+          }
         )
-        .unwrap()
+      ).unwrap()
     })
 
     it('returns empty array when given empty subscription IDs array', async () => {

@@ -1436,21 +1436,22 @@ describe('Process setup intent', async () => {
         ).unwrap()
 
         // The result should include a trial end date for the new subscription
-        expect(typeof firstResult.subscription.trialEnd)
-          .toBe('object')(
-            // Cancel the subscription so we can create a new one
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                await safelyUpdateSubscriptionStatus(
-                  firstResult.subscription,
-                  SubscriptionStatus.Canceled,
-                  transaction
-                )
-                return Result.ok(undefined)
-              }
-            )
+        expect(typeof firstResult.subscription.trialEnd).toBe(
+          'object'
+        )
+        // Cancel the subscription so we can create a new one
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await safelyUpdateSubscriptionStatus(
+                firstResult.subscription,
+                SubscriptionStatus.Canceled,
+                transaction
+              )
+              return Result.ok(undefined)
+            }
           )
-          .unwrap()
+        ).unwrap()
 
         // Create a local second checkout session
         const localSecondCheckoutSession = await setupCheckoutSession(

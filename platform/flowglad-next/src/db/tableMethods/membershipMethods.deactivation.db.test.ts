@@ -444,24 +444,23 @@ describe('membership deactivation filtering', () => {
           )
         })
       ).unwrap()
-      expect(beforeDeactivation?.membership.id)
-        .toBe(focusedMembership.id)(
-          // Deactivate the membership
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await updateMembership(
-                  {
-                    id: focusedMembership.id,
-                    deactivatedAt: new Date(),
-                  },
-                  transaction
-                )
-              )
-            }
+      expect(beforeDeactivation?.membership.id).toBe(
+        focusedMembership.id
+      )
+      // Deactivate the membership
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await updateMembership(
+              {
+                id: focusedMembership.id,
+                deactivatedAt: new Date(),
+              },
+              transaction
+            )
           )
-        )
-        .unwrap()
+        })
+      ).unwrap()
 
       // After deactivation, should return undefined
       const afterDeactivation = (

@@ -225,21 +225,20 @@ describe('safelyUpdatePricingModel', () => {
     expect(livemodePricingModel.isDefault).toBe(true)
     expect(livemodePricingModel.livemode).toBe(true)
     expect(testmodeDefaultPricingModel.isDefault).toBe(true)
-    expect(testmodeDefaultPricingModel.livemode)
-      .toBe(false)(
-        // Make testmodeNonDefaultPricingModel the new default for testmode
-        await adminTransactionWithResult(async (ctx) => {
-          await safelyUpdatePricingModel(
-            {
-              id: testmodeNonDefaultPricingModel.id,
-              isDefault: true,
-            },
-            ctx
-          )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    expect(testmodeDefaultPricingModel.livemode).toBe(false)
+    // Make testmodeNonDefaultPricingModel the new default for testmode
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        await safelyUpdatePricingModel(
+          {
+            id: testmodeNonDefaultPricingModel.id,
+            isDefault: true,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Check that only the testmode default was affected
     const refreshedLivemodePricingModel = (

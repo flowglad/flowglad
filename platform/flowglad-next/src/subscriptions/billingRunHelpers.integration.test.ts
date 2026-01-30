@@ -514,48 +514,47 @@ describeIfStripeKey(
         const invoice = invoices.find(
           (inv) => inv.billingPeriodId === billingPeriod.id
         )
-        expect(invoice!.status)
-          .toBe(InvoiceStatus.Paid)(
-            // Verify usage credits were granted
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const ledgerAccounts = await selectLedgerAccounts(
-                  {
-                    subscriptionId: subscription.id,
-                    usageMeterId: usageMeter.id,
-                  },
+        expect(invoice!.status).toBe(InvoiceStatus.Paid)
+        // Verify usage credits were granted
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const ledgerAccounts = await selectLedgerAccounts(
+                {
+                  subscriptionId: subscription.id,
+                  usageMeterId: usageMeter.id,
+                },
+                transaction
+              )
+              expect(ledgerAccounts.length).toBe(1)
+              const ledgerAccount = ledgerAccounts[0]
+
+              const usageCredits = await selectUsageCredits(
+                { subscriptionId: subscription.id },
+                transaction
+              )
+              expect(usageCredits.length).toBe(1)
+              const usageCredit = usageCredits[0]
+              expect(usageCredit.issuedAmount).toBe(grantAmount)
+              expect(usageCredit.status).toBe(
+                UsageCreditStatus.Posted
+              )
+              expect(usageCredit.creditType).toBe(
+                UsageCreditType.Grant
+              )
+
+              // Verify correct grant amount in the ledger
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  'available',
                   transaction
                 )
-                expect(ledgerAccounts.length).toBe(1)
-                const ledgerAccount = ledgerAccounts[0]
-
-                const usageCredits = await selectUsageCredits(
-                  { subscriptionId: subscription.id },
-                  transaction
-                )
-                expect(usageCredits.length).toBe(1)
-                const usageCredit = usageCredits[0]
-                expect(usageCredit.issuedAmount).toBe(grantAmount)
-                expect(usageCredit.status).toBe(
-                  UsageCreditStatus.Posted
-                )
-                expect(usageCredit.creditType).toBe(
-                  UsageCreditType.Grant
-                )
-
-                // Verify correct grant amount in the ledger
-                const balance =
-                  await aggregateBalanceForLedgerAccountFromEntries(
-                    { ledgerAccountId: ledgerAccount.id },
-                    'available',
-                    transaction
-                  )
-                expect(balance).toBe(grantAmount)
-                return Result.ok(undefined)
-              }
-            )
+              expect(balance).toBe(grantAmount)
+              return Result.ok(undefined)
+            }
           )
-          .unwrap()
+        ).unwrap()
       })
     })
 
