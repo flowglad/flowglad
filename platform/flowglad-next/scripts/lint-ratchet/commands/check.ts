@@ -1,10 +1,14 @@
-import { getBaselinePathForPackage, readBaseline } from '../baseline'
+import { readBaseline } from '../baseline'
 import {
   countViolationsByFile,
   getDiagnosticsForFile,
   runBiomeLint,
 } from '../biome'
-import { loadConfig, resolvePackagePaths } from '../config'
+import {
+  getBaselinePathForPackage,
+  loadConfig,
+  resolvePackagePaths,
+} from '../config'
 import type { BiomeDiagnostic, RatchetRule } from '../types'
 
 export interface FileCheckResult {

@@ -6,22 +6,7 @@ import {
   writeFileSync,
 } from 'fs'
 import { dirname } from 'path'
-import type {
-  BaselineEntry,
-  PackageBaseline,
-  RatchetConfig,
-} from './types'
-
-const BASELINE_FILENAME = '.lint-baseline.tsv'
-
-/**
- * Get the path to the baseline file for a package
- */
-export const getBaselinePathForPackage = (
-  packagePath: string
-): string => {
-  return `${packagePath}/${BASELINE_FILENAME}`
-}
+import type { BaselineEntry } from './types'
 
 /**
  * Parse TSV content into baseline entries
@@ -131,31 +116,14 @@ export const deleteBaseline = (path: string): void => {
 }
 
 /**
- * Read baselines from all configured packages
+ * Write baseline entries to a path (absolute or relative).
+ * If entries are empty or all have count 0, deletes the baseline file.
+ * Use this when you have an absolute path (e.g. from config.getBaselinePathForPackage).
  */
-export const readAllPackageBaselines = (
-  config: RatchetConfig
-): PackageBaseline[] => {
-  return config.packages.map((pkg) => {
-    const baselinePath = getBaselinePathForPackage(pkg.path)
-    const entries = readBaseline(baselinePath)
-    return {
-      packagePath: pkg.path,
-      baselinePath,
-      entries,
-    }
-  })
-}
-
-/**
- * Write baseline entries for a specific package
- * If entries is empty, deletes the baseline file
- */
-export const writePackageBaseline = (
-  packagePath: string,
+export const writePackageBaselineAt = (
+  baselinePath: string,
   entries: BaselineEntry[]
 ): void => {
-  const baselinePath = getBaselinePathForPackage(packagePath)
   const validEntries = entries.filter((entry) => entry.count > 0)
   if (validEntries.length === 0) {
     deleteBaseline(baselinePath)
