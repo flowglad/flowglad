@@ -112,6 +112,11 @@ async function verifyMockServers(): Promise<void> {
       url: 'http://localhost:9005/health',
       envVar: 'RESEND_BASE_URL',
     },
+    {
+      name: 'flowglad-mock-server (Cloudflare)',
+      url: 'http://localhost:9006/health',
+      envVar: 'CLOUDFLARE_R2_ENDPOINT',
+    },
   ]
 
   const results = await Promise.all(

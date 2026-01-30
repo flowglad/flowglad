@@ -6,7 +6,7 @@
  *
  * Mock server containers (via docker-compose.test.yml):
  * - stripe-mock (localhost:12111) - Stripe API
- * - flowglad-mock-server (localhost:9001-9005) - Svix, Unkey, Trigger, Redis, Resend
+ * - flowglad-mock-server (localhost:9001-9006) - Svix, Unkey, Trigger, Redis, Resend, Cloudflare
  */
 import { http, passthrough } from 'msw'
 import { setupServer } from 'msw/node'
@@ -34,6 +34,10 @@ const resendMockPassthrough = http.all(
   'http://localhost:9005/*',
   () => passthrough()
 )
+const cloudflareMockPassthrough = http.all(
+  'http://localhost:9006/*',
+  () => passthrough()
+)
 
 export const server = setupServer(
   stripeMockPassthrough,
@@ -41,5 +45,6 @@ export const server = setupServer(
   unkeyMockPassthrough,
   triggerMockPassthrough,
   redisMockPassthrough,
-  resendMockPassthrough
+  resendMockPassthrough,
+  cloudflareMockPassthrough
 )

@@ -42,6 +42,7 @@ services:
       - '9003:9003'  # Trigger
       - '9004:9004'  # Redis
       - '9005:9005'  # Resend
+      - '9006:9006'  # Cloudflare R2
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:9001/health > /dev/null']
       interval: 2s
