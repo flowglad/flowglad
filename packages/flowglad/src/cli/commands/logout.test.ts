@@ -128,9 +128,17 @@ describe('logout command', () => {
 
     await logoutFlow()
 
+    // Verify fetch was called
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+
+    // Verify message uses email instead of name
     expect(mockConsoleLog).toHaveBeenCalledWith(
       'Logged out successfully. Goodbye, test@example.com!'
     )
+
+    // Verify credentials were cleared
+    const loadedCredentials = await loadCredentials()
+    expect(loadedCredentials).toBeNull()
   })
 
   it('clears local credentials and shows appropriate message when server sign-out fails', async () => {
