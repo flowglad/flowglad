@@ -139,7 +139,7 @@ bun run benchmark --iterations 5
 |--------|-----------|
 | Health check response | < 10ms |
 | Mock endpoint response | < 5ms average |
-| Docker image size | < 100MB |
+| Docker image size | < 200MB |
 | Test suite regression | < 5% vs MSW |
 
 The benchmark outputs a comparison object:

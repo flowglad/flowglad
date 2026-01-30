@@ -136,8 +136,22 @@ async function parseRedisCommand(
   try {
     const body = await req.json()
     // Can be a single command array or array of command arrays (pipeline)
-    if (Array.isArray(body)) {
-      return body as RedisCommand | RedisCommand[]
+    if (Array.isArray(body) && body.length > 0) {
+      // Pipeline: array of arrays where each inner array contains strings
+      if (
+        Array.isArray(body[0]) &&
+        body.every(
+          (cmd) =>
+            Array.isArray(cmd) &&
+            cmd.every((arg) => typeof arg === 'string')
+        )
+      ) {
+        return body as RedisCommand[]
+      }
+      // Single command: array of strings
+      if (body.every((item) => typeof item === 'string')) {
+        return body as RedisCommand
+      }
     }
     return null
   } catch {

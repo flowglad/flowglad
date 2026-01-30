@@ -34,6 +34,16 @@ function parseS3Path(pathname: string): {
 }
 
 /**
+ * Escape XML special characters
+ */
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
  * Generate S3-style ETag from content
  */
 function generateETag(content: string): string {
@@ -103,7 +113,7 @@ export async function handleCloudflareRoute(
 <Error>
   <Code>NoSuchKey</Code>
   <Message>The specified key does not exist.</Message>
-  <Key>${key}</Key>
+  <Key>${escapeXml(key)}</Key>
 </Error>`,
         {
           status: 404,
