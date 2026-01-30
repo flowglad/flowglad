@@ -22,7 +22,7 @@ import {
 } from '@/../seedDatabase'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
-import { adminTransaction } from './adminTransaction'
+import { adminTransactionWithResult } from './adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,

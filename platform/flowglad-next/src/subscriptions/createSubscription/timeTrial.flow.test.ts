@@ -27,7 +27,7 @@ import {
   setupToggleFeature,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { comprehensiveAdminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectCheckoutSessionById,
   updateCheckoutSessionBillingAddress,
@@ -100,7 +100,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     })
     // 1. Create product and price via createProductTransaction
     const { product: createdProduct, prices } =
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           const result = await createProductTransaction(
             {
@@ -184,8 +184,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     expect(ci2.product.id).toBe(product.id)
     expect(ci2.price.id).toBe(price.id)
 
-    const checkoutSession = await comprehensiveAdminTransaction(
-      async (ctx) => {
+    const checkoutSession =
+      await comprehensiveAdminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         // 1. Create checkout session
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
@@ -245,23 +245,26 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         )
         expect(feeCalculations).toHaveLength(1)
         return Result.ok(checkoutSession)
+      })
+
+    // Intermediary: check checkout info by checkout session ID
+    await comprehensiveAdminTransactionWithResult(
+      async ({ transaction }) => {
+        const sessionInfo = await checkoutInfoForCheckoutSession(
+          checkoutSession.id,
+          transaction
+        )
+        expect(sessionInfo.checkoutSession.id).toBe(
+          checkoutSession.id
+        )
+        expect(sessionInfo.product.id).toBe(product.id)
+        expect(sessionInfo.price.id).toBe(price.id)
+        expect(typeof sessionInfo.feeCalculation).toBe('object')
+        return Result.ok(null)
       }
     )
 
-    // Intermediary: check checkout info by checkout session ID
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      const sessionInfo = await checkoutInfoForCheckoutSession(
-        checkoutSession.id,
-        transaction
-      )
-      expect(sessionInfo.checkoutSession.id).toBe(checkoutSession.id)
-      expect(sessionInfo.product.id).toBe(product.id)
-      expect(sessionInfo.price.id).toBe(price.id)
-      expect(typeof sessionInfo.feeCalculation).toBe('object')
-      return Result.ok(null)
-    })
-
-    await comprehensiveAdminTransaction(
+    await comprehensiveAdminTransactionWithResult(
       async ({ transaction, livemode }) => {
         // 5. Process setup intent
         const setupIntent: CoreSripeSetupIntent = {
