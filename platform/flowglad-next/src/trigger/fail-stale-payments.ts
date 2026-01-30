@@ -1,10 +1,10 @@
+import { PaymentStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectStalePayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
-import { PaymentStatus } from '@/types'
 
 export const failStalePaymentsTask = task({
   id: 'fail-stale-payments',

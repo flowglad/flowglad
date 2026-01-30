@@ -17,14 +17,15 @@
  * adjustSubscriptionBehavior or cancelSubscriptionBehavior.
  */
 
+import { FeatureType } from '@db-core/enums'
+import type { ResourceClaim } from '@db-core/schema/resourceClaims'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import { setupResourceClaim } from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { ResourceClaim } from '@/db/schema/resourceClaims'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   countActiveResourceClaims,
   selectActiveResourceClaims,
@@ -32,7 +33,6 @@ import {
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
-import { FeatureType } from '@/types'
 import { ResourceClaimStateDep } from '../dependencies/resourceClaimStateDependencies'
 import { defineBehavior } from '../index'
 import type { SetupSubscriptionResult } from './subscriptionAdjustmentBehaviors'

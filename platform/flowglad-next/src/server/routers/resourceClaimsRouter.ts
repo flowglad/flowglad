@@ -1,12 +1,13 @@
+import { FeatureType } from '@db-core/enums'
+import { resourceClaimsClientSelectSchema } from '@db-core/schema/resourceClaims'
+import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
   type AuthenticatedProcedureTransactionParams,
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
-import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   countActiveResourceClaims,
   countActiveResourceClaimsBatch,
@@ -27,7 +28,6 @@ import {
   releaseResourceTransaction,
 } from '@/resources/resourceClaimHelpers'
 import { protectedProcedure, router } from '@/server/trpc'
-import { FeatureType } from '@/types'
 import { trpcToRest } from '@/utils/openapi'
 
 export const resourceClaimsRouteConfigs = [

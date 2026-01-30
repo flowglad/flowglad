@@ -1,5 +1,5 @@
+import type { CreateProductFormSchema } from '@db-core/schema/prices'
 import { useFormContext } from 'react-hook-form'
-import type { CreateProductFormSchema } from '@/db/schema/prices'
 
 export const usePriceFormContext = () => {
   return useFormContext<

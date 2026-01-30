@@ -1,21 +1,12 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { eq, inArray, or, sql } from 'drizzle-orm'
-import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
-import { setupCustomer, setupOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import { core } from '@/utils/core'
 import {
   type Customer,
   customers,
   customersInsertSchema,
   customersSelectSchema,
   customersUpdateSchema,
-} from './schema/customers'
-import { pricingModels } from './schema/pricingModels'
-import {
-  selectCustomersCursorPaginatedWithTableRowData,
-  selectCustomersPaginated,
-} from './tableMethods/customerMethods'
+} from '@db-core/schema/customers'
+import { pricingModels } from '@db-core/schema/pricingModels'
 import {
   buildWhereClauses,
   createCursorPaginatedSelectFunction,
@@ -24,7 +15,16 @@ import {
   metadataSchema,
   sanitizeBaseTableFilters,
   whereClauseFromObject,
-} from './tableUtils'
+} from '@db-core/tableUtils'
+import { eq, inArray, or, sql } from 'drizzle-orm'
+import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
+import { setupCustomer, setupOrg } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { core } from '@/utils/core'
+import {
+  selectCustomersCursorPaginatedWithTableRowData,
+  selectCustomersPaginated,
+} from './tableMethods/customerMethods'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string

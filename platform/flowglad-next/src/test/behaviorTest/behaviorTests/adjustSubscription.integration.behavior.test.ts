@@ -20,6 +20,8 @@
  * - Downgrade when resource claims exceed new capacity
  */
 
+import { PriceType, SubscriptionStatus } from '@db-core/enums'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
@@ -31,16 +33,11 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   type AdjustSubscriptionResult,
   adjustSubscription,
 } from '@/subscriptions/adjustSubscription'
-import {
-  PriceType,
-  SubscriptionAdjustmentTiming,
-  SubscriptionStatus,
-} from '@/types'
+import { SubscriptionAdjustmentTiming } from '@/types'
 import { authenticateUserBehavior } from '../behaviors/authBehaviors'
 import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'
 import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'

@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import {
-  selectFeaturesByProductFeatureWhere,
-  updateProductFeature,
-} from '@/db/tableMethods/productFeatureMethods'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
   IntervalUnit,
   PriceType,
-} from '@/types'
+} from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
+import { setupOrg, teardownOrg } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  selectFeaturesByProductFeatureWhere,
+  updateProductFeature,
+} from '@/db/tableMethods/productFeatureMethods'
 import { getPricingModelSetupData } from './setupHelpers'
 import {
   type SetupPricingModelInput,

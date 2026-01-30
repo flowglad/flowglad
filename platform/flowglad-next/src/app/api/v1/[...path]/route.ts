@@ -1,3 +1,4 @@
+import { FlowgladApiKeyType } from '@db-core/enums'
 import {
   context,
   SpanKind,
@@ -15,7 +16,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { routes } from '@/app/api/v1/[...path]/restRoutes'
 import { appRouter } from '@/server'
 import { createApiContext } from '@/server/trpcContext'
-import { type ApiEnvironment, FlowgladApiKeyType } from '@/types'
+import { type ApiEnvironment } from '@/types'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 import core from '@/utils/core'
 import { logger } from '@/utils/logger'

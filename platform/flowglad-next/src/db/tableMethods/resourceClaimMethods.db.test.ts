@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { IntervalUnit, PriceType } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { ResourceClaim } from '@db-core/schema/resourceClaims'
+import type { Resource } from '@db-core/schema/resources'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -11,12 +17,6 @@ import {
   setupSubscriptionItem,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { ResourceClaim } from '@/db/schema/resourceClaims'
-import type { Resource } from '@/db/schema/resources'
-import type { Subscription } from '@/db/schema/subscriptions'
-import { IntervalUnit, PriceType } from '@/types'
 import {
   countActiveResourceClaims,
   countActiveResourceClaimsBatch,

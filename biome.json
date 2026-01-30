@@ -72,6 +72,10 @@
         "!**/*.test.tsx"
       ],
       "plugins": ["./plugins/no-raw-drizzle-business-logic.grit"]
+    },
+    {
+      "includes": ["platform/flowglad-next/db-core/**/*.ts"],
+      "plugins": ["./plugins/no-path-aliases-in-db-core.grit"]
     }
   ]
 }

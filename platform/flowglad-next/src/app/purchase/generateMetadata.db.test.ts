@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import type { Metadata } from 'next'
 import { setupOrg } from '@/../seedDatabase'
 import { generateMetadata as generateMetadataForPrice } from '@/app/price/[priceId]/purchase/page'
 import { generateMetadata as generateMetadataForProduct } from '@/app/product/[productId]/purchase/page'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 
 describe('generateMetadata for checkout pages', () => {
   let organization: Organization.Record

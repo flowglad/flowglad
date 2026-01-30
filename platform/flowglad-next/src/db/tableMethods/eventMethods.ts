@@ -1,15 +1,15 @@
-import { inArray } from 'drizzle-orm'
-import { customers } from '@/db/schema/customers'
+import { EventNoun } from '@db-core/enums'
+import { customers } from '@db-core/schema/customers'
 import {
   type Event,
   events,
   eventsInsertSchema,
   eventsSelectSchema,
   eventsUpdateSchema,
-} from '@/db/schema/events'
-import { payments } from '@/db/schema/payments'
-import { purchases } from '@/db/schema/purchases'
-import { subscriptions } from '@/db/schema/subscriptions'
+} from '@db-core/schema/events'
+import { payments } from '@db-core/schema/payments'
+import { purchases } from '@db-core/schema/purchases'
+import { subscriptions } from '@db-core/schema/subscriptions'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -18,8 +18,8 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import { EventNoun } from '@/types'
+} from '@db-core/tableUtils'
+import { inArray } from 'drizzle-orm'
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<

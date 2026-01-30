@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  CurrencyCode,
+  RevenueChartIntervalUnit,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
 import { ChevronDown } from 'lucide-react'
 import React from 'react'
 import { trpc } from '@/app/_trpc/client'
@@ -37,11 +42,6 @@ import {
   type StaticMetricType,
 } from '@/lib/metrics'
 import { cn } from '@/lib/utils'
-import {
-  CurrencyCode,
-  RevenueChartIntervalUnit,
-  UsageMeterAggregationType,
-} from '@/types'
 
 /**
  * Information about a selected usage meter.

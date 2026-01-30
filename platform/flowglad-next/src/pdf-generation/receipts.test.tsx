@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { InvoiceStatus, PaymentStatus } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
 import { render } from '@testing-library/react'
-import type { Customer } from '@/db/schema/customers'
-import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import type { Invoice } from '@/db/schema/invoices'
-import type { Organization } from '@/db/schema/organizations'
-import { InvoiceStatus, PaymentStatus } from '@/types'
 import { ReceiptTemplate } from './receipts'
 import {
   createMockCustomer,

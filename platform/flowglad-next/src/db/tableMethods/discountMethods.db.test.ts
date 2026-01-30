@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import {
   setupCustomer,
   setupDiscount,
@@ -7,9 +10,6 @@ import {
   setupPurchase,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import {
   enrichDiscountsWithRedemptionCounts,
   insertDiscount,

@@ -1,16 +1,16 @@
-All of the following changes will happen in the directory `./platform/flowglad-next`, so when you see a path like `./src/db/schema/unicornRiders.ts`, it should be translated to `./packages/flowglad-next/src/db/schema/unicornRiders.ts`.
+All of the following changes will happen in the directory `./platform/flowglad-next`, so when you see a path like `./db-core/schema/unicornRiders.ts`, it should be translated to `./platform/flowglad-next/db-core/schema/unicornRiders.ts`.
 
 You're creating a new ORM schema for a Postgres database table, as well as all the associated types, queries and mutations.
 
-You will rely heavily on the exported methods at ./src/db/tableUtils.ts to write your code.
+You will rely heavily on the exported methods at `@db-core/tableUtils` to write your code.
 
 Here's what you need to do, assuming the table is named "UnicornRiders" (the actual name will be provided to you by the prompt - "UnicornRiders" is just an example):
-- Create a new file in the `./src/db/schema/unicornRiders.ts` directory. The file name should be the name of the table, in camelCase.
-  - Use the `./src/db/schema/payments.ts` file as a reference pattern.
+- Create a new file in the `./db-core/schema/unicornRiders.ts` directory. The file name should be the name of the table, in camelCase.
+  - Use the `./db-core/schema/payments.ts` file as a reference pattern.
   - The name of the table should be declared as a global string constant, in PascalCase, (`const TABLE_NAME = 'UnicornRiders'`). And it should be used in the schema declaration as well as any constructor method invoked in the file where a table name is required.
   - All foreign keys referencing other tables must be PascalCase. Their types should match the column that they reference, of course.
   - All ORM schema declarations should use tableBase from tableUtils.
-  - If the schema requires a new enum, declare and export that enum in src/types.ts, and then use that enum in the schema via pgEnumColumn.
+  - If the schema requires a new enum, declare and export that enum in `db-core/enums.ts`, and then use that enum in the schema via pgEnumColumn.
   - Add pgPolicy to the schema to enable row level security. By default, the policy should be "permissive", and the "to" should be "authenticated". The "for" should be "all". And the policy can be:
   ```ts
   using: sql`"organization_id" in (select "organization_id" from "memberships" where "user_id" = requesting_user_id() union select current_organization_id() where current_auth_type() = 'api_key') // if there is a foreign key to a table that has an organizationId, you can use that instead
@@ -27,10 +27,10 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     constructUniqueIndex,
     enhancedCreateInsertSchema,
     livemodePolicy,
-  } from '@/db/tableUtils'
-  import { organizations } from '@/db/schema/organizations'
+  } from '@db-core/tableUtils'
+  import { organizations } from '@db-core/schema/organizations'
   import { createSelectSchema } from 'drizzle-zod'
-  import { UnicornRiderStatus } from '@/types'
+  import { UnicornRiderStatus } from '@db-core/enums'
 
   const TABLE_NAME = 'unicorn_riders' // table name in db should be snake_case
 
@@ -96,8 +96,8 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     - Also export the update, as well as the createUnicornRiderInputSchema and editUnicornRiderInputSchema schemas:
       ```ts
       import { createSelectSchema } from 'drizzle-zod'
-      import { enhancedCreateInsertSchema } from '@/db/tableUtils' // merge this with other imports from the same file
-      import core from '@/utils/core'
+      import { enhancedCreateInsertSchema } from '@db-core/tableUtils' // merge this with other imports from the same file
+      import core from '@db-core/utils'
       // rest of the file...
 
       // declare a columnRefinements object that contains the zod schema for each column that needs to be refined.
@@ -172,7 +172,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       // file continues...
       ```
     - The refine key for every integer column should be safeZodPositiveInteger, so that we can correctly parse inputs received as forms from the client
-  - Export the following types (import { IdNumberParam } from '@/types'):
+  - Export the following types:
     - UnicornRiderInsert: z.infer<typeof unicornRidersInsertSchema>
     - UnicornRiderUpdate: z.infer<typeof unicornRidersUpdateSchema>
     - UnicornRiderRecord: z.infer<typeof unicornRidersSelectSchema>
@@ -185,13 +185,13 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       createUpdateFunction,
       createSelectFunction,
       ORMMethodCreatorConfig,
-    } from '@/db/tableUtils'
+    } from '@db-core/tableUtils'
     import {
       unicornRiders,
       unicornRidersInsertSchema,
       unicornRidersSelectSchema,
       unicornRidersUpdateSchema,
-    } from '@/db/schema/unicornRiders'
+    } from '@db-core/schema/unicornRiders'
 
     const config: ORMMethodCreatorConfig<
       typeof unicornRiders,
@@ -236,7 +236,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
 
 # Notes
 
-- Import the necessary zod schema from the files in "@/db/schema/*"
+- Import the necessary zod schema from the files in "@db-core/schema/*"
 
 - The name of the mutation will specified in the prompt. Here's how the naming of the mutation relates to the ORM methods you would use:
     - editUnicornRider => updateUnicornRider
@@ -245,9 +245,9 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
 We use "edit" instead of "update" to make it clear that this update may have side effects
 
 - If you do need to make a new zod schema, adhere to the following guidelines:
-  - Don't make a new zod object with individual properties. What you need should be available in the @/db/schema/<tableName.ts> file.
+  - Don't make a new zod object with individual properties. What you need should be available in the @db-core/schema/<tableName.ts> file.
   - Name the schema like so: <edit|create|delete><TableName>Schema
-  - Export both the schema and the inferred type from the db/schema/<tableName.ts> file:
+  - Export both the schema and the inferred type from the db-core/schema/<tableName.ts> file:
   ```ts
   export const editUnicornRiderSchema = z.object({
     unicornRider: unicornRidersUpdateSchema
@@ -276,8 +276,8 @@ For each enum column in your new table, add a test call to the testEnums.ts scri
 1. Open the file `./src/db/testEnums.ts`
 2. Import your new table and any enum types you've created:
    ```typescript
-   import { unicornRiders } from '@/db/schema/unicornRiders'
-   import { UnicornRiderStatus } from '@/types'
+   import { unicornRiders } from '@db-core/schema/unicornRiders'
+   import { UnicornRiderStatus } from '@db-core/enums'
    ```
 3. Add a test call for each enum column in your table within the transaction block:
    ```typescript

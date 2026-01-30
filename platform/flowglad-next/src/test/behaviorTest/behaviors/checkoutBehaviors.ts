@@ -28,15 +28,21 @@
  *   their own tax compliance outside of Flowglad.
  */
 
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PaymentMethodType,
+  PriceType,
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Discount } from '@db-core/schema/discounts'
+import type { FeeCalculation } from '@db-core/schema/feeCalculations'
+import type { BillingAddress } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import { nulledPriceColumns } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Discount } from '@/db/schema/discounts'
-import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import type { BillingAddress } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import { nulledPriceColumns } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 import {
   insertCheckoutSession,
   updateCheckoutSession,
@@ -46,12 +52,6 @@ import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-  PriceType,
-} from '@/types'
 import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import core from '@/utils/core'
 import { ContractTypeDep } from '../dependencies/contractTypeDependencies'

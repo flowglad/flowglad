@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@db-core/enums'
 import {
   featuresClientInsertSchema,
   featuresClientUpdateSchema,
@@ -9,7 +12,7 @@ import {
   usageCreditGrantFeatureClientInsertSchema,
   usageCreditGrantFeatureClientUpdateSchema,
   usageCreditGrantFeatureInsertSchema,
-} from './features'
+} from '@db-core/schema/features'
 
 describe('Features Schema Validation', () => {
   describe('Toggle Feature - Client Insert Schema', () => {

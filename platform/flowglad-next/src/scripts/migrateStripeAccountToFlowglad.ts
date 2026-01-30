@@ -4,15 +4,15 @@ NODE_ENV=production bunx tsx src/scripts/migrateStripeAccountToFlowglad.ts conne
 */
 /* eslint-disable no-console */
 
+import type { Customer } from '@db-core/schema/customers'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as R from 'ramda'
 import type Stripe from 'stripe'
-import type { Customer } from '@/db/schema/customers'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
 import {
   bulkInsertOrDoNothingCustomersByStripeCustomerId,
   selectCustomers,

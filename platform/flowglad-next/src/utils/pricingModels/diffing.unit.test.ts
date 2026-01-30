@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test'
-import { Result } from 'better-result'
 import {
   CurrencyCode,
   FeatureType,
@@ -7,7 +6,8 @@ import {
   IntervalUnit,
   PriceType,
   UsageMeterAggregationType,
-} from '@/types'
+} from '@db-core/enums'
+import { Result } from 'better-result'
 import {
   computeUpdateObject,
   type DiffResult,

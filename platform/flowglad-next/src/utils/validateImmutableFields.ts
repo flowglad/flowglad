@@ -1,5 +1,8 @@
+import {
+  type Price,
+  priceImmutableFields,
+} from '@db-core/schema/prices'
 import { TRPCError } from '@trpc/server'
-import { type Price, priceImmutableFields } from '@/db/schema/prices'
 
 /**
  * Validates that immutable price fields are not being changed after creation

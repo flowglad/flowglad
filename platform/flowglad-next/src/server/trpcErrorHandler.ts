@@ -3,9 +3,9 @@
  * Transforms database and application errors into user-friendly, actionable error messages
  */
 
+import { NotFoundError } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import type { TRPC_ERROR_CODE_KEY } from '@trpc/server/rpc'
-import { NotFoundError } from '@/db/tableUtils'
 import {
   AuthorizationError,
   ConflictError,

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
-import type { CheckoutSession } from '../schema/checkoutSessions'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import {
   checkoutSessionIsInTerminalState,
   isCheckoutSessionSubscriptionCreating,

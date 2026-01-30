@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  FlowgladApiKeyType,
+  MembershipRole,
+  StripeConnectContractType,
+} from '@db-core/enums'
+import type { CreateOrganizationInput } from '@db-core/schema/organizations'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
@@ -8,12 +14,6 @@ import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import {
-  CurrencyCode,
-  FlowgladApiKeyType,
-  MembershipRole,
-  StripeConnectContractType,
-} from '@/types'
 import {
   cardPaymentsCountries,
   transferCountries,
@@ -444,7 +444,7 @@ describe('createOrganizationTransaction', () => {
     })
 
     await expect(promise).rejects.toThrow(
-      /Stripe Connect contract type .* is not supported/
+      /The selected payment configuration is not available in .+\. See supported countries/
     )
   })
 

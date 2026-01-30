@@ -7,14 +7,15 @@
  * transaction.
  */
 
+import { CurrencyCode, FeatureType, PriceType } from '@db-core/enums'
+import type { Feature } from '@db-core/schema/features'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { ProductFeature } from '@db-core/schema/productFeatures'
+import type { Product } from '@db-core/schema/products'
+import type { Resource } from '@db-core/schema/resources'
+import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { Result } from 'better-result'
-import type { Feature } from '@/db/schema/features'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { ProductFeature } from '@/db/schema/productFeatures'
-import type { Product } from '@/db/schema/products'
-import type { Resource } from '@/db/schema/resources'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 import {
   bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
   updateFeature,
@@ -42,7 +43,6 @@ import {
 } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { CurrencyCode, FeatureType, PriceType } from '@/types'
 import {
   computeUpdateObject,
   diffPricingModel,

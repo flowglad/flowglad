@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { PaymentMethodType } from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -7,13 +12,8 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { createCapturingEffectsContext } from '@/test-utils/transactionCallbacks'
-import { PaymentMethodType } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
-import type { Customer } from '../schema/customers'
-import type { Organization } from '../schema/organizations'
-import type { PaymentMethod } from '../schema/paymentMethods'
-import type { PricingModel } from '../schema/pricingModels'
 import {
   safelyUpdatePaymentMethod,
   selectPaymentMethodById,

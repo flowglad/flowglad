@@ -1,10 +1,12 @@
 import type { Flowglad } from '@flowglad/node'
 import { type ZodType, z } from 'zod'
 import {
+  FeatureAccessItem,
   FlowgladActionKey,
   HTTPMethod,
   UsageMeterBalance,
 } from './types/sdk'
+import type { SubscriptionDetails } from './types/subscription'
 
 export type FlowgladActionValidatorMap = {
   [K in FlowgladActionKey]: {
@@ -595,6 +597,41 @@ export type GetUsageMeterBalancesResponse = {
   usageMeterBalances: UsageMeterBalance[]
 }
 
+export const getFeatureAccessSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .strict()
+
+export type GetFeatureAccessParams = z.infer<
+  typeof getFeatureAccessSchema
+>
+
+export type GetFeatureAccessResponse = {
+  features: FeatureAccessItem[]
+}
+
+/**
+ * Schema for fetching subscriptions for a customer.
+ * Returns subscriptions, currentSubscriptions, and currentSubscription.
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getSubscriptionsSchema = z
+  .object({
+    includeHistorical: z.boolean().optional(), // Include non-current subscriptions
+  })
+  .strict()
+
+export type GetSubscriptionsParams = z.infer<
+  typeof getSubscriptionsSchema
+>
+
+export type GetSubscriptionsResponse = {
+  subscriptions: SubscriptionDetails[]
+  currentSubscriptions: SubscriptionDetails[]
+  currentSubscription: SubscriptionDetails | null
+}
+
 export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -671,5 +708,13 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.GetUsageMeterBalances]: {
     method: HTTPMethod.POST,
     inputValidator: getUsageMeterBalancesSchema,
+  },
+  [FlowgladActionKey.GetFeatureAccess]: {
+    method: HTTPMethod.POST,
+    inputValidator: getFeatureAccessSchema,
+  },
+  [FlowgladActionKey.GetSubscriptions]: {
+    method: HTTPMethod.POST,
+    inputValidator: getSubscriptionsSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

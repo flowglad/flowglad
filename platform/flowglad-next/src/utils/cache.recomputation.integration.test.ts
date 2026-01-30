@@ -1,5 +1,11 @@
 import { afterEach, expect, it } from 'bun:test'
 import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
@@ -17,12 +23,6 @@ import {
   getRedisTestClient,
   waitForCachePopulation,
 } from '@/test/redisIntegrationHelpers'
-import {
-  IntervalUnit,
-  PriceType,
-  SubscriptionItemType,
-  SubscriptionStatus,
-} from '@/types'
 import {
   CacheDependency,
   invalidateDependencies,

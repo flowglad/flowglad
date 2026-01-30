@@ -1,5 +1,6 @@
 'use client'
 
+import type { CreateResourceInput } from '@db-core/schema/resources'
 import { Controller, useFormContext } from 'react-hook-form'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import {
@@ -16,7 +17,6 @@ import {
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
-import type { CreateResourceInput } from '@/db/schema/resources'
 import PricingModelSelect from './PricingModelSelect'
 
 interface ResourceFormFieldsProps {

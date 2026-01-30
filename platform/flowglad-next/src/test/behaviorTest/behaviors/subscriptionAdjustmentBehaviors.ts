@@ -31,6 +31,25 @@
 // not here, because vi.mock() hoisting only works within the test file that vitest processes.
 // Mocks defined in imported modules are not hoisted correctly.
 
+import {
+  BillingPeriodStatus,
+  IntervalUnit,
+  InvoiceStatus,
+  PaymentStatus,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { Customer } from '@db-core/schema/customers'
+import type { Feature } from '@db-core/schema/features'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { ProductFeature } from '@db-core/schema/productFeatures'
+import type { Product } from '@db-core/schema/products'
+import type { Resource } from '@db-core/schema/resources'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 import {
@@ -50,17 +69,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { Customer } from '@/db/schema/customers'
-import type { Feature } from '@/db/schema/features'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { ProductFeature } from '@/db/schema/productFeatures'
-import type { Product } from '@/db/schema/products'
-import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import type { Subscription } from '@/db/schema/subscriptions'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
@@ -69,15 +77,7 @@ import {
   type AdjustSubscriptionResult,
   adjustSubscription,
 } from '@/subscriptions/adjustSubscription'
-import {
-  BillingPeriodStatus,
-  IntervalUnit,
-  InvoiceStatus,
-  PaymentStatus,
-  PriceType,
-  SubscriptionAdjustmentTiming,
-  SubscriptionStatus,
-} from '@/types'
+import { SubscriptionAdjustmentTiming } from '@/types'
 import core from '@/utils/core'
 import { AdjustmentTimingDep } from '../dependencies/adjustmentTimingDependencies'
 import { AdjustmentTypeDep } from '../dependencies/adjustmentTypeDependencies'

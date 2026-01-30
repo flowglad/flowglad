@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { CurrencyCode, IntervalUnit, PriceType } from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
 import {
   setupMemberships,
   setupOrg,
@@ -8,10 +12,6 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 import {
   getProductTableRows,

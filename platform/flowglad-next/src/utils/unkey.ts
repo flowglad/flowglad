@@ -1,12 +1,13 @@
-import { Unkey } from '@unkey/api'
-import type { V2KeysVerifyKeyResponseData } from '@unkey/api/models/components'
+import { FlowgladApiKeyType } from '@db-core/enums'
 import {
   type ApiKey,
   apiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
-} from '@/db/schema/apiKeys'
-import type { Organization } from '@/db/schema/organizations'
-import { type ApiEnvironment, FlowgladApiKeyType } from '@/types'
+} from '@db-core/schema/apiKeys'
+import type { Organization } from '@db-core/schema/organizations'
+import { Unkey } from '@unkey/api'
+import type { V2KeysVerifyKeyResponseData } from '@unkey/api/models/components'
+import { type ApiEnvironment } from '@/types'
 import { hashData } from './backendCore'
 import core from './core'
 import { logger } from './logger'
@@ -27,11 +28,21 @@ export type VerifyApiKeyResult = {
   error: unknown | undefined
 }
 
+/**
+ * Create an Unkey client configured from the `UNKEY_ROOT_KEY` environment variable.
+ *
+ * When `UNKEY_MOCK_HOST` is set, the client uses that URL as the server endpoint.
+ * This enables testing against a mock server (e.g., flowglad-mock-server) instead
+ * of the production Unkey API.
+ *
+ * @returns An Unkey client instance.
+ */
 export const unkey = () =>
   new Unkey({
     rootKey: core.IS_TEST
       ? 'test_root_key'
       : core.envVariable('UNKEY_ROOT_KEY'),
+    serverURL: process.env.UNKEY_MOCK_HOST || undefined,
   })
 
 /**

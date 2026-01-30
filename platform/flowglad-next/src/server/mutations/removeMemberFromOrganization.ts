@@ -1,8 +1,9 @@
+import { MembershipRole } from '@db-core/enums'
+import { type Membership } from '@db-core/schema/memberships'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { type Membership } from '@/db/schema/memberships'
 import {
   selectFocusedMembershipAndOrganization,
   selectMembershipByIdIncludingDeactivated,
@@ -15,7 +16,6 @@ import {
   NotFoundError,
 } from '@/errors'
 import { protectedProcedure } from '@/server/trpc'
-import { MembershipRole } from '@/types'
 
 export const removeMemberFromOrganizationSchema = z.object({
   membershipId: z.string(),

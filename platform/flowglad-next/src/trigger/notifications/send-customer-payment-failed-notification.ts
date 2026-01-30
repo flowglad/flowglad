@@ -1,6 +1,6 @@
+import type { Payment } from '@db-core/schema/payments'
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Payment } from '@/db/schema/payments'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'

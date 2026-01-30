@@ -1,4 +1,23 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  DiscountAmountType,
+  EventNoun,
+  FlowgladEventType,
+  PaymentMethodType,
+  PurchaseStatus,
+  StripeConnectContractType,
+} from '@db-core/enums'
+import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
+import type { Customer } from '@db-core/schema/customers'
+import type { Discount } from '@db-core/schema/discounts'
+import {
+  type FeeCalculation,
+  feeCalculations,
+} from '@db-core/schema/feeCalculations'
+import { type BillingAddress } from '@db-core/schema/organizations'
+import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
@@ -15,15 +34,6 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { Discount } from '@/db/schema/discounts'
-import {
-  type FeeCalculation,
-  feeCalculations,
-} from '@/db/schema/feeCalculations'
-import { type BillingAddress } from '@/db/schema/organizations'
-import type { Purchase } from '@/db/schema/purchases'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
@@ -37,16 +47,6 @@ import {
   createDiscardingEffectsContext,
   createProcessingEffectsContext,
 } from '@/test-utils/transactionCallbacks'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  DiscountAmountType,
-  EventNoun,
-  FlowgladEventType,
-  PaymentMethodType,
-  PurchaseStatus,
-  StripeConnectContractType,
-} from '@/types'
 import {
   checkoutSessionStatusFromStripeCharge,
   editCheckoutSession,

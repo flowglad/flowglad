@@ -17,8 +17,8 @@
  * which all other behaviors build.
  */
 
+import type { User } from '@db-core/schema/users'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { User } from '@/db/schema/users'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import core from '@/utils/core'
 import { defineBehavior } from '../index'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { EventNoun, FlowgladEventType } from '@/types'
+import { EventNoun, FlowgladEventType } from '@db-core/enums'
 import {
   buildScopeId,
   createSyncEventsAvailableEvent,

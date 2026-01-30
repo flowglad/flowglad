@@ -1,9 +1,9 @@
 'use client'
 
+import type { NotificationPreferences } from '@db-core/schema/memberships'
 import { Controller, useFormContext } from 'react-hook-form'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import type { NotificationPreferences } from '@/db/schema/memberships'
 
 interface NotificationToggleProps {
   id: string

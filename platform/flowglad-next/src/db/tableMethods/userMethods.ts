@@ -3,7 +3,7 @@ import {
   usersInsertSchema,
   usersSelectSchema,
   usersUpdateSchema,
-} from '@/db/schema/users'
+} from '@db-core/schema/users'
 import {
   createInsertFunction,
   createSelectById,
@@ -11,7 +11,7 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
 
 export type UserInsert = typeof users.$inferInsert
 export type UserUpdate = Partial<UserInsert>

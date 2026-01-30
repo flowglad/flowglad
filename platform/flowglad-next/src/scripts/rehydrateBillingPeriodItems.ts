@@ -3,9 +3,10 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/rehydrateBillingPeriodItems.ts billing_period_id=bp_...
 */
 
+import { PriceType, SubscriptionItemType } from '@db-core/enums'
+import type { BillingPeriodItem } from '@db-core/schema/billingPeriodItems'
+import { subscriptionItems } from '@db-core/schema/subscriptionItems'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
@@ -14,7 +15,6 @@ import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { isSubscriptionItemActiveAndNonManual } from '@/subscriptions/subscriptionItemHelpers'
-import { PriceType, SubscriptionItemType } from '@/types'
 import runScript from './scriptRunner'
 
 async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {

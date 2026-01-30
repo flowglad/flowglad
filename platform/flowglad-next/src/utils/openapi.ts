@@ -374,10 +374,11 @@ export const trpcToRest = (
 
       // For other custom actions, create a POST endpoint
       const idParam = params?.routeParams?.[0] ?? 'id'
+      const routeSuffix = params?.routeSuffix ?? action
       return {
-        [`POST /${entity}/:${idParam}/${action}`]: {
+        [`POST /${entity}/:${idParam}/${routeSuffix}`]: {
           procedure: procedureName,
-          pattern: new RegExp(`^${entity}/([^\\/]+)/${action}$`),
+          pattern: new RegExp(`^${entity}/([^\\/]+)/${routeSuffix}$`),
           mapParams: (matches, body) => ({
             ...body,
             [idParam]: matches[0],

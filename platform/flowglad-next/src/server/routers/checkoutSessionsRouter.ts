@@ -1,10 +1,8 @@
-import { TRPCError } from '@trpc/server'
-import { z } from 'zod'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PaymentMethodType,
+} from '@db-core/enums'
 import {
   type CheckoutSession,
   checkoutSessionsPaginatedListSchema,
@@ -13,9 +11,16 @@ import {
   createCheckoutSessionInputSchema,
   editCheckoutSessionInputSchema,
   singleCheckoutSessionOutputSchema,
-} from '@/db/schema/checkoutSessions'
-import { customerFacingFeeCalculationSelectSchema } from '@/db/schema/feeCalculations'
-import { billingAddressSchema } from '@/db/schema/organizations'
+} from '@db-core/schema/checkoutSessions'
+import { customerFacingFeeCalculationSelectSchema } from '@db-core/schema/feeCalculations'
+import { billingAddressSchema } from '@db-core/schema/organizations'
+import { TRPCError } from '@trpc/server'
+import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   selectCheckoutSessionById,
   selectCheckoutSessions,
@@ -34,11 +39,6 @@ import {
   publicProcedure,
   router,
 } from '@/server/trpc'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-} from '@/types'
 import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutSessions'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import core from '@/utils/core'

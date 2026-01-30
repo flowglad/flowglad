@@ -1,4 +1,6 @@
 import { spawnSync } from 'child_process'
+import { randomUUID } from 'crypto'
+import { unlinkSync, writeFileSync } from 'fs'
 import { relative, resolve } from 'path'
 import { findRepoRoot } from './config'
 import type { BiomeDiagnostic } from './types'
@@ -93,12 +95,11 @@ export const runBiomeLint = async (
   }
 
   // Write temp config
-  const tempConfigPath = resolve(repoRoot, '.lint-ratchet-temp.json')
-  const fs = await import('fs')
-  fs.writeFileSync(
-    tempConfigPath,
-    JSON.stringify(tempConfig, null, 2)
+  const tempConfigPath = resolve(
+    repoRoot,
+    `.lint-ratchet-temp-${process.pid}-${Date.now()}-${randomUUID()}.json`
   )
+  writeFileSync(tempConfigPath, JSON.stringify(tempConfig, null, 2))
 
   try {
     // Run biome lint with JSON reporter
@@ -117,7 +118,9 @@ export const runBiomeLint = async (
         maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
       }
     )
-
+    if (result.error) {
+      throw new Error(`Failed to run Biome: ${result.error.message}`)
+    }
     // Biome exits with 1 when there are lint errors, which is expected
     const output = result.stdout || ''
 
@@ -134,7 +137,7 @@ export const runBiomeLint = async (
     if (jsonLines.length === 0) {
       // No JSON output means no diagnostics or an error
       if (result.stderr && !result.stderr.includes('unstable')) {
-        console.error('Biome stderr:', result.stderr)
+        throw new Error(`Biome failed with stderr: ${result.stderr}`)
       }
       return []
     }
@@ -161,14 +164,38 @@ export const runBiomeLint = async (
         continue
       }
 
-      // Skip excluded files
+      // Skip excluded files (simple glob: **/, /** and *.suffix)
       const shouldExclude = exclude.some((pattern) => {
-        // Simple glob matching for common patterns
+        // Pattern starts with **/ — strip and match rest anywhere in path
+        if (pattern.startsWith('**/')) {
+          const rest = pattern.slice(3)
+          if (rest.endsWith('/**')) {
+            const prefix = rest.slice(0, -3)
+            return relativeFilePath.includes(prefix)
+          }
+          if (rest.startsWith('*') && rest.indexOf('*', 1) === -1) {
+            return relativeFilePath.endsWith(rest.slice(1))
+          }
+          return (
+            relativeFilePath === rest ||
+            relativeFilePath.endsWith(`/${rest}`) ||
+            relativeFilePath.includes(`/${rest}/`)
+          )
+        }
+        // Pattern ends with /** and no leading **/ — match path prefix
         if (pattern.endsWith('/**')) {
           const prefix = pattern.slice(0, -3)
           return relativeFilePath.startsWith(prefix)
         }
-        return relativeFilePath.includes(pattern.replace(/\*\*/g, ''))
+        // Fallback: strip ** and match; if result contains * treat as *.suffix
+        const cleaned = pattern.replace(/\*\*/g, '')
+        if (
+          cleaned.startsWith('*') &&
+          cleaned.indexOf('*', 1) === -1
+        ) {
+          return relativeFilePath.endsWith(cleaned.slice(1))
+        }
+        return relativeFilePath.includes(cleaned)
       })
 
       if (shouldExclude) {
@@ -195,7 +222,7 @@ export const runBiomeLint = async (
   } finally {
     // Clean up temp config
     try {
-      fs.unlinkSync(tempConfigPath)
+      unlinkSync(tempConfigPath)
     } catch {
       // Ignore cleanup errors
     }

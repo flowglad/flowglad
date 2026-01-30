@@ -32,7 +32,7 @@
  * - Features work across different regulatory environments
  */
 
-import { CountryCode, CurrencyCode } from '@/types'
+import { CountryCode, CurrencyCode } from '@db-core/enums'
 import { Dependency } from '../index'
 
 /**

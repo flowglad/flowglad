@@ -5,7 +5,7 @@
  * between diffing and ID resolution operations.
  */
 
-import type { CurrencyCode, IntervalUnit } from '@/types'
+import type { CurrencyCode, IntervalUnit } from '@db-core/enums'
 
 /**
  * Fields required from a usage price to generate a synthetic slug.

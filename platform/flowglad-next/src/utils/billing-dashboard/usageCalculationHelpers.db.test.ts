@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  PriceType,
+  RevenueChartIntervalUnit,
+  SubscriptionStatus,
+  UsageMeterAggregationType,
+} from '@db-core/enums'
+import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
@@ -11,12 +17,6 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  PriceType,
-  RevenueChartIntervalUnit,
-  SubscriptionStatus,
-  UsageMeterAggregationType,
-} from '@/types'
 import core from '@/utils/core'
 import {
   calculateUsageVolumeByInterval,

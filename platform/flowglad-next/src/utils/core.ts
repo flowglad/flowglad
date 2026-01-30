@@ -1,3 +1,4 @@
+import { CountryCode, CurrencyCode } from '@db-core/enums'
 import * as Sentry from '@sentry/nextjs'
 import axios, { type AxiosRequestConfig } from 'axios'
 import { camelCase, sentenceCase } from 'change-case'
@@ -14,12 +15,7 @@ import has from 'ramda/src/has'
 import omit from 'ramda/src/omit'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
-import {
-  CountryCode,
-  CurrencyCode,
-  type Nullish,
-  StripePriceMode,
-} from '@/types'
+import { type Nullish, StripePriceMode } from '@/types'
 import latinMap from './latinMap'
 
 export const envVariable = (key: string) => process.env[key] || ''
@@ -335,22 +331,10 @@ export const safeZodNonNegativeInteger = z.coerce
     { message: 'Value must be a non-negative integer' }
   )
 
-export const safeZodPositiveInteger = z.coerce
-  .number()
-  .int()
-  .positive()
-  .meta({
-    description: 'A positive integer',
-  })
-
 export const zodOptionalNullableString = z
   .string()
   .nullable()
   .optional()
-
-export const safeZodPositiveIntegerOrZero = safeZodPositiveInteger.or(
-  z.literal(0)
-)
 
 export const safeZodNullOrUndefined = z
   .null()
@@ -586,10 +570,8 @@ export const core = {
   nowTime,
   safeZodNullOrUndefined,
   safeZodNullishString,
-  safeZodPositiveInteger,
   safeZodDate,
   safeZodAlwaysNull,
-  safeZodPositiveIntegerOrZero,
   safeZodNonNegativeInteger,
   safeZodSanitizedString,
   IS_DEV,

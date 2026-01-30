@@ -1,3 +1,8 @@
+import { DestinationEnvironment } from '@db-core/enums'
+import {
+  clonePricingModelInputSchema,
+  type PricingModel,
+} from '@db-core/schema/pricingModels'
 import { sentenceCase } from 'change-case'
 import type React from 'react'
 import { useCallback, useState } from 'react'
@@ -6,11 +11,6 @@ import { trpc } from '@/app/_trpc/client'
 import ClonePricingModelFormFields from '@/components/forms/ClonePricingModelFormFields'
 import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  clonePricingModelInputSchema,
-  type PricingModel,
-} from '@/db/schema/pricingModels'
-import { DestinationEnvironment } from '@/types'
 
 interface ClonePricingModelModalProps {
   isOpen: boolean

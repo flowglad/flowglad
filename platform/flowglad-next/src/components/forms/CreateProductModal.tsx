@@ -1,15 +1,15 @@
 'use client'
+import {
+  type CreateProductFormSchema,
+  createProductFormSchema,
+  type Price,
+} from '@db-core/schema/prices'
+import type { Product } from '@db-core/schema/products'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  type CreateProductFormSchema,
-  createProductFormSchema,
-  type Price,
-} from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import { singlePaymentDummyPrice } from '@/stubs/priceStubs'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 

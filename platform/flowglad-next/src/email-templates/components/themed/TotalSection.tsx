@@ -1,6 +1,6 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { Hr, Section } from '@react-email/components'
 import * as React from 'react'
-import type { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { DetailItem } from './DetailItem'
 

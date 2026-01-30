@@ -1,6 +1,6 @@
+import type { User as UserSchema } from '@db-core/schema/users'
 import type { User } from 'better-auth'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { User as UserSchema } from '@/db/schema/users'
 import {
   insertUser,
   selectUsers,

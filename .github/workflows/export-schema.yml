@@ -1,0 +1,43 @@
+name: Export Schema Branch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/flowglad-next/db-core/**'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Export db-core to schema-export branch
+        run: |
+          git subtree split \
+            --prefix=platform/flowglad-next/db-core \
+            -b schema-export
+          git push origin schema-export --force
+
+      - name: Generate GitHub App token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.SCHEMA_SYNC_APP_ID }}
+          private-key: ${{ secrets.SCHEMA_SYNC_APP_PRIVATE_KEY }}
+          owner: flowglad
+          repositories: flowglad-internal
+
+      - name: Notify internal repo
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          repository: flowglad/flowglad-internal
+          event-type: schema-updated

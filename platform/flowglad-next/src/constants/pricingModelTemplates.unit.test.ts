@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { FeatureType, PriceType } from '@/types'
+import { FeatureType, PriceType } from '@db-core/enums'
 import { validateSetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import {
   getTemplateById,

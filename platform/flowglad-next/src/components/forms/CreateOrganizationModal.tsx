@@ -1,14 +1,14 @@
 'use client'
 
+import {
+  type CreateOrganizationInput,
+  createOrganizationSchema,
+} from '@db-core/schema/organizations'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
 import { useAuthContext } from '@/contexts/authContext'
-import {
-  type CreateOrganizationInput,
-  createOrganizationSchema,
-} from '@/db/schema/organizations'
 
 interface CreateOrganizationModalProps {
   isOpen: boolean

@@ -1,5 +1,3 @@
-import { eq } from 'drizzle-orm'
-import { z } from 'zod'
 import {
   type Feature,
   features,
@@ -7,7 +5,8 @@ import {
   featuresInsertSchema,
   featuresSelectSchema,
   featuresUpdateSchema,
-} from '@/db/schema/features'
+} from '@db-core/schema/features'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
@@ -19,14 +18,15 @@ import {
   createUpdateFunction,
   createUpsertFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
 import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
-import type { PricingModel } from '../schema/pricingModels'
 import { selectPricingModels } from './pricingModelMethods'
 import {
   expireProductFeaturesByFeatureId,

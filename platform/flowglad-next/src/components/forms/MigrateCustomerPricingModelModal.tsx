@@ -1,5 +1,6 @@
 'use client'
 
+import type { Customer } from '@db-core/schema/customers'
 import { AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -30,7 +31,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { Customer } from '@/db/schema/customers'
 
 interface MigrateCustomerPricingModelModalProps {
   isOpen: boolean

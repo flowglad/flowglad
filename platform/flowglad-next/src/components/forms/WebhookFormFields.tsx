@@ -1,5 +1,7 @@
 'use client'
 
+import { FlowgladEventType } from '@db-core/enums'
+import type { CreateWebhookInput } from '@db-core/schema/webhooks'
 import { Controller, useFormContext } from 'react-hook-form'
 import {
   FormControl,
@@ -15,8 +17,6 @@ import {
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
-import type { CreateWebhookInput } from '@/db/schema/webhooks'
-import { FlowgladEventType } from '@/types'
 import MultiSelect, { type Option } from './MultiSelect'
 import PricingModelSelect from './PricingModelSelect'
 

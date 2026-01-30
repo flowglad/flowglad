@@ -1,7 +1,8 @@
+import { CheckoutSessionType } from '@db-core/enums'
+import { attemptDiscountCodeInputSchema } from '@db-core/schema/discounts'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import { attemptDiscountCodeInputSchema } from '@/db/schema/discounts'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import {
@@ -9,7 +10,6 @@ import {
   selectPurchaseById,
 } from '@/db/tableMethods/purchaseMethods'
 import { publicProcedure } from '@/server/trpc'
-import { CheckoutSessionType } from '@/types'
 import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import {
   type CheckoutSessionCookieNameParams,

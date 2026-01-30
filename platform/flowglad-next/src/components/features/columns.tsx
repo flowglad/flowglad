@@ -1,5 +1,7 @@
 'use client'
 
+import { FeatureType } from '@db-core/enums'
+import type { Feature } from '@db-core/schema/features'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
 import * as React from 'react'
@@ -13,8 +15,6 @@ import {
   ActiveStatusTag,
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
-import type { Feature } from '@/db/schema/features'
-import { FeatureType } from '@/types'
 
 export interface FeatureRow {
   feature: Feature.ClientRecord

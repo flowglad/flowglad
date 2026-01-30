@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { TRPCError } from '@trpc/server'
-import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import type { Membership } from '@/db/schema/memberships'
+import type { Membership } from '@db-core/schema/memberships'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type NotificationPreferences,
-} from '@/db/schema/memberships'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
+} from '@db-core/schema/memberships'
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
+import { TRPCError } from '@trpc/server'
+import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectMemberships,
   updateMembership,

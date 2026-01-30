@@ -1,5 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { z } from 'zod'
+import { PaymentStatus } from '@db-core/enums'
 import {
   type Customer,
   type CustomerTableRowData,
@@ -10,7 +9,14 @@ import {
   customers as customersTable,
   customersUpdateSchema,
   InferredCustomerStatus,
-} from '@/db/schema/customers'
+} from '@db-core/schema/customers'
+import { invoices } from '@db-core/schema/invoices'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import { payments } from '@db-core/schema/payments'
+import { purchases } from '@db-core/schema/purchases'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -24,17 +30,11 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import { ArchivedCustomerError } from '@/errors'
-import { PaymentStatus } from '@/types'
-import { invoices } from '../schema/invoices'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import { payments } from '../schema/payments'
-import { purchases } from '../schema/purchases'
 
 const config: ORMMethodCreatorConfig<
   typeof customersTable,

@@ -1,11 +1,10 @@
-import { Result } from 'better-result'
 import {
   type LedgerTransaction,
   ledgerTransactions,
   ledgerTransactionsInsertSchema,
   ledgerTransactionsSelectSchema,
   ledgerTransactionsUpdateSchema,
-} from '@/db/schema/ledgerTransactions'
+} from '@db-core/schema/ledgerTransactions'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
@@ -13,7 +12,8 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { NotFoundError } from '@/errors'
 import type { DbTransaction } from '../types'
 import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'

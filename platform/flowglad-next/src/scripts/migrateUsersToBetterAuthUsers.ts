@@ -3,10 +3,10 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/migrateUsersToBetterAuthUsers.ts
 */
 
+import { user as betterAuthUsers } from '@db-core/schema/betterAuthSchema'
+import { users } from '@db-core/schema/users'
 import { eq, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { user as betterAuthUsers } from '@/db/schema/betterAuthSchema'
-import { users } from '@/db/schema/users'
 import { auth } from '@/utils/auth'
 import runScript from './scriptRunner'
 

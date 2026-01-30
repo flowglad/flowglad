@@ -1,3 +1,11 @@
+import {
+  createSubscriptionItemFeatureInputSchema,
+  editSubscriptionItemFeatureInputSchema,
+  expireSubscriptionItemFeatureInputSchema,
+  type SubscriptionItemFeature,
+  subscriptionItemFeaturesClientSelectSchema,
+} from '@db-core/schema/subscriptionItemFeatures'
+import { idInputSchema } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { kebabCase } from 'change-case'
@@ -7,20 +15,12 @@ import {
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  createSubscriptionItemFeatureInputSchema,
-  editSubscriptionItemFeatureInputSchema,
-  expireSubscriptionItemFeatureInputSchema,
-  type SubscriptionItemFeature,
-  subscriptionItemFeaturesClientSelectSchema,
-} from '@/db/schema/subscriptionItemFeatures'
-import {
   expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
   insertSubscriptionItemFeature,
   selectClientSubscriptionItemFeatureAndFeatureById,
   selectSubscriptionItemFeatureById,
   updateSubscriptionItemFeature as updateSubscriptionItemFeatureDB,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { idInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { CacheDependency } from '@/utils/cache'
 import {

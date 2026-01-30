@@ -1,23 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
 import {
   selectProductFeatures,
   updateProductFeature,
 } from '@/db/tableMethods/productFeatureMethods'
 import { bulkInsertResources } from '@/db/tableMethods/resourceMethods'
-import {
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  IntervalUnit,
-  PriceType,
-} from '@/types'
 import type { SetupPricingModelInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import {

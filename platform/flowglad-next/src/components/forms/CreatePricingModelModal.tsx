@@ -1,5 +1,10 @@
 'use client'
 
+import { IntervalUnit } from '@db-core/enums'
+import {
+  type CreatePricingModelInput,
+  createPricingModelSchema,
+} from '@db-core/schema/pricingModels'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
@@ -21,11 +26,6 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  type CreatePricingModelInput,
-  createPricingModelSchema,
-} from '@/db/schema/pricingModels'
-import { IntervalUnit } from '@/types'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'

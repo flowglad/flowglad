@@ -1,9 +1,9 @@
 /// <reference lib="dom" />
 
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import type { ReactNode } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 
 // Create mock functions
 const mockMutateAsync = mock(() => Promise.resolve({}))

@@ -1,4 +1,16 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@db-core/enums'
+import { Customer } from '@db-core/schema/customers'
+import { Organization } from '@db-core/schema/organizations'
+import { PaymentMethod } from '@db-core/schema/paymentMethods'
+import {
+  Subscription,
+  subscriptions,
+} from '@db-core/schema/subscriptions'
 import { inArray } from 'drizzle-orm'
 import {
   setupCustomer,
@@ -10,15 +22,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { Customer } from '@/db/schema/customers'
-import { Organization } from '@/db/schema/organizations'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import {
-  Subscription,
-  subscriptions,
-} from '@/db/schema/subscriptions'
 import { SubscriptionTerminalStateError } from '@/errors'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import { core } from '@/utils/core'
 import {
   assertSubscriptionNotTerminal,

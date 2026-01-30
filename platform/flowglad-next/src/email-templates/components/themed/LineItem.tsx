@@ -1,6 +1,6 @@
+import type { CurrencyCode } from '@db-core/enums'
 import { Column, Row, Section, Text } from '@react-email/components'
 import type * as React from 'react'
-import type { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 const rowStyle: React.CSSProperties = {

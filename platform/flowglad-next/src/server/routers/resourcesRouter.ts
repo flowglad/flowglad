@@ -1,14 +1,21 @@
+import {
+  createResourceSchema,
+  editResourceSchema,
+  resourcesClientSelectSchema,
+} from '@db-core/schema/resources'
+import {
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createResourceSchema,
-  editResourceSchema,
-  resourcesClientSelectSchema,
-} from '@/db/schema/resources'
 import {
   insertResource,
   resourcesTableRowOutputSchema,
@@ -18,13 +25,6 @@ import {
   selectResourcesTableRowData,
   updateResource,
 } from '@/db/tableMethods/resourceMethods'
-import {
-  createPaginatedListQuerySchema,
-  createPaginatedSelectSchema,
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 

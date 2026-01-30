@@ -1,5 +1,18 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+  PriceType,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Discount } from '@db-core/schema/discounts'
+import type { Organization } from '@db-core/schema/organizations'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
+import {
   setupCustomer,
   setupDiscount,
   setupOrg,
@@ -8,20 +21,7 @@ import {
   setupPurchase,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  CurrencyCode,
-  DiscountAmountType,
-  DiscountDuration,
-  PriceType,
-} from '@/types'
 import { core } from '@/utils/core'
-import type { Customer } from '../schema/customers'
-import type { Discount } from '../schema/discounts'
-import type { Organization } from '../schema/organizations'
-import type { Price } from '../schema/prices'
-import type { PricingModel } from '../schema/pricingModels'
-import type { Product } from '../schema/products'
-import type { Purchase } from '../schema/purchases'
 import {
   insertDiscountRedemption,
   selectDiscountRedemptions,

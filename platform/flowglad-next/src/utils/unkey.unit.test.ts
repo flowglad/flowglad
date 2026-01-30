@@ -1,12 +1,53 @@
-import { describe, expect, it } from 'bun:test'
-import type { ApiKey } from '@/db/schema/apiKeys'
-import type { Organization } from '@/db/schema/organizations'
-import { FlowgladApiKeyType } from '@/types'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { FlowgladApiKeyType } from '@db-core/enums'
+import type { ApiKey } from '@db-core/schema/apiKeys'
+import type { Organization } from '@db-core/schema/organizations'
 import {
   parseUnkeyMeta,
   type StandardCreateApiKeyParams,
   secretApiKeyInputToUnkeyInput,
+  unkey,
 } from './unkey'
+
+describe('unkey client configuration', () => {
+  const originalEnv = { ...process.env }
+
+  afterEach(() => {
+    // Restore original env
+    Object.keys(process.env).forEach((key) => {
+      if (!(key in originalEnv)) {
+        delete process.env[key]
+      }
+    })
+    Object.assign(process.env, originalEnv)
+  })
+
+  it('returns an Unkey client with expected API (keys property)', () => {
+    // Note: In test mode, @unkey/api is mocked with MockUnkey
+    // so we can't use instanceof Unkey. We verify the API shape instead.
+    const client = unkey()
+    expect(typeof client).toBe('object')
+    expect(typeof client.keys).toBe('object')
+    expect(typeof client.keys.createKey).toBe('function')
+    expect(typeof client.keys.deleteKey).toBe('function')
+  })
+
+  it('creates client without error when UNKEY_MOCK_HOST is set', () => {
+    // Set UNKEY_MOCK_HOST to simulate docker-compose test configuration
+    process.env.UNKEY_MOCK_HOST = 'http://localhost:9002'
+    const client = unkey()
+    expect(typeof client).toBe('object')
+    expect(typeof client.keys).toBe('object')
+  })
+
+  it('creates client without error when UNKEY_MOCK_HOST is unset', () => {
+    delete process.env.UNKEY_MOCK_HOST
+    const client = unkey()
+    // Client created without mock server config (uses real Unkey API)
+    expect(typeof client).toBe('object')
+    expect(typeof client.keys).toBe('object')
+  })
+})
 
 describe('secretApiKeyInputToUnkeyInput', () => {
   const mockOrganization: Pick<Organization.Record, 'id'> = {

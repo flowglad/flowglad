@@ -1,6 +1,3 @@
-import { and, eq, isNull, sql } from 'drizzle-orm'
-import * as R from 'ramda'
-import { z } from 'zod'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type Membership,
@@ -11,8 +8,13 @@ import {
   membershipsTableRowDataSchema,
   membershipsUpdateSchema,
   type NotificationPreferences,
-} from '@/db/schema/memberships'
-import type { User } from '@/db/schema/users'
+} from '@db-core/schema/memberships'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
+import { users, usersSelectSchema } from '@db-core/schema/users'
 import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
@@ -22,13 +24,11 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
   whereClauseFromObject,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
+import { and, eq, isNull, sql } from 'drizzle-orm'
+import * as R from 'ramda'
+import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import { users, usersSelectSchema } from '../schema/users'
 import { selectUsers } from './userMethods'
 
 /**

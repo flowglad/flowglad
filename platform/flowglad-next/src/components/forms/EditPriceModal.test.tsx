@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  type CurrencyCode,
+  IntervalUnit,
+  PriceType,
+} from '@db-core/enums'
+import {
   type Price,
   pricesClientInsertSchema,
-} from '@/db/schema/prices'
-import { type CurrencyCode, IntervalUnit, PriceType } from '@/types'
+} from '@db-core/schema/prices'
 import { parseEditPriceDefaultValues } from './EditPriceModal'
 
 describe('parseEditPriceDefaultValues', () => {

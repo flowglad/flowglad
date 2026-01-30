@@ -1,4 +1,25 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  InvoiceStatus,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  RevenueChartIntervalUnit,
+} from '@db-core/enums'
+import type { Customer } from '@db-core/schema/customers'
+import type { Invoice } from '@db-core/schema/invoices'
+import type { Organization } from '@db-core/schema/organizations'
+import {
+  type Payment,
+  RevenueDataItem,
+} from '@db-core/schema/payments'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Purchase } from '@db-core/schema/purchases'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import {
   setupCustomer,
@@ -16,25 +37,7 @@ import {
   TerminalStateError,
   ValidationError,
 } from '@/errors'
-import {
-  CurrencyCode,
-  IntervalUnit,
-  InvoiceStatus,
-  PaymentMethodType,
-  PaymentStatus,
-  PriceType,
-  RevenueChartIntervalUnit,
-} from '@/types'
 import { nanoid } from '@/utils/core'
-import type { Customer } from '../schema/customers'
-import type { Invoice } from '../schema/invoices'
-import type { Organization } from '../schema/organizations'
-import { type Payment, RevenueDataItem } from '../schema/payments'
-import type { Price } from '../schema/prices'
-import type { PricingModel } from '../schema/pricingModels'
-import type { Product } from '../schema/products'
-import type { Purchase } from '../schema/purchases'
-import type { Subscription } from '../schema/subscriptions'
 import {
   insertPayment,
   isPaymentInTerminalState,

@@ -1,3 +1,15 @@
+import {
+  createFeatureSchema,
+  editFeatureSchema,
+  featuresClientSelectSchema,
+} from '@db-core/schema/features'
+import {
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
@@ -5,11 +17,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import {
-  createFeatureSchema,
-  editFeatureSchema,
-  featuresClientSelectSchema,
-} from '@/db/schema/features'
 import {
   featuresTableRowOutputSchema,
   insertFeature,
@@ -20,13 +27,6 @@ import {
   updateFeatureTransaction,
 } from '@/db/tableMethods/featureMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import {
-  createPaginatedListQuerySchema,
-  createPaginatedSelectSchema,
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-  idInputSchema,
-} from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { router } from '../trpc'

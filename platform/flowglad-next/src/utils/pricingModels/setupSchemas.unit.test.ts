@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'bun:test'
-import { Result } from 'better-result'
-import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
 import {
   CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
   IntervalUnit,
   PriceType,
-} from '@/types'
+} from '@db-core/enums'
+import { Result } from 'better-result'
+import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
 import type { SetupPricingModelInput } from './setupSchemas'
 import {
   setupPricingModelSchema,

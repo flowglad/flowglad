@@ -4,14 +4,14 @@ import {
   refundsInsertSchema,
   refundsSelectSchema,
   refundsUpdateSchema,
-} from '@/db/schema/refunds'
+} from '@db-core/schema/refunds'
 import {
   createInsertFunction,
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
+} from '@db-core/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { selectPaymentById } from './paymentMethods'
 

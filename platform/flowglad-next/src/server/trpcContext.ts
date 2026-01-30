@@ -1,8 +1,8 @@
+import type { Organization } from '@db-core/schema/organizations'
+import type { User } from '@db-core/schema/users'
 import * as Sentry from '@sentry/nextjs'
 import type * as trpcNext from '@trpc/server/adapters/next'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
 import {
   selectFocusedMembershipAndOrganization,
   selectMembershipAndOrganizationsByBetterAuthUserId,

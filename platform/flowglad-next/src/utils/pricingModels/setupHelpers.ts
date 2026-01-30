@@ -1,5 +1,7 @@
+import type { CurrencyCode } from '@db-core/enums'
+import { FeatureType, PriceType } from '@db-core/enums'
+import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
-import type { Price } from '@/db/schema/prices'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import {
   selectPrices,
@@ -11,8 +13,6 @@ import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import type { CurrencyCode } from '@/types'
-import { FeatureType, PriceType } from '@/types'
 import { isNoChargePrice } from '@/utils/usage/noChargePriceHelpers'
 import {
   type SetupPricingModelInput,

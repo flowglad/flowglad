@@ -1,5 +1,5 @@
+import type { CurrencyCode } from '@db-core/enums'
 import * as React from 'react'
-import type { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
 import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
 import { EmailButton } from './components/EmailButton'

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { user } from '@db-core/schema/betterAuthSchema'
 import { adminTransaction } from '@/db/adminTransaction'
-import { user } from '@/db/schema/betterAuthSchema'
 import core from '@/utils/core'
 import {
   selectBetterAuthUserByEmail,
