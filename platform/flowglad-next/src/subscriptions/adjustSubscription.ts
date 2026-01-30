@@ -47,6 +47,7 @@ import {
   TerminalStateError,
   ValidationError,
 } from '@/errors'
+import { hasScheduledAdjustment } from '@/subscriptions/scheduledAdjustmentHelpers'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -468,6 +469,28 @@ export const calculateAdjustmentPreview = async (
       previewGeneratedAt,
       reason:
         'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.',
+    }
+  }
+
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'A scheduled adjustment is already pending. Cancel the scheduled adjustment before making a new one.',
+    }
+  }
+
+  // Check for pending scheduled cancellation
+  if (
+    subscription.status === SubscriptionStatus.CancellationScheduled
+  ) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'A cancellation is scheduled. Uncancel the subscription before adjusting.',
     }
   }
 

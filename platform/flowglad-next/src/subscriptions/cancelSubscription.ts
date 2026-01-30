@@ -44,6 +44,7 @@ import { NotFoundError, ValidationError } from '@/errors'
 import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { hasScheduledAdjustment } from '@/subscriptions/scheduledAdjustmentHelpers'
 import {
   type ScheduleSubscriptionCancellationParams,
   scheduleSubscriptionCancellationSchema,
@@ -272,6 +273,17 @@ export const cancelSubscriptionImmediately = async (
     )
     return Result.ok(subscription)
   }
+
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'A scheduled adjustment is pending. Cancel the scheduled adjustment before canceling the subscription.'
+      )
+    )
+  }
+
   if (
     subscription.canceledAt &&
     subscription.status !== SubscriptionStatus.Canceled
@@ -482,6 +494,16 @@ export const scheduleSubscriptionCancellation = async (
 
   if (isSubscriptionInTerminalState(subscription.status)) {
     return Result.ok(subscription)
+  }
+
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'A scheduled adjustment is pending. Cancel the scheduled adjustment before canceling the subscription.'
+      )
+    )
   }
 
   let endDate: number
