@@ -17,12 +17,6 @@ export interface InitOptions {
  * Prompt user for confirmation (y/N). Returns true if user confirms.
  */
 const promptConfirm = (message: string): Promise<boolean> => {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    console.warn(
-      'Non-interactive terminal detected; rerun with --force to proceed.'
-    )
-    return Promise.resolve(false)
-  }
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout,

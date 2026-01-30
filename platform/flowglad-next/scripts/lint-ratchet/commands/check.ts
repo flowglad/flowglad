@@ -15,7 +15,7 @@ export interface FileCheckResult {
   path: string
   baseline: number
   current: number
-  newViolations: BiomeDiagnostic[]
+  violations: BiomeDiagnostic[]
 }
 
 export interface PackageCheckResult {
@@ -95,10 +95,7 @@ const checkPackageForRule = async (
         path: filePath,
         baseline: baselineCount,
         current: currentCount,
-        newViolations: fileDiagnostics.slice(
-          0,
-          currentCount - baselineCount
-        ),
+        violations: fileDiagnostics,
       })
     } else if (currentCount === baselineCount && currentCount > 0) {
       // At the limit - warn but don't fail
@@ -146,18 +143,13 @@ const printPackageResult = (
   console.log(`\n${status} ${result.packagePath}`)
 
   if (result.filesWithNewViolations.length > 0) {
-    console.log(`\n  New violations (${ruleName}):`)
+    console.log(`\n  Files exceeding baseline (${ruleName}):`)
     for (const file of result.filesWithNewViolations) {
       console.log(
         `    ✗ ${file.path}: ${file.baseline} → ${file.current} (+${file.current - file.baseline})`
       )
-      for (const diag of file.newViolations.slice(0, 3)) {
+      for (const diag of file.violations) {
         console.log(`      Line ${diag.line}: ${diag.message}`)
-      }
-      if (file.newViolations.length > 3) {
-        console.log(
-          `      ... and ${file.newViolations.length - 3} more`
-        )
       }
     }
   }
