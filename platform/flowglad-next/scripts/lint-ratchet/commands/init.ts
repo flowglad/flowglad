@@ -15,8 +15,15 @@ export interface InitOptions {
 
 /**
  * Prompt user for confirmation (y/N). Returns true if user confirms.
+ * Throws if stdin is not a TTY (non-interactive environment).
  */
 const promptConfirm = (message: string): Promise<boolean> => {
+  if (!process.stdin.isTTY) {
+    throw new Error(
+      'Cannot prompt for confirmation in non-interactive environment. Use --force to skip confirmation.'
+    )
+  }
+
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
