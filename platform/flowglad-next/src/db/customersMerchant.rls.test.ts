@@ -5,12 +5,13 @@ import type { Customer } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
 import { NotFoundError } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectCustomers,
@@ -53,19 +54,22 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
     userA = uaOrg1.user
     apiKeyForOrg1 = uaOrg1.apiKey
 
-    await adminTransaction(async ({ transaction }) => {
-      await insertMembership(
-        {
-          organizationId: org2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: pricingModel2Id,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await insertMembership(
+          {
+            organizationId: org2.id,
+            userId: userA.id,
+            focused: false,
+            livemode: true,
+            role: MembershipRole.Member,
+            focusedPricingModelId: pricingModel2Id,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const ubOrg2 = await setupUserAndApiKey({
       organizationId: org2.id,

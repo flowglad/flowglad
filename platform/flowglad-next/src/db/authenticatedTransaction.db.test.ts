@@ -107,46 +107,54 @@ describe('authenticatedTransaction', () => {
 
     // Get the membership that was created by setupUserAndApiKey for userA
     // Note: setupUserAndApiKey already creates a membership, so we just need to retrieve it
-    membershipA1 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const [membership] = await selectMemberships(
-        { userId: userA.id, organizationId: testOrg1.id },
-        transaction
-      )
-      if (!membership) {
-        throw new Error('Failed to find membershipA1')
-      }
-      return membership
-    })
+    membershipA1 = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        const [membership] = await selectMemberships(
+          { userId: userA.id, organizationId: testOrg1.id },
+          transaction
+        )
+        if (!membership) {
+          throw new Error('Failed to find membershipA1')
+        }
+        return Result.ok(membership)
+      })
+    ).unwrap()
 
     // Create additional membership for userA in testOrg2 (focused: false)
-    membershipA2 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return insertMembership(
-        {
-          organizationId: testOrg2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: pricingModel2.id,
-        },
-        transaction
-      )
-    })
+    membershipA2 = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await insertMembership(
+            {
+              organizationId: testOrg2.id,
+              userId: userA.id,
+              focused: false,
+              livemode: true,
+              role: MembershipRole.Member,
+              focusedPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Get the membership that was created by setupUserAndApiKey for userB
-    membershipB2 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const [membership] = await selectMemberships(
-        { userId: userB.id, organizationId: testOrg2.id },
-        transaction
-      )
-      if (!membership) {
-        throw new Error('Failed to find membershipB2')
-      }
-      return membership
-    })
+    membershipB2 = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        const [membership] = await selectMemberships(
+          { userId: userB.id, organizationId: testOrg2.id },
+          transaction
+        )
+        if (!membership) {
+          throw new Error('Failed to find membershipB2')
+        }
+        return Result.ok(membership)
+      })
+    ).unwrap()
   })
 
   describe('JWT Claims Validation', () => {
@@ -267,40 +275,43 @@ describe('authenticatedTransaction', () => {
       const email = `webapp-${Date.now()}@test.com`
       const userId = `usr_test_${hashData(`user-${Date.now()}`)}`
 
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await insertUser(
-          {
-            id: userId,
-            email,
-            name: 'Webapp User',
-            betterAuthId,
-          },
-          transaction
-        )
-        await insertMembership(
-          {
-            organizationId: testOrg1.id,
-            userId,
-            focused: true,
-            livemode: true,
-            role: MembershipRole.Member,
-            focusedPricingModelId: pricingModel1.id,
-          },
-          transaction
-        )
-        await insertMembership(
-          {
-            organizationId: testOrg2.id,
-            userId,
-            focused: false,
-            livemode: true,
-            role: MembershipRole.Member,
-            focusedPricingModelId: pricingModel2.id,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await insertUser(
+            {
+              id: userId,
+              email,
+              name: 'Webapp User',
+              betterAuthId,
+            },
+            transaction
+          )
+          await insertMembership(
+            {
+              organizationId: testOrg1.id,
+              userId,
+              focused: true,
+              livemode: true,
+              role: MembershipRole.Member,
+              focusedPricingModelId: pricingModel1.id,
+            },
+            transaction
+          )
+          await insertMembership(
+            {
+              organizationId: testOrg2.id,
+              userId,
+              focused: false,
+              livemode: true,
+              role: MembershipRole.Member,
+              focusedPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       globalThis.__mockedAuthSession = {
         user: {
@@ -806,13 +817,16 @@ describe('cacheRecomputationContext derivation', () => {
 
     // Set betterAuthId on the user (required for customer billing portal auth)
     const betterAuthId = `ba_${core.nanoid()}`
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await transaction
-        .update(users)
-        .set({ betterAuthId })
-        .where(eq(users.id, user.id))
-    })
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await transaction
+          .update(users)
+          .set({ betterAuthId })
+          .where(eq(users.id, user.id))
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Create customer linked to the user (required for customer billing portal lookup)
     const customer = await setupCustomer({
