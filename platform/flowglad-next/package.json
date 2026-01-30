@@ -42,6 +42,7 @@
     "shadcn:build": "shadcn build --output 'public/ui'",
     "validate:registry": "bun run src/scripts/validate-registry.ts",
     "test:telemetry": "bun run scripts/verify-telemetry.ts",
+    "verify:api-contract": "bunx tsx src/scripts/verifyApiContractCI.ts",
     "openapi:generate": "bun run src/scripts/openApiDoc.ts",
     "openapi:generate-diffables": "bun src/scripts/makeOpenApiDiffable.ts openapi.json temp-openapi__diffable.json && bun src/scripts/openApiDoc.ts temp-openapi-head.json && bun src/scripts/makeOpenApiDiffable.ts temp-openapi-head.json",
     "dbCopy": "DANGEROUSLY_ALLOW_REMOTE_DB=1 bun run src/scripts/dbCopy.ts",
