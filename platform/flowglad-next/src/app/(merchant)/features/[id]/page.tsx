@@ -2,6 +2,7 @@ import { FeatureType } from '@db-core/enums'
 import type { Feature } from '@db-core/schema/features'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { NotFoundError } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
@@ -30,11 +31,15 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
       }): Promise<Result<FeaturePageData, Error>> => {
         const featureResult = await selectFeatureById(id, transaction)
         if (Result.isError(featureResult)) {
-          return Result.ok({
-            feature: null,
-            pricingModel: null,
-            usageMeter: null,
-          })
+          // Only treat NotFoundError as a 404 case; propagate other errors
+          if (featureResult.error instanceof NotFoundError) {
+            return Result.ok({
+              feature: null,
+              pricingModel: null,
+              usageMeter: null,
+            })
+          }
+          return Result.err(featureResult.error)
         }
         const feature = featureResult.unwrap()
 

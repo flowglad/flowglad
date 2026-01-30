@@ -201,6 +201,9 @@ const processSetupIntent = async ({
   checkoutSession: CheckoutSession.Record
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
+  if (!setupIntent) {
+    throw new Error(`Setup intent not found: ${setupIntentId}`)
+  }
   const setupSucceededResult = (
     await adminTransactionWithResult(async (ctx) => {
       return processSetupIntentSucceeded(setupIntent, ctx)

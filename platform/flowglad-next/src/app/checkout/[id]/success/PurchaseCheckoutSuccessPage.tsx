@@ -47,6 +47,13 @@ const PurchaseCheckoutSuccessPage = async ({
           { id: checkoutSession.priceId! },
           transaction
         )
+      if (!data) {
+        return Result.err(
+          new Error(
+            `Price not found for id: ${checkoutSession.priceId}`
+          )
+        )
+      }
       return Result.ok({
         price: data.price,
         organization: data.organization,

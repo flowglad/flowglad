@@ -37,10 +37,13 @@ const CustomerPage = async ({
           )
         }
 
-        // Then, use the organizationId to fetch customer
+        const organizationId = memberships[0].organization.id
+
+        // Fetch customer scoped to the user's organization
         const [customerResult] =
           await selectCustomerAndCustomerTableRows(
             { id },
+            organizationId,
             transaction
           )
         if (!customerResult) {
@@ -54,7 +57,7 @@ const CustomerPage = async ({
         )
         const prices = await selectPricesAndProductsForOrganization(
           {},
-          customerResult.customer.organizationId,
+          organizationId,
           transaction
         )
         const usageEvents = await selectUsageEvents(

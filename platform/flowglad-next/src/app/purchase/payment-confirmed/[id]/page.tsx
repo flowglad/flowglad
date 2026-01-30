@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
 import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
@@ -13,7 +14,10 @@ const PaymentConfirmedPage = async ({ params }: PageProps) => {
   const { id } = await params
   const purchase = (
     await adminTransactionWithResult(async ({ transaction }) => {
-      return selectPurchaseById(id, transaction)
+      const purchaseRecord = (
+        await selectPurchaseById(id, transaction)
+      ).unwrap()
+      return Result.ok(purchaseRecord)
     })
   ).unwrap()
 
