@@ -9,7 +9,10 @@ import {
   selectOrganizationById,
 } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import core from '@/utils/core'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { sendPaymentFailedEmail } from '@/utils/email'
@@ -121,7 +124,7 @@ const sendCustomerPaymentFailedNotificationTask = task({
 })
 
 export const sendCustomerPaymentFailedNotificationIdempotently =
-  async (paymentRecord: Payment.Record) => {
+  testSafeTriggerInvoker(async (paymentRecord: Payment.Record) => {
     return await sendCustomerPaymentFailedNotificationTask.trigger(
       { paymentId: paymentRecord.id },
       {
@@ -130,4 +133,4 @@ export const sendCustomerPaymentFailedNotificationIdempotently =
         ),
       }
     )
-  }
+  })

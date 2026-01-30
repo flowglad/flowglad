@@ -15,7 +15,10 @@ import {
   type TrialInfo,
 } from '@/email-templates/customer-subscription-created'
 import { PaymentError, ValidationError } from '@/errors'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import {
   formatEmailSubject,
   getBccForLivemode,
@@ -257,17 +260,19 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
 })
 
 export const idempotentSendCustomerSubscriptionCreatedNotification =
-  async (params: {
-    customerId: string
-    subscriptionId: string
-    organizationId: string
-  }) => {
-    await sendCustomerSubscriptionCreatedNotificationTask.trigger(
-      params,
-      {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-customer-subscription-created-notification-${params.subscriptionId}`
-        ),
-      }
-    )
-  }
+  testSafeTriggerInvoker(
+    async (params: {
+      customerId: string
+      subscriptionId: string
+      organizationId: string
+    }) => {
+      await sendCustomerSubscriptionCreatedNotificationTask.trigger(
+        params,
+        {
+          idempotencyKey: await createTriggerIdempotencyKey(
+            `send-customer-subscription-created-notification-${params.subscriptionId}`
+          ),
+        }
+      )
+    }
+  )

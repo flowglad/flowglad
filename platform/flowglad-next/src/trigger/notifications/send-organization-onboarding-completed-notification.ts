@@ -7,7 +7,10 @@ import axios from 'axios'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { ValidationError } from '@/errors'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import core, { isNil } from '@/utils/core'
 import { sendOrganizationOnboardingCompletedNotificationEmail } from '@/utils/email'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
@@ -144,7 +147,7 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
 })
 
 export const idempotentSendOrganizationOnboardingCompletedNotification =
-  async (organizationId: string) => {
+  testSafeTriggerInvoker(async (organizationId: string) => {
     await sendOrganizationOnboardingCompletedNotificationTask.trigger(
       { organizationId },
       {
@@ -153,4 +156,4 @@ export const idempotentSendOrganizationOnboardingCompletedNotification =
         ),
       }
     )
-  }
+  })

@@ -12,7 +12,10 @@ import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
 import { PaymentError, ValidationError } from '@/errors'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import {
   formatEmailSubject,
   getBccForLivemode,
@@ -269,18 +272,20 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
 })
 
 export const idempotentSendCustomerSubscriptionUpgradedNotification =
-  async (params: {
-    customerId: string
-    newSubscriptionId: string
-    previousSubscriptionId: string
-    organizationId: string
-  }) => {
-    await sendCustomerSubscriptionUpgradedNotificationTask.trigger(
-      params,
-      {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-customer-subscription-upgraded-notification-${params.newSubscriptionId}-${params.previousSubscriptionId}`
-        ),
-      }
-    )
-  }
+  testSafeTriggerInvoker(
+    async (params: {
+      customerId: string
+      newSubscriptionId: string
+      previousSubscriptionId: string
+      organizationId: string
+    }) => {
+      await sendCustomerSubscriptionUpgradedNotificationTask.trigger(
+        params,
+        {
+          idempotencyKey: await createTriggerIdempotencyKey(
+            `send-customer-subscription-upgraded-notification-${params.newSubscriptionId}-${params.previousSubscriptionId}`
+          ),
+        }
+      )
+    }
+  )

@@ -13,7 +13,10 @@ import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { ValidationError } from '@/errors'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import {
   formatEmailSubject,
@@ -171,15 +174,17 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
 })
 
 export const idempotentSendOrganizationSubscriptionCreatedNotification =
-  async (subscription: Subscription.Record) => {
-    await sendOrganizationSubscriptionCreatedNotificationTask.trigger(
-      {
-        subscription,
-      },
-      {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-organization-subscription-created-notification-${subscription.id}`
-        ),
-      }
-    )
-  }
+  testSafeTriggerInvoker(
+    async (subscription: Subscription.Record) => {
+      await sendOrganizationSubscriptionCreatedNotificationTask.trigger(
+        {
+          subscription,
+        },
+        {
+          idempotencyKey: await createTriggerIdempotencyKey(
+            `send-organization-subscription-created-notification-${subscription.id}`
+          ),
+        }
+      )
+    }
+  )

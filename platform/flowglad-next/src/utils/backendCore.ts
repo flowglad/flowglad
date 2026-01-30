@@ -12,7 +12,21 @@ export function hashData(data: BinaryLike) {
 }
 
 export async function createTriggerIdempotencyKey(key: string) {
+  if (process.env.NODE_ENV === 'test') {
+    return `test-${key}-${Math.random()}`
+  }
   return await idempotencyKeys.create(key)
+}
+
+export function testSafeTriggerInvoker<
+  T extends (...args: any[]) => Promise<any>,
+>(triggerFn: T): T {
+  return (async (...args: Parameters<T>) => {
+    if (process.env.NODE_ENV === 'test') {
+      return
+    }
+    return triggerFn(...args)
+  }) as T
 }
 
 export function generateHmac({

@@ -8,7 +8,10 @@ import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-subscription-adjusted'
 import { PaymentError, ValidationError } from '@/errors'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import {
   formatEmailSubject,
   getBccForLivemode,
@@ -190,15 +193,17 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
 })
 
 export const idempotentSendCustomerSubscriptionAdjustedNotification =
-  async (
-    params: SendCustomerSubscriptionAdjustedNotificationPayload
-  ) => {
-    await sendCustomerSubscriptionAdjustedNotificationTask.trigger(
-      params,
-      {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-customer-subscription-adjusted-notification-${params.subscriptionId}-${params.effectiveDate}`
-        ),
-      }
-    )
-  }
+  testSafeTriggerInvoker(
+    async (
+      params: SendCustomerSubscriptionAdjustedNotificationPayload
+    ) => {
+      await sendCustomerSubscriptionAdjustedNotificationTask.trigger(
+        params,
+        {
+          idempotencyKey: await createTriggerIdempotencyKey(
+            `send-customer-subscription-adjusted-notification-${params.subscriptionId}-${params.effectiveDate}`
+          ),
+        }
+      )
+    }
+  )

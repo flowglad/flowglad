@@ -4,7 +4,10 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { filterEligibleRecipients } from '@/utils/notifications'
@@ -109,15 +112,17 @@ const sendOrganizationPaymentSucceededNotificationTask = task({
 })
 
 export const sendOrganizationPaymentSucceededNotificationIdempotently =
-  async (paymentData: PaymentSucceededNotificationData) => {
-    await sendOrganizationPaymentSucceededNotificationTask.trigger(
-      {
-        paymentData,
-      },
-      {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-organization-payment-succeeded-notification-${paymentData.paymentId}`
-        ),
-      }
-    )
-  }
+  testSafeTriggerInvoker(
+    async (paymentData: PaymentSucceededNotificationData) => {
+      await sendOrganizationPaymentSucceededNotificationTask.trigger(
+        {
+          paymentData,
+        },
+        {
+          idempotencyKey: await createTriggerIdempotencyKey(
+            `send-organization-payment-succeeded-notification-${paymentData.paymentId}`
+          ),
+        }
+      )
+    }
+  )

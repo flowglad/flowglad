@@ -6,7 +6,10 @@ import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { ValidationError } from '@/errors'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import { sendOrganizationPayoutsEnabledNotificationEmail } from '@/utils/email'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
@@ -110,7 +113,7 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
 })
 
 export const idempotentSendOrganizationPayoutsEnabledNotification =
-  async (organizationId: string) => {
+  testSafeTriggerInvoker(async (organizationId: string) => {
     await sendOrganizationPayoutsEnabledNotificationTask.trigger(
       {
         organizationId,
@@ -121,4 +124,4 @@ export const idempotentSendOrganizationPayoutsEnabledNotification =
         ),
       }
     )
-  }
+  })
