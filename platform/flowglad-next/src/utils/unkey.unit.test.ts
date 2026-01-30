@@ -117,6 +117,36 @@ describe('parseUnkeyMeta', () => {
     })
   })
 
+  it('should parse well-formed CliSession metadata with pricingModelId', () => {
+    const rawMeta = {
+      type: FlowgladApiKeyType.CliSession,
+      userId: 'user_123',
+      organizationId: 'org_456',
+      pricingModelId: 'pricing_model_abc123',
+    }
+    const result = parseUnkeyMeta(rawMeta)
+
+    expect(result).toEqual({
+      type: FlowgladApiKeyType.CliSession,
+      userId: 'user_123',
+      organizationId: 'org_456',
+      pricingModelId: 'pricing_model_abc123',
+    })
+  })
+
+  it('should throw error for CliSession metadata missing organizationId', () => {
+    const rawMeta = {
+      type: FlowgladApiKeyType.CliSession,
+      userId: 'user_123',
+      pricingModelId: 'pricing_model_abc123',
+      // Missing organizationId - required for CliSession
+    }
+
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      'Invalid unkey metadata'
+    )
+  })
+
   it('should throw error for metadata missing pricingModelId', () => {
     const rawMeta = {
       type: FlowgladApiKeyType.Secret,
@@ -151,7 +181,7 @@ describe('parseUnkeyMeta', () => {
     }
 
     expect(() => parseUnkeyMeta(rawMeta)).toThrow(
-      `Invalid unkey metadata. Received metadata with type ${rawMeta.type} but expected type ${FlowgladApiKeyType.Secret}`
+      `Invalid unkey metadata. Received metadata with type ${rawMeta.type} but expected type ${FlowgladApiKeyType.Secret} or ${FlowgladApiKeyType.CliSession}`
     )
   })
 
