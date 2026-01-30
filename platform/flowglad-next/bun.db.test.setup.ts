@@ -87,8 +87,10 @@ async function verifyMockServers(): Promise<void> {
       name: 'stripe-mock',
       defaultUrl: 'http://localhost:12111',
       envVar: 'STRIPE_MOCK_HOST',
-      // Use root path - stripe-mock returns version info at /
-      healthPath: '/',
+      // Use /v1/balance which is a simple GET endpoint
+      healthPath: '/v1/balance',
+      // stripe-mock requires any valid test API key
+      headers: { Authorization: 'Bearer sk_test_xxx' },
     },
     {
       name: 'flowglad-mock-server (Svix)',
@@ -136,7 +138,10 @@ async function verifyMockServers(): Promise<void> {
       return {
         ...s,
         effectiveUrl,
-        healthy: await checkMockServerHealth(effectiveUrl),
+        healthy: await checkMockServerHealth(
+          effectiveUrl,
+          'headers' in s ? s.headers : undefined
+        ),
       }
     })
   )
