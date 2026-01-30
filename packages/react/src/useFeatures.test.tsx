@@ -1,20 +1,17 @@
-/**
- * @vitest-environment jsdom
- */
-import {
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query'
-import { act, renderHook, waitFor } from '@testing-library/react'
-import type React from 'react'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
 
 // Mock data
@@ -201,17 +198,17 @@ const createWrapperWithQueryClient = () => {
 
 describe.skip('useFeatures', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   it('returns features after successful fetch', async () => {
@@ -241,17 +238,17 @@ describe.skip('useFeatures', () => {
 
 describe.skip('useFeature', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   it('returns feature by slug', async () => {
@@ -273,17 +270,17 @@ describe.skip('useFeature', () => {
 
 describe.skip('subscription mutations', () => {
   let originalFetch: typeof fetch
-  let mockFetch: ReturnType<typeof vi.fn>
+  let mockFetch: ReturnType<typeof mock>
 
   beforeEach(() => {
     originalFetch = globalThis.fetch
-    mockFetch = vi.fn()
+    mockFetch = mock()
     globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
+    mockFetch.mockReset()
   })
 
   it('invalidate features query key', async () => {
