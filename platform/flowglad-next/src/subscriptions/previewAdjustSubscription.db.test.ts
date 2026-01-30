@@ -540,6 +540,83 @@ describe('previewAdjustSubscription', () => {
     })
   })
 
+  describe('when subscription has pending scheduled changes', () => {
+    it('returns canAdjust: false when scheduled adjustment already exists', async () => {
+      const futureTimestamp = Date.now() + 86400000 // 1 day in the future
+
+      await adminTransaction(async ({ transaction }) => {
+        // Set a scheduled adjustment on the subscription
+        await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: true,
+          },
+          transaction
+        )
+
+        const result = await calculateAdjustmentPreview(
+          {
+            id: subscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                {
+                  priceId: price.id,
+                  quantity: 2,
+                },
+              ],
+            },
+          },
+          transaction
+        )
+
+        expect(result.canAdjust).toBe(false)
+        if (!result.canAdjust) {
+          expect(result.reason).toContain('scheduled adjustment')
+          expect(result.reason).toContain('already pending')
+        }
+      })
+    })
+
+    it('returns canAdjust: false when cancellation is scheduled', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Set subscription to CancellationScheduled status
+        await updateSubscription(
+          {
+            id: subscription.id,
+            status: SubscriptionStatus.CancellationScheduled,
+            cancelScheduledAt: Date.now() + 86400000,
+            renews: true,
+          },
+          transaction
+        )
+
+        const result = await calculateAdjustmentPreview(
+          {
+            id: subscription.id,
+            adjustment: {
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              newSubscriptionItems: [
+                {
+                  priceId: price.id,
+                  quantity: 2,
+                },
+              ],
+            },
+          },
+          transaction
+        )
+
+        expect(result.canAdjust).toBe(false)
+        if (!result.canAdjust) {
+          expect(result.reason).toContain('cancellation is scheduled')
+          expect(result.reason).toContain('Uncancel')
+        }
+      })
+    })
+  })
+
   // Note: Resource capacity validation tests are covered in adjustSubscription.db.test.ts
   // since calculateAdjustmentPreview shares the same validation logic
 })

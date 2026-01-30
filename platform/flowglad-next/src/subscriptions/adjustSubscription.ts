@@ -57,6 +57,7 @@ import {
   createBillingRun,
   executeBillingRun,
 } from './billingRunHelpers'
+import { hasScheduledAdjustment } from './scheduledAdjustmentHelpers'
 import type {
   AdjustSubscriptionParams,
   FlexibleSubscriptionItem,
@@ -468,6 +469,28 @@ export const calculateAdjustmentPreview = async (
       previewGeneratedAt,
       reason:
         'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.',
+    }
+  }
+
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'A scheduled adjustment is already pending. Cancel the scheduled adjustment before making another adjustment.',
+    }
+  }
+
+  // Check for pending scheduled cancellation
+  if (
+    subscription.status === SubscriptionStatus.CancellationScheduled
+  ) {
+    return {
+      canAdjust: false,
+      previewGeneratedAt,
+      reason:
+        'A cancellation is scheduled. Uncancel the subscription before adjusting.',
     }
   }
 

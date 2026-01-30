@@ -44,6 +44,7 @@ import { NotFoundError, ValidationError } from '@/errors'
 import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { hasScheduledAdjustment } from '@/subscriptions/scheduledAdjustmentHelpers'
 import {
   type ScheduleSubscriptionCancellationParams,
   scheduleSubscriptionCancellationSchema,
@@ -266,6 +267,16 @@ export const cancelSubscriptionImmediately = async (
     CacheDependency.customerSubscriptions(subscription.customerId)
   )
 
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'A scheduled adjustment is pending. Cancel the scheduled adjustment before canceling the subscription.'
+      )
+    )
+  }
+
   if (isSubscriptionInTerminalState(subscription.status)) {
     emitEvent(
       constructSubscriptionCanceledEventInsert(subscription, customer)
@@ -476,6 +487,16 @@ export const scheduleSubscriptionCancellation = async (
       new ValidationError(
         'subscription',
         'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+      )
+    )
+  }
+
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'A scheduled adjustment is pending. Cancel the scheduled adjustment before canceling the subscription.'
       )
     )
   }

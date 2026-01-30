@@ -1382,6 +1382,51 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(updatedFailedRun.status).toBe(BillingRunStatus.Failed)
       })
     })
+
+    it('returns ValidationError when a scheduled adjustment is pending', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const futureTimestamp = Date.now() + 86400000 // 1 day in the future
+
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        // Set a scheduled adjustment on the subscription
+        await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: true,
+          },
+          transaction
+        )
+
+        // Create a billing period
+        await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: Date.now() - 60 * 60 * 1000,
+          endDate: Date.now() + 60 * 60 * 1000,
+        })
+
+        const result = await cancelSubscriptionImmediately(
+          { subscription },
+          createDiscardingEffectsContext(transaction)
+        )
+
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toContain(
+            'scheduled adjustment'
+          )
+          expect(result.error.message).toContain('pending')
+        }
+      })
+    })
   })
 
   /* --------------------------------------------------------------------------
@@ -1764,6 +1809,58 @@ describe('Subscription Cancellation Test Suite', async () => {
       } finally {
         notificationSpy.mockRestore()
       }
+    })
+
+    it('returns ValidationError when a scheduled adjustment is pending', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const futureTimestamp = Date.now() + 86400000 // 1 day in the future
+
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        // Set a scheduled adjustment on the subscription
+        await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: true,
+          },
+          transaction
+        )
+
+        // Create a billing period
+        await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: Date.now() - 60 * 60 * 1000,
+          endDate: Date.now() + 60 * 60 * 1000,
+        })
+
+        const params: ScheduleSubscriptionCancellationParams = {
+          id: subscription.id,
+          cancellation: {
+            timing:
+              SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+          },
+        }
+        const result = await scheduleSubscriptionCancellation(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toContain(
+            'scheduled adjustment'
+          )
+          expect(result.error.message).toContain('pending')
+        }
+      })
     })
   })
 
