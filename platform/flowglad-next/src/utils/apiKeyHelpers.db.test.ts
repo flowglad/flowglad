@@ -436,29 +436,23 @@ describe('apiKeyHelpers', () => {
       })
     })
 
-    // Skip: This test requires the Unkey SDK to send X-Mock-Error headers to trigger
-    // error simulation in the mock server. The mock server now supports error simulation
-    // via X-Mock-Error headers, but injecting headers into SDK requests is not straightforward.
-    // TODO: Implement this test in a unit test file with SDK mocking, or configure
-    // MSW to inject error headers based on test context.
-    it.skip('should NOT delete the database record if Unkey deletion fails', async () => {
+    it('should NOT delete the database record if Unkey deletion fails', async () => {
       // This test verifies atomicity: if Unkey deletion fails, the DB record should not be deleted.
-      // The mock server supports error simulation via X-Mock-Error header, but that header
-      // needs to be on the HTTP request made by the Unkey SDK internally.
+      // The mock server returns a 404 error when the keyId contains '_error_' or '_fail_'.
 
-      // Create a livemode API key WITH a fake unkeyId
+      // Create a livemode API key with an unkeyId that triggers mock server error
       const apiKeyWithUnkeyId = await adminTransaction(
         async ({ transaction }) => {
           return insertApiKey(
             {
               organizationId: organization.id,
               pricingModelId: livemodePricingModelId,
-              name: 'API Key With Fake Unkey ID',
+              name: 'API Key With Error-Triggering Unkey ID',
               token: `live_sk_unkey_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
               active: true,
               livemode: true,
-              unkeyId: `fake_unkey_id_${core.nanoid()}`, // Fake Unkey ID that will fail
+              unkeyId: `key_error_${core.nanoid()}`, // Contains '_error_' to trigger mock server 404
               hashText: `hash_${core.nanoid()}`,
             },
             transaction
@@ -491,7 +485,7 @@ describe('apiKeyHelpers', () => {
       )
       expect(keyAfterFailedDelete.id).toBe(apiKeyWithUnkeyId.id)
       expect(keyAfterFailedDelete.name).toBe(
-        'API Key With Fake Unkey ID'
+        'API Key With Error-Triggering Unkey ID'
       )
     })
   })
