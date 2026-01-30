@@ -1,6 +1,5 @@
 import {
   account,
-  deviceCode,
   session,
   user,
   verification,
@@ -10,7 +9,6 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import {
   admin,
   customSession,
-  deviceAuthorization,
   emailOTP,
   magicLink,
 } from 'better-auth/plugins'
@@ -117,7 +115,6 @@ export const auth = betterAuth({
       session,
       account,
       verification,
-      deviceCode,
     },
   }),
   plugins: [
@@ -169,16 +166,6 @@ export const auth = betterAuth({
         }
       },
     }),
-    // Device Authorization plugin for CLI authentication via OAuth Device Flow (RFC 8628)
-    // Note: verificationUri is NOT configurable - plugin hardcodes to /device
-    // We handle this via a redirect page at /app/device/page.tsx -> /cli/authorize
-    deviceAuthorization({
-      expiresIn: '10m', // 10 minutes for code entry
-      interval: '5s', // 5 second polling interval
-      userCodeLength: 8, // 8 character user code
-      deviceCodeLength: 40,
-      validateClient: async (clientId) => clientId === 'flowglad-cli',
-    }),
   ],
   databaseHooks: {
     user: {
@@ -200,8 +187,6 @@ export const auth = betterAuth({
     },
   },
   session: {
-    expiresIn: 60 * 60 * 24 * 90, // 90 days in seconds
-    updateAge: 60 * 60 * 24, // Update session every 24 hours
     additionalFields: {
       contextOrganizationId: {
         type: 'string',
