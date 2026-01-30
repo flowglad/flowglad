@@ -1142,34 +1142,33 @@ describe('finalizeFeeCalculation', () => {
     })
 
     const lastMonth = new Date()
-    lastMonth
-      .setMonth(lastMonth.getMonth() - 2)(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await insertPayment(
-              {
-                stripeChargeId,
-                status: PaymentStatus.Succeeded,
-                amount: 150000,
-                customerId: customer.id,
-                organizationId: organization.id,
-                invoiceId: invoice.id,
-                chargeDate: lastMonth.getTime(),
-                currency: CurrencyCode.USD,
-                paymentMethod: PaymentMethodType.Card,
-                refunded: false,
-                refundedAt: null,
-                refundedAmount: 0,
-                taxCountry: CountryCode.US,
-                livemode: true,
-                stripePaymentIntentId: `pi_${core.nanoid()}`,
-              },
-              transaction
-            )
+    lastMonth.setMonth(lastMonth.getMonth() - 2)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertPayment(
+            {
+              stripeChargeId,
+              status: PaymentStatus.Succeeded,
+              amount: 150000,
+              customerId: customer.id,
+              organizationId: organization.id,
+              invoiceId: invoice.id,
+              chargeDate: lastMonth.getTime(),
+              currency: CurrencyCode.USD,
+              paymentMethod: PaymentMethodType.Card,
+              refunded: false,
+              refundedAt: null,
+              refundedAmount: 0,
+              taxCountry: CountryCode.US,
+              livemode: true,
+              stripePaymentIntentId: `pi_${core.nanoid()}`,
+            },
+            transaction
           )
-        })
-      )
-      .unwrap()
+        )
+      })
+    ).unwrap()
 
     const feeCalculation = (
       await adminTransactionWithResult(async ({ transaction }) => {

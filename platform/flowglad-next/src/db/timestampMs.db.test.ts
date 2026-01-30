@@ -290,21 +290,20 @@ describe('timestampWithTimezoneColumn with null values', () => {
     expect(initialRecords[0].expiredAt).toBeNull()
 
     // Update to a past date value
-    const pastDate = new Date('2020-01-01T00:00:00.000Z')
-      .getTime()(
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          await updateProductFeature(
-            {
-              id: insertedFeature.id,
-              expiredAt: pastDate,
-            },
-            ctx
-          )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    const pastDate = new Date('2020-01-01T00:00:00.000Z').getTime()
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await updateProductFeature(
+          {
+            id: insertedFeature.id,
+            expiredAt: pastDate,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Verify it was updated to the past date
     const updatedRecords = (

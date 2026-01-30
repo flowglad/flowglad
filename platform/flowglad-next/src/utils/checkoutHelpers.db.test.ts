@@ -244,27 +244,25 @@ describe('checkoutHelpers', () => {
 
     it('valid session with customer → includes product/price/org and customer', async () => {
       const { organization, product, price, customer, session } =
-        await makeSession()(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const result = await checkoutInfoForCheckoutSession(
-                session.id,
-                transaction
-              )
-              expect(result.product.id).toBe(product.id)
-              expect(result.price.id).toBe(price.id)
-              expect(result.sellerOrganization.id).toBe(
-                organization.id
-              )
-              expect(result.maybeCustomer?.id).toBe(customer.id)
-              return Result.ok(undefined)
-            }
+        await makeSession()
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await checkoutInfoForCheckoutSession(
+            session.id,
+            transaction
           )
-        ).unwrap()
+          expect(result.product.id).toBe(product.id)
+          expect(result.price.id).toBe(price.id)
+          expect(result.sellerOrganization.id).toBe(organization.id)
+          expect(result.maybeCustomer?.id).toBe(customer.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('valid session without customer → includes product/price/org and no customer', async () => {
-      const { organization, product, price } = await makeSession()(
+      const { organization, product, price } = await makeSession()
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const noCustomerSessionResult = await insertCheckoutSession(
             {

@@ -12,7 +12,8 @@ describe('selectBetterAuthUserById', () => {
   it('returns the user when a user with the given id exists', async () => {
     const userId = `bau_${core.nanoid()}`
     const userEmail = `test+${core.nanoid()}@test.com`
-    const userName = 'Test User'(
+    const userName = 'Test User'
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await transaction.insert(user).values({
           id: userId,
@@ -59,7 +60,8 @@ describe('selectBetterAuthUserByEmail', () => {
   it('returns the user when a user with the given email exists', async () => {
     const userId = `bau_${core.nanoid()}`
     const userEmail = `email-test+${core.nanoid()}@test.com`
-    const userName = 'Email Test User'(
+    const userName = 'Email Test User'
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await transaction.insert(user).values({
           id: userId,
@@ -108,7 +110,8 @@ describe('selectBetterAuthUserByEmail', () => {
     const user1Id = `bau_${core.nanoid()}`
     const user1Email = `user1+${core.nanoid()}@test.com`
     const user2Id = `bau_${core.nanoid()}`
-    const user2Email = `user2+${core.nanoid()}@test.com`(
+    const user2Email = `user2+${core.nanoid()}@test.com`
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await transaction.insert(user).values([
           {

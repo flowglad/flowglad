@@ -1020,48 +1020,44 @@ describe('grantEntitlementUsageCredits', () => {
       expect(onceCredit?.expiresAt).toBeNull() // One-time grants should not expire
 
       expect(everyCredit?.issuedAmount).toBe(featureEvery.amount)
-      expect(everyCredit?.expiresAt)
-        .toEqual(standardPayload.newBillingPeriod.endDate)(
-          // Recurring grants should expire
+      expect(everyCredit?.expiresAt).toEqual(
+        standardPayload.newBillingPeriod.endDate
+      )
+      // Recurring grants should expire
 
-          // Verify balances
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const balance1 =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount1.id },
-                  'available',
-                  transaction
+      // Verify balances
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const balance1 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount1.id },
+              'available',
+              transaction
+            )
+          expect(balance1).toBe(featureOnce.amount)
+
+          const ledgerAccount2 = (
+            await transaction
+              .select()
+              .from(ledgerAccounts)
+              .where(
+                and(
+                  eq(ledgerAccounts.subscriptionId, subscription.id),
+                  eq(ledgerAccounts.usageMeterId, usageMeter2.id)
                 )
-              expect(balance1).toBe(featureOnce.amount)
+              )
+          )[0]
 
-              const ledgerAccount2 = (
-                await transaction
-                  .select()
-                  .from(ledgerAccounts)
-                  .where(
-                    and(
-                      eq(
-                        ledgerAccounts.subscriptionId,
-                        subscription.id
-                      ),
-                      eq(ledgerAccounts.usageMeterId, usageMeter2.id)
-                    )
-                  )
-              )[0]
-
-              const balance2 =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount2.id },
-                  'available',
-                  transaction
-                )
-              expect(balance2).toBe(featureEvery.amount)
-              return Result.ok(undefined)
-            }
-          )
-        )
-        .unwrap()
+          const balance2 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount2.id },
+              'available',
+              transaction
+            )
+          expect(balance2).toBe(featureEvery.amount)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should only grant "EveryBillingPeriod" credits on subsequent grants (previousBillingPeriod exists)', async () => {
@@ -1149,48 +1145,44 @@ describe('grantEntitlementUsageCredits', () => {
         command.payload as StandardBillingPeriodTransitionPayload
       expect(grantedCredit.usageMeterId).toBe(usageMeter2.id)
       expect(grantedCredit.issuedAmount).toBe(featureEvery.amount)
-      expect(grantedCredit.expiresAt)
-        .toEqual(standardPayload.newBillingPeriod.endDate)(
-          // Recurring grants should expire
+      expect(grantedCredit.expiresAt).toEqual(
+        standardPayload.newBillingPeriod.endDate
+      )
+      // Recurring grants should expire
 
-          // Verify balances
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const balance1 =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount1.id },
-                  'available',
-                  transaction
+      // Verify balances
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const balance1 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount1.id },
+              'available',
+              transaction
+            )
+          expect(balance1).toBe(0) // No "Once" grant was issued
+
+          const ledgerAccount2 = (
+            await transaction
+              .select()
+              .from(ledgerAccounts)
+              .where(
+                and(
+                  eq(ledgerAccounts.subscriptionId, subscription.id),
+                  eq(ledgerAccounts.usageMeterId, usageMeter2.id)
                 )
-              expect(balance1).toBe(0) // No "Once" grant was issued
+              )
+          )[0]
 
-              const ledgerAccount2 = (
-                await transaction
-                  .select()
-                  .from(ledgerAccounts)
-                  .where(
-                    and(
-                      eq(
-                        ledgerAccounts.subscriptionId,
-                        subscription.id
-                      ),
-                      eq(ledgerAccounts.usageMeterId, usageMeter2.id)
-                    )
-                  )
-              )[0]
-
-              const balance2 =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount2.id },
-                  'available',
-                  transaction
-                )
-              expect(balance2).toBe(featureEvery.amount)
-              return Result.ok(undefined)
-            }
-          )
-        )
-        .unwrap()
+          const balance2 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount2.id },
+              'available',
+              transaction
+            )
+          expect(balance2).toBe(featureEvery.amount)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should grant no credits on a subsequent grant if only "Once" entitlements exist', async () => {
