@@ -75,7 +75,7 @@ jobs:
 
       - name: Remove needs-review label on approval
         if: github.event.review.state == 'approved'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             try {

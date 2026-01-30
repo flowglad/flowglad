@@ -5,6 +5,7 @@ import {
   customersSelectSchema,
 } from '@db-core/schema/customers'
 import { memberships } from '@db-core/schema/memberships'
+import { pricingModels } from '@db-core/schema/pricingModels'
 import { users, usersSelectSchema } from '@db-core/schema/users'
 import type { Session } from '@supabase/supabase-js'
 import type { User } from 'better-auth'
@@ -342,13 +343,23 @@ export async function databaseAuthenticationInfoForWebappRequest(
 
   if (!customerOrganizationId) {
     // Merchant dashboard authentication flow
+    // Join with pricingModels to derive livemode from the focused pricing model
+    // and set pricing_model_id in JWT claims for RLS scoping.
     // Explicitly require focused=true to match trpcContext.ts behavior.
     // This ensures both code paths return no organization when none is focused,
     // rather than arbitrarily selecting the first membership.
     const [focusedMembership] = await db
-      .select()
+      .select({
+        membership: memberships,
+        user: users,
+        pricingModel: pricingModels,
+      })
       .from(memberships)
       .innerJoin(users, eq(memberships.userId, users.id))
+      .innerJoin(
+        pricingModels,
+        eq(memberships.focusedPricingModelId, pricingModels.id)
+      )
       .where(
         and(
           eq(users.betterAuthId, betterAuthId),
@@ -357,13 +368,17 @@ export async function databaseAuthenticationInfoForWebappRequest(
         )
       )
       .limit(1)
-    const userId = focusedMembership?.memberships.userId
-    const livemode = focusedMembership?.memberships.livemode ?? false
+    const userId = focusedMembership?.membership.userId
+    // Derive livemode from the focused pricing model, not the membership
+    const livemode = focusedMembership?.pricingModel.livemode ?? false
+    const pricingModelId = focusedMembership?.pricingModel.id
     const jwtClaim: JWTClaim = {
       role: 'merchant',
       sub: userId,
       email: user.email,
       auth_type: 'webapp',
+      // Set pricing_model_id for RLS PM scoping (same as API key auth)
+      pricing_model_id: pricingModelId,
       user_metadata: {
         id: userId,
         user_metadata: {},
@@ -377,7 +392,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
         },
       },
       organization_id:
-        focusedMembership?.memberships.organizationId ?? '',
+        focusedMembership?.membership.organizationId ?? '',
       app_metadata: { provider: 'webapp' },
     }
     return {

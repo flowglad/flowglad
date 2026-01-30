@@ -199,21 +199,6 @@ export const createOrganizationTransaction = async (
   }
 
   const organizationId = organizationRecord.id
-  await unfocusMembershipsForUser(user.id, transaction)
-  await insertMembership(
-    {
-      organizationId,
-      userId: user.id,
-      focused: true,
-      /**
-       * Deliberate - we need them to onboard into test mode so they can quickly see what the
-       * checkout experience is like
-       */
-      livemode: false,
-      role: MembershipRole.Owner,
-    },
-    transaction
-  )
 
   // Create TransactionEffectsContext with noop callbacks for organization setup.
   // This is valid because new entities don't have anything to invalidate in the cache.
@@ -222,6 +207,7 @@ export const createOrganizationTransaction = async (
     cacheRecomputationContext
   )
 
+  // Create pricing models BEFORE the membership so we can set focusedPricingModelId
   const { pricingModel: defaultLivePricingModel } = (
     await createPricingModelBookkeeping(
       {
@@ -245,6 +231,24 @@ export const createOrganizationTransaction = async (
       { ...ctx, organizationId, livemode: false }
     )
   ).unwrap()
+
+  // Now create the membership with focusedPricingModelId set to the default test PM
+  await unfocusMembershipsForUser(user.id, transaction)
+  await insertMembership(
+    {
+      organizationId,
+      userId: user.id,
+      focused: true,
+      /**
+       * Deliberate - we need them to onboard into test mode so they can quickly see what the
+       * checkout experience is like
+       */
+      livemode: false,
+      role: MembershipRole.Owner,
+      focusedPricingModelId: defaultTestmodePricingModel.id,
+    },
+    transaction
+  )
 
   // Default products and prices for both livemode and testmode pricing models
   // are created by createPricingModelBookkeeping above (as "Free Plan").

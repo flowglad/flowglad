@@ -5,7 +5,6 @@ import { resetPassword } from '@/server/mutations/resetPassword'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
-import { toggleTestMode } from './mutations/toggleTestMode'
 import { getFundsFlowEligibilityForCountry } from './queries/getFundsFlowEligibilityForCountry'
 import { ping } from './queries/ping'
 import { apiKeysRouter } from './routers/apiKeysRouter'
@@ -57,7 +56,6 @@ export const appRouter = router({
     pong,
     generateDescription,
     getPresignedURL,
-    toggleTestMode,
     inviteUserToOrganization,
     logout,
     setReferralSelection,

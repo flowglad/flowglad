@@ -1,5 +1,9 @@
 import type Flowglad from '@flowglad/node'
-import { type FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import {
+  type FlowgladActionKey,
+  type GetSubscriptionsResponse,
+  HTTPMethod,
+} from '@flowglad/shared'
 import type { FlowgladServer } from '../FlowgladServer'
 import type {
   SubRouteHandler,
@@ -123,6 +127,44 @@ export const adjustSubscription: SubRouteHandler<
       status: 500,
       error: {
         code: 'subscription_adjust_failed',
+        json: {
+          message: (error as Error).message,
+        },
+      },
+    }
+  }
+}
+
+export const getSubscriptions: SubRouteHandler<
+  FlowgladActionKey.GetSubscriptions
+> = async (params, flowgladServer) => {
+  const emptyData: GetSubscriptionsResponse = {
+    subscriptions: [],
+    currentSubscriptions: [],
+    currentSubscription: null,
+  }
+  if (params.method !== HTTPMethod.POST) {
+    return {
+      data: emptyData,
+      status: 405,
+      error: {
+        code: 'Method not allowed',
+        json: {},
+      },
+    }
+  }
+  try {
+    const result = await flowgladServer.getSubscriptions(params.data)
+    return {
+      data: result,
+      status: 200,
+    }
+  } catch (error) {
+    return {
+      data: emptyData,
+      status: 500,
+      error: {
+        code: 'subscription_list_failed',
         json: {
           message: (error as Error).message,
         },

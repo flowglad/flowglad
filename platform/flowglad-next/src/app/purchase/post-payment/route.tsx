@@ -4,10 +4,7 @@ import type { Payment } from '@db-core/schema/payments'
 import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
 import type { NextRequest } from 'next/server'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
@@ -52,8 +49,8 @@ const processPaymentIntent = async ({
   if (!paymentIntent) {
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
   }
-  const { payment, purchase, invoice, checkoutSession } =
-    await comprehensiveAdminTransaction(async (ctx) => {
+  const { payment, purchase, invoice, checkoutSession } = (
+    await adminTransactionWithResult(async (ctx) => {
       const { transaction } = ctx
       const paymentResult = await processPaymentIntentStatusUpdated(
         paymentIntent,
@@ -64,8 +61,8 @@ const processPaymentIntent = async ({
       }
       const { payment } = paymentResult.value
       if (!payment.purchaseId) {
-        throw new Error(
-          `No purchase id found for payment ${payment.id}`
+        return Result.err(
+          new Error(`No purchase id found for payment ${payment.id}`)
         )
       }
       const purchase = (
@@ -95,8 +92,10 @@ const processPaymentIntent = async ({
           )
         checkoutSession = checkoutSessionsForPaymentIntent[0]
         if (!checkoutSession) {
-          throw new Error(
-            `Post-payment: Checkout session not found for payment intent: ${paymentIntentId}`
+          return Result.err(
+            new Error(
+              `Post-payment: Checkout session not found for payment intent: ${paymentIntentId}`
+            )
           )
         }
       }
@@ -107,6 +106,7 @@ const processPaymentIntent = async ({
         invoice,
       })
     })
+  ).unwrap()
   return {
     purchase,
     invoice,
@@ -135,8 +135,8 @@ const processCheckoutSession = async ({
   checkoutSessionId,
   request,
 }: ProcessCheckoutSessionParams): Promise<ProcessCheckoutSessionResult> => {
-  const result = await comprehensiveAdminTransaction(
-    async (params) => {
+  const result = (
+    await adminTransactionWithResult(async (params) => {
       const { transaction } = params
       const [checkoutSession] = await selectCheckoutSessions(
         {
@@ -145,8 +145,10 @@ const processCheckoutSession = async ({
         transaction
       )
       if (!checkoutSession) {
-        throw new Error(
-          `Purchase session not found: ${checkoutSessionId}`
+        return Result.err(
+          new Error(
+            `Purchase session not found: ${checkoutSessionId}`
+          )
         )
       }
       const { purchase, invoice } =
@@ -162,8 +164,8 @@ const processCheckoutSession = async ({
         purchase,
         invoice,
       })
-    }
-  )
+    })
+  ).unwrap()
 
   /**
    * If the purchase session has a success url, redirect to it.
@@ -199,18 +201,21 @@ const processSetupIntent = async ({
   checkoutSession: CheckoutSession.Record
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
-  const setupSuceededResult = await comprehensiveAdminTransaction(
-    async (ctx) => {
+  if (!setupIntent) {
+    throw new Error(`Setup intent not found: ${setupIntentId}`)
+  }
+  const setupSucceededResult = (
+    await adminTransactionWithResult(async (ctx) => {
       return processSetupIntentSucceeded(setupIntent, ctx)
-    }
-  )
+    })
+  ).unwrap()
 
-  const { purchase, checkoutSession } = setupSuceededResult
+  const { purchase, checkoutSession } = setupSucceededResult
   if (
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
-    setupSuceededResult.billingRun?.id
+    setupSucceededResult.billingRun?.id
   ) {
-    const { billingRun } = setupSuceededResult
+    const { billingRun } = setupSucceededResult
     await executeBillingRun(billingRun.id)
   }
 
@@ -305,8 +310,8 @@ export const GET = async (request: NextRequest) => {
      */
     if (purchase) {
       const priceId = purchase.priceId
-      const { product } = await adminTransaction(
-        async ({ transaction }) => {
+      const { product } = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           // Usage prices have null productId, causing innerJoin to return empty array
           const results =
             await selectPriceProductAndOrganizationByPriceWhere(
@@ -315,11 +320,11 @@ export const GET = async (request: NextRequest) => {
               },
               transaction
             )
-          return {
+          return Result.ok({
             product: results.length > 0 ? results[0].product : null,
-          }
-        }
-      )
+          })
+        })
+      ).unwrap()
 
       /**
        * As the purchase session cookie is no longer needed, delete it.

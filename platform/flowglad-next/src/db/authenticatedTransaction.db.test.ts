@@ -68,6 +68,8 @@ describe('authenticatedTransaction', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
+  let pricingModel1: PricingModel.Record // livemode PM for testOrg1
+  let pricingModel2: PricingModel.Record // livemode PM for testOrg2
   let userA: User.Record
   let userB: User.Record
   let apiKeyA: ApiKey.Record
@@ -82,9 +84,11 @@ describe('authenticatedTransaction', () => {
     // Setup two test organizations
     const org1Setup = await setupOrg()
     testOrg1 = org1Setup.organization
+    pricingModel1 = org1Setup.pricingModel
 
     const org2Setup = await setupOrg()
     testOrg2 = org2Setup.organization
+    pricingModel2 = org2Setup.pricingModel
 
     // Setup users and API keys for each organization
     const userApiKeyA = await setupUserAndApiKey({
@@ -125,6 +129,7 @@ describe('authenticatedTransaction', () => {
           focused: false,
           livemode: true,
           role: MembershipRole.Member,
+          focusedPricingModelId: pricingModel2.id,
         },
         transaction
       )
@@ -280,6 +285,7 @@ describe('authenticatedTransaction', () => {
             focused: true,
             livemode: true,
             role: MembershipRole.Member,
+            focusedPricingModelId: pricingModel1.id,
           },
           transaction
         )
@@ -290,6 +296,7 @@ describe('authenticatedTransaction', () => {
             focused: false,
             livemode: true,
             role: MembershipRole.Member,
+            focusedPricingModelId: pricingModel2.id,
           },
           transaction
         )

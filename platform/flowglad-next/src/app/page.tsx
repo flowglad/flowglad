@@ -1,5 +1,6 @@
+import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectMembershipAndOrganizations,
   unfocusMembershipsForUser,
@@ -20,8 +21,8 @@ export default async function Home() {
     throw new Error('User email not found')
   }
   const user = await betterAuthUserToApplicationUser(betterAuthUser)
-  const membershipsAndOrganizations = await adminTransaction(
-    async ({ transaction }) => {
+  const membershipsAndOrganizations = (
+    await adminTransactionWithResult(async ({ transaction }) => {
       const memberships = await selectMembershipAndOrganizations(
         { userId: user.id },
         transaction
@@ -40,9 +41,9 @@ export default async function Home() {
         )
       }
 
-      return memberships
-    }
-  )
+      return Result.ok(memberships)
+    })
+  ).unwrap()
 
   if (membershipsAndOrganizations.length === 0) {
     redirect('/onboarding/business-details')

@@ -20,6 +20,19 @@ const stripeMockPassthrough = http.all(
   () => passthrough()
 )
 
+// Passthrough handlers for flowglad mock server services
+// These run in docker-compose alongside postgres, similar to stripe-mock
+const svixMockPassthrough = http.all('http://localhost:9001/*', () =>
+  passthrough()
+)
+const unkeyMockPassthrough = http.all('http://localhost:9002/*', () =>
+  passthrough()
+)
+const triggerMockPassthrough = http.all(
+  'http://localhost:9003/*',
+  () => passthrough()
+)
+
 // Mock handler for Upstash Redis - returns success responses for common operations
 // This prevents tests from needing real Redis while still allowing code to run
 const upstashHandler = http.post(
@@ -64,6 +77,9 @@ const upstashHandler = http.post(
 
 export const server = setupServer(
   stripeMockPassthrough,
+  svixMockPassthrough,
+  unkeyMockPassthrough,
+  triggerMockPassthrough,
   upstashHandler,
   ...svixHandlers,
   ...triggerHandlers,

@@ -36,7 +36,7 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
-  comprehensiveAuthenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -436,8 +436,8 @@ const adjustSubscriptionProcedure = protectedProcedure
     // This triggers the billing run but doesn't wait for it
     // Cache invalidations are handled automatically by the comprehensive transaction
     // Domain errors are automatically converted to TRPCErrors by domainErrorMiddleware
-    const adjustmentResult =
-      await comprehensiveAuthenticatedTransaction(
+    const adjustmentResult = (
+      await authenticatedTransactionWithResult(
         async (transactionCtx) => {
           return adjustSubscription(
             input,
@@ -449,6 +449,7 @@ const adjustSubscriptionProcedure = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
+    ).unwrap()
 
     const {
       subscription,

@@ -14,11 +14,11 @@ import { headers } from 'next/headers'
 import { z } from 'zod'
 import {
   adminTransaction,
-  comprehensiveAdminTransaction,
+  adminTransactionWithResult,
 } from '@/db/adminTransaction'
 import {
   authenticatedTransaction,
-  comprehensiveAuthenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
@@ -279,38 +279,40 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
 
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
-    return await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        const ctx = {
+    return (
+      await adminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+        }) => {
+          const ctx = {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }
+          const subscriptionResult =
+            await scheduleSubscriptionCancellation(input, ctx)
+          const subscription = subscriptionResult.unwrap()
+          return Result.ok({
+            subscription: {
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            },
+          })
+        },
+        {
+          livemode,
         }
-        const subscriptionResult =
-          await scheduleSubscriptionCancellation(input, ctx)
-        const subscription = subscriptionResult.unwrap()
-        return Result.ok({
-          subscription: {
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
-          },
-        })
-      },
-      {
-        livemode,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 // uncancelSubscription procedure
@@ -370,43 +372,45 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     )
 
     // Second transaction: Actually perform the uncancel (admin-scoped, bypasses RLS)
-    return await comprehensiveAdminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        const ctx = {
+    return (
+      await adminTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+        }) => {
+          const ctx = {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }
+          const subscription = (
+            await selectSubscriptionById(input.id, transaction)
+          ).unwrap()
+          const uncancelResult = await uncancelSubscription(
+            subscription,
+            ctx
+          )
+          const updatedSubscription = uncancelResult.unwrap()
+          return Result.ok({
+            subscription: {
+              ...updatedSubscription,
+              current: isSubscriptionCurrent(
+                updatedSubscription.status,
+                updatedSubscription.cancellationReason
+              ),
+            },
+          })
+        },
+        {
+          livemode,
         }
-        const subscription = (
-          await selectSubscriptionById(input.id, transaction)
-        ).unwrap()
-        const uncancelResult = await uncancelSubscription(
-          subscription,
-          ctx
-        )
-        const updatedSubscription = uncancelResult.unwrap()
-        return Result.ok({
-          subscription: {
-            ...updatedSubscription,
-            current: isSubscriptionCurrent(
-              updatedSubscription.status,
-              updatedSubscription.cancellationReason
-            ),
-          },
-        })
-      },
-      {
-        livemode,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 // requestMagicLink procedure
@@ -588,51 +592,56 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { customer } = ctx
     const { paymentMethodId } = input
 
-    return comprehensiveAuthenticatedTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        // Verify ownership BEFORE making any mutations
-        const existingPaymentMethod = (
-          await selectPaymentMethodById(paymentMethodId, transaction)
-        ).unwrap()
-        if (existingPaymentMethod.customerId !== customer.id) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message:
-              'You do not have permission to update this payment method',
-          })
-        }
-
-        const effectsCtx = {
+    return (
+      await authenticatedTransactionWithResult(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        }
-        const { paymentMethod } =
-          await setDefaultPaymentMethodForCustomer(
-            {
+        }) => {
+          // Verify ownership BEFORE making any mutations
+          const existingPaymentMethod = (
+            await selectPaymentMethodById(
               paymentMethodId,
-            },
-            effectsCtx
-          )
+              transaction
+            )
+          ).unwrap()
+          if (existingPaymentMethod.customerId !== customer.id) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message:
+                'You do not have permission to update this payment method',
+            })
+          }
 
-        return Result.ok({
-          success: true,
-          paymentMethod,
-        })
-      },
-      {
-        apiKey: ctx.apiKey,
-        customerId: customer.id,
-      }
-    )
+          const effectsCtx = {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }
+          const { paymentMethod } =
+            await setDefaultPaymentMethodForCustomer(
+              {
+                paymentMethodId,
+              },
+              effectsCtx
+            )
+
+          return Result.ok({
+            success: true,
+            paymentMethod,
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
+          customerId: customer.id,
+        }
+      )
+    ).unwrap()
   })
 
 // Get all customers for an email at an organization

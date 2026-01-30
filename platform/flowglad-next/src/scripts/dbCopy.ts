@@ -28,6 +28,7 @@
 
 import { execSync, spawn } from 'child_process'
 import path from 'path'
+import { parseArgs } from 'util'
 
 // ============================================================================
 // Configuration
@@ -95,42 +96,37 @@ interface CloneOptions {
   noDev: boolean
 }
 
-function parseArgs(): CloneOptions {
-  const args = process.argv.slice(2)
+function parseCliArgs(): CloneOptions {
+  const { values: args } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+      staging: { type: 'boolean', default: false },
+      prod: { type: 'boolean', default: false },
+      'schema-only': { type: 'boolean', default: false },
+      'run-migrations': { type: 'boolean', default: false },
+      inspect: { type: 'boolean', default: false },
+      'no-dev': { type: 'boolean', default: false },
+      port: { type: 'string' },
+      file: { type: 'string' },
+    },
+    strict: true,
+  })
 
-  const hasStaging = args.includes('--staging')
-  const hasProd = args.includes('--prod')
-  const schemaOnly = args.includes('--schema-only')
-  const runMigrations = args.includes('--run-migrations')
-  const inspect = args.includes('--inspect')
-  const noDev = args.includes('--no-dev')
-
-  // Parse --port flag
+  // Validate and parse port
   let port = DEFAULT_DB_PORT
-  const portIndex = args.indexOf('--port')
-  if (portIndex !== -1 && args[portIndex + 1]) {
-    const parsed = parseInt(args[portIndex + 1], 10)
+  if (args.port) {
+    const parsed = parseInt(args.port, 10)
     if (isNaN(parsed) || parsed < 1 || parsed > 65535) {
-      logError(`Invalid port: ${args[portIndex + 1]}`)
+      logError(`Invalid port: ${args.port}`)
       process.exit(1)
     }
     port = parsed
   }
 
-  // Parse --file flag
-  let filePath: string | null = null
-  const fileIndex = args.indexOf('--file')
-  if (fileIndex !== -1) {
-    const fileValue = args[fileIndex + 1]
-    if (!fileValue || fileValue.startsWith('-')) {
-      logError('--file requires a path argument')
-      process.exit(1)
-    }
-    filePath = fileValue
-  }
+  const filePath = args.file ?? null
 
   // Validate options
-  const hasRemote = hasStaging || hasProd
+  const hasRemote = args.staging || args.prod
   const hasFile = filePath !== null
 
   if (hasRemote && hasFile) {
@@ -138,7 +134,7 @@ function parseArgs(): CloneOptions {
     process.exit(1)
   }
 
-  if (hasStaging && hasProd) {
+  if (args.staging && args.prod) {
     logError('Cannot specify both --staging and --prod')
     process.exit(1)
   }
@@ -155,21 +151,21 @@ function parseArgs(): CloneOptions {
       filePath,
       port,
       schemaOnly: false, // Not applicable for file restore
-      runMigrations,
+      runMigrations: args['run-migrations'] ?? false,
       inspect: false, // Not applicable for file restore
-      noDev,
+      noDev: args['no-dev'] ?? false,
     }
   }
 
   return {
     mode: 'remote',
-    source: hasStaging ? 'staging' : 'prod',
+    source: args.staging ? 'staging' : 'prod',
     filePath: null,
     port,
-    schemaOnly,
-    runMigrations,
-    inspect,
-    noDev,
+    schemaOnly: args['schema-only'] ?? false,
+    runMigrations: args['run-migrations'] ?? false,
+    inspect: args.inspect ?? false,
+    noDev: args['no-dev'] ?? false,
   }
 }
 
@@ -248,7 +244,7 @@ function startDevServer(port: number): void {
 // ============================================================================
 
 async function main(): Promise<void> {
-  const options = parseArgs()
+  const options = parseCliArgs()
 
   // Build pgcp arguments
   const pgcpArgs: string[] = []

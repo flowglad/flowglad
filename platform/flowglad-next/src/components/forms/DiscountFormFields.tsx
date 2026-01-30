@@ -35,11 +35,16 @@ import { currencyCharacter } from '@/registry/lib/currency'
 import { core } from '@/utils/core'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
 
+interface DiscountFormFieldsProps {
+  edit?: boolean
+  /** When true, hides the pricing model selector (PM is auto-set from focused membership) */
+  hidePricingModelSelector?: boolean
+}
+
 export default function DiscountFormFields({
   edit = false,
-}: {
-  edit?: boolean
-}) {
+  hidePricingModelSelector = false,
+}: DiscountFormFieldsProps) {
   const form = useFormContext<CreateDiscountFormSchema>()
   const {
     formState: { errors },
@@ -90,7 +95,7 @@ export default function DiscountFormFields({
           </FormItem>
         )}
       />
-      {!edit && (
+      {!edit && !hidePricingModelSelector && (
         <PricingModelSelect
           name="discount.pricingModelId"
           control={control}

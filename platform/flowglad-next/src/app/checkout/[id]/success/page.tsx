@@ -1,5 +1,6 @@
 import { CheckoutSessionType } from '@db-core/enums'
-import { adminTransaction } from '@/db/adminTransaction'
+import { Result } from 'better-result'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import AddPaymentCheckoutSuccessPage from './AddPaymentCheckoutSuccessPage'
 import ProductCheckoutSuccessPage from './ProductCheckoutSuccessPage'
@@ -15,14 +16,14 @@ async function CheckoutSuccessPage({
   // 2. AddPaymentMethod
   // 3. Product
   const { id } = await params
-  const checkoutSession = await adminTransaction(
-    async ({ transaction }) => {
+  const checkoutSession = (
+    await adminTransactionWithResult(async ({ transaction }) => {
       const checkoutSession = (
         await selectCheckoutSessionById(id, transaction)
       ).unwrap()
-      return checkoutSession
-    }
-  )
+      return Result.ok(checkoutSession)
+    })
+  ).unwrap()
   switch (checkoutSession.type) {
     case CheckoutSessionType.Purchase:
       return (

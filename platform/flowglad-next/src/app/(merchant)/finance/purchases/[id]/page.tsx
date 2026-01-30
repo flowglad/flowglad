@@ -1,6 +1,7 @@
 import { Price } from '@db-core/schema/prices'
+import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
@@ -13,41 +14,43 @@ const PurchasePage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const result = await authenticatedTransaction(
-    async ({ transaction }) => {
-      const purchase = (
-        await selectPurchaseById(id, transaction)
-      ).unwrap()
+  const result = (
+    await authenticatedTransactionWithResult(
+      async ({ transaction }) => {
+        const purchase = (
+          await selectPurchaseById(id, transaction)
+        ).unwrap()
 
-      if (!purchase) {
-        return null
-      }
+        if (!purchase) {
+          return Result.ok(null)
+        }
 
-      const customer = (
-        await selectCustomerById(purchase.customerId, transaction)
-      ).unwrap()
+        const customer = (
+          await selectCustomerById(purchase.customerId, transaction)
+        ).unwrap()
 
-      const price = purchase.priceId
-        ? (
-            await selectPriceById(purchase.priceId, transaction)
-          ).unwrap()
-        : null
-
-      const product =
-        price && Price.hasProductId(price)
+        const price = purchase.priceId
           ? (
-              await selectProductById(price.productId, transaction)
+              await selectPriceById(purchase.priceId, transaction)
             ).unwrap()
           : null
 
-      return {
-        purchase,
-        customer,
-        price,
-        product,
+        const product =
+          price && Price.hasProductId(price)
+            ? (
+                await selectProductById(price.productId, transaction)
+              ).unwrap()
+            : null
+
+        return Result.ok({
+          purchase,
+          customer,
+          price,
+          product,
+        })
       }
-    }
-  )
+    )
+  ).unwrap()
 
   if (!result || !result.purchase || !result.customer) {
     notFound()
