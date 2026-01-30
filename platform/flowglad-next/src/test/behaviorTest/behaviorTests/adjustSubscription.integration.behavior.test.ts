@@ -32,7 +32,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransactionWithResult } from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import {
   type AdjustSubscriptionResult,
   adjustSubscription,
@@ -167,7 +167,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -217,7 +217,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.Record
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -264,7 +264,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -312,7 +312,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -358,7 +358,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -388,7 +388,7 @@ describe('adjustSubscription error cases', () => {
     const livemode = true
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -428,7 +428,7 @@ describe('adjustSubscription error cases', () => {
     })
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -512,7 +512,7 @@ describe('adjustSubscription resource capacity validation', () => {
 
     // Attempt the downgrade - should fail due to capacity validation
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -559,7 +559,7 @@ describe('adjustSubscription priceSlug resolution', () => {
     })
 
     const result =
-      await comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -593,7 +593,7 @@ describe('adjustSubscription priceSlug resolution', () => {
     const livemode = true
 
     const promise =
-      comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -639,7 +639,7 @@ describe('adjustSubscription manual items preservation', () => {
     })
 
     const result =
-      await comprehensiveAdminTransactionWithResult<AdjustSubscriptionResult>(
+      await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {

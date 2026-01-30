@@ -40,7 +40,7 @@ import {
 } from '@/../seedDatabase'
 import {
   adminTransactionWithResult,
-  comprehensiveAdminTransactionWithResult,
+  comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { settleInvoiceUsageCostsLedgerCommandSchema } from '@/db/ledgerManager/ledgerManagerTypes'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
@@ -1422,30 +1422,28 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Create subscription with autoStart (creates billing run)
-    const workflowResult = (
-      await comprehensiveAdminTransactionWithResult(
-        async (params) => {
-          const stripeSetupIntentId = `setupintent_once_grant_${core.nanoid()}`
-          return await createSubscriptionWorkflow(
-            {
-              organization: orgForGrants,
-              product,
-              price: price,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              defaultPaymentMethod: testPaymentMethod,
-              customer: testCustomer,
-              stripeSetupIntentId,
-              autoStart: true,
-            },
-            createProcessingEffectsContext(params)
-          )
-        }
-      )
-    ).unwrap()
+    const workflowResult = await comprehensiveAdminTransaction(
+      async (params) => {
+        const stripeSetupIntentId = `setupintent_once_grant_${core.nanoid()}`
+        return await createSubscriptionWorkflow(
+          {
+            organization: orgForGrants,
+            product,
+            price: price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: testPaymentMethod,
+            customer: testCustomer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createProcessingEffectsContext(params)
+        )
+      }
+    )
     const testSubscription = workflowResult.subscription
 
     // Get the billing run that was created
@@ -1497,39 +1495,35 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    // Use comprehensiveAdminTransactionWithResult so ledger commands are processed
-    ;(
-      await comprehensiveAdminTransactionWithResult(
-        async (params) => {
-          const event = createMockPaymentIntentEventResponse(
-            'succeeded',
-            {
-              id: stripePaymentIntentId,
-              status: 'succeeded',
-              metadata: {
-                billingRunId: testBillingRun.id,
-                type: IntentMetadataType.BillingRun,
-                billingPeriodId: testBillingPeriod.id,
-              },
-              latest_charge: stripeChargeId,
-              livemode: true,
-            },
-            {
-              created: 3000,
-              livemode: true,
-            }
-          )
-
-          const result = (
-            await processOutcomeForBillingRun(
-              { input: event },
-              createProcessingEffectsContext(params)
-            )
-          ).unwrap()
-          return Result.ok(result)
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
         }
       )
-    ).unwrap()
+
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
+      return Result.ok(result)
+    })
 
     // Assertions
     ;(
@@ -1621,30 +1615,28 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Create subscription with autoStart (creates billing run)
-    const workflowResult = (
-      await comprehensiveAdminTransactionWithResult(
-        async (params) => {
-          const stripeSetupIntentId = `setupintent_recurring_grant_${core.nanoid()}`
-          return await createSubscriptionWorkflow(
-            {
-              organization: orgForGrants,
-              product,
-              price: price,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              defaultPaymentMethod: testPaymentMethod,
-              customer: testCustomer,
-              stripeSetupIntentId,
-              autoStart: true,
-            },
-            createProcessingEffectsContext(params)
-          )
-        }
-      )
-    ).unwrap()
+    const workflowResult = await comprehensiveAdminTransaction(
+      async (params) => {
+        const stripeSetupIntentId = `setupintent_recurring_grant_${core.nanoid()}`
+        return await createSubscriptionWorkflow(
+          {
+            organization: orgForGrants,
+            product,
+            price: price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: testPaymentMethod,
+            customer: testCustomer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createProcessingEffectsContext(params)
+        )
+      }
+    )
     const testSubscription = workflowResult.subscription
 
     // Get the billing run that was created
@@ -1695,39 +1687,35 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    // Use comprehensiveAdminTransactionWithResult so ledger commands are processed
-    ;(
-      await comprehensiveAdminTransactionWithResult(
-        async (params) => {
-          const event = createMockPaymentIntentEventResponse(
-            'succeeded',
-            {
-              id: stripePaymentIntentId,
-              status: 'succeeded',
-              metadata: {
-                billingRunId: testBillingRun.id,
-                type: IntentMetadataType.BillingRun,
-                billingPeriodId: testBillingPeriod.id,
-              },
-              latest_charge: stripeChargeId,
-              livemode: true,
-            },
-            {
-              created: 3000,
-              livemode: true,
-            }
-          )
-
-          const result = (
-            await processOutcomeForBillingRun(
-              { input: event },
-              createProcessingEffectsContext(params)
-            )
-          ).unwrap()
-          return Result.ok(result)
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
         }
       )
-    ).unwrap()
+
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
+      return Result.ok(result)
+    })
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
     ;(
@@ -1815,30 +1803,28 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       livemode: true,
     })
 
-    const workflowResult = (
-      await comprehensiveAdminTransactionWithResult(
-        async (params) => {
-          const stripeSetupIntentId = `setupintent_idempotent_${core.nanoid()}`
-          return await createSubscriptionWorkflow(
-            {
-              organization: orgForGrants,
-              product,
-              price: price,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              defaultPaymentMethod: testPaymentMethod,
-              customer: testCustomer,
-              stripeSetupIntentId,
-              autoStart: true,
-            },
-            createProcessingEffectsContext(params)
-          )
-        }
-      )
-    ).unwrap()
+    const workflowResult = await comprehensiveAdminTransaction(
+      async (params) => {
+        const stripeSetupIntentId = `setupintent_idempotent_${core.nanoid()}`
+        return await createSubscriptionWorkflow(
+          {
+            organization: orgForGrants,
+            product,
+            price: price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: testPaymentMethod,
+            customer: testCustomer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createProcessingEffectsContext(params)
+        )
+      }
+    )
     const testSubscription = workflowResult.subscription
 
     const billingRuns = (
@@ -1900,39 +1886,35 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     ).unwrap()
 
     // 1. First payment succeeds - should grant credits and create transition
-    // Use comprehensiveAdminTransactionWithResult so ledger commands are processed
-    ;(
-      await comprehensiveAdminTransactionWithResult(
-        async (params) => {
-          const firstEvent = createMockPaymentIntentEventResponse(
-            'succeeded',
-            {
-              id: firstStripePaymentIntentId,
-              status: 'succeeded',
-              metadata: {
-                billingRunId: testBillingRun.id,
-                type: IntentMetadataType.BillingRun,
-                billingPeriodId: testBillingPeriod.id,
-              },
-              latest_charge: firstStripeChargeId,
-              livemode: true,
-            },
-            {
-              created: 3000,
-              livemode: true,
-            }
-          )
-
-          const result = (
-            await processOutcomeForBillingRun(
-              { input: firstEvent },
-              createProcessingEffectsContext(params)
-            )
-          ).unwrap()
-          return Result.ok(result)
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
+      const firstEvent = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: firstStripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: firstStripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
         }
       )
-    ).unwrap()
+
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: firstEvent },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
+      return Result.ok(result)
+    })
 
     // Verify credits were granted after first payment
     const creditsAfterFirst = (

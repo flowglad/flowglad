@@ -35,7 +35,6 @@ import {
 import {
   adminTransactionWithResult,
   comprehensiveAdminTransaction,
-  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
@@ -128,8 +127,8 @@ describe('usageEventHelpers', () => {
         usageEvent: usageEventDetails,
       }
 
-      const { usageEvent: createdUsageEvent } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: createdUsageEvent } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -151,7 +150,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
 
       if (!createdUsageEvent)
         throw new Error(
@@ -212,8 +210,8 @@ describe('usageEventHelpers', () => {
           transactionId,
           amount: 5,
         }
-      const { usageEvent: initialEvent } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: initialEvent } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -238,7 +236,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
 
       let initialLedgerTransactions: LedgerTransaction.Record[] = [](
         await adminTransactionWithResult(async ({ transaction }) => {
@@ -272,8 +269,8 @@ describe('usageEventHelpers', () => {
             ).unwrap().length
           : 0
 
-      const { usageEvent: resultEvent } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: resultEvent } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -298,7 +295,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
 
       expect(resultEvent.id).toBe(initialEvent.id)
 
@@ -427,8 +423,8 @@ describe('usageEventHelpers', () => {
           amount: 1,
           properties: { test: 'value' },
         }
-      const { usageEvent: resultWithProps } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: resultWithProps } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -453,7 +449,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
       expect(resultWithProps.properties).toEqual({
         test: 'value',
       })
@@ -466,8 +461,8 @@ describe('usageEventHelpers', () => {
           transactionId: `txn_no_props_${core.nanoid()}`,
           amount: 1,
         }
-      const { usageEvent: resultWithoutProps } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: resultWithoutProps } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -492,7 +487,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
       expect(resultWithoutProps!.properties).toEqual({})
     })
 
@@ -507,8 +501,8 @@ describe('usageEventHelpers', () => {
           amount: 1,
           usageDate: timestamp,
         }
-      const { usageEvent: resultWithDate } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: resultWithDate } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -533,7 +527,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
       expect(resultWithDate.usageDate!).toBe(timestamp)
 
       const dateAbsentDetails: CreateUsageEventInput['usageEvent'] = {
@@ -543,8 +536,8 @@ describe('usageEventHelpers', () => {
         transactionId: `txn_no_date_${core.nanoid()}`,
         amount: 1,
       }
-      const { usageEvent: resultWithoutDate } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: resultWithoutDate } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -569,7 +562,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
       expect(typeof resultWithoutDate.usageDate).toBe('number')
     })
 
@@ -581,8 +573,8 @@ describe('usageEventHelpers', () => {
         transactionId: `txn_live_${core.nanoid()}`,
         amount: 1,
       }
-      const { usageEvent: resultLiveTrue } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: resultLiveTrue } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -607,7 +599,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
       expect(resultLiveTrue.livemode).toBe(true)
 
       const liveTrueTransactions: LedgerTransaction.Record[] = (
@@ -661,8 +652,8 @@ describe('usageEventHelpers', () => {
         transactionId: `txn_test_${core.nanoid()}`,
         amount: 1,
       }
-      const { usageEvent: resultLiveFalse } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: resultLiveFalse } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -687,7 +678,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
       expect(resultLiveFalse.livemode).toBe(false)
 
       const liveFalseTransactions: LedgerTransaction.Record[] = (
@@ -783,8 +773,8 @@ describe('usageEventHelpers', () => {
       }
 
       const beforeFirstEvent = Date.now()
-      const { usageEvent: firstUsageEvent } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: firstUsageEvent } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -809,7 +799,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
 
       // Verify first usage event was inserted with correct properties
       expect(firstUsageEvent.properties).toEqual(testProperties)
@@ -852,8 +841,8 @@ describe('usageEventHelpers', () => {
         }
 
       const beforeSecondEvent = Date.now()
-      const { usageEvent: secondUsageEvent } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: secondUsageEvent } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -878,7 +867,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
 
       // Verify second usage event was inserted with correct properties
       expect(secondUsageEvent.properties).toEqual(testProperties)
@@ -923,8 +911,8 @@ describe('usageEventHelpers', () => {
         amount: 1,
         properties: { ...testProperties, feature: 'import' },
       }
-      const { usageEvent: thirdUsageEvent } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: thirdUsageEvent } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -949,7 +937,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
       expect(thirdUsageEvent.properties).toEqual({
         ...testProperties,
         feature: 'import',
@@ -1120,8 +1107,8 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const { usageEvent: createdUsageEvent } = (
-        await comprehensiveAdminTransactionWithResult(
+      const { usageEvent: createdUsageEvent } =
+        await comprehensiveAdminTransaction(
           async ({
             transaction,
             emitEvent,
@@ -1143,7 +1130,6 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      ).unwrap()
 
       // Should resolve to the default price for the usage meter
       expect(createdUsageEvent.priceId).toBe(defaultPrice.id)
