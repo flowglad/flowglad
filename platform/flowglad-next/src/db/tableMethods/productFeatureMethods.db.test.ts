@@ -564,8 +564,10 @@ describe('batchUnexpireProductFeatures', () => {
       featureId: featureA.id,
       organizationId: organization.id,
       expiredAt: Date.now() - 1000,
-    })(
-      // Unexpire the product feature and capture effects
+    })
+
+    // Unexpire the product feature and capture effects
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
@@ -666,8 +668,10 @@ describe('batchUnexpireProductFeatures', () => {
       featureId: featureB.id,
       organizationId: organization.id,
       expiredAt: Date.now() - 1000,
-    })(
-      // Unexpire both product features and capture effects
+    })
+
+    // Unexpire both product features and capture effects
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
@@ -699,8 +703,10 @@ describe('batchUnexpireProductFeatures', () => {
       featureId: featureA.id,
       organizationId: organization.id,
       expiredAt: null,
-    })(
-      // Try to unexpire the already-active feature
+    })
+
+    // Try to unexpire the already-active feature
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
@@ -725,8 +731,10 @@ describe('batchUnexpireProductFeatures', () => {
       featureId: featureA.id,
       organizationId: organization.id,
       expiredAt: Date.now() - 1000,
-    })(
-      // Unexpire the product feature
+    })
+
+    // Unexpire the product feature
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)

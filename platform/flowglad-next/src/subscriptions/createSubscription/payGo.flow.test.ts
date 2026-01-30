@@ -130,8 +130,10 @@ describe('Pay as You Go Workflow E2E', () => {
       livemode: pricingModel.livemode,
       isDefault: false,
       usageMeterId: usageMeter.id,
-    })(
-      // Override unitPrice to 0 for the default/free price
+    })
+
+    // Override unitPrice to 0 for the default/free price
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await updatePrice(

@@ -363,7 +363,9 @@ describe('usageEventHelpers', () => {
         usageMeterId: usagePrice.usageMeterId!,
         livemode: true,
         organizationId: organization.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           return Result.ok(
             await ingestAndProcessUsageEvent(
@@ -2013,7 +2015,9 @@ describe('usageEventHelpers', () => {
         priceId: distinctPrice.id,
         properties: existingEventProps,
         billingPeriodId: distinctBillingPeriod.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const ledgerCommandsResult =
             await generateLedgerCommandsForBulkUsageEvents(

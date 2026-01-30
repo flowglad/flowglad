@@ -140,7 +140,9 @@ describe('ledgerEntryMethods', () => {
         billingPeriodId: billingPeriod.id,
         transactionId: localLedgerTransaction.id,
         customerId: customer.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const entryData: LedgerEntry.Insert = {
             ...ledgerEntryNulledSourceIdColumns,
@@ -451,7 +453,9 @@ describe('ledgerEntryMethods', () => {
           status: LedgerEntryStatus.Pending,
           sourceUsageCreditId: usageCreditId,
           usageMeterId: ledgerAccount.usageMeterId!,
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               // Setup a pending entry to ensure only posted are considered
@@ -518,7 +522,9 @@ describe('ledgerEntryMethods', () => {
           status: LedgerEntryStatus.Posted,
           usageMeterId: ledgerAccount.usageMeterId!,
           sourceRefundId: refundId,
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               await setupDebitLedgerEntry({
@@ -1244,7 +1250,9 @@ describe('ledgerEntryMethods', () => {
               sourceUsageEventId: usageEventId,
             },
           ],
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const availableBalance =
@@ -1644,7 +1652,9 @@ describe('ledgerEntryMethods', () => {
               sourceUsageEventId: usageEventId,
             },
           ],
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const balance =
@@ -1873,7 +1883,9 @@ describe('ledgerEntryMethods', () => {
           creditType: UsageCreditType.Grant,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const pastDate = Date.now() - 24 * 60 * 60 * 1000
@@ -1954,7 +1966,9 @@ describe('ledgerEntryMethods', () => {
           creditType: UsageCreditType.Grant,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const postedCreditAmount = 100
@@ -2125,71 +2139,70 @@ describe('ledgerEntryMethods', () => {
             usageCreditId: usageCredit.id,
             amountApplied: 1000,
             usageEventId: usageEventId,
-          })(
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const initialCreditAmount = 500
-                await setupLedgerEntries({
-                  organizationId: organization.id,
-                  subscriptionId: subscription.id,
-                  ledgerAccountId: ledgerAccount.id,
-                  ledgerTransactionId: testLedgerTransaction.id,
-                  usageMeterId: ledgerAccount.usageMeterId!,
-                  entries: [
-                    // Initial entry to have a non-zero balance
-                    {
-                      entryType:
-                        LedgerEntryType.CreditGrantRecognized,
-                      amount: initialCreditAmount,
-                      status: LedgerEntryStatus.Posted,
-                      sourceUsageCreditId: usageCredit.id,
-                    },
-                    // Entries with amount 0
-                    {
-                      entryType:
-                        LedgerEntryType.CreditGrantRecognized,
-                      amount: 0,
-                      status: LedgerEntryStatus.Posted,
-                      sourceUsageCreditId: usageCredit.id,
-                    },
-                    {
-                      entryType: LedgerEntryType.UsageCost,
-                      amount: 0,
-                      status: LedgerEntryStatus.Posted,
-                      sourceUsageEventId: usageEventId,
-                    },
-                    {
-                      entryType:
-                        LedgerEntryType.CreditGrantRecognized,
-                      amount: 0,
-                      status: LedgerEntryStatus.Pending,
-                      sourceUsageCreditId: usageCreditId,
-                    },
-                    {
-                      entryType: LedgerEntryType.UsageCost,
-                      amount: 0,
-                      status: LedgerEntryStatus.Pending,
-                      sourceUsageEventId: usageEventId,
-                    },
-                  ],
-                })
+          })
 
-                for (const type of balanceTypes) {
-                  const balance =
-                    await aggregateBalanceForLedgerAccountFromEntries(
-                      { ledgerAccountId: ledgerAccount.id },
-                      type,
-                      transaction
-                    )
-                  // The balance should remain the initial credit amount, as 0-amount entries don't change it.
-                  // For 'pending' and 'available', the pending 0-amount entries also don't change the logic for what *types* of entries are included.
-                  expect(balance).toBe(initialCreditAmount)
-                }
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const initialCreditAmount = 500
+              await setupLedgerEntries({
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                usageMeterId: ledgerAccount.usageMeterId!,
+                entries: [
+                  // Initial entry to have a non-zero balance
+                  {
+                    entryType: LedgerEntryType.CreditGrantRecognized,
+                    amount: initialCreditAmount,
+                    status: LedgerEntryStatus.Posted,
+                    sourceUsageCreditId: usageCredit.id,
+                  },
+                  // Entries with amount 0
+                  {
+                    entryType: LedgerEntryType.CreditGrantRecognized,
+                    amount: 0,
+                    status: LedgerEntryStatus.Posted,
+                    sourceUsageCreditId: usageCredit.id,
+                  },
+                  {
+                    entryType: LedgerEntryType.UsageCost,
+                    amount: 0,
+                    status: LedgerEntryStatus.Posted,
+                    sourceUsageEventId: usageEventId,
+                  },
+                  {
+                    entryType: LedgerEntryType.CreditGrantRecognized,
+                    amount: 0,
+                    status: LedgerEntryStatus.Pending,
+                    sourceUsageCreditId: usageCreditId,
+                  },
+                  {
+                    entryType: LedgerEntryType.UsageCost,
+                    amount: 0,
+                    status: LedgerEntryStatus.Pending,
+                    sourceUsageEventId: usageEventId,
+                  },
+                ],
+              })
 
-                return Result.ok(undefined)
+              for (const type of balanceTypes) {
+                const balance =
+                  await aggregateBalanceForLedgerAccountFromEntries(
+                    { ledgerAccountId: ledgerAccount.id },
+                    type,
+                    transaction
+                  )
+                // The balance should remain the initial credit amount, as 0-amount entries don't change it.
+                // For 'pending' and 'available', the pending 0-amount entries also don't change the logic for what *types* of entries are included.
+                expect(balance).toBe(initialCreditAmount)
               }
-            )
-          ).unwrap()
+
+              return Result.ok(undefined)
+            }
+          )
+        ).unwrap()
       })
     })
   })
@@ -2780,7 +2793,9 @@ describe('ledgerEntryMethods', () => {
         customerId: customer.id,
         transactionId: testLedgerTransaction.id,
         livemode: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await setupLedgerEntries({
             organizationId: organization.id,
@@ -3595,7 +3610,9 @@ describe('ledgerEntryMethods', () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(
@@ -3670,7 +3687,9 @@ describe('ledgerEntryMethods', () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(
@@ -3784,7 +3803,9 @@ describe('ledgerEntryMethods', () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(
@@ -3910,7 +3931,9 @@ describe('ledgerEntryMethods', () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(

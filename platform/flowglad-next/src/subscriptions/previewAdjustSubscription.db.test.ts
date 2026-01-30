@@ -252,7 +252,9 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
@@ -300,7 +302,9 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
@@ -345,7 +349,9 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
@@ -386,7 +392,9 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
@@ -428,7 +436,9 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
@@ -472,8 +482,10 @@ describe('previewAdjustSubscription', () => {
         currency: CurrencyCode.USD,
         type: PriceType.Subscription,
         isDefault: false,
-      })(
-        // Remove payment method from subscription and test
+      })
+
+      // Remove payment method from subscription and test
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateSubscription(
             {

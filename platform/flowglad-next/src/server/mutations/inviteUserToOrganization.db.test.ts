@@ -82,35 +82,30 @@ describe('innerInviteUserToOrganizationHandler', () => {
         testmodePricingModelId
       )
 
-      expect(sendOrganizationInvitationEmail)
-        .toHaveBeenCalledWith({
-          to: [email],
-          organizationName: organization.name,
-          inviterName: inviterUser.name ?? undefined,
-        })(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const [newUser] = await selectUsers(
-                { email },
-                transaction
-              )
-              expect(newUser.name).toBe(input.name)
+      expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
+        to: [email],
+        organizationName: organization.name,
+        inviterName: inviterUser.name ?? undefined,
+      })
 
-              const newMemberships = await selectMemberships(
-                {
-                  userId: newUser.id,
-                  organizationId: organization.id,
-                },
-                transaction
-              )
-              expect(newMemberships).toHaveLength(1)
-              expect(newMemberships[0].focused).toBe(false)
-              expect(newMemberships[0].livemode).toBe(false)
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [newUser] = await selectUsers({ email }, transaction)
+          expect(newUser.name).toBe(input.name)
+
+          const newMemberships = await selectMemberships(
+            {
+              userId: newUser.id,
+              organizationId: organization.id,
+            },
+            transaction
           )
-        )
-        .unwrap()
+          expect(newMemberships).toHaveLength(1)
+          expect(newMemberships[0].focused).toBe(false)
+          expect(newMemberships[0].livemode).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'created' })
     })
@@ -145,29 +140,24 @@ describe('innerInviteUserToOrganizationHandler', () => {
         testmodePricingModelId
       )
 
-      expect(result)
-        .toEqual({ action: 'created' })(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const [newUser] = await selectUsers(
-                { email },
-                transaction
-              )
-              expect(newUser.name).toBe('')
+      expect(result).toEqual({ action: 'created' })
 
-              const newMemberships = await selectMemberships(
-                {
-                  userId: newUser.id,
-                  organizationId: organization.id,
-                },
-                transaction
-              )
-              expect(newMemberships).toHaveLength(1)
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [newUser] = await selectUsers({ email }, transaction)
+          expect(newUser.name).toBe('')
+
+          const newMemberships = await selectMemberships(
+            {
+              userId: newUser.id,
+              organizationId: organization.id,
+            },
+            transaction
           )
-        )
-        .unwrap()
+          expect(newMemberships).toHaveLength(1)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -187,29 +177,27 @@ describe('innerInviteUserToOrganizationHandler', () => {
         testmodePricingModelId
       )
 
-      expect(sendOrganizationInvitationEmail)
-        .toHaveBeenCalledWith({
-          to: [existingUser.email],
-          organizationName: organization.name,
-          inviterName: inviterUser.name ?? undefined,
-        })(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const memberships = await selectMemberships(
-                {
-                  userId: existingUser.id,
-                  organizationId: organization.id,
-                },
-                transaction
-              )
-              expect(memberships).toHaveLength(1)
-              expect(memberships[0].focused).toBe(false)
-              expect(memberships[0].livemode).toBe(false)
-              return Result.ok(undefined)
-            }
+      expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
+        to: [existingUser.email],
+        organizationName: organization.name,
+        inviterName: inviterUser.name ?? undefined,
+      })
+
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
           )
-        )
-        .unwrap()
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].focused).toBe(false)
+          expect(memberships[0].livemode).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'created' })
       await teardownOrg({ organizationId: otherOrg.id })
@@ -220,7 +208,9 @@ describe('innerInviteUserToOrganizationHandler', () => {
         organizationId: organization.id,
         livemode: true,
       })
-      const input = { email: existingUser.email! }(
+      const input = { email: existingUser.email! }
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const memberships = await selectMemberships(
             {
@@ -241,23 +231,21 @@ describe('innerInviteUserToOrganizationHandler', () => {
         testmodePricingModelId
       )
 
-      expect(sendOrganizationInvitationEmail)
-        .not.toHaveBeenCalled()(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const memberships = await selectMemberships(
-                {
-                  userId: existingUser.id,
-                  organizationId: organization.id,
-                },
-                transaction
-              )
-              expect(memberships).toHaveLength(1)
-              return Result.ok(undefined)
-            }
+      expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
+
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
           )
-        )
-        .unwrap()
+          expect(memberships).toHaveLength(1)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'already_member' })
     })
@@ -270,35 +258,33 @@ describe('innerInviteUserToOrganizationHandler', () => {
         await setupUserAndApiKey({
           organizationId: organization.id,
           livemode: true,
-        })(
-          // Deactivate the membership
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await updateMembership(
-                { id: membership.id, deactivatedAt: Date.now() },
-                transaction
-              )
-              return Result.ok(undefined)
-            }
+        })
+
+      // Deactivate the membership
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateMembership(
+            { id: membership.id, deactivatedAt: Date.now() },
+            transaction
           )
-        )
-          .unwrap()(
-            // Verify membership is deactivated (not visible in default query)
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const activeMemberships = await selectMemberships(
-                  {
-                    userId: removedUser.id,
-                    organizationId: organization.id,
-                  },
-                  transaction
-                )
-                expect(activeMemberships).toHaveLength(0)
-                return Result.ok(undefined)
-              }
-            )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+
+      // Verify membership is deactivated (not visible in default query)
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const activeMemberships = await selectMemberships(
+            {
+              userId: removedUser.id,
+              organizationId: organization.id,
+            },
+            transaction
           )
-          .unwrap()
+          expect(activeMemberships).toHaveLength(0)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const input = { email: removedUser.email! }
 
@@ -310,29 +296,27 @@ describe('innerInviteUserToOrganizationHandler', () => {
       )
 
       // Should send invitation email for reactivation
-      expect(sendOrganizationInvitationEmail)
-        .toHaveBeenCalledWith({
-          to: [removedUser.email],
-          organizationName: organization.name,
-          inviterName: inviterUser.name ?? undefined,
-        })(
-          // Membership should be reactivated
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const memberships = await selectMemberships(
-                {
-                  userId: removedUser.id,
-                  organizationId: organization.id,
-                },
-                transaction
-              )
-              expect(memberships).toHaveLength(1)
-              expect(memberships[0].deactivatedAt).toBeNull()
-              return Result.ok(undefined)
-            }
+      expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
+        to: [removedUser.email],
+        organizationName: organization.name,
+        inviterName: inviterUser.name ?? undefined,
+      })
+
+      // Membership should be reactivated
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: removedUser.id,
+              organizationId: organization.id,
+            },
+            transaction
           )
-        )
-        .unwrap()
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].deactivatedAt).toBeNull()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'reactivated' })
     })
@@ -344,17 +328,17 @@ describe('innerInviteUserToOrganizationHandler', () => {
         await setupUserAndApiKey({
           organizationId: organization.id,
           livemode: true,
-        })(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await updateMembership(
-                { id: membership.id, deactivatedAt: Date.now() },
-                transaction
-              )
-              return Result.ok(undefined)
-            }
+        })
+
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateMembership(
+            { id: membership.id, deactivatedAt: Date.now() },
+            transaction
           )
-        ).unwrap()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const input = { email: removedUser.email! }
 
@@ -367,29 +351,27 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       expect(result).toEqual({ action: 'reactivated' })
 
-      expect(sendOrganizationInvitationEmail)
-        .toHaveBeenCalledWith(
-          expect.objectContaining({
-            inviterName: undefined,
-          })
-        )(
-          // Verify reactivation happened
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const memberships = await selectMemberships(
-                {
-                  userId: removedUser.id,
-                  organizationId: organization.id,
-                },
-                transaction
-              )
-              expect(memberships).toHaveLength(1)
-              expect(memberships[0].deactivatedAt).toBeNull()
-              return Result.ok(undefined)
-            }
+      expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inviterName: undefined,
+        })
+      )
+
+      // Verify reactivation happened
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: removedUser.id,
+              organizationId: organization.id,
+            },
+            transaction
           )
-        )
-        .unwrap()
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].deactivatedAt).toBeNull()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })

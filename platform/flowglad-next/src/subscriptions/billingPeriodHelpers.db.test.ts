@@ -218,8 +218,10 @@ describe('Subscription Billing Period Transition', async () => {
       status: PaymentStatus.Succeeded,
       amount: 100,
       invoiceId: invoice.id,
-    })(
-      // Create a paid invoice for the billing period (simulate full payment)
+    })
+
+    // Create a paid invoice for the billing period (simulate full payment)
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         // Set the billing period endDate in the past so closure logic runs
         const { subscription: updatedSub } = (

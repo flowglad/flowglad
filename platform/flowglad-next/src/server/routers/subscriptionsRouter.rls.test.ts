@@ -219,7 +219,9 @@ describe('validateAndResolvePriceForSubscription', () => {
       livemode: true,
       usageMeterId: usageMeter.id,
       isDefault: false,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await expect(
           validateAndResolvePriceForSubscription({

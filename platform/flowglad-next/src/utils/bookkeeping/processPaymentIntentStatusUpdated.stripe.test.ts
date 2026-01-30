@@ -484,8 +484,9 @@ describe('ledgerCommandForPaymentSucceeded', () => {
           usageMeterName: 'UM-UC',
         },
       ],
-    })(
-      // First call should create the usage credit
+    })
+    // First call should create the usage credit
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         const result = await ledgerCommandForPaymentSucceeded(

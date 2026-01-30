@@ -206,7 +206,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -266,7 +268,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -331,7 +335,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -455,7 +461,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -505,7 +513,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -557,10 +567,11 @@ describe('Subscription Upgrade with Proration', () => {
       const periodStart = new Date(now.getTime() - 1_000) // just before now
       const periodEnd = new Date(
         now.getTime() + 30 * 24 * 60 * 60 * 1000
-      )(
-        // ~30 days from now
+      )
+      // ~30 days from now
 
-        // Update the free subscription in the database
+      // Update the free subscription in the database
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateSubscription(
             {
@@ -598,7 +609,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -682,10 +695,11 @@ describe('Subscription Upgrade with Proration', () => {
     it('should fallback to new billing cycle when preserve=true but period has ended', async () => {
       // Update the existing free subscription's dates to be in the past
       const yesterday = new Date('2025-08-30') // August 30th
-      const twoDaysAgo = new Date('2025-08-29')(
-        // August 29th
+      const twoDaysAgo = new Date('2025-08-29')
+      // August 29th
 
-        // Update the free subscription in the database
+      // Update the free subscription in the database
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateSubscription(
             {
@@ -726,7 +740,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -839,7 +855,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -952,7 +970,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -1076,7 +1096,9 @@ describe('Subscription Upgrade with Proration', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,

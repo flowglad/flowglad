@@ -385,9 +385,11 @@ describe('priceMethods.ts', () => {
         isDefault: false,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
-      })(
-        // Attempt to update the second price to be default
-        // This should succeed - updating an existing price to be default is allowed
+      })
+
+      // Attempt to update the second price to be default
+      // This should succeed - updating an existing price to be default is allowed
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           await updatePrice(
             {
@@ -1808,7 +1810,9 @@ describe('priceMethods.ts', () => {
         name: 'Test Usage Meter',
         livemode: true,
         pricingModelId: product.pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await insertPrice(
@@ -1844,7 +1848,9 @@ describe('priceMethods.ts', () => {
         name: 'Test Usage Meter For Null Product',
         livemode: true,
         pricingModelId: product.pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await insertPrice(
@@ -2038,7 +2044,9 @@ describe('priceMethods.ts', () => {
         name: 'Bulk Test Usage Meter',
         livemode: true,
         pricingModelId: product.pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const prices = await bulkInsertPrices(
@@ -2119,7 +2127,9 @@ describe('priceMethods.ts', () => {
         livemode: true,
         usageMeterId: usageMeter.id,
         isDefault: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Query specifically for the usage price by ID
@@ -2177,7 +2187,9 @@ describe('priceMethods.ts', () => {
         livemode: true,
         usageMeterId: usageMeter.id,
         isDefault: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const results =
@@ -2325,7 +2337,9 @@ describe('priceMethods.ts', () => {
           name: 'Second Usage Meter',
           livemode: true,
           pricingModelId: pricingModel.id,
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             const prices = await bulkInsertPrices(
@@ -2376,7 +2390,9 @@ describe('priceMethods.ts', () => {
           name: 'Test Product for Mixed Insert',
           livemode: true,
           pricingModelId: pricingModel.id,
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             const prices = await bulkInsertPrices(
@@ -2480,7 +2496,9 @@ describe('priceMethods.ts', () => {
         isDefault: true,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
@@ -2519,7 +2537,9 @@ describe('priceMethods.ts', () => {
         isDefault: true,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
@@ -2579,7 +2599,9 @@ describe('priceMethods.ts', () => {
         isDefault: true,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
@@ -2662,7 +2684,9 @@ describe('priceMethods.ts', () => {
         isDefault: true,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
@@ -2751,7 +2775,9 @@ describe('priceMethods.ts', () => {
         isDefault: true,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const featureMap = await selectResourceFeaturesForPrices(
@@ -2847,7 +2873,9 @@ describe('priceMethods.ts', () => {
         isDefault: false,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const featureMap = await selectResourceFeaturesForPrices(
@@ -2947,7 +2975,9 @@ describe('priceMethods.ts', () => {
         name: 'Test Usage Meter for Derive',
         livemode: true,
         pricingModelId: product.pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const priceInsert = {

@@ -398,7 +398,9 @@ describe('subscriptionItemHelpers', () => {
           isDefault: false,
           trialPeriodDays: 0,
           currency: CurrencyCode.USD,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -704,7 +706,9 @@ describe('subscriptionItemHelpers', () => {
           isDefault: false,
           trialPeriodDays: 0,
           currency: CurrencyCode.USD,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -797,8 +801,10 @@ describe('subscriptionItemHelpers', () => {
           usageMeterId: usageMeter.id,
           amount: 50,
           manuallyCreated: true,
-        })(
-          // Verify manual feature is active before adjustment
+        })
+
+        // Verify manual feature is active before adjustment
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -1153,7 +1159,9 @@ describe('subscriptionItemHelpers', () => {
           sourceReferenceType:
             UsageCreditSourceReferenceType.ManualAdjustment,
           status: UsageCreditStatus.Posted,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -1243,7 +1251,9 @@ describe('subscriptionItemHelpers', () => {
           organizationId: orgData.organization.id,
           productId: product.id,
           featureId: onceFeature.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -1500,7 +1510,9 @@ describe('subscriptionItemHelpers', () => {
           currentBillingPeriodStart: billingPeriodStartDate,
           currentBillingPeriodEnd: billingPeriodEndDate,
           renews: true,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -1559,7 +1571,9 @@ describe('subscriptionItemHelpers', () => {
           unitPrice: 750,
           priceId: price.id,
           addedDate: itemAddedDate,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -1945,7 +1959,9 @@ describe('subscriptionItemHelpers', () => {
             organizationId: orgData.organization.id,
             productId: product.id,
             featureId: feature2.id,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -2574,7 +2590,9 @@ describe('subscriptionItemHelpers', () => {
             organizationId: orgData.organization.id,
             productId: product.id,
             featureId: onceFeature.id,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -2705,7 +2723,9 @@ describe('subscriptionItemHelpers', () => {
             organizationId: orgData.organization.id,
             productId: product.id,
             featureId: onceFeature.id,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -2824,7 +2844,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -2900,7 +2922,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -2969,7 +2993,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -3057,7 +3083,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.ManualAdjustment,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -3162,7 +3190,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -3285,7 +3315,9 @@ describe('subscriptionItemHelpers', () => {
             startDate: billingPeriodStartDate,
             endDate: billingPeriodEndDate,
             status: BillingPeriodStatus.Active,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx
@@ -3400,7 +3432,9 @@ describe('subscriptionItemHelpers', () => {
             startDate: billingPeriodStartDate,
             endDate: billingPeriodEndDate,
             status: BillingPeriodStatus.Active,
-          })(
+          })
+
+          ;(
             await comprehensiveAdminTransactionWithResult(
               async (ctx) => {
                 const { transaction } = ctx

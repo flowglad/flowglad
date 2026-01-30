@@ -373,7 +373,9 @@ describe('derivePricingModelIdForCheckoutSession', () => {
       customerId: customer.id,
       priceId: price.id,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const result = await derivePricingModelIdForCheckoutSession(
           {

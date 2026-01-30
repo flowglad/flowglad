@@ -80,8 +80,10 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       subscriptionId: subscription.id,
       billingPeriodId: scenario.billingPeriod.id,
       paymentMethodId: scenario.paymentMethod.id,
-    })(
-      // 3. Link the usage cost entry to the billing run. This simulates the tabulation process.
+    })
+
+    // 3. Link the usage cost entry to the billing run. This simulates the tabulation process.
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await transaction
           .update(ledgerEntries)
@@ -341,7 +343,9 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
             amount: usageEvent2.amount,
           },
         ],
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await transaction
             .update(ledgerEntries)

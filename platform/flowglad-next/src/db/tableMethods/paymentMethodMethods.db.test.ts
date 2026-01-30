@@ -75,7 +75,9 @@ describe('selectPaymentMethodsByCustomerId', () => {
       organizationId: organization.id,
       email: `empty+${core.nanoid()}@test.com`,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const paymentMethods = await selectPaymentMethodsByCustomerId(
           customerWithNoPaymentMethods.id,
@@ -101,7 +103,9 @@ describe('selectPaymentMethodsByCustomerId', () => {
       customerId: otherCustomer.id,
       livemode: true,
       type: PaymentMethodType.Card,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const paymentMethods = await selectPaymentMethodsByCustomerId(
           customer.id,

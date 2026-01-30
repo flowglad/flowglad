@@ -1209,7 +1209,9 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 0,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateBillingPeriodItem(
             {
@@ -1297,8 +1299,10 @@ describe('billingRunHelpers', async () => {
         customerId: customer.id,
         organizationId: organization.id,
         priceId: staticPrice.id,
-      })(
-        // Create some initial line items
+      })
+
+      // Create some initial line items
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const initialLineItems =
             billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts(
@@ -1454,7 +1458,9 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 0,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateBillingPeriodItem(
             {
@@ -1887,10 +1893,12 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         subscriptionId: billingPeriod.subscriptionId,
         paymentMethodId: paymentMethod.id,
-      })(
-        // Remove Stripe IDs - this should NOT cause failure when amountToCharge is 0
-        // This is the key difference from the previous test: we're verifying that
-        // the amountToCharge <= 0 guard comes BEFORE Stripe ID validation
+      })
+
+      // Remove Stripe IDs - this should NOT cause failure when amountToCharge is 0
+      // This is the key difference from the previous test: we're verifying that
+      // the amountToCharge <= 0 guard comes BEFORE Stripe ID validation
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updatePaymentMethod(
             {
@@ -2023,8 +2031,10 @@ describe('billingRunHelpers', async () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         claimedByBillingRunId: null, // Explicitly unclaimed
-      })(
-        // Verify it's picked up by tabulation
+      })
+
+      // Verify it's picked up by tabulation
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const { rawOutstandingUsageCosts } =
             await tabulateOutstandingUsageCosts(
@@ -2311,7 +2321,9 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await tabulateOutstandingUsageCosts(
             subscription.id,
@@ -2334,7 +2346,9 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const ledgerTransaction = await setupLedgerTransaction({
             organizationId: organization.id,
@@ -2410,7 +2424,9 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const ledgerTransaction = await setupLedgerTransaction({
             organizationId: organization.id,
@@ -2589,7 +2605,9 @@ describe('billingRunHelpers', async () => {
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await tabulateOutstandingUsageCosts(
             subscription.id,
@@ -2659,7 +2677,9 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const billingPeriodEndDate = new Date()
           const billingPeriod = await setupBillingPeriod({

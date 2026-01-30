@@ -184,7 +184,9 @@ describe('Usage Credit Methods', () => {
         creditType: UsageCreditType.Grant,
         livemode: true,
         issuedAmount: 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const pricingModelId =
             await derivePricingModelIdFromUsageCredit(
@@ -234,7 +236,9 @@ describe('Usage Credit Methods', () => {
         creditType: UsageCreditType.Grant,
         livemode: true,
         issuedAmount: 2000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const pricingModelIdMap =
             await pricingModelIdsForUsageCredits(
@@ -274,7 +278,9 @@ describe('Usage Credit Methods', () => {
         creditType: UsageCreditType.Grant,
         livemode: true,
         issuedAmount: 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const nonExistentUsageCreditId = `uc_${core.nanoid()}`
           const pricingModelIdMap =

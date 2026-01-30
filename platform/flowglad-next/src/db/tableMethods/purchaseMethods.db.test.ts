@@ -528,7 +528,9 @@ describe('selectPurchasesByCustomerId', () => {
       organizationId: organization.id,
       email: `empty+${core.nanoid()}@test.com`,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const purchases = await selectPurchasesByCustomerId(
           customerWithNoPurchases.id,
@@ -553,7 +555,9 @@ describe('selectPurchasesByCustomerId', () => {
       organizationId: organization.id,
       customerId: otherCustomer.id,
       priceId: price.id,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const purchases = await selectPurchasesByCustomerId(
           customer.id,

@@ -201,8 +201,10 @@ describe('createSubscriptionWorkflow', async () => {
     const newPaymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
       customerId: newCustomer.id,
-    })(
-      // Create a past subscription that is now canceled for newCustomer
+    })
+
+    // Create a past subscription that is now canceled for newCustomer
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const stripeSetupIntentIdPast = `setupintent_past_${core.nanoid()}`
         const { subscription: subPast } = (

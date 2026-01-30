@@ -268,52 +268,50 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           sub.status === SubscriptionStatus.Active && !sub.isFreePlan
       )
       expect(activePaidSubscriptions).toHaveLength(1)
-      const newSubscriptionId = activePaidSubscriptions[0]
-        .id(
-          // Verify the upgrade was processed correctly
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Check that the free subscription was canceled with the correct reason
-              const canceledFreeSubscription = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(canceledFreeSubscription.status).toBe(
-                SubscriptionStatus.Canceled
-              )
-              expect(
-                canceledFreeSubscription.cancellationReason
-              ).toBe(CancellationReason.UpgradedToPaid)
-              expect(
-                canceledFreeSubscription.replacedBySubscriptionId
-              ).toBe(newSubscriptionId!)
-              expect(typeof canceledFreeSubscription.canceledAt).toBe(
-                'number'
-              )
+      const newSubscriptionId = activePaidSubscriptions[0].id
 
-              // Check that the new paid subscription was created correctly
-              const newPaidSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId,
-                  transaction
-                )
-              ).unwrap()
-              expect(newPaidSubscription.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(newPaidSubscription.isFreePlan).toBe(false)
-              expect(newPaidSubscription.priceId).toBe(paidPrice.id)
-              expect(newPaidSubscription.customerId).toBe(customer.id)
-              expect(newPaidSubscription.organizationId).toBe(
-                organization.id
-              )
-              return Result.ok(undefined)
-            }
+      // Verify the upgrade was processed correctly
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Check that the free subscription was canceled with the correct reason
+          const canceledFreeSubscription = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(canceledFreeSubscription.status).toBe(
+            SubscriptionStatus.Canceled
           )
-        )
-        .unwrap()
+          expect(canceledFreeSubscription.cancellationReason).toBe(
+            CancellationReason.UpgradedToPaid
+          )
+          expect(
+            canceledFreeSubscription.replacedBySubscriptionId
+          ).toBe(newSubscriptionId!)
+          expect(typeof canceledFreeSubscription.canceledAt).toBe(
+            'number'
+          )
+
+          // Check that the new paid subscription was created correctly
+          const newPaidSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId,
+              transaction
+            )
+          ).unwrap()
+          expect(newPaidSubscription.status).toBe(
+            SubscriptionStatus.Active
+          )
+          expect(newPaidSubscription.isFreePlan).toBe(false)
+          expect(newPaidSubscription.priceId).toBe(paidPrice.id)
+          expect(newPaidSubscription.customerId).toBe(customer.id)
+          expect(newPaidSubscription.organizationId).toBe(
+            organization.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should preserve customer data during upgrade', async () => {
@@ -365,42 +363,38 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          // Verify customer data preservation
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const newSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId!,
-                  transaction
-                )
-              ).unwrap()
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // Customer ID should remain the same
-              expect(newSubscription.customerId).toBe(customer.id)
-              expect(newSubscription.organizationId).toBe(
-                organization.id
-              )
+      // Verify customer data preservation
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const newSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId!,
+              transaction
+            )
+          ).unwrap()
 
-              // Payment method should be associated
-              expect(
-                typeof newSubscription.defaultPaymentMethodId
-              ).toBe('string')
-              expect(
-                newSubscription.defaultPaymentMethodId!.length
-              ).toBeGreaterThan(0)
+          // Customer ID should remain the same
+          expect(newSubscription.customerId).toBe(customer.id)
+          expect(newSubscription.organizationId).toBe(organization.id)
 
-              // The new subscription should be properly configured
-              expect(newSubscription.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(newSubscription.isFreePlan).toBe(false)
-              return Result.ok(undefined)
-            }
+          // Payment method should be associated
+          expect(typeof newSubscription.defaultPaymentMethodId).toBe(
+            'string'
           )
-        )
-        .unwrap()
+          expect(
+            newSubscription.defaultPaymentMethodId!.length
+          ).toBeGreaterThan(0)
+
+          // The new subscription should be properly configured
+          expect(newSubscription.status).toBe(
+            SubscriptionStatus.Active
+          )
+          expect(newSubscription.isFreePlan).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -452,41 +446,37 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const newSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId!,
-                  transaction
-                )
-              ).unwrap()
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // Should be a normal paid subscription
-              expect(newSubscription.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(newSubscription.isFreePlan).toBe(false)
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const newSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId!,
+              transaction
+            )
+          ).unwrap()
 
-              // The old free subscription should not be linked
-              const oldSubscription = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(
-                oldSubscription.replacedBySubscriptionId
-              ).toBeNull()
-              expect(oldSubscription.cancellationReason).toBe(
-                CancellationReason.CustomerRequest
-              )
-              return Result.ok(undefined)
-            }
+          // Should be a normal paid subscription
+          expect(newSubscription.status).toBe(
+            SubscriptionStatus.Active
           )
-        )
-        .unwrap()
+          expect(newSubscription.isFreePlan).toBe(false)
+
+          // The old free subscription should not be linked
+          const oldSubscription = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(oldSubscription.replacedBySubscriptionId).toBeNull()
+          expect(oldSubscription.cancellationReason).toBe(
+            CancellationReason.CustomerRequest
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should cancel remaining free subscription when upgrading after one was already canceled', async () => {
@@ -502,8 +492,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         isFreePlan: true,
         currentBillingPeriodStart: now,
         currentBillingPeriodEnd: now + 30 * 24 * 60 * 60 * 1000,
-      })(
-        // First cancel the older free subscription to avoid multiple active subscriptions
+      })
+
+      // First cancel the older free subscription to avoid multiple active subscriptions
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateSubscription(
             {
@@ -548,49 +540,47 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // The second free subscription should be canceled with upgrade reason
-              const canceledSubscription = (
-                await selectSubscriptionById(
-                  secondFreeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(canceledSubscription.status).toBe(
-                SubscriptionStatus.Canceled
-              )
-              expect(canceledSubscription.cancellationReason).toBe(
-                CancellationReason.UpgradedToPaid
-              )
-              expect(
-                canceledSubscription.replacedBySubscriptionId
-              ).toBe(newSubscriptionId!)
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // The older free subscription should remain canceled with original reason
-              const olderSubscription = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(olderSubscription.status).toBe(
-                SubscriptionStatus.Canceled
-              )
-              expect(olderSubscription.cancellationReason).toBe(
-                CancellationReason.CustomerRequest
-              )
-              // Should not be linked to the upgrade since it was already canceled
-              expect(
-                olderSubscription.replacedBySubscriptionId
-              ).toBeNull()
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // The second free subscription should be canceled with upgrade reason
+          const canceledSubscription = (
+            await selectSubscriptionById(
+              secondFreeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(canceledSubscription.status).toBe(
+            SubscriptionStatus.Canceled
           )
-        )
-        .unwrap()
+          expect(canceledSubscription.cancellationReason).toBe(
+            CancellationReason.UpgradedToPaid
+          )
+          expect(canceledSubscription.replacedBySubscriptionId).toBe(
+            newSubscriptionId!
+          )
+
+          // The older free subscription should remain canceled with original reason
+          const olderSubscription = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(olderSubscription.status).toBe(
+            SubscriptionStatus.Canceled
+          )
+          expect(olderSubscription.cancellationReason).toBe(
+            CancellationReason.CustomerRequest
+          )
+          // Should not be linked to the upgrade since it was already canceled
+          expect(
+            olderSubscription.replacedBySubscriptionId
+          ).toBeNull()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should prevent creating duplicate paid subscriptions', async () => {
@@ -748,60 +738,56 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
         })
-      )
-        .unwrap()(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Free subscription should be canceled
-              const canceledFreeSubscription = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(canceledFreeSubscription.status).toBe(
-                SubscriptionStatus.Canceled
-              )
-              expect(
-                canceledFreeSubscription.cancellationReason
-              ).toBe(CancellationReason.UpgradedToPaid)
-              expect(
-                canceledFreeSubscription.replacedBySubscriptionId
-              ).toBe(newSubscriptionId!)
+      ).unwrap()
 
-              // Existing paid subscription should remain active and unchanged
-              const existingPaidSub = (
-                await selectSubscriptionById(
-                  existingPaidSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(existingPaidSub.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(existingPaidSub.isFreePlan).toBe(false)
-              expect(existingPaidSub.cancellationReason).toBeNull()
-              expect(
-                existingPaidSub.replacedBySubscriptionId
-              ).toBeNull()
-
-              // New paid subscription should be created
-              const newPaidSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId!,
-                  transaction
-                )
-              ).unwrap()
-              expect(newSubscriptionId).toBe(newPaidSubscription.id)
-              expect(newPaidSubscription.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(newPaidSubscription.isFreePlan).toBe(false)
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Free subscription should be canceled
+          const canceledFreeSubscription = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(canceledFreeSubscription.status).toBe(
+            SubscriptionStatus.Canceled
           )
-        )
-        .unwrap()
+          expect(canceledFreeSubscription.cancellationReason).toBe(
+            CancellationReason.UpgradedToPaid
+          )
+          expect(
+            canceledFreeSubscription.replacedBySubscriptionId
+          ).toBe(newSubscriptionId!)
+
+          // Existing paid subscription should remain active and unchanged
+          const existingPaidSub = (
+            await selectSubscriptionById(
+              existingPaidSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(existingPaidSub.status).toBe(
+            SubscriptionStatus.Active
+          )
+          expect(existingPaidSub.isFreePlan).toBe(false)
+          expect(existingPaidSub.cancellationReason).toBeNull()
+          expect(existingPaidSub.replacedBySubscriptionId).toBeNull()
+
+          // New paid subscription should be created
+          const newPaidSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId!,
+              transaction
+            )
+          ).unwrap()
+          expect(newSubscriptionId).toBe(newPaidSubscription.id)
+          expect(newPaidSubscription.status).toBe(
+            SubscriptionStatus.Active
+          )
+          expect(newPaidSubscription.isFreePlan).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should prevent creating a second free subscription', async () => {
@@ -838,46 +824,42 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           }
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Original free subscription should remain active and unchanged
-              const originalFreeSubscription = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(originalFreeSubscription.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(
-                originalFreeSubscription.cancellationReason
-              ).toBeNull()
-              expect(
-                originalFreeSubscription.replacedBySubscriptionId
-              ).toBeNull()
+      ).unwrap()
 
-              // Should still have only one free subscription (the original)
-              const allSubscriptions = await selectSubscriptions(
-                { customerId: customer.id },
-                transaction
-              )
-              const freeSubscriptions = allSubscriptions.filter(
-                (sub) =>
-                  sub.isFreePlan === true &&
-                  sub.status === SubscriptionStatus.Active
-              )
-              expect(freeSubscriptions.length).toBe(1)
-              expect(freeSubscriptions[0].id).toBe(
-                freeSubscription.id
-              )
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Original free subscription should remain active and unchanged
+          const originalFreeSubscription = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(originalFreeSubscription.status).toBe(
+            SubscriptionStatus.Active
           )
-        )
-        .unwrap()
+          expect(
+            originalFreeSubscription.cancellationReason
+          ).toBeNull()
+          expect(
+            originalFreeSubscription.replacedBySubscriptionId
+          ).toBeNull()
+
+          // Should still have only one free subscription (the original)
+          const allSubscriptions = await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
+          )
+          const freeSubscriptions = allSubscriptions.filter(
+            (sub) =>
+              sub.isFreePlan === true &&
+              sub.status === SubscriptionStatus.Active
+          )
+          expect(freeSubscriptions.length).toBe(1)
+          expect(freeSubscriptions[0].id).toBe(freeSubscription.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -937,29 +919,27 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       ).unwrap()
 
       // Should be the same subscription
-      expect(secondSubscriptionId)
-        .toBe(firstSubscriptionId)(
-          // Verify no duplicate subscriptions were created
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const allSubscriptions = await selectSubscriptions(
-                { customerId: customer.id },
-                transaction
-              )
-              const activePaidSubscriptions = allSubscriptions.filter(
-                (sub) =>
-                  sub.status === SubscriptionStatus.Active &&
-                  !sub.isFreePlan
-              )
-              expect(activePaidSubscriptions.length).toBe(1)
-              expect(activePaidSubscriptions[0].id).toBe(
-                firstSubscriptionId!
-              )
-              return Result.ok(undefined)
-            }
+      expect(secondSubscriptionId).toBe(firstSubscriptionId)
+
+      // Verify no duplicate subscriptions were created
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const allSubscriptions = await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
           )
-        )
-        .unwrap()
+          const activePaidSubscriptions = allSubscriptions.filter(
+            (sub) =>
+              sub.status === SubscriptionStatus.Active &&
+              !sub.isFreePlan
+          )
+          expect(activePaidSubscriptions.length).toBe(1)
+          expect(activePaidSubscriptions[0].id).toBe(
+            firstSubscriptionId!
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should prevent concurrent upgrade attempts', async () => {
@@ -1106,40 +1086,38 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Free trial subscription should be canceled
-              const canceledFreeSubscription = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(canceledFreeSubscription.status).toBe(
-                SubscriptionStatus.Canceled
-              )
-              expect(
-                canceledFreeSubscription.cancellationReason
-              ).toBe(CancellationReason.UpgradedToPaid)
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // New paid subscription should start immediately without trial
-              const newPaidSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId!,
-                  transaction
-                )
-              ).unwrap()
-              expect(newPaidSubscription.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(newPaidSubscription.isFreePlan).toBe(false)
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Free trial subscription should be canceled
+          const canceledFreeSubscription = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(canceledFreeSubscription.status).toBe(
+            SubscriptionStatus.Canceled
           )
-        )
-        .unwrap()
+          expect(canceledFreeSubscription.cancellationReason).toBe(
+            CancellationReason.UpgradedToPaid
+          )
+
+          // New paid subscription should start immediately without trial
+          const newPaidSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId!,
+              transaction
+            )
+          ).unwrap()
+          expect(newPaidSubscription.status).toBe(
+            SubscriptionStatus.Active
+          )
+          expect(newPaidSubscription.isFreePlan).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should handle upgrade when free subscription is already canceled', async () => {
@@ -1189,44 +1167,42 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Free subscription should remain canceled with original reason
-              const stillCanceledSubscription = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(stillCanceledSubscription.status).toBe(
-                SubscriptionStatus.Canceled
-              )
-              expect(
-                stillCanceledSubscription.cancellationReason
-              ).toBe(CancellationReason.CustomerRequest)
-              // Should not have been linked since it was already canceled
-              expect(
-                stillCanceledSubscription.replacedBySubscriptionId
-              ).toBeNull()
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // New paid subscription should be created normally
-              const newPaidSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId!,
-                  transaction
-                )
-              ).unwrap()
-              expect(newPaidSubscription.status).toBe(
-                SubscriptionStatus.Active
-              )
-              expect(newPaidSubscription.isFreePlan).toBe(false)
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Free subscription should remain canceled with original reason
+          const stillCanceledSubscription = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(stillCanceledSubscription.status).toBe(
+            SubscriptionStatus.Canceled
           )
-        )
-        .unwrap()
+          expect(stillCanceledSubscription.cancellationReason).toBe(
+            CancellationReason.CustomerRequest
+          )
+          // Should not have been linked since it was already canceled
+          expect(
+            stillCanceledSubscription.replacedBySubscriptionId
+          ).toBeNull()
+
+          // New paid subscription should be created normally
+          const newPaidSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId!,
+              transaction
+            )
+          ).unwrap()
+          expect(newPaidSubscription.status).toBe(
+            SubscriptionStatus.Active
+          )
+          expect(newPaidSubscription.isFreePlan).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -1269,39 +1245,37 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // New subscription should have proper billing period dates
-              const newSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId!,
-                  transaction
-                )
-              ).unwrap()
-              expect(
-                typeof newSubscription.currentBillingPeriodStart
-              ).toBe('number')
-              expect(
-                typeof newSubscription.currentBillingPeriodEnd
-              ).toBe('number')
-              expect(
-                newSubscription.currentBillingPeriodEnd
-              ).toBeGreaterThan(Date.now())
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // Billing period end should be in the future
-              expect(
-                newSubscription.currentBillingPeriodEnd!
-              ).toBeGreaterThan(Date.now())
-
-              // The new subscription should have the correct price
-              expect(newSubscription.priceId).toBe(paidPrice.id)
-              return Result.ok(undefined)
-            }
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // New subscription should have proper billing period dates
+          const newSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId!,
+              transaction
+            )
+          ).unwrap()
+          expect(
+            typeof newSubscription.currentBillingPeriodStart
+          ).toBe('number')
+          expect(typeof newSubscription.currentBillingPeriodEnd).toBe(
+            'number'
           )
-        )
-        .unwrap()
+          expect(
+            newSubscription.currentBillingPeriodEnd
+          ).toBeGreaterThan(Date.now())
+
+          // Billing period end should be in the future
+          expect(
+            newSubscription.currentBillingPeriodEnd!
+          ).toBeGreaterThan(Date.now())
+
+          // The new subscription should have the correct price
+          expect(newSubscription.priceId).toBe(paidPrice.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should transfer usage credits during upgrade if applicable', async () => {
@@ -1352,28 +1326,26 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const newSubscription = (
-                await selectSubscriptionById(
-                  newSubscriptionId!,
-                  transaction
-                )
-              ).unwrap()
-              // Verify the new subscription was created
-              expect(typeof newSubscription).toBe('object')
-              expect(newSubscription.customerId).toBe(customer.id)
-              expect(newSubscription.isFreePlan).toBe(false)
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // Note: Actual credit transfer logic would need to be implemented
-              // This test just verifies the upgrade completes successfully
-              return Result.ok(undefined)
-            }
-          )
-        )
-        .unwrap()
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const newSubscription = (
+            await selectSubscriptionById(
+              newSubscriptionId!,
+              transaction
+            )
+          ).unwrap()
+          // Verify the new subscription was created
+          expect(typeof newSubscription).toBe('object')
+          expect(newSubscription.customerId).toBe(customer.id)
+          expect(newSubscription.isFreePlan).toBe(false)
+
+          // Note: Actual credit transfer logic would need to be implemented
+          // This test just verifies the upgrade completes successfully
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -1408,34 +1380,30 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof newSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Query active subscriptions using the helper function
-              const activeSubscriptions =
-                await selectActiveSubscriptionsForCustomer(
-                  customer.id,
-                  transaction
-                )
+      expect(typeof newSubscriptionId).toBe('string')
 
-              // Should only return the new paid subscription, not the canceled free one
-              expect(activeSubscriptions.length).toBe(1)
-              expect(activeSubscriptions[0].id).toBe(
-                newSubscriptionId!
-              )
-              expect(activeSubscriptions[0].isFreePlan).toBe(false)
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Query active subscriptions using the helper function
+          const activeSubscriptions =
+            await selectActiveSubscriptionsForCustomer(
+              customer.id,
+              transaction
+            )
 
-              // The canceled free subscription should not be in the results
-              const hasCanceledFree = activeSubscriptions.some(
-                (sub) => sub.id === freeSubscription.id
-              )
-              expect(hasCanceledFree).toBe(false)
-              return Result.ok(undefined)
-            }
+          // Should only return the new paid subscription, not the canceled free one
+          expect(activeSubscriptions.length).toBe(1)
+          expect(activeSubscriptions[0].id).toBe(newSubscriptionId!)
+          expect(activeSubscriptions[0].isFreePlan).toBe(false)
+
+          // The canceled free subscription should not be in the results
+          const hasCanceledFree = activeSubscriptions.some(
+            (sub) => sub.id === freeSubscription.id
           )
-        )
-        .unwrap()
+          expect(hasCanceledFree).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should follow upgrade chain in selectCurrentSubscriptionForCustomer', async () => {
@@ -1468,41 +1436,37 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         })
       ).unwrap()
-      expect(typeof paidSubscriptionId)
-        .toBe('string')(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Query current subscription - should return the latest in the chain
-              const currentSubscription =
-                await selectCurrentSubscriptionForCustomer(
-                  customer.id,
-                  transaction
-                )
+      expect(typeof paidSubscriptionId).toBe('string')
 
-              // Should return the paid subscription, not the canceled free one
-              expect(currentSubscription).toMatchObject({
-                id: paidSubscriptionId,
-              })
-              expect(currentSubscription!.id).toBe(
-                paidSubscriptionId!
-              )
-              expect(currentSubscription!.isFreePlan).toBe(false)
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Query current subscription - should return the latest in the chain
+          const currentSubscription =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
 
-              // Verify the chain is set up correctly
-              const freeSubscriptionRecord = (
-                await selectSubscriptionById(
-                  freeSubscription.id,
-                  transaction
-                )
-              ).unwrap()
-              expect(
-                freeSubscriptionRecord.replacedBySubscriptionId
-              ).toBe(paidSubscriptionId!)
-              return Result.ok(undefined)
-            }
-          )
-        )
-        .unwrap()
+          // Should return the paid subscription, not the canceled free one
+          expect(currentSubscription).toMatchObject({
+            id: paidSubscriptionId,
+          })
+          expect(currentSubscription!.id).toBe(paidSubscriptionId!)
+          expect(currentSubscription!.isFreePlan).toBe(false)
+
+          // Verify the chain is set up correctly
+          const freeSubscriptionRecord = (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
+          expect(
+            freeSubscriptionRecord.replacedBySubscriptionId
+          ).toBe(paidSubscriptionId!)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -1894,8 +1858,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
         // No payment method - undefined by default
-      })(
-        // Update the subscription to have the stripeSetupIntentId
+      })
+
+      // Update the subscription to have the stripeSetupIntentId
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateSubscription(
             {

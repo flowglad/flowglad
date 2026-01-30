@@ -166,7 +166,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
         isFreePlan: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // need to update defaultPrice as setupOrg create default price at $10
@@ -239,7 +241,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
         isFreePlan: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // need to update defaultPrice as setupOrg create default price at $10
@@ -312,7 +316,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
         isFreePlan: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateOrganization(
@@ -358,7 +364,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         priceId: defaultPrice.id,
         status: SubscriptionStatus.Canceled,
         isFreePlan: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await reassignDefaultSubscription(
@@ -410,7 +418,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
         isFreePlan: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await reassignDefaultSubscription(
@@ -469,7 +479,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
         isFreePlan: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateProduct(
@@ -530,7 +542,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
         isFreePlan: false,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await transaction
@@ -598,7 +612,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         subscriptionId: subscription.id,
         startDate: periodStart,
         endDate: periodEnd,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // need to update defaultPrice as setupOrg create default price at $10
@@ -703,7 +719,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         customerId: customer.id,
         priceId: secondPrice.id,
         status: SubscriptionStatus.Active,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateOrganization(
@@ -2547,8 +2565,10 @@ describe('Subscription Cancellation Test Suite', async () => {
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
         customerId: customer.id,
-      })(
-        // Ensure the price is free (unitPrice = 0)
+      })
+
+      // Ensure the price is free (unitPrice = 0)
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updatePrice(
@@ -2574,7 +2594,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         subscriptionId: freeSubscription.id,
         startDate: Date.now() - 60 * 60 * 1000,
         endDate: Date.now() + 60 * 60 * 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await cancelSubscriptionProcedureTransaction(
@@ -2689,7 +2711,9 @@ describe('Subscription Cancellation Test Suite', async () => {
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
         customerId: customer.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updatePrice(
@@ -2715,7 +2739,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         subscriptionId: freeSubscription.id,
         startDate: Date.now() - 60 * 60 * 1000,
         endDate: Date.now() + 60 * 60 * 1000,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await cancelSubscriptionProcedureTransaction(

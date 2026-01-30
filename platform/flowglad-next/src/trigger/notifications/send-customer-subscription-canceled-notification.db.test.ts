@@ -75,8 +75,10 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
     // Create a customer and then update to remove email
     const customerWithEmail = await setupCustomer({
       organizationId: organization.id,
-    })(
-      // Update customer to have empty email (null is not allowed by schema)
+    })
+
+    // Update customer to have empty email (null is not allowed by schema)
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await updateCustomer(
           { id: customerWithEmail.id, email: '' },

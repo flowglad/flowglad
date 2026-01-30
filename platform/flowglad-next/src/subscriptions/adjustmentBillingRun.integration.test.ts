@@ -176,8 +176,10 @@ describeIfStripeKey(
         status: BillingRunStatus.Scheduled,
         isAdjustment: true,
         livemode: false,
-      })(
-        // Remove Stripe customer ID
+      })
+
+      // Remove Stripe customer ID
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateCustomer(
             {
@@ -223,8 +225,10 @@ describeIfStripeKey(
         status: BillingRunStatus.Scheduled,
         isAdjustment: true,
         livemode: false,
-      })(
-        // Remove Stripe payment method ID
+      })
+
+      // Remove Stripe payment method ID
+      ;(
         await adminTransactionWithResult(
           async ({
             transaction,

@@ -43,7 +43,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         name: 'Meter A',
         pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = (
@@ -103,7 +105,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         name: 'Old Name',
         pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const updated = await updateUsageMeter(
@@ -150,7 +154,9 @@ describe('usageMeterMethods', () => {
         organizationId: otherOrg.organization.id,
         name: 'Other',
         pricingModelId: otherOrg.pricingModel.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeters(
@@ -178,7 +184,9 @@ describe('usageMeterMethods', () => {
         name: 'B',
         pricingModelId,
         slug: 'slug-b',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeters(
@@ -224,7 +232,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         name: 'E1',
         pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersCursorPaginated({
@@ -256,7 +266,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         name: 'New',
         pricingModelId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersCursorPaginated({
@@ -305,7 +317,9 @@ describe('usageMeterMethods', () => {
         name: 'Test Meter',
         pricingModelId: defaultPricingModelId,
         slug: 'test-meter',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeterBySlugAndCustomerId(
@@ -331,7 +345,9 @@ describe('usageMeterMethods', () => {
         name: 'Test Meter',
         pricingModelId: defaultPricingModelId,
         slug: 'test-meter',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeterBySlugAndCustomerId(
@@ -398,7 +414,9 @@ describe('usageMeterMethods', () => {
         pricingModelId,
         name: 'API Calls Meter',
         slug: 'api-calls-meter',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           // Search by name (case-insensitive)
@@ -448,7 +466,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         pricingModelId,
         name: 'Test Meter',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const resultEmpty = await selectUsageMetersCursorPaginated({
@@ -491,7 +511,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         pricingModelId,
         name: 'Test Meter 2',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const pricingModelIdMap =
@@ -530,7 +552,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         pricingModelId,
         name: 'Test Meter',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const nonExistentUsageMeterId = `um_nonexistent`
@@ -566,7 +590,9 @@ describe('usageMeterMethods', () => {
         name: 'Storage',
         pricingModelId,
         slug: 'storage',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersByPricingModelId(
@@ -593,7 +619,9 @@ describe('usageMeterMethods', () => {
       // Create a pricing model with no meters
       const emptyPricingModel = await setupPricingModel({
         organizationId,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersByPricingModelId(
@@ -623,7 +651,9 @@ describe('usageMeterMethods', () => {
         organizationId,
         name: 'Other PM Meter',
         pricingModelId: otherPricingModel.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersByPricingModelId(

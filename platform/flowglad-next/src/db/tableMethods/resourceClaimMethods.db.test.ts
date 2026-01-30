@@ -255,7 +255,9 @@ describe('resourceClaimMethods', () => {
         pricingModelId: pricingModel.id,
         slug: 'projects',
         name: 'Projects',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // Create claims for the first resource
           await insertResourceClaim(
@@ -608,7 +610,9 @@ describe('resourceClaimMethods', () => {
         pricingModelId: pricingModel.id,
         slug: 'teams',
         name: 'Teams',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // Create 2 claims for resource 1
           await insertResourceClaim(
@@ -695,7 +699,9 @@ describe('resourceClaimMethods', () => {
         pricingModelId: pricingModel.id,
         slug: 'projects',
         name: 'Projects',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // Create claims only for resource 1
           await insertResourceClaim(

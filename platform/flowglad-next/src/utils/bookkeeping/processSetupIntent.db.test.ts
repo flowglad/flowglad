@@ -489,7 +489,9 @@ describe('Process setup intent', async () => {
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await processAddPaymentMethodSetupIntentSucceeded(
             addPaymentMethodSetupIntent,
@@ -623,8 +625,9 @@ describe('Process setup intent', async () => {
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
-        // Execute the function
+      })
+      // Execute the function
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await processAddPaymentMethodSetupIntentSucceeded(
             addPaymentMethodSetupIntent,
@@ -704,7 +707,9 @@ describe('Process setup intent', async () => {
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await processAddPaymentMethodSetupIntentSucceeded(
             addPaymentMethodSetupIntent,

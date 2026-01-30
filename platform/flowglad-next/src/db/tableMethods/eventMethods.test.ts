@@ -216,7 +216,9 @@ describe('pricingModelIdsForEventPayloads', () => {
       email: `test2+${Date.now()}@test.com`,
       livemode: true,
       pricingModelId: pricingModel.id,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const result = await pricingModelIdsForEventPayloads(
           [
@@ -235,7 +237,9 @@ describe('pricingModelIdsForEventPayloads', () => {
   })
 
   it('does not include non-existent IDs in the result map', async () => {
-    const nonExistentId = `cust_${core.nanoid()}`(
+    const nonExistentId = `cust_${core.nanoid()}`
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         const result = await pricingModelIdsForEventPayloads(
           [

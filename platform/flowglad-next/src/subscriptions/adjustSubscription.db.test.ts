@@ -255,7 +255,9 @@ describe('adjustSubscription Integration Tests', async () => {
         customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -377,7 +379,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 0,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const result = await adjustSubscription(
             {
@@ -442,7 +446,9 @@ describe('adjustSubscription Integration Tests', async () => {
           expiredAt: null,
           type: SubscriptionItemType.Static,
         },
-      ](
+      ]
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -514,7 +520,9 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newItems: SubscriptionItem.Upsert[] = [
@@ -559,7 +567,9 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const newItems: SubscriptionItem.Upsert[] = [
             {
@@ -603,7 +613,9 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const newItems: SubscriptionItem.Upsert[] = [
             {
@@ -647,7 +659,9 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newItems: SubscriptionItem.Upsert[] = [
@@ -703,7 +717,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -762,7 +778,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -843,7 +861,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -919,7 +939,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 2',
         quantity: 1,
         unitPrice: 200,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1012,7 +1034,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Original Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1081,7 +1105,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1150,7 +1176,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1209,7 +1237,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1273,7 +1303,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1349,7 +1381,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Premium Plan',
         quantity: 1,
         unitPrice: 4999,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const start = Date.now() - 5 * 24 * 60 * 60 * 1000
@@ -1457,7 +1491,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1520,7 +1556,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -1591,7 +1629,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
@@ -1687,7 +1727,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Current Plan',
         quantity: 1,
         unitPrice: 1000,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const futureDate = Date.now() + 7 * 24 * 60 * 60 * 1000
@@ -1775,7 +1817,9 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 4999,
         priceId: price.id,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
@@ -1957,7 +2001,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -2018,7 +2064,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item Zero',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newItems: SubscriptionItem.Upsert[] = [
@@ -2625,7 +2673,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -2682,7 +2732,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Premium Plan',
         quantity: 1,
         unitPrice: 4999,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -2779,7 +2831,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -2860,7 +2914,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -2920,7 +2976,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Premium Plan',
         quantity: 1,
         unitPrice: 4999,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
@@ -3013,7 +3071,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Plan A',
         quantity: 1,
         unitPrice: 1000,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -3108,7 +3168,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -3170,7 +3232,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -3233,7 +3297,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -3301,7 +3367,9 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      const uniqueSlug = `premium-mixed-${Date.now()}`(
+      const uniqueSlug = `premium-mixed-${Date.now()}`
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const slugPrice = await insertPrice(
@@ -3431,7 +3499,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Existing Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -3498,7 +3568,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -3578,7 +3650,9 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -3662,7 +3736,9 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 0,
         priceId: price.id,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const newItems: SubscriptionItem.Upsert[] = [
@@ -3789,7 +3865,9 @@ describe('adjustSubscription Integration Tests', async () => {
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: 100,
-      })(
+      })
+
+      ;(
         await comprehensiveAdminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const adjustmentDate = Date.now()
@@ -4088,8 +4166,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 5,
-        })(
-          // Claim 3 resources before adjustment
+        })
+        // Claim 3 resources before adjustment
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -4135,7 +4214,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: premiumResourceFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -4256,8 +4337,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 10,
-        })(
-          // Claim 8 resources
+        })
+        // Claim 8 resources
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -4303,7 +4385,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: limitedResourceFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -4420,8 +4504,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 5,
-        })(
-          // Claim 3 resources
+        })
+        // Claim 3 resources
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -4467,7 +4552,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: premiumResourceFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -4591,8 +4678,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 10,
-        })(
-          // Claim 3 resources (less than new capacity)
+        })
+        // Claim 3 resources (less than new capacity)
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -4638,7 +4726,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: basicResourceFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -4759,8 +4849,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 10,
-        })(
-          // Claim 5 resources
+        })
+        // Claim 5 resources
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -4806,7 +4897,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: tinyResourceFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -4931,8 +5024,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 10,
-        })(
-          // Claim 5 resources
+        })
+        // Claim 5 resources
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -4985,7 +5079,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: tinyProduct.id,
           featureId: tinyResourceFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -5092,8 +5188,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 10,
-        })(
-          // Claim 3 resources (less than new capacity)
+        })
+        // Claim 3 resources (less than new capacity)
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -5146,7 +5243,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: basicProduct.id,
           featureId: basicResourceFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -5326,8 +5425,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 2,
-        })(
-          // Claim 4 resources (uses capacity from both items)
+        })
+        // Claim 4 resources (uses capacity from both items)
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -5509,8 +5609,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 2,
-        })(
-          // Claim 2 resources (can be satisfied by base plan alone)
+        })
+        // Claim 2 resources (can be satisfied by base plan alone)
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -5650,8 +5751,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 5,
-        })(
-          // Claim 2 resources before adjustment
+        })
+        // Claim 2 resources before adjustment
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -5682,11 +5784,11 @@ describe('adjustSubscription Integration Tests', async () => {
           livemode: subscription.livemode,
           isDefault: false,
           currency: organization.defaultCurrency,
-        })(
-          // Note: The new price is for the same product, and the product already
-          // has a seats feature. We intentionally do NOT attach a second seats
-          // feature, otherwise capacity would double (5 + 5) after adjustment.
-
+        })
+        // Note: The new price is for the same product, and the product already
+        // has a seats feature. We intentionally do NOT attach a second seats
+        // feature, otherwise capacity would double (5 + 5) after adjustment.
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -5825,8 +5927,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 5,
-        })(
-          // Claim 3 resources before adjustment
+        })
+        // Claim 3 resources before adjustment
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -5857,11 +5960,11 @@ describe('adjustSubscription Integration Tests', async () => {
           livemode: subscription.livemode,
           isDefault: false,
           currency: organization.defaultCurrency,
-        })(
-          // Note: The new price is for the same product, and the product already
-          // has a seats feature. We intentionally do NOT attach a second seats
-          // feature, otherwise capacity would double (5 + 5) after adjustment.
-
+        })
+        // Note: The new price is for the same product, and the product already
+        // has a seats feature. We intentionally do NOT attach a second seats
+        // feature, otherwise capacity would double (5 + 5) after adjustment.
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -6003,8 +6106,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 3,
-        })(
-          // Step 2: Claim 2 seats
+        })
+        // Step 2: Claim 2 seats
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -6050,7 +6154,9 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: downgradedFeature.id,
           organizationId: organization.id,
-        })(
+        })
+
+        ;(
           await comprehensiveAdminTransactionWithResult(
             async (ctx) => {
               const { transaction } = ctx
@@ -6192,8 +6298,9 @@ describe('adjustSubscription Integration Tests', async () => {
           resourceId: resource.id,
           pricingModelId: pricingModel.id,
           amount: 3,
-        })(
-          // Step 2: Claim 2 seats initially
+        })
+        // Step 2: Claim 2 seats initially
+        ;(
           await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
@@ -6242,184 +6349,176 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Set billing period to end in the future
-        const periodEnd =
-          Date.now() +
-          24 *
-            60 *
-            60 *
-            1000(
-              // 1 day from now
+        const periodEnd = Date.now() + 24 * 60 * 60 * 1000 // 1 day from now
 
-              await comprehensiveAdminTransactionWithResult(
-                async (ctx) => {
-                  const { transaction } = ctx
-                  await updateBillingPeriod(
-                    {
-                      id: billingPeriod.id,
-                      startDate: Date.now() - 10 * 60 * 1000,
-                      endDate: periodEnd,
-                      status: BillingPeriodStatus.Active,
-                    },
-                    transaction
-                  )
-
-                  // Step 3: Schedule end-of-period downgrade to 2 seats
-                  const newItems: SubscriptionItem.Upsert[] = [
-                    {
-                      subscriptionId: subscription.id,
-                      priceId: downgradedPrice.id,
-                      name: 'Downgraded Plan',
-                      quantity: 1,
-                      unitPrice: 500,
-                      livemode: subscription.livemode,
-                      createdAt: Date.now(),
-                      updatedAt: Date.now(),
-                      metadata: null,
-                      addedDate: periodEnd, // Scheduled for end of period
-                      externalId: null,
-                      type: SubscriptionItemType.Static,
-                      expiredAt: null,
-                    },
-                  ]
-
-                  await adjustSubscription(
-                    {
-                      id: subscription.id,
-                      adjustment: {
-                        newSubscriptionItems: newItems,
-                        timing:
-                          SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-                      },
-                    },
-                    organization,
-                    ctx
-                  )
-
-                  // Verify adjustment is scheduled (old items have expiredAt = periodEnd)
-                  const items = await selectSubscriptionItems(
-                    { subscriptionId: subscription.id },
-                    transaction
-                  )
-                  const oldItem = items.find(
-                    (i) => i.name === 'Initial Plan'
-                  )
-                  const newItem = items.find(
-                    (i) => i.name === 'Downgraded Plan'
-                  )
-
-                  expect(oldItem?.name).toBe('Initial Plan')
-                  expect(oldItem!.expiredAt).toBe(periodEnd)
-                  expect(newItem?.name).toBe('Downgraded Plan')
-                  expect(newItem!.addedDate).toBe(periodEnd)
-
-                  // During interim: Capacity shows OLD value (3) because old items are still active
-                  const interimUsage = await getResourceUsage(
-                    subscription.id,
-                    resource.id,
-                    transaction
-                  )
-                  expect(interimUsage.capacity).toBe(3) // Old capacity still active
-                  expect(interimUsage.claimed).toBe(2)
-                  expect(interimUsage.available).toBe(1)
-
-                  // Step 4: During interim period, claim a 3rd seat
-                  // This SUCCEEDS because validation uses currently active items (old capacity=3)
-                  const thirdClaimResult =
-                    await claimResourceTransaction(
-                      {
-                        organizationId: organization.id,
-                        customerId: customer.id,
-                        input: {
-                          resourceSlug: resource.slug,
-                          subscriptionId: subscription.id,
-                          externalIds: ['user-3'],
-                        },
-                      },
-                      transaction
-                    )
-                  expect(thirdClaimResult.claims.length).toBe(1)
-
-                  // Verify 3 claims now exist
-                  const claimsDuringInterim =
-                    await selectActiveResourceClaims(
-                      {
-                        subscriptionId: subscription.id,
-                        resourceId: resource.id,
-                      },
-                      transaction
-                    )
-                  expect(claimsDuringInterim.length).toBe(3)
-
-                  // Usage during interim shows all 3 claimed against old capacity
-                  const usageWithThirdClaim = await getResourceUsage(
-                    subscription.id,
-                    resource.id,
-                    transaction
-                  )
-                  expect(usageWithThirdClaim.capacity).toBe(3)
-                  expect(usageWithThirdClaim.claimed).toBe(3)
-                  expect(usageWithThirdClaim.available).toBe(0)
-
-                  return Result.ok(null)
-                }
+        ;(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: periodEnd,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
               )
-            ).unwrap()
 
-        // Step 5: Simulate time passing - transition to new billing period
-        // Use anchorDate parameter to simulate checking capacity after period end
-        const afterTransitionAnchor =
-          periodEnd +
-          1000(
-            // 1 second after period end
+              // Step 3: Schedule end-of-period downgrade to 2 seats
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: downgradedPrice.id,
+                  name: 'Downgraded Plan',
+                  quantity: 1,
+                  unitPrice: 500,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: periodEnd, // Scheduled for end of period
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
 
-            await comprehensiveAdminTransactionWithResult(
-              async (ctx) => {
-                const { transaction } = ctx
+              await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing:
+                      SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                  },
+                },
+                organization,
+                ctx
+              )
 
-                // Update billing period to reflect the new period
-                await updateBillingPeriod(
+              // Verify adjustment is scheduled (old items have expiredAt = periodEnd)
+              const items = await selectSubscriptionItems(
+                { subscriptionId: subscription.id },
+                transaction
+              )
+              const oldItem = items.find(
+                (i) => i.name === 'Initial Plan'
+              )
+              const newItem = items.find(
+                (i) => i.name === 'Downgraded Plan'
+              )
+
+              expect(oldItem?.name).toBe('Initial Plan')
+              expect(oldItem!.expiredAt).toBe(periodEnd)
+              expect(newItem?.name).toBe('Downgraded Plan')
+              expect(newItem!.addedDate).toBe(periodEnd)
+
+              // During interim: Capacity shows OLD value (3) because old items are still active
+              const interimUsage = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(interimUsage.capacity).toBe(3) // Old capacity still active
+              expect(interimUsage.claimed).toBe(2)
+              expect(interimUsage.available).toBe(1)
+
+              // Step 4: During interim period, claim a 3rd seat
+              // This SUCCEEDS because validation uses currently active items (old capacity=3)
+              const thirdClaimResult = await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-3'],
+                  },
+                },
+                transaction
+              )
+              expect(thirdClaimResult.claims.length).toBe(1)
+
+              // Verify 3 claims now exist
+              const claimsDuringInterim =
+                await selectActiveResourceClaims(
                   {
-                    id: billingPeriod.id,
-                    startDate: periodEnd, // New period starts where old one ended
-                    endDate: periodEnd + 30 * 24 * 60 * 60 * 1000, // 30 days
-                    status: BillingPeriodStatus.Active,
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
                   },
                   transaction
                 )
+              expect(claimsDuringInterim.length).toBe(3)
 
-                // After transition: Claims still exist but capacity is now reduced
-                const claimsAfterTransition =
-                  await selectActiveResourceClaims(
-                    {
-                      subscriptionId: subscription.id,
-                      resourceId: resource.id,
-                    },
-                    transaction
-                  )
-                // All 3 claim records still exist in the database (not released yet)
-                // selectActiveResourceClaims uses Date.now(), so the temporary claim
-                // is still considered "active" in real time
-                expect(claimsAfterTransition.length).toBe(3)
+              // Usage during interim shows all 3 claimed against old capacity
+              const usageWithThirdClaim = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usageWithThirdClaim.capacity).toBe(3)
+              expect(usageWithThirdClaim.claimed).toBe(3)
+              expect(usageWithThirdClaim.available).toBe(0)
 
-                // However, when checking usage at the anchor date (after transition),
-                // the temporary claim (user-3) has expiredAt = periodEnd, which is
-                // before afterTransitionAnchor. So it's correctly filtered out.
-                const usageAfterTransition = await getResourceUsage(
-                  subscription.id,
-                  resource.id,
-                  transaction,
-                  afterTransitionAnchor
+              return Result.ok(null)
+            }
+          )
+        ).unwrap()
+
+        // Step 5: Simulate time passing - transition to new billing period
+        // Use anchorDate parameter to simulate checking capacity after period end
+        const afterTransitionAnchor = periodEnd + 1000 // 1 second after period end
+
+        ;(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+
+              // Update billing period to reflect the new period
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: periodEnd, // New period starts where old one ended
+                  endDate: periodEnd + 30 * 24 * 60 * 60 * 1000, // 30 days
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
+
+              // After transition: Claims still exist but capacity is now reduced
+              const claimsAfterTransition =
+                await selectActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
+                  },
+                  transaction
                 )
-                expect(usageAfterTransition.capacity).toBe(2) // New capacity
-                // Temporary claim (user-3) expired at periodEnd, so only 2 claims count
-                expect(usageAfterTransition.claimed).toBe(2)
-                // Capacity matches claimed - no excess, no availability
-                expect(usageAfterTransition.available).toBe(0)
+              // All 3 claim records still exist in the database (not released yet)
+              // selectActiveResourceClaims uses Date.now(), so the temporary claim
+              // is still considered "active" in real time
+              expect(claimsAfterTransition.length).toBe(3)
 
-                return Result.ok(null)
-              }
-            )
-          ).unwrap()
+              // However, when checking usage at the anchor date (after transition),
+              // the temporary claim (user-3) has expiredAt = periodEnd, which is
+              // before afterTransitionAnchor. So it's correctly filtered out.
+              const usageAfterTransition = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction,
+                afterTransitionAnchor
+              )
+              expect(usageAfterTransition.capacity).toBe(2) // New capacity
+              // Temporary claim (user-3) expired at periodEnd, so only 2 claims count
+              expect(usageAfterTransition.claimed).toBe(2)
+              // Capacity matches claimed - no excess, no availability
+              expect(usageAfterTransition.available).toBe(0)
+
+              return Result.ok(null)
+            }
+          )
+        ).unwrap()
       })
     })
   })

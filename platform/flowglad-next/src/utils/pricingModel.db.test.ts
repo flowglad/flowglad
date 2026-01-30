@@ -2273,7 +2273,9 @@ describe('createPriceTransaction', () => {
       pricingModelId: pricingModel.id,
       name: 'Additional Product',
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         return Result.ok(
           await createPriceTransaction(

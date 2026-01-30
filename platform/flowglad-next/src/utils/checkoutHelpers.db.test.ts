@@ -310,7 +310,9 @@ describe('checkoutHelpers', () => {
         name: 'Test Discount',
         amount: 10,
         code: 'SAVE10',
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           await updateCheckoutSession(
             { ...session, discountId: discount.id },
@@ -339,7 +341,9 @@ describe('checkoutHelpers', () => {
         organizationId: organization.id,
         priceId: price.id,
         livemode: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await checkoutInfoForCheckoutSession(
             session.id,
@@ -363,7 +367,9 @@ describe('checkoutHelpers', () => {
         customerId: customer.id,
         priceId: price.id,
         status: SubscriptionStatus.Active,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await checkoutInfoForCheckoutSession(
             session.id,
@@ -404,7 +410,9 @@ describe('checkoutHelpers', () => {
         type: CheckoutSessionType.Product,
         quantity: 1,
         livemode: true,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await checkoutInfoForCheckoutSession(
             session.id,
@@ -422,7 +430,9 @@ describe('checkoutHelpers', () => {
       const { organization } = await setupOrg()
       const customer = await setupCustomer({
         organizationId: organization.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
@@ -466,7 +476,9 @@ describe('checkoutHelpers', () => {
         priceId: price.id,
         status: SubscriptionStatus.Active,
         trialEnd: undefined,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
@@ -511,7 +523,9 @@ describe('checkoutHelpers', () => {
         priceId: price.id,
         status: SubscriptionStatus.Trialing,
         trialEnd,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
@@ -577,7 +591,9 @@ describe('checkoutHelpers', () => {
         priceId: price2.id,
         status: SubscriptionStatus.Trialing,
         trialEnd,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
@@ -622,7 +638,9 @@ describe('checkoutHelpers', () => {
         priceId: price.id,
         status: SubscriptionStatus.Canceled,
         trialEnd,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
@@ -657,7 +675,9 @@ describe('checkoutHelpers', () => {
       })
       const customer = await setupCustomer({
         organizationId: organization.id,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateTrialEligibility(
             price,
@@ -690,7 +710,9 @@ describe('checkoutHelpers', () => {
         active: true,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateTrialEligibility(
             price,
@@ -735,7 +757,9 @@ describe('checkoutHelpers', () => {
         priceId: price.id,
         status: SubscriptionStatus.Active,
         trialEnd: undefined,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await calculateTrialEligibility(
             price,
@@ -793,7 +817,9 @@ describe('checkoutHelpers', () => {
         priceId: price1.id,
         status: SubscriptionStatus.Trialing,
         trialEnd,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // Check eligibility for a different price
           const result = await calculateTrialEligibility(

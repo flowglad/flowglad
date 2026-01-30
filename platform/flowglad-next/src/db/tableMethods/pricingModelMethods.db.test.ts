@@ -1355,9 +1355,11 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
       isDefault: false,
       trialPeriodDays: 0,
       active: false,
-    })(
-      // setupPrice makes active=true and isDefault=true via safelyInsertPrice,
-      // so we update both prices to be inactive and non-default
+    })
+
+    // setupPrice makes active=true and isDefault=true via safelyInsertPrice,
+    // so we update both prices to be inactive and non-default
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await safelyUpdatePrice(
@@ -2322,8 +2324,10 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
       livemode: true,
       isDefault: false,
       trialPeriodDays: 0,
-    })(
-      // Deactivate both prices
+    })
+
+    // Deactivate both prices
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await safelyUpdatePrice(
@@ -2401,8 +2405,10 @@ describe('Inactive Product and Price Filtering at SQL Level', () => {
       livemode: true,
       isDefault: false,
       usageMeterId: usageMeter.id,
-    })(
-      // Deactivate usagePrice2 via safelyUpdatePrice (since setupPrice doesn't respect active: false)
+    })
+
+    // Deactivate usagePrice2 via safelyUpdatePrice (since setupPrice doesn't respect active: false)
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await safelyUpdatePrice(
@@ -2611,8 +2617,10 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
       isDefault: false,
       usageMeterId: usageMeter.id,
       active: false,
-    })(
-      // Deactivate the inactive price
+    })
+
+    // Deactivate the inactive price
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await safelyUpdatePrice(

@@ -182,20 +182,20 @@ describe('selectDistinctSubscriptionProductNames', () => {
       priceId: price4.id,
     })
     expect(subscription4.pricingModelId).toBe(product2.pricingModelId)
-    expect(subscription4.pricingModelId)
-      .toBe(pricingModel.id)(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const result = await selectDistinctSubscriptionProductNames(
-            organization.id,
-            transaction
-          )
-          // Should be deduplicated (Apple appears only once despite 2 subscriptions)
-          // Should be case-insensitively sorted (Apple, Banana, zebra)
-          expect(result).toEqual(['Apple', 'Banana', 'zebra'])
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    expect(subscription4.pricingModelId).toBe(pricingModel.id)
+
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await selectDistinctSubscriptionProductNames(
+          organization.id,
+          transaction
+        )
+        // Should be deduplicated (Apple appears only once despite 2 subscriptions)
+        // Should be case-insensitively sorted (Apple, Banana, zebra)
+        expect(result).toEqual(['Apple', 'Banana', 'zebra'])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should only return products for the given organization', async () => {
@@ -262,26 +262,24 @@ describe('selectDistinctSubscriptionProductNames', () => {
     expect(subscriptionOrg2.pricingModelId).toBe(
       product2.pricingModelId
     )
-    expect(subscriptionOrg2.pricingModelId)
-      .toBe(pricingModel2.id)(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const result1 =
-            await selectDistinctSubscriptionProductNames(
-              organization.id,
-              transaction
-            )
-          expect(result1).toEqual(['Product Org1'])
+    expect(subscriptionOrg2.pricingModelId).toBe(pricingModel2.id)
 
-          const result2 =
-            await selectDistinctSubscriptionProductNames(
-              organization2.id,
-              transaction
-            )
-          expect(result2).toEqual(['Product Org2'])
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result1 = await selectDistinctSubscriptionProductNames(
+          organization.id,
+          transaction
+        )
+        expect(result1).toEqual(['Product Org1'])
+
+        const result2 = await selectDistinctSubscriptionProductNames(
+          organization2.id,
+          transaction
+        )
+        expect(result2).toEqual(['Product Org2'])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -760,7 +758,9 @@ describe('selectSubscriptionsTableRowData', () => {
         paymentMethodId: paymentMethod4.id,
         priceId: price1.id, // Premium Plan
         status: SubscriptionStatus.Active,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           // Test search + filter combination
           const result = await selectSubscriptionsTableRowData({
@@ -1340,7 +1340,9 @@ describe('selectSubscriptionsTableRowData', () => {
         paymentMethodId: usagePaymentMethod.id,
         priceId: usagePrice.id,
         status: SubscriptionStatus.Active,
-      })(
+      })
+
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           const result = await selectSubscriptionsTableRowData({
             input: {

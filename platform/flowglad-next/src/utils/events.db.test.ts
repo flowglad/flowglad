@@ -42,8 +42,10 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
-    })(
-      // Call the actual function
+    })
+
+    // Call the actual function
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await commitCustomerCreatedEvent(customer, transaction)
         return Result.ok(undefined)
@@ -84,7 +86,9 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await commitCustomerUpdatedEvent(customer, transaction)
         return Result.ok(undefined)
@@ -177,13 +181,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       })
     )
       .unwrap()
-      .unwrap()(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await commitPaymentSucceededEvent(payment, transaction)
-          return Result.ok(undefined)
-        })
-      )
       .unwrap()
+
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await commitPaymentSucceededEvent(payment, transaction)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const events = (
       await adminTransactionWithResult(async ({ transaction }) => {
@@ -271,13 +276,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       })
     )
       .unwrap()
-      .unwrap()(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await commitPaymentCanceledEvent(payment, transaction)
-          return Result.ok(undefined)
-        })
-      )
       .unwrap()
+
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await commitPaymentCanceledEvent(payment, transaction)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const events = (
       await adminTransactionWithResult(async ({ transaction }) => {
@@ -334,7 +340,9 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       customerId: customer.id,
       priceId: price.id,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await commitPurchaseCompletedEvent(purchase, transaction)
         return Result.ok(undefined)
@@ -402,7 +410,9 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await commitSubscriptionCreatedEvent(
           subscription,
@@ -473,7 +483,9 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await commitSubscriptionUpdatedEvent(
           subscription,
@@ -544,7 +556,9 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
       livemode: true,
-    })(
+    })
+
+    ;(
       await adminTransactionWithResult(async ({ transaction }) => {
         await commitSubscriptionCanceledEvent(
           subscription,

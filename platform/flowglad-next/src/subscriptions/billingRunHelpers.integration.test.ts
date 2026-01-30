@@ -441,7 +441,9 @@ describeIfStripeKey(
           productId: product.id,
           featureId: feature.id,
           livemode: false,
-        })(
+        })
+
+        ;(
           await adminTransactionWithResult(
             async ({ transaction }) => {
               const activeSubscriptionItems =
