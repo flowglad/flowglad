@@ -1,4 +1,4 @@
-import { chmod, mkdir, rm, stat } from 'node:fs/promises'
+import { chmod, mkdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -172,6 +172,19 @@ describe('CLI credential storage', () => {
       expect(loaded?.userId).toBe('user_test_123')
       expect(loaded?.email).toBe('test@example.com')
       expect(loaded?.name).toBe('Test User')
+    })
+
+    it('returns null when credentials file contains invalid JSON', async () => {
+      const credentialsPath = getCredentialsPath()
+
+      // Write corrupted JSON directly
+      await writeFile(credentialsPath, 'not valid json {{{', {
+        mode: 0o600,
+      })
+
+      const result = await loadCredentials()
+
+      expect(result).toBeNull()
     })
   })
 

@@ -7,7 +7,7 @@ import {
   stat,
   writeFile,
 } from 'node:fs/promises'
-import { homedir, tmpdir } from 'node:os'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 /**
@@ -89,9 +89,10 @@ export const saveCredentials = async (
   await ensureConfigDir()
 
   const credentialsPath = getCredentialsPath()
+  // Use same directory as target to ensure atomic rename works across filesystems
   const tempPath = join(
-    tmpdir(),
-    `flowglad-credentials-${Date.now()}.tmp`
+    getConfigDir(),
+    `.credentials-${Date.now()}.tmp`
   )
 
   // Write to temp file first
@@ -120,7 +121,11 @@ export const loadCredentials =
       const content = await readFile(credentialsPath, 'utf-8')
       return JSON.parse(content) as StoredCredentials
     } catch (error) {
+      // Return null if file doesn't exist or contains invalid JSON
       if (isNodeError(error) && error.code === 'ENOENT') {
+        return null
+      }
+      if (error instanceof SyntaxError) {
         return null
       }
       throw error
