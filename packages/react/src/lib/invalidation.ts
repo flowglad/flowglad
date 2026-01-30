@@ -10,12 +10,16 @@ import { USAGE_METERS_QUERY_KEY } from '../useUsageMeters'
  *
  * @param queryClient - The React Query client instance
  */
-export const invalidateCustomerData = async (queryClient: QueryClient) => {
+export const invalidateCustomerData = async (
+  queryClient: QueryClient
+) => {
   await Promise.all([
     // Note: SUBSCRIPTIONS_QUERY_KEY will be added by M3 (subscription-hooks milestone)
     // queryClient.invalidateQueries({ queryKey: [SUBSCRIPTIONS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [FEATURES_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [USAGE_METERS_QUERY_KEY] }),
+    queryClient.invalidateQueries({
+      queryKey: [USAGE_METERS_QUERY_KEY],
+    }),
     queryClient.invalidateQueries({
       queryKey: [FlowgladActionKey.GetCustomerBilling],
     }),

@@ -14,8 +14,12 @@ import {
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
-import { FEATURES_QUERY_KEY, useFeature, useFeatures } from './useFeatures'
 import { invalidateCustomerData } from './lib/invalidation'
+import {
+  FEATURES_QUERY_KEY,
+  useFeature,
+  useFeatures,
+} from './useFeatures'
 
 // Mock data
 const mockFeatureAccessItems = [
@@ -543,7 +547,10 @@ describe('subscription mutations', () => {
     expect(result.current.features).toHaveLength(3)
 
     // Spy on invalidateQueries to verify it was called
-    const invalidateQueriesSpy = spyOn(queryClient, 'invalidateQueries')
+    const invalidateQueriesSpy = spyOn(
+      queryClient,
+      'invalidateQueries'
+    )
 
     // Call the invalidation helper (simulating a subscription mutation)
     await act(async () => {
