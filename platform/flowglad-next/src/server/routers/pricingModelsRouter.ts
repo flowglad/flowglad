@@ -121,6 +121,18 @@ const getPricingModelProcedure = protectedProcedure
     )
   })
 
+/**
+ * Create a new pricing model.
+ *
+ * Note: New pricing models are always created in testmode (livemode: false).
+ * This is because only one livemode pricing model is allowed per organization
+ * (enforced by a database constraint).
+ *
+ * Uses adminTransaction to bypass the livemode RLS policy on pricing_models,
+ * since users in livemode context need to create testmode pricing models.
+ * Also bypasses pricing model scope RLS on products table for creating the
+ * default product.
+ */
 const createPricingModelProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createPricingModelSchema)
@@ -129,18 +141,19 @@ const createPricingModelProcedure = protectedProcedure
       pricingModel: pricingModelsClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { livemode, organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
-        const result = await createPricingModelBookkeeping(
+  .mutation(async ({ input, ctx }) => {
+    const { organizationId } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    // Always create in testmode - only one livemode pricing model is allowed
+    // per organization. Uses adminTransaction to bypass livemode RLS.
+    const result = await adminTransaction(
+      async (transactionCtx) => {
+        return createPricingModelBookkeeping(
           {
             pricingModel: input.pricingModel,
             defaultPlanIntervalUnit: input.defaultPlanIntervalUnit,
@@ -148,17 +161,14 @@ const createPricingModelProcedure = protectedProcedure
           {
             ...transactionCtx,
             organizationId,
-            livemode,
+            livemode: false,
           }
         )
-        return Result.ok({
-          pricingModel: result.unwrap().pricingModel,
-          // Note: We're not returning the default product/price in the API response
-          // to maintain backward compatibility, but they are created
-        })
-      }
+      },
+      { livemode: false }
     )
-  )
+    return { pricingModel: result.unwrap().pricingModel }
+  })
 
 const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)

@@ -13,7 +13,6 @@ import { useContextAwareNavigation } from '@/hooks/useContextAwareNavigation'
 export const usePricingModelList = () => {
   const router = useRouter()
   const { invalidate: invalidateTRPC } = trpc.useUtils()
-  const { navigateToParentIfNeeded } = useContextAwareNavigation()
 
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
@@ -44,11 +43,6 @@ export const usePricingModelList = () => {
       onSuccess: async () => {
         await invalidateTRPC()
         await focusedMembership.refetch()
-        // Navigate to parent page if on a detail page to avoid 404s after PM switch
-        // Only refresh if staying on current page (navigation handles its own refresh)
-        if (!navigateToParentIfNeeded()) {
-          router.refresh()
-        }
       },
     })
 
@@ -59,6 +53,11 @@ export const usePricingModelList = () => {
       await updateFocusedPricingModel.mutateAsync({
         pricingModelId,
       })
+      // Navigate to new PM's detail page if on a PM detail page
+      const pathname = window.location.pathname
+      if (pathname.startsWith('/pricing-models/')) {
+        router.push(`/pricing-models/${pricingModelId}`)
+      }
     }
   }
 
