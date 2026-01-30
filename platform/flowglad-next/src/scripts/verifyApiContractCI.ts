@@ -7,7 +7,7 @@
  * - Exits with appropriate status codes for CI
  *
  * Required environment variables:
- * - TELEMETRY_TEST_API_KEY: API key for the Flowglad instance
+ * - FLOWGLAD_PROD_API_KEY: API key for the Flowglad production instance
  * - FLOWGLAD_PROD_API_URL: Base URL of the Flowglad instance to test against
  *
  * Usage:
@@ -15,7 +15,7 @@
  */
 
 const requiredEnvVars = [
-  'TELEMETRY_TEST_API_KEY',
+  'FLOWGLAD_PROD_API_KEY',
   'FLOWGLAD_PROD_API_URL',
 ]
 
@@ -30,9 +30,10 @@ if (missingEnvVars.length > 0) {
   process.exit(1)
 }
 
-// Map FLOWGLAD_PROD_API_URL to NEXT_PUBLIC_APP_URL for the underlying client
-// This must happen before importing any modules that read this env var
+// Map CI env vars to the names expected by the underlying client
+// This must happen before importing any modules that read these env vars
 process.env.NEXT_PUBLIC_APP_URL = process.env.FLOWGLAD_PROD_API_URL
+process.env.TELEMETRY_TEST_API_KEY = process.env.FLOWGLAD_PROD_API_KEY
 
 const logger = {
   info: console.log,
