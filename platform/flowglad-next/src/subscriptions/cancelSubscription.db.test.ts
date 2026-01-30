@@ -1396,7 +1396,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         // Set a scheduled adjustment on the subscription
-        await updateSubscription(
+        const updatedSubscription = await updateSubscription(
           {
             id: subscription.id,
             scheduledAdjustmentAt: futureTimestamp,
@@ -1413,7 +1413,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
 
         const result = await cancelSubscriptionImmediately(
-          { subscription },
+          { subscription: updatedSubscription },
           createDiscardingEffectsContext(transaction)
         )
 
