@@ -49,7 +49,7 @@ import {
 } from '@/../seedDatabase'
 import {
   adminTransactionWithResult,
-  comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import {
@@ -255,105 +255,112 @@ describe('adjustSubscription Integration Tests', async () => {
         customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
-      })
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const canceledResult = await adjustSubscription(
-          {
-            id: canceledSubscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(canceledResult.status).toBe('error')
-        if (canceledResult.status === 'error') {
-          expect(canceledResult.error._tag).toBe('TerminalStateError')
-        }
+            transaction
+          )
 
-        const expiredResult = await adjustSubscription(
-          {
-            id: incompleteExpiredSubscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+          const canceledResult = await adjustSubscription(
+            {
+              id: canceledSubscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
-        expect(expiredResult.status).toBe('error')
-        if (expiredResult.status === 'error') {
-          expect(expiredResult.error._tag).toBe('TerminalStateError')
-        }
-        return Result.ok(null)
-      })
+            organization,
+            ctx
+          )
+          expect(canceledResult.status).toBe('error')
+          if (canceledResult.status === 'error') {
+            expect(canceledResult.error._tag).toBe(
+              'TerminalStateError'
+            )
+          }
+
+          const expiredResult = await adjustSubscription(
+            {
+              id: incompleteExpiredSubscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(expiredResult.status).toBe('error')
+          if (expiredResult.status === 'error') {
+            expect(expiredResult.error._tag).toBe(
+              'TerminalStateError'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should throw error for non-renewing / credit trial subscriptions', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const creditTrialSubscription = await updateSubscription(
-          {
-            id: subscription.id,
-            status: SubscriptionStatus.Active,
-            renews: false,
-            defaultPaymentMethodId: null,
-            interval: null,
-            intervalCount: null,
-            currentBillingPeriodStart: null,
-            currentBillingPeriodEnd: null,
-            billingCycleAnchorDate: null,
-          },
-          transaction
-        )
-
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const result = await adjustSubscription(
-          {
-            id: creditTrialSubscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const creditTrialSubscription = await updateSubscription(
+            {
+              id: subscription.id,
+              status: SubscriptionStatus.Active,
+              renews: false,
+              defaultPaymentMethodId: null,
+              interval: null,
+              intervalCount: null,
+              currentBillingPeriodStart: null,
+              currentBillingPeriodEnd: null,
+              billingCycleAnchorDate: null,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message).toContain(
-            'Non-renewing subscriptions cannot be adjusted'
+            transaction
           )
-        }
-        return Result.ok(null)
-      })
+
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const result = await adjustSubscription(
+            {
+              id: creditTrialSubscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message).toContain(
+              'Non-renewing subscriptions cannot be adjusted'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should throw error when attempting to adjust doNotCharge subscription', async () => {
@@ -370,29 +377,30 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 0,
-      })
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const result = await adjustSubscription(
-          {
-            id: doNotChargeSubscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const result = await adjustSubscription(
+            {
+              id: doNotChargeSubscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message).toContain(
-            'Cannot adjust doNotCharge subscriptions'
+            organization,
+            ctx
           )
-        }
-        return Result.ok(null)
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message).toContain(
+              'Cannot adjust doNotCharge subscriptions'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should throw error when new subscription items have non-subscription price types', async () => {
@@ -434,63 +442,65 @@ describe('adjustSubscription Integration Tests', async () => {
           expiredAt: null,
           type: SubscriptionItemType.Static,
         },
-      ]
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      ](
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message).toMatch(
-            /Only recurring prices can be used in subscriptions/
+            transaction
           )
-        }
-        return Result.ok(null)
-      })
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message).toMatch(
+              /Only recurring prices can be used in subscriptions/
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should return NotFoundError when adjusting a non-existent subscription id', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const result = await adjustSubscription(
-          {
-            id: 'sub_nonexistent123',
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const result = await adjustSubscription(
+            {
+              id: 'sub_nonexistent123',
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('NotFoundError')
-        }
-        return Result.ok(null)
-      })
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('NotFoundError')
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -504,43 +514,43 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Zero Quantity Item',
-            quantity: 0,
-            unitPrice: 100,
-            livemode: false,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Zero Quantity Item',
+              quantity: 0,
+              unitPrice: 100,
+              livemode: false,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message).toContain(
-            'quantity must be greater than zero'
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
           )
-        }
-        return Result.ok(null)
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message).toContain(
+              'quantity must be greater than zero'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should return ValidationError when subscription items have negative quantity', async () => {
@@ -549,42 +559,42 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Negative Quantity Item',
-            quantity: -1,
-            unitPrice: 100,
-            livemode: false,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Negative Quantity Item',
+              quantity: -1,
+              unitPrice: 100,
+              livemode: false,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message).toContain(
-            'quantity must be greater than zero'
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
           )
-        }
-        return Result.ok(null)
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message).toContain(
+              'quantity must be greater than zero'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should return ValidationError when subscription items have negative unit price', async () => {
@@ -593,42 +603,42 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Negative Unit Price Item',
-            quantity: 1,
-            unitPrice: -100,
-            livemode: false,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Negative Unit Price Item',
+              quantity: 1,
+              unitPrice: -100,
+              livemode: false,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message).toContain(
-            'unit price cannot be negative'
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
           )
-        }
-        return Result.ok(null)
-      })
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message).toContain(
+              'unit price cannot be negative'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should allow subscription items with zero unit price (free tier)', async () => {
@@ -637,48 +647,49 @@ describe('adjustSubscription Integration Tests', async () => {
         startDate: Date.now() - 3600000,
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
-      })
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Free Item',
-            quantity: 1,
-            unitPrice: 0,
-            livemode: false,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Free Item',
+              quantity: 1,
+              unitPrice: 0,
+              livemode: false,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
             },
-          },
-          organization,
-          ctx
-        )
+          ]
 
-        const bp = await selectCurrentBillingPeriodForSubscription(
-          subscription.id,
-          transaction
-        )
-        if (!bp) {
-          throw new Error('Billing period is null')
-        }
-        const bpItems = await selectBillingPeriodItems(
-          { billingPeriodId: bp.id },
-          transaction
-        )
-        expect(bpItems.length).toBe(0)
-        return Result.ok(null)
-      })
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const bp = await selectCurrentBillingPeriodForSubscription(
+            subscription.id,
+            transaction
+          )
+          if (!bp) {
+            throw new Error('Billing period is null')
+          }
+          const bpItems = await selectBillingPeriodItems(
+            { billingPeriodId: bp.id },
+            transaction
+          )
+          expect(bpItems.length).toBe(0)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -692,52 +703,52 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
-            endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Expensive Item',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message).toContain(
-            'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
+            transaction
           )
-        }
-        return Result.ok(null)
-      })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Expensive Item',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message).toContain(
+              'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -751,79 +762,79 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 24 * 60 * 60 * 1000,
-            endDate: Date.now() + 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 100,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...item1,
-            name: 'Item 1 Updated',
-            quantity: 1,
-            unitPrice: 100,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).not.toHaveBeenCalled()
-
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.subscription.name).toBe(
-            'Item 1 Updated'
+            transaction
           )
-          expect(result.value.subscriptionItems.length).toBe(1)
-          expect(result.value.subscriptionItems[0].name).toBe(
-            'Item 1 Updated'
+
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 100,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...item1,
+              name: 'Item 1 Updated',
+              quantity: 1,
+              unitPrice: 100,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
           )
-        }
-        return Result.ok(null)
-      })
+
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).not.toHaveBeenCalled()
+
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.subscription.name).toBe(
+              'Item 1 Updated'
+            )
+            expect(result.value.subscriptionItems.length).toBe(1)
+            expect(result.value.subscriptionItems[0].name).toBe(
+              'Item 1 Updated'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should NOT trigger billing run when rawNetCharge is zero', async () => {
@@ -832,68 +843,68 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 24 * 60 * 60 * 1000,
-            endDate: Date.now() + 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 100,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...item1,
-            name: 'Item 1',
-            quantity: 1,
-            unitPrice: 100,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).not.toHaveBeenCalled()
-        return Result.ok(null)
-      })
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 100,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...item1,
+              name: 'Item 1',
+              quantity: 1,
+              unitPrice: 100,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).not.toHaveBeenCalled()
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should add, remove, and update items immediately and NOT trigger billing run when rawNetCharge is zero', async () => {
@@ -908,90 +919,91 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 2',
         quantity: 1,
         unitPrice: 200,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 24 * 60 * 60 * 1000,
-            endDate: Date.now() + 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 300,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...item1,
-            name: 'Item 1 Updated',
-            quantity: 2,
-            unitPrice: 100,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-          {
-            ...subscriptionItemCore,
-            name: 'Item 3',
-            quantity: 1,
-            unitPrice: 100,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).not.toHaveBeenCalled()
-
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.subscriptionItems.length).toBe(2)
-          const item1Result = result.value.subscriptionItems.find(
-            (item: SubscriptionItem.Record) => item.id === item1.id
+            transaction
           )
-          expect(item1Result?.quantity).toBe(2)
-          expect(item1Result?.name).toBe('Item 1 Updated')
-          const item3Result = result.value.subscriptionItems.find(
-            (item: SubscriptionItem.Record) => item.name === 'Item 3'
+
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 300,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...item1,
+              name: 'Item 1 Updated',
+              quantity: 2,
+              unitPrice: 100,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+            {
+              ...subscriptionItemCore,
+              name: 'Item 3',
+              quantity: 1,
+              unitPrice: 100,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
           )
-          expect(typeof item3Result).toBe('object')
-        }
-        return Result.ok(null)
-      })
+
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).not.toHaveBeenCalled()
+
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.subscriptionItems.length).toBe(2)
+            const item1Result = result.value.subscriptionItems.find(
+              (item: SubscriptionItem.Record) => item.id === item1.id
+            )
+            expect(item1Result?.quantity).toBe(2)
+            expect(item1Result?.name).toBe('Item 1 Updated')
+            const item3Result = result.value.subscriptionItems.find(
+              (item: SubscriptionItem.Record) =>
+                item.name === 'Item 3'
+            )
+            expect(typeof item3Result).toBe('object')
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should preserve subscription name when no active items exist after adjustment', async () => {
@@ -1000,62 +1012,62 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Original Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 24 * 60 * 60 * 1000,
-            endDate: Date.now() + 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 100,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const originalName = subscription.name
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.subscription.name).toBe(originalName)
-          expect(result.value.subscriptionItems.length).toBe(0)
-        }
-        return Result.ok(null)
-      })
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 100,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const originalName = subscription.name
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.subscription.name).toBe(originalName)
+            expect(result.value.subscriptionItems.length).toBe(0)
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -1069,67 +1081,67 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Expensive Item',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0] as any
-        expect(triggerCall).toMatchObject({
-          billingRun: expect.objectContaining({
-            id: expect.any(String),
-            status: BillingRunStatus.Scheduled,
-            billingPeriodId: billingPeriod.id,
-            isAdjustment: true,
-          }),
-          adjustmentParams: expect.objectContaining({
-            newSubscriptionItems: expect.arrayContaining([
-              expect.objectContaining({
-                name: 'Expensive Item',
-                unitPrice: 9999,
-                quantity: 1,
-              }),
-            ]),
-            adjustmentDate: expect.any(Number),
-          }),
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Expensive Item',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          const triggerCall = mockTrigger.mock.calls[0][0] as any
+          expect(triggerCall).toMatchObject({
+            billingRun: expect.objectContaining({
+              id: expect.any(String),
+              status: BillingRunStatus.Scheduled,
+              billingPeriodId: billingPeriod.id,
+              isAdjustment: true,
+            }),
+            adjustmentParams: expect.objectContaining({
+              newSubscriptionItems: expect.arrayContaining([
+                expect.objectContaining({
+                  name: 'Expensive Item',
+                  unitPrice: 9999,
+                  quantity: 1,
+                }),
+              ]),
+              adjustmentDate: expect.any(Number),
+            }),
+          })
+          return Result.ok(null)
         })
-        return Result.ok(null)
-      })
+      ).unwrap()
     })
 
     it('should NOT update subscription items or sync subscription immediately when rawNetCharge is positive', async () => {
@@ -1138,57 +1150,57 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Expensive Item',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.subscription.name).toBeNull()
-          expect(result.value.subscriptionItems.length).toBe(1)
-          expect(result.value.subscriptionItems[0].name).toBe(
-            'Item 1'
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Expensive Item',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
           )
-          expect(result.value.subscriptionItems[0].unitPrice).toBe(
-            100
-          )
-        }
-        return Result.ok(null)
-      })
+
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.subscription.name).toBeNull()
+            expect(result.value.subscriptionItems.length).toBe(1)
+            expect(result.value.subscriptionItems[0].name).toBe(
+              'Item 1'
+            )
+            expect(result.value.subscriptionItems[0].unitPrice).toBe(
+              100
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should create proration billing period items when netChargeAmount > 0', async () => {
@@ -1197,62 +1209,62 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const bpItemsBefore = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Expensive Item',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        const bpItems = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
+          const bpItemsBefore = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
 
-        expect(bpItems.length).toBeGreaterThan(bpItemsBefore.length)
-        const netChargeItems = bpItems.filter((adj) =>
-          adj.name?.includes('Net charge adjustment')
-        )
-        expect(netChargeItems.length).toBe(1)
-        expect(netChargeItems[0].unitPrice).toBeGreaterThan(0)
-        return Result.ok(null)
-      })
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Expensive Item',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const bpItems = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+
+          expect(bpItems.length).toBeGreaterThan(bpItemsBefore.length)
+          const netChargeItems = bpItems.filter((adj) =>
+            adj.name?.includes('Net charge adjustment')
+          )
+          expect(netChargeItems.length).toBe(1)
+          expect(netChargeItems[0].unitPrice).toBeGreaterThan(0)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should trigger billing run with correct params when upgrading (adding items, increasing quantity)', async () => {
@@ -1261,73 +1273,74 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...item1,
-            quantity: 2,
-          },
-          {
-            ...subscriptionItemCore,
-            name: 'New Item',
-            quantity: 1,
-            unitPrice: 500,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0] as any as any
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems
-        ).toMatchObject(
-          expect.arrayContaining([
-            expect.objectContaining({
-              id: item1.id,
-              name: item1.name,
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...item1,
               quantity: 2,
-              unitPrice: item1.unitPrice,
-            }),
-            expect.objectContaining({
+            },
+            {
+              ...subscriptionItemCore,
               name: 'New Item',
               quantity: 1,
               unitPrice: 500,
-            }),
-          ])
-        )
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems.length
-        ).toBe(2)
-        return Result.ok(null)
-      })
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          const triggerCall = mockTrigger.mock
+            .calls[0][0] as any as any
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems
+          ).toMatchObject(
+            expect.arrayContaining([
+              expect.objectContaining({
+                id: item1.id,
+                name: item1.name,
+                quantity: 2,
+                unitPrice: item1.unitPrice,
+              }),
+              expect.objectContaining({
+                name: 'New Item',
+                quantity: 1,
+                unitPrice: 500,
+              }),
+            ])
+          )
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems.length
+          ).toBe(2)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should calculate proration correctly considering existing payments and cap at zero for downgrades', async () => {
@@ -1336,99 +1349,101 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Premium Plan',
         quantity: 1,
         unitPrice: 4999,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const start = Date.now() - 5 * 24 * 60 * 60 * 1000
-        const end = Date.now() + 25 * 24 * 60 * 60 * 1000
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: start,
-            endDate: end,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: item1.priceId!,
-          livemode: subscription.livemode,
-        })
-
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 4999,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId:
-            subscription.defaultPaymentMethodId ?? paymentMethod.id,
-          livemode: subscription.livemode,
-        })
-
-        const bpItemsBefore = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Basic Plan',
-            quantity: 1,
-            unitPrice: 999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const start = Date.now() - 5 * 24 * 60 * 60 * 1000
+          const end = Date.now() + 25 * 24 * 60 * 60 * 1000
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: start,
+              endDate: end,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        const bpItems = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: item1.priceId!,
+            livemode: subscription.livemode,
+          })
 
-        const newBpItems = bpItems.filter(
-          (a) => !bpItemsBefore.some((b) => b.id === a.id)
-        )
-        const netDelta = newBpItems.reduce(
-          (sum, i) => sum + i.unitPrice * i.quantity,
-          0
-        )
-        expect(netDelta).toBeGreaterThanOrEqual(0)
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 4999,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId:
+              subscription.defaultPaymentMethodId ?? paymentMethod.id,
+            livemode: subscription.livemode,
+          })
 
-        const mockTrigger = getMockTrigger()
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          if (netDelta === 0) {
-            expect(mockTrigger).not.toHaveBeenCalled()
-            expect(result.value.subscription.name).toBe('Basic Plan')
-          } else {
-            expect(mockTrigger).toHaveBeenCalled()
+          const bpItemsBefore = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Basic Plan',
+              quantity: 1,
+              unitPrice: 999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const bpItems = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+
+          const newBpItems = bpItems.filter(
+            (a) => !bpItemsBefore.some((b) => b.id === a.id)
+          )
+          const netDelta = newBpItems.reduce(
+            (sum, i) => sum + i.unitPrice * i.quantity,
+            0
+          )
+          expect(netDelta).toBeGreaterThanOrEqual(0)
+
+          const mockTrigger = getMockTrigger()
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            if (netDelta === 0) {
+              expect(mockTrigger).not.toHaveBeenCalled()
+              expect(result.value.subscription.name).toBe(
+                'Basic Plan'
+              )
+            } else {
+              expect(mockTrigger).toHaveBeenCalled()
+            }
           }
-        }
-        return Result.ok(null)
-      })
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -1442,61 +1457,61 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const bpItemsBefore = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Expensive Item',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        const bpItems = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
+          const bpItemsBefore = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
 
-        expect(bpItems.length).toBeGreaterThan(bpItemsBefore.length)
-        const prorationItems = bpItems.filter((item) =>
-          item.name?.includes('Proration')
-        )
-        expect(prorationItems.length).toBeGreaterThan(0)
-        return Result.ok(null)
-      })
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Expensive Item',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const bpItems = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+
+          expect(bpItems.length).toBeGreaterThan(bpItemsBefore.length)
+          const prorationItems = bpItems.filter((item) =>
+            item.name?.includes('Proration')
+          )
+          expect(prorationItems.length).toBeGreaterThan(0)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should NOT create proration adjustments when prorateCurrentBillingPeriod is false and netChargeAmount > 0', async () => {
@@ -1505,64 +1520,64 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const bpItemsBefore = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Expensive Item',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        const bpItems = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-
-        const mockTrigger = getMockTrigger()
-        if (mockTrigger.mock.calls.length > 0) {
-          expect(bpItems.length).toBeGreaterThanOrEqual(
-            bpItemsBefore.length
+            transaction
           )
-        } else {
-          expect(bpItems.length).toEqual(bpItemsBefore.length)
-        }
-        return Result.ok(null)
-      })
+
+          const bpItemsBefore = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Expensive Item',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const bpItems = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+
+          const mockTrigger = getMockTrigger()
+          if (mockTrigger.mock.calls.length > 0) {
+            expect(bpItems.length).toBeGreaterThanOrEqual(
+              bpItemsBefore.length
+            )
+          } else {
+            expect(bpItems.length).toEqual(bpItemsBefore.length)
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -1576,94 +1591,94 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+          const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
 
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
-        const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
-
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: newStartDate,
-            endDate: newEndDate,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        subscription = await updateSubscription(
-          {
-            id: subscription.id,
-            renews: true,
-            currentBillingPeriodStart: newStartDate,
-            currentBillingPeriodEnd: newEndDate,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 100,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Future Item',
-            quantity: 1,
-            unitPrice: 100,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: newStartDate,
+              endDate: newEndDate,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).not.toHaveBeenCalled()
-
-        const result =
-          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
-            subscription.id,
             transaction
           )
-        expect(result).toMatchObject({})
-        if (!result) throw new Error('Result is null')
-        const futureItem = result.subscriptionItems.find(
-          (item) => item.name === 'Future Item'
-        )
-        expect(typeof futureItem).toBe('object')
-        expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
-        return Result.ok(null)
-      })
+
+          subscription = await updateSubscription(
+            {
+              id: subscription.id,
+              renews: true,
+              currentBillingPeriodStart: newStartDate,
+              currentBillingPeriodEnd: newEndDate,
+            },
+            transaction
+          )
+
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 100,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Future Item',
+              quantity: 1,
+              unitPrice: 100,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).not.toHaveBeenCalled()
+
+          const result =
+            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+              subscription.id,
+              transaction
+            )
+          expect(result).toMatchObject({})
+          if (!result) throw new Error('Result is null')
+          const futureItem = result.subscriptionItems.find(
+            (item) => item.name === 'Future Item'
+          )
+          expect(typeof futureItem).toBe('object')
+          expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should NOT sync subscription record with future-dated items (preserves current state)', async () => {
@@ -1672,83 +1687,85 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Current Plan',
         quantity: 1,
         unitPrice: 1000,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const futureDate = Date.now() + 7 * 24 * 60 * 60 * 1000
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 3600000,
-            endDate: futureDate,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        await updateSubscription(
-          {
-            id: subscription.id,
-            currentBillingPeriodEnd: futureDate,
-            name: 'Current Plan',
-            priceId: price.id,
-            renews: true,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 1000,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Future Plan',
-            quantity: 1,
-            unitPrice: 500,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const futureDate = Date.now() + 7 * 24 * 60 * 60 * 1000
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 3600000,
+              endDate: futureDate,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.subscription.name).toBe('Current Plan')
-          expect(result.value.subscription.priceId).toBe(price.id)
-        }
-        return Result.ok(null)
-      })
+          await updateSubscription(
+            {
+              id: subscription.id,
+              currentBillingPeriodEnd: futureDate,
+              name: 'Current Plan',
+              priceId: price.id,
+              renews: true,
+            },
+            transaction
+          )
+
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 1000,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Future Plan',
+              quantity: 1,
+              unitPrice: 500,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.subscription.name).toBe(
+              'Current Plan'
+            )
+            expect(result.value.subscription.priceId).toBe(price.id)
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should expire existing items and add new items at billing period end', async () => {
@@ -1758,109 +1775,109 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 4999,
         priceId: price.id,
-      })
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+          const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
 
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
-        const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
-
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: newStartDate,
-            endDate: newEndDate,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        subscription = await updateSubscription(
-          {
-            id: subscription.id,
-            renews: true,
-            currentBillingPeriodStart: newStartDate,
-            currentBillingPeriodEnd: newEndDate,
-          },
-          transaction
-        )
-
-        const currentBillingPeriod =
-          await selectCurrentBillingPeriodForSubscription(
-            subscription.id,
-            transaction
-          )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 4999,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const downgradeItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Basic Plan',
-            quantity: 1,
-            unitPrice: 999,
-            type: SubscriptionItemType.Static,
-            expiredAt: null,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: downgradeItems,
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: newStartDate,
+              endDate: newEndDate,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        const updatedItems =
-          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
-            subscription.id,
             transaction
           )
-        expect(typeof updatedItems).toBe('object')
-        if (!updatedItems) throw new Error('Result is null')
 
-        const expiredItem = updatedItems.subscriptionItems.find(
-          (item) => item.id === expensiveItem.id
-        )
-        expect(typeof expiredItem).toBe('object')
-        expect(toMs(expiredItem!.expiredAt)!).toEqual(
-          toMs(currentBillingPeriod!.endDate)!
-        )
+          subscription = await updateSubscription(
+            {
+              id: subscription.id,
+              renews: true,
+              currentBillingPeriodStart: newStartDate,
+              currentBillingPeriodEnd: newEndDate,
+            },
+            transaction
+          )
 
-        const newItem = updatedItems.subscriptionItems.find(
-          (item) => item.name === 'Basic Plan'
-        )
-        expect(typeof newItem).toBe('object')
-        expect(toMs(newItem!.addedDate)!).toEqual(
-          toMs(currentBillingPeriod!.endDate)!
-        )
-        return Result.ok(null)
-      })
+          const currentBillingPeriod =
+            await selectCurrentBillingPeriodForSubscription(
+              subscription.id,
+              transaction
+            )
+
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 4999,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const downgradeItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Basic Plan',
+              quantity: 1,
+              unitPrice: 999,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: downgradeItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const updatedItems =
+            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+              subscription.id,
+              transaction
+            )
+          expect(typeof updatedItems).toBe('object')
+          if (!updatedItems) throw new Error('Result is null')
+
+          const expiredItem = updatedItems.subscriptionItems.find(
+            (item) => item.id === expensiveItem.id
+          )
+          expect(typeof expiredItem).toBe('object')
+          expect(toMs(expiredItem!.expiredAt)!).toEqual(
+            toMs(currentBillingPeriod!.endDate)!
+          )
+
+          const newItem = updatedItems.subscriptionItems.find(
+            (item) => item.name === 'Basic Plan'
+          )
+          expect(typeof newItem).toBe('object')
+          expect(toMs(newItem!.addedDate)!).toEqual(
+            toMs(currentBillingPeriod!.endDate)!
+          )
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -1869,67 +1886,69 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('Edge Cases', () => {
     it('should trigger billing run if net charge > 0, or sync immediately if net charge = 0 when no existing subscription items exist', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 3600000,
-            endDate: Date.now() + 3600000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'New Item 1',
-            quantity: 2,
-            unitPrice: 150,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 3600000,
+              endDate: Date.now() + 3600000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        const mockTrigger = getMockTrigger()
-        const wasBillingRunTriggered =
-          mockTrigger.mock.calls.length > 0
-
-        if (wasBillingRunTriggered) {
-          const result =
-            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
-              subscription.id,
-              transaction
-            )
-          expect(result).toBeNull()
-        } else {
-          const result =
-            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
-              subscription.id,
-              transaction
-            )
-          expect(result).toMatchObject({})
-          if (!result) throw new Error('Result is null')
-          expect(result.subscriptionItems.length).toBe(
-            newItems.length
+            transaction
           )
-        }
-        return Result.ok(null)
-      })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'New Item 1',
+              quantity: 2,
+              unitPrice: 150,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const mockTrigger = getMockTrigger()
+          const wasBillingRunTriggered =
+            mockTrigger.mock.calls.length > 0
+
+          if (wasBillingRunTriggered) {
+            const result =
+              await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+                subscription.id,
+                transaction
+              )
+            expect(result).toBeNull()
+          } else {
+            const result =
+              await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+                subscription.id,
+                transaction
+              )
+            expect(result).toMatchObject({})
+            if (!result) throw new Error('Result is null')
+            expect(result.subscriptionItems.length).toBe(
+              newItems.length
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should trigger billing run if net charge > 0, or sync immediately and preserve subscription name if net charge = 0 when all items are removed', async () => {
@@ -1938,51 +1957,53 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 3600000,
-            endDate: Date.now() + 3600000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const originalName = subscription.name
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 3600000,
+              endDate: Date.now() + 3600000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        const mockTrigger = getMockTrigger()
-        const wasBillingRunTriggered =
-          mockTrigger.mock.calls.length > 0
+          const originalName = subscription.name
 
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          if (wasBillingRunTriggered) {
-            expect(result.value.subscriptionItems.length).toBe(1)
-            expect(result.value.subscription.name).toBeNull()
-          } else {
-            expect(result.value.subscriptionItems.length).toBe(0)
-            expect(result.value.subscription.name).toBe(originalName)
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          const mockTrigger = getMockTrigger()
+          const wasBillingRunTriggered =
+            mockTrigger.mock.calls.length > 0
+
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            if (wasBillingRunTriggered) {
+              expect(result.value.subscriptionItems.length).toBe(1)
+              expect(result.value.subscription.name).toBeNull()
+            } else {
+              expect(result.value.subscriptionItems.length).toBe(0)
+              expect(result.value.subscription.name).toBe(
+                originalName
+              )
+            }
           }
-        }
-        return Result.ok(null)
-      })
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should return ValidationError when attempting adjustment with zero-duration billing period', async () => {
@@ -1997,138 +2018,141 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item Zero',
         quantity: 1,
         unitPrice: 100,
-      })
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            id: item.id,
-            name: 'Item Zero',
-            quantity: 1,
-            unitPrice: 100,
-            livemode: subscription.livemode,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            metadata: null,
-            addedDate: Date.now(),
-            subscriptionId: subscription.id,
-            priceId: price.id,
-            externalId: null,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              id: item.id,
+              name: 'Item Zero',
+              quantity: 1,
+              unitPrice: 100,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              subscriptionId: subscription.id,
+              priceId: price.id,
+              externalId: null,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('NotFoundError')
-        }
-        return Result.ok(null)
-      })
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('NotFoundError')
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should return error when attempting adjustment with billing periods in the past or future', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const pastBP = await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const pastBP = await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              subscriptionId: subscription.id,
+              startDate: Date.now() - 7200000,
+              endDate: Date.now() - 3600000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+          const pastItem = await setupSubscriptionItem({
             subscriptionId: subscription.id,
-            startDate: Date.now() - 7200000,
-            endDate: Date.now() - 3600000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-        const pastItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          name: 'Past Item',
-          quantity: 1,
-          unitPrice: 100,
-        })
-        const newPastItems = [
-          {
-            ...pastItem,
             name: 'Past Item',
             quantity: 1,
             unitPrice: 100,
-            livemode: false,
-          },
-        ]
-
-        const pastResult = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newPastItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+          })
+          const newPastItems = [
+            {
+              ...pastItem,
+              name: 'Past Item',
+              quantity: 1,
+              unitPrice: 100,
+              livemode: false,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(pastResult.status).toBe('error')
-        if (pastResult.status === 'error') {
-          expect(pastResult.error._tag).toBe('NotFoundError')
-        }
+          ]
 
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
+          const pastResult = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newPastItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(pastResult.status).toBe('error')
+          if (pastResult.status === 'error') {
+            expect(pastResult.error._tag).toBe('NotFoundError')
+          }
+
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              subscriptionId: subscription.id,
+              startDate: Date.now() + 3600000,
+              endDate: Date.now() + 7200000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+          const futureItem = await setupSubscriptionItem({
             subscriptionId: subscription.id,
-            startDate: Date.now() + 3600000,
-            endDate: Date.now() + 7200000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-        const futureItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          name: 'Future Item',
-          quantity: 1,
-          unitPrice: 100,
-        })
-        const newFutureItems = [
-          {
-            ...futureItem,
             name: 'Future Item',
             quantity: 1,
             unitPrice: 100,
-            livemode: false,
-          },
-        ]
-
-        const futureResult = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newFutureItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+          })
+          const newFutureItems = [
+            {
+              ...futureItem,
+              name: 'Future Item',
+              quantity: 1,
+              unitPrice: 100,
+              livemode: false,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(futureResult.status).toBe('error')
-        if (futureResult.status === 'error') {
-          expect(futureResult.error._tag).toBe('NotFoundError')
-        }
-        return Result.ok(null)
-      })
+          ]
+
+          const futureResult = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newFutureItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(futureResult.status).toBe('error')
+          if (futureResult.status === 'error') {
+            expect(futureResult.error._tag).toBe('NotFoundError')
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -2137,297 +2161,89 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('syncSubscriptionWithActiveItems', () => {
     it('should sync subscription with currently active items', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = new Date()
-        const futureDate = addDays(now, 1).getTime()
-        const currentItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Current Plan',
-          quantity: 1,
-          unitPrice: 999,
-          addedDate: subDays(new Date(now), 10).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        await expireSubscriptionItems(
-          [currentItem.id],
-          futureDate,
-          transaction
-        )
-
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'New Premium Plan',
-          quantity: 1,
-          unitPrice: 4999,
-          addedDate: futureDate,
-          type: SubscriptionItemType.Static,
-        })
-
-        const synced = await syncSubscriptionWithActiveItems(
-          {
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = new Date()
+          const futureDate = addDays(now, 1).getTime()
+          const currentItem = await setupSubscriptionItem({
             subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
-        expect(synced.name).toBe('Current Plan')
-        expect(synced.priceId).toBe(currentItem.priceId!)
-        return Result.ok(null)
-      })
+            priceId: price.id,
+            name: 'Current Plan',
+            quantity: 1,
+            unitPrice: 999,
+            addedDate: subDays(new Date(now), 10).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          await expireSubscriptionItems(
+            [currentItem.id],
+            futureDate,
+            transaction
+          )
+
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'New Premium Plan',
+            quantity: 1,
+            unitPrice: 4999,
+            addedDate: futureDate,
+            type: SubscriptionItemType.Static,
+          })
+
+          const synced = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+          expect(synced.name).toBe('Current Plan')
+          expect(synced.priceId).toBe(currentItem.priceId!)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should handle multiple items becoming active and choose the most expensive as primary', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = Date.now()
-        const pastDate = subDays(new Date(now), 1).getTime()
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = Date.now()
+          const pastDate = subDays(new Date(now), 1).getTime()
 
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Basic Feature',
-          quantity: 1,
-          unitPrice: 500,
-          addedDate: pastDate,
-          type: SubscriptionItemType.Static,
-        })
-
-        const premiumItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Premium Feature',
-          quantity: 1,
-          unitPrice: 3000,
-          addedDate: pastDate,
-          type: SubscriptionItemType.Static,
-        })
-
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Standard Feature',
-          quantity: 1,
-          unitPrice: 1500,
-          addedDate: pastDate,
-          type: SubscriptionItemType.Static,
-        })
-
-        const synced = await syncSubscriptionWithActiveItems(
-          {
+          await setupSubscriptionItem({
             subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
-
-        expect(synced.name).toBe('Premium Feature')
-        expect(synced.priceId).toBe(premiumItem.priceId!)
-        return Result.ok(null)
-      })
-    })
-
-    it('should handle subscription becoming active but not primary (lower price than existing)', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = Date.now()
-
-        const expensiveItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Enterprise Plan',
-          quantity: 1,
-          unitPrice: 9999,
-          addedDate: subDays(new Date(now), 10).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Add-on Feature',
-          quantity: 1,
-          unitPrice: 999,
-          addedDate: subDays(new Date(now), 1).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const synced = await syncSubscriptionWithActiveItems(
-          {
-            subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
-
-        expect(synced.name).toBe('Enterprise Plan')
-        expect(synced.priceId).toBe(expensiveItem.priceId!)
-        return Result.ok(null)
-      })
-    })
-
-    it('should update primary when current primary item gets cancelled', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = Date.now()
-
-        const primaryItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Premium Plan',
-          quantity: 1,
-          unitPrice: 4999,
-          addedDate: subDays(new Date(now), 10).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const secondaryItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Standard Plan',
-          quantity: 1,
-          unitPrice: 2999,
-          addedDate: subDays(new Date(now), 5).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Basic Plan',
-          quantity: 1,
-          unitPrice: 999,
-          addedDate: subDays(new Date(now), 3).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const syncedBefore = await syncSubscriptionWithActiveItems(
-          {
-            subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
-        expect(syncedBefore.name).toBe('Premium Plan')
-
-        await updateSubscriptionItem(
-          {
-            id: primaryItem.id,
-            expiredAt: subDays(new Date(now), 1).getTime(),
+            priceId: price.id,
+            name: 'Basic Feature',
+            quantity: 1,
+            unitPrice: 500,
+            addedDate: pastDate,
             type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
+          })
 
-        const syncedAfter = await syncSubscriptionWithActiveItems(
-          {
+          const premiumItem = await setupSubscriptionItem({
             subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
-        expect(syncedAfter.name).toBe('Standard Plan')
-        expect(syncedAfter.priceId).toBe(secondaryItem.priceId!)
-        return Result.ok(null)
-      })
-    })
-
-    it('should handle multiple items becoming active and inactive simultaneously', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = Date.now()
-
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Old Basic',
-          quantity: 1,
-          unitPrice: 999,
-          addedDate: subDays(new Date(now), 10).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const newPremiumItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'New Premium',
-          quantity: 1,
-          unitPrice: 6999,
-          addedDate: subDays(new Date(now), 1).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'New Basic',
-          quantity: 1,
-          unitPrice: 1999,
-          addedDate: subDays(new Date(now), 1).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'New Add-on',
-          quantity: 1,
-          unitPrice: 500,
-          addedDate: subDays(new Date(now), 1).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const synced = await syncSubscriptionWithActiveItems(
-          {
-            subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
-        expect(synced.name).toBe('New Premium')
-        expect(synced.priceId).toBe(newPremiumItem.priceId!)
-        return Result.ok(null)
-      })
-    })
-
-    it('should maintain subscription state when all items expire with no replacements', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = Date.now()
-
-        const activeItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Active Plan',
-          quantity: 1,
-          unitPrice: 2999,
-          addedDate: subDays(new Date(now), 10).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const syncedActive = await syncSubscriptionWithActiveItems(
-          {
-            subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
-        expect(syncedActive.name).toBe('Active Plan')
-
-        await updateSubscriptionItem(
-          {
-            id: activeItem.id,
-            expiredAt: subDays(new Date(now), 1).getTime(),
+            priceId: price.id,
+            name: 'Premium Feature',
+            quantity: 1,
+            unitPrice: 3000,
+            addedDate: pastDate,
             type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
+          })
 
-        const syncedAfterExpiry =
-          await syncSubscriptionWithActiveItems(
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Standard Feature',
+            quantity: 1,
+            unitPrice: 1500,
+            addedDate: pastDate,
+            type: SubscriptionItemType.Static,
+          })
+
+          const synced = await syncSubscriptionWithActiveItems(
             {
               subscriptionId: subscription.id,
               currentTime: new Date(),
@@ -2435,89 +2251,313 @@ describe('adjustSubscription Integration Tests', async () => {
             transaction
           )
 
-        expect(syncedAfterExpiry.name).toBe('Active Plan')
-        expect(syncedAfterExpiry.priceId).toBe(price.id)
-        expect(syncedAfterExpiry.id).toBe(subscription.id)
-        return Result.ok(null)
-      })
+          expect(synced.name).toBe('Premium Feature')
+          expect(synced.priceId).toBe(premiumItem.priceId!)
+          return Result.ok(null)
+        })
+      ).unwrap()
+    })
+
+    it('should handle subscription becoming active but not primary (lower price than existing)', async () => {
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = Date.now()
+
+          const expensiveItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Enterprise Plan',
+            quantity: 1,
+            unitPrice: 9999,
+            addedDate: subDays(new Date(now), 10).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Add-on Feature',
+            quantity: 1,
+            unitPrice: 999,
+            addedDate: subDays(new Date(now), 1).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const synced = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+
+          expect(synced.name).toBe('Enterprise Plan')
+          expect(synced.priceId).toBe(expensiveItem.priceId!)
+          return Result.ok(null)
+        })
+      ).unwrap()
+    })
+
+    it('should update primary when current primary item gets cancelled', async () => {
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = Date.now()
+
+          const primaryItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 4999,
+            addedDate: subDays(new Date(now), 10).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const secondaryItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Standard Plan',
+            quantity: 1,
+            unitPrice: 2999,
+            addedDate: subDays(new Date(now), 5).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Basic Plan',
+            quantity: 1,
+            unitPrice: 999,
+            addedDate: subDays(new Date(now), 3).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const syncedBefore = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+          expect(syncedBefore.name).toBe('Premium Plan')
+
+          await updateSubscriptionItem(
+            {
+              id: primaryItem.id,
+              expiredAt: subDays(new Date(now), 1).getTime(),
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+
+          const syncedAfter = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+          expect(syncedAfter.name).toBe('Standard Plan')
+          expect(syncedAfter.priceId).toBe(secondaryItem.priceId!)
+          return Result.ok(null)
+        })
+      ).unwrap()
+    })
+
+    it('should handle multiple items becoming active and inactive simultaneously', async () => {
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = Date.now()
+
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Old Basic',
+            quantity: 1,
+            unitPrice: 999,
+            addedDate: subDays(new Date(now), 10).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const newPremiumItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'New Premium',
+            quantity: 1,
+            unitPrice: 6999,
+            addedDate: subDays(new Date(now), 1).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'New Basic',
+            quantity: 1,
+            unitPrice: 1999,
+            addedDate: subDays(new Date(now), 1).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'New Add-on',
+            quantity: 1,
+            unitPrice: 500,
+            addedDate: subDays(new Date(now), 1).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const synced = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+          expect(synced.name).toBe('New Premium')
+          expect(synced.priceId).toBe(newPremiumItem.priceId!)
+          return Result.ok(null)
+        })
+      ).unwrap()
+    })
+
+    it('should maintain subscription state when all items expire with no replacements', async () => {
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = Date.now()
+
+          const activeItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Active Plan',
+            quantity: 1,
+            unitPrice: 2999,
+            addedDate: subDays(new Date(now), 10).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const syncedActive = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+          expect(syncedActive.name).toBe('Active Plan')
+
+          await updateSubscriptionItem(
+            {
+              id: activeItem.id,
+              expiredAt: subDays(new Date(now), 1).getTime(),
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+
+          const syncedAfterExpiry =
+            await syncSubscriptionWithActiveItems(
+              {
+                subscriptionId: subscription.id,
+                currentTime: new Date(),
+              },
+              transaction
+            )
+
+          expect(syncedAfterExpiry.name).toBe('Active Plan')
+          expect(syncedAfterExpiry.priceId).toBe(price.id)
+          expect(syncedAfterExpiry.id).toBe(subscription.id)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should handle quantity changes affecting total price calculations', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = Date.now()
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = Date.now()
 
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'High Unit Price',
-          quantity: 1,
-          unitPrice: 5000,
-          addedDate: subDays(new Date(now), 5).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const highQuantityItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'High Quantity',
-          quantity: 10,
-          unitPrice: 1000,
-          addedDate: subDays(new Date(now), 5).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const synced = await syncSubscriptionWithActiveItems(
-          {
+          await setupSubscriptionItem({
             subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
+            priceId: price.id,
+            name: 'High Unit Price',
+            quantity: 1,
+            unitPrice: 5000,
+            addedDate: subDays(new Date(now), 5).getTime(),
+            type: SubscriptionItemType.Static,
+          })
 
-        expect(synced.name).toBe('High Quantity')
-        expect(synced.priceId).toBe(highQuantityItem.priceId!)
-        return Result.ok(null)
-      })
+          const highQuantityItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'High Quantity',
+            quantity: 10,
+            unitPrice: 1000,
+            addedDate: subDays(new Date(now), 5).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const synced = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+
+          expect(synced.name).toBe('High Quantity')
+          expect(synced.priceId).toBe(highQuantityItem.priceId!)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should use addedDate as tiebreaker when items have same total price', async () => {
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const now = Date.now()
+      ;(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const now = Date.now()
 
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Older Item',
-          quantity: 1,
-          unitPrice: 3000,
-          addedDate: subDays(new Date(now), 10).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const newerItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Newer Item',
-          quantity: 1,
-          unitPrice: 3000,
-          addedDate: subDays(new Date(now), 5).getTime(),
-          type: SubscriptionItemType.Static,
-        })
-
-        const synced = await syncSubscriptionWithActiveItems(
-          {
+          await setupSubscriptionItem({
             subscriptionId: subscription.id,
-            currentTime: new Date(),
-          },
-          transaction
-        )
+            priceId: price.id,
+            name: 'Older Item',
+            quantity: 1,
+            unitPrice: 3000,
+            addedDate: subDays(new Date(now), 10).getTime(),
+            type: SubscriptionItemType.Static,
+          })
 
-        expect(synced.name).toBe('Newer Item')
-        expect(synced.priceId).toBe(newerItem.priceId!)
-        return Result.ok(null)
-      })
+          const newerItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Newer Item',
+            quantity: 1,
+            unitPrice: 3000,
+            addedDate: subDays(new Date(now), 5).getTime(),
+            type: SubscriptionItemType.Static,
+          })
+
+          const synced = await syncSubscriptionWithActiveItems(
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
+          )
+
+          expect(synced.name).toBe('Newer Item')
+          expect(synced.priceId).toBe(newerItem.priceId!)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -2585,49 +2625,50 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Item',
         quantity: 1,
         unitPrice: 100,
-      })
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 3600000,
-            endDate: Date.now() + 3600000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-        const invalidItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            id: item.id,
-            name: 'Item',
-            quantity: 1,
-            unitPrice: 100,
-            priceId: 'invalid_price_id',
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: invalidItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 3600000,
+              endDate: Date.now() + 3600000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('NotFoundError')
-        }
-        return Result.ok(null)
-      })
+            transaction
+          )
+          const invalidItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              id: item.id,
+              name: 'Item',
+              quantity: 1,
+              unitPrice: 100,
+              priceId: 'invalid_price_id',
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: invalidItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('NotFoundError')
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -2641,91 +2682,95 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Premium Plan',
         quantity: 1,
         unitPrice: 4999,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 24 * 60 * 60 * 1000,
-            endDate: Date.now() + 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 4999,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Basic Plan',
-            quantity: 1,
-            unitPrice: 999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        // Verify notification mocks were called
-        const mockCustomerNotification = getMockCustomerNotification()
-        const mockOrgNotification = getMockOrgNotification()
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 4999,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
 
-        expect(mockCustomerNotification).toHaveBeenCalledTimes(1)
-        expect(mockOrgNotification).toHaveBeenCalledTimes(1)
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Basic Plan',
+              quantity: 1,
+              unitPrice: 999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
 
-        // Verify customer notification payload
-        const customerPayload = mockCustomerNotification.mock
-          .calls[0][0] as any
-        expect(customerPayload.adjustmentType).toBe('downgrade')
-        expect(customerPayload.subscriptionId).toBe(subscription.id)
-        expect(customerPayload.customerId).toBe(customer.id)
-        expect(customerPayload.organizationId).toBe(organization.id)
-        expect(customerPayload.prorationAmount).toBeNull()
-        expect(customerPayload.previousItems).toHaveLength(1)
-        expect(customerPayload.previousItems[0].unitPrice).toBe(4999)
-        expect(customerPayload.newItems).toHaveLength(1)
-        expect(customerPayload.newItems[0].unitPrice).toBe(999)
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
 
-        // Verify organization notification payload
-        const orgPayload = mockOrgNotification.mock.calls[0][0] as any
-        expect(orgPayload.adjustmentType).toBe('downgrade')
-        expect(typeof orgPayload.currency).toBe('string')
-        expect(orgPayload.currency.length).toBeGreaterThan(0)
-        return Result.ok(null)
-      })
+          // Verify notification mocks were called
+          const mockCustomerNotification =
+            getMockCustomerNotification()
+          const mockOrgNotification = getMockOrgNotification()
+
+          expect(mockCustomerNotification).toHaveBeenCalledTimes(1)
+          expect(mockOrgNotification).toHaveBeenCalledTimes(1)
+
+          // Verify customer notification payload
+          const customerPayload = mockCustomerNotification.mock
+            .calls[0][0] as any
+          expect(customerPayload.adjustmentType).toBe('downgrade')
+          expect(customerPayload.subscriptionId).toBe(subscription.id)
+          expect(customerPayload.customerId).toBe(customer.id)
+          expect(customerPayload.organizationId).toBe(organization.id)
+          expect(customerPayload.prorationAmount).toBeNull()
+          expect(customerPayload.previousItems).toHaveLength(1)
+          expect(customerPayload.previousItems[0].unitPrice).toBe(
+            4999
+          )
+          expect(customerPayload.newItems).toHaveLength(1)
+          expect(customerPayload.newItems[0].unitPrice).toBe(999)
+
+          // Verify organization notification payload
+          const orgPayload = mockOrgNotification.mock
+            .calls[0][0] as any
+          expect(orgPayload.adjustmentType).toBe('downgrade')
+          expect(typeof orgPayload.currency).toBe('string')
+          expect(orgPayload.currency.length).toBeGreaterThan(0)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should NOT send notifications when rawNetCharge is positive (upgrade requires payment)', async () => {
@@ -2734,56 +2779,57 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Premium Plan',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        // Verify notifications are NOT called for upgrade path (billing run is triggered instead)
-        const mockCustomerNotification = getMockCustomerNotification()
-        const mockOrgNotification = getMockOrgNotification()
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Premium Plan',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
 
-        expect(mockCustomerNotification).not.toHaveBeenCalled()
-        expect(mockOrgNotification).not.toHaveBeenCalled()
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
 
-        // But billing run should be triggered
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        return Result.ok(null)
-      })
+          // Verify notifications are NOT called for upgrade path (billing run is triggered instead)
+          const mockCustomerNotification =
+            getMockCustomerNotification()
+          const mockOrgNotification = getMockOrgNotification()
+
+          expect(mockCustomerNotification).not.toHaveBeenCalled()
+          expect(mockOrgNotification).not.toHaveBeenCalled()
+
+          // But billing run should be triggered
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -2814,58 +2860,58 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Premium Plan',
-            quantity: 1,
-            unitPrice: 9999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Auto,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        // Should resolve to Immediately for upgrades
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.Immediately
+            transaction
           )
-          expect(result.value.isUpgrade).toBe(true)
-        }
 
-        // Billing run should be triggered for upgrades
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        return Result.ok(null)
-      })
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Premium Plan',
+              quantity: 1,
+              unitPrice: 9999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should resolve to Immediately for upgrades
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.Immediately
+            )
+            expect(result.value.isUpgrade).toBe(true)
+          }
+
+          // Billing run should be triggered for upgrades
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should apply downgrade at end of period when timing is auto', async () => {
@@ -2874,91 +2920,91 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Premium Plan',
         quantity: 1,
         unitPrice: 4999,
-      })
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+          const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
 
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const newStartDate = Date.now() - 30 * 24 * 60 * 60 * 1000
-        const newEndDate = Date.now() + 30 * 24 * 60 * 60 * 1000
-
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: newStartDate,
-            endDate: newEndDate,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        subscription = await updateSubscription(
-          {
-            id: subscription.id,
-            renews: true,
-            currentBillingPeriodStart: newStartDate,
-            currentBillingPeriodEnd: newEndDate,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 4999,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Basic Plan',
-            quantity: 1,
-            unitPrice: 999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Auto,
-              prorateCurrentBillingPeriod: true,
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: newStartDate,
+              endDate: newEndDate,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        // Should resolve to AtEndOfCurrentBillingPeriod for downgrades
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+            transaction
           )
-          expect(result.value.isUpgrade).toBe(false)
-        }
 
-        // Billing run should NOT be triggered for downgrades
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).not.toHaveBeenCalled()
-        return Result.ok(null)
-      })
+          subscription = await updateSubscription(
+            {
+              id: subscription.id,
+              renews: true,
+              currentBillingPeriodStart: newStartDate,
+              currentBillingPeriodEnd: newEndDate,
+            },
+            transaction
+          )
+
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 4999,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Basic Plan',
+              quantity: 1,
+              unitPrice: 999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should resolve to AtEndOfCurrentBillingPeriod for downgrades
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+            )
+            expect(result.value.isUpgrade).toBe(false)
+          }
+
+          // Billing run should NOT be triggered for downgrades
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).not.toHaveBeenCalled()
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should return correct isUpgrade value for lateral moves', async () => {
@@ -2967,75 +3013,75 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Plan A',
         quantity: 1,
         unitPrice: 1000,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 24 * 60 * 60 * 1000,
-            endDate: Date.now() + 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 1000,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Plan B',
-            quantity: 1,
-            unitPrice: 1000,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Auto,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        // Same price = not an upgrade
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.isUpgrade).toBe(false)
-          // Should resolve to Immediately for lateral moves
-          expect(result.value.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.Immediately
+            transaction
           )
-        }
-        return Result.ok(null)
-      })
+
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 1000,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Plan B',
+              quantity: 1,
+              unitPrice: 1000,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Same price = not an upgrade
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.isUpgrade).toBe(false)
+            // Should resolve to Immediately for lateral moves
+            expect(result.value.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.Immediately
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -3062,59 +3108,60 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        // Use priceSlug in the terse format
-        const newItems: TerseSubscriptionItem[] = [
-          {
-            priceSlug: 'premium-monthly',
-            quantity: 1,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        // Should trigger billing run for upgrade
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0] as any
+          // Use priceSlug in the terse format
+          const newItems: TerseSubscriptionItem[] = [
+            {
+              priceSlug: 'premium-monthly',
+              quantity: 1,
+            },
+          ]
 
-        // The resolved item should have the correct priceId
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
-        ).toBe(slugPrice.id)
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
-            .unitPrice
-        ).toBe(2999)
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].name
-        ).toBe('Premium via Slug')
-        return Result.ok(null)
-      })
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should trigger billing run for upgrade
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          const triggerCall = mockTrigger.mock.calls[0][0] as any
+
+          // The resolved item should have the correct priceId
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0]
+              .priceId
+          ).toBe(slugPrice.id)
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0]
+              .unitPrice
+          ).toBe(2999)
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0].name
+          ).toBe('Premium via Slug')
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should throw error when priceSlug not found in pricing model', async () => {
@@ -3123,48 +3170,48 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const newItems: TerseSubscriptionItem[] = [
-          {
-            priceSlug: 'nonexistent-slug',
-            quantity: 1,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('NotFoundError')
-          expect(result.error.message).toContain(
-            'Price not found: nonexistent-slug'
+            transaction
           )
-        }
-        return Result.ok(null)
-      })
+
+          const newItems: TerseSubscriptionItem[] = [
+            {
+              priceSlug: 'nonexistent-slug',
+              quantity: 1,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('NotFoundError')
+            expect(result.error.message).toContain(
+              'Price not found: nonexistent-slug'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should expand terse subscription item with priceId to full item', async () => {
@@ -3186,63 +3233,64 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        // Use terse format with priceId
-        const newItems: TerseSubscriptionItem[] = [
-          {
-            priceId: testPrice.id,
-            quantity: 3,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0] as any
+          // Use terse format with priceId
+          const newItems: TerseSubscriptionItem[] = [
+            {
+              priceId: testPrice.id,
+              quantity: 3,
+            },
+          ]
 
-        // The expanded item should have all the correct fields from the price
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
-        ).toBe(testPrice.id)
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
-            .quantity
-        ).toBe(3)
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
-            .unitPrice
-        ).toBe(testPrice.unitPrice)
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].name
-        ).toBe(testPrice.name)
-        return Result.ok(null)
-      })
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          const triggerCall = mockTrigger.mock.calls[0][0] as any
+
+          // The expanded item should have all the correct fields from the price
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0]
+              .priceId
+          ).toBe(testPrice.id)
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0]
+              .quantity
+          ).toBe(3)
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0]
+              .unitPrice
+          ).toBe(testPrice.unitPrice)
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0].name
+          ).toBe(testPrice.name)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should handle mixed item types (priceSlug + priceId) in the same request', async () => {
@@ -3253,112 +3301,112 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
 
-      const uniqueSlug = `premium-mixed-${Date.now()}`
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const slugPrice = await insertPrice(
-          {
-            ...nulledPriceColumns,
-            productId: product.id,
-            name: 'Premium via Slug',
-            type: PriceType.Subscription,
-            unitPrice: 2999,
-            currency: CurrencyCode.USD,
-            isDefault: false,
-            livemode: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            active: true,
-            trialPeriodDays: 0,
-            slug: uniqueSlug,
-          },
-          ctx
-        )
-
-        const idPrice = await insertPrice(
-          {
-            ...nulledPriceColumns,
-            productId: product.id,
-            name: 'Standard Price',
-            type: PriceType.Subscription,
-            unitPrice: 1500,
-            currency: CurrencyCode.USD,
-            isDefault: false,
-            livemode: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            active: true,
-            trialPeriodDays: 0,
-          },
-          ctx
-        )
-
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        // Mix priceSlug and priceId items in the same request
-        const newItems: TerseSubscriptionItem[] = [
-          {
-            priceSlug: uniqueSlug,
-            quantity: 1,
-          },
-          {
-            priceId: idPrice.id,
-            quantity: 2,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      const uniqueSlug = `premium-mixed-${Date.now()}`(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const slugPrice = await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'Premium via Slug',
+              type: PriceType.Subscription,
+              unitPrice: 2999,
+              currency: CurrencyCode.USD,
+              isDefault: false,
+              livemode: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              active: true,
+              trialPeriodDays: 0,
+              slug: uniqueSlug,
             },
-          },
-          organization,
-          ctx
-        )
+            ctx
+          )
 
-        // Should trigger billing run for upgrade
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0] as any
+          const idPrice = await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'Standard Price',
+              type: PriceType.Subscription,
+              unitPrice: 1500,
+              currency: CurrencyCode.USD,
+              isDefault: false,
+              livemode: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              active: true,
+              trialPeriodDays: 0,
+            },
+            ctx
+          )
 
-        // Should have both items resolved
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems.length
-        ).toBe(2)
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
 
-        // First item resolved from priceSlug
-        const slugItem = (
-          triggerCall.adjustmentParams
-            .newSubscriptionItems as SubscriptionItem.Record[]
-        ).find((i) => i.priceId === slugPrice.id)
-        expect(slugItem).toMatchObject({
-          unitPrice: slugPrice.unitPrice,
+          // Mix priceSlug and priceId items in the same request
+          const newItems: TerseSubscriptionItem[] = [
+            {
+              priceSlug: uniqueSlug,
+              quantity: 1,
+            },
+            {
+              priceId: idPrice.id,
+              quantity: 2,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should trigger billing run for upgrade
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          const triggerCall = mockTrigger.mock.calls[0][0] as any
+
+          // Should have both items resolved
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems.length
+          ).toBe(2)
+
+          // First item resolved from priceSlug
+          const slugItem = (
+            triggerCall.adjustmentParams
+              .newSubscriptionItems as SubscriptionItem.Record[]
+          ).find((i) => i.priceId === slugPrice.id)
+          expect(slugItem).toMatchObject({
+            unitPrice: slugPrice.unitPrice,
+          })
+          expect(slugItem!.unitPrice).toBe(slugPrice.unitPrice)
+          expect(slugItem!.name).toBe(slugPrice.name)
+
+          // Second item resolved from priceId
+          const idItem = (
+            triggerCall.adjustmentParams
+              .newSubscriptionItems as SubscriptionItem.Record[]
+          ).find((i) => i.priceId === idPrice.id)
+          expect(idItem).toMatchObject({ quantity: 2 })
+          expect(idItem!.quantity).toBe(2)
+          return Result.ok(null)
         })
-        expect(slugItem!.unitPrice).toBe(slugPrice.unitPrice)
-        expect(slugItem!.name).toBe(slugPrice.name)
-
-        // Second item resolved from priceId
-        const idItem = (
-          triggerCall.adjustmentParams
-            .newSubscriptionItems as SubscriptionItem.Record[]
-        ).find((i) => i.priceId === idPrice.id)
-        expect(idItem).toMatchObject({ quantity: 2 })
-        expect(idItem!.quantity).toBe(2)
-        return Result.ok(null)
-      })
+      ).unwrap()
     })
 
     it('should resolve UUID passed as priceSlug (SDK convenience)', async () => {
@@ -3383,59 +3431,60 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Existing Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        // Use a UUID (uuidPrice.id) in the priceSlug field - this is the SDK's approach
-        const newItems: TerseSubscriptionItem[] = [
-          {
-            priceSlug: uuidPrice.id, // UUID passed as priceSlug
-            quantity: 1,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        // Should trigger billing run for upgrade
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0] as any
+          // Use a UUID (uuidPrice.id) in the priceSlug field - this is the SDK's approach
+          const newItems: TerseSubscriptionItem[] = [
+            {
+              priceSlug: uuidPrice.id, // UUID passed as priceSlug
+              quantity: 1,
+            },
+          ]
 
-        // The item should be resolved correctly from the UUID
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
-        ).toBe(uuidPrice.id)
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
-            .unitPrice
-        ).toBe(uuidPrice.unitPrice)
-        expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].name
-        ).toBe(uuidPrice.name)
-        return Result.ok(null)
-      })
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should trigger billing run for upgrade
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).toHaveBeenCalledTimes(1)
+          const triggerCall = mockTrigger.mock.calls[0][0] as any
+
+          // The item should be resolved correctly from the UUID
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0]
+              .priceId
+          ).toBe(uuidPrice.id)
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0]
+              .unitPrice
+          ).toBe(uuidPrice.unitPrice)
+          expect(
+            triggerCall.adjustmentParams.newSubscriptionItems[0].name
+          ).toBe(uuidPrice.name)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -3449,78 +3498,78 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        const bpItemsBefore = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-
-        // Upgrade to a more expensive plan
-        const newItems = [
-          {
-            name: 'Premium Plan',
-            quantity: 1,
-            unitPrice: 500,
-            priceId: price.id,
-            type: SubscriptionItemType.Static,
-            addedDate: Date.now(),
-            subscriptionId: subscription.id,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        // Should NOT trigger billing run since proration is disabled
-        const mockTrigger = getMockTrigger()
-        expect(mockTrigger).not.toHaveBeenCalled()
-
-        // Should report as upgrade
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.isUpgrade).toBe(true)
-          expect(result.value.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.Immediately
+            transaction
           )
 
-          // Subscription items should be updated immediately
-          expect(result.value.subscriptionItems.length).toBe(1)
-          expect(result.value.subscriptionItems[0].unitPrice).toBe(
-            500
+          const bpItemsBefore = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
           )
-        }
 
-        // Should NOT create proration billing period items
-        const bpItemsAfter = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-        expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
-        return Result.ok(null)
-      })
+          // Upgrade to a more expensive plan
+          const newItems = [
+            {
+              name: 'Premium Plan',
+              quantity: 1,
+              unitPrice: 500,
+              priceId: price.id,
+              type: SubscriptionItemType.Static,
+              addedDate: Date.now(),
+              subscriptionId: subscription.id,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should NOT trigger billing run since proration is disabled
+          const mockTrigger = getMockTrigger()
+          expect(mockTrigger).not.toHaveBeenCalled()
+
+          // Should report as upgrade
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.isUpgrade).toBe(true)
+            expect(result.value.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.Immediately
+            )
+
+            // Subscription items should be updated immediately
+            expect(result.value.subscriptionItems.length).toBe(1)
+            expect(result.value.subscriptionItems[0].unitPrice).toBe(
+              500
+            )
+          }
+
+          // Should NOT create proration billing period items
+          const bpItemsAfter = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+          expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('should send upgrade notification when prorateCurrentBillingPeriod is false and isUpgrade is true', async () => {
@@ -3529,59 +3578,59 @@ describe('adjustSubscription Integration Tests', async () => {
         name: 'Basic Plan',
         quantity: 1,
         unitPrice: 100,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: Date.now() - 10 * 60 * 1000,
-            endDate: Date.now() + 10 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        // Upgrade to a more expensive plan
-        const newItems = [
-          {
-            name: 'Premium Plan',
-            quantity: 1,
-            unitPrice: 500,
-            priceId: price.id,
-            type: SubscriptionItemType.Static,
-            addedDate: Date.now(),
-            subscriptionId: subscription.id,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
-
-        // Should report as upgrade
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.isUpgrade).toBe(true)
-
-          // Note: The notification itself is tested elsewhere, but we verify
-          // that the code path for upgrades without proration is taken
-          expect(result.value.resolvedTiming).toBe(
-            SubscriptionAdjustmentTiming.Immediately
+            transaction
           )
-        }
-        return Result.ok(null)
-      })
+
+          // Upgrade to a more expensive plan
+          const newItems = [
+            {
+              name: 'Premium Plan',
+              quantity: 1,
+              unitPrice: 500,
+              priceId: price.id,
+              type: SubscriptionItemType.Static,
+              addedDate: Date.now(),
+              subscriptionId: subscription.id,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Should report as upgrade
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.isUpgrade).toBe(true)
+
+            // Note: The notification itself is tested elsewhere, but we verify
+            // that the code path for upgrades without proration is taken
+            expect(result.value.resolvedTiming).toBe(
+              SubscriptionAdjustmentTiming.Immediately
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -3613,43 +3662,45 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 0,
         priceId: price.id,
-      })
-
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            name: 'Paid Plan',
-            quantity: 1,
-            unitPrice: 2999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        // Free subscriptions should be upgraded via createSubscription flow,
-        // which cancels the free subscription and creates a new paid one.
-        // adjustSubscription rejects free plans to enforce this pattern.
-        const result = await adjustSubscription(
-          {
-            id: freeSubscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              name: 'Paid Plan',
+              quantity: 1,
+              unitPrice: 2999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
             },
-          },
-          organization,
-          ctx
-        )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
-          expect(result.error.message.toLowerCase()).toContain('free')
-        }
-        return Result.ok(null)
-      })
+          ]
+
+          // Free subscriptions should be upgraded via createSubscription flow,
+          // which cancels the free subscription and creates a new paid one.
+          // adjustSubscription rejects free plans to enforce this pattern.
+          const result = await adjustSubscription(
+            {
+              id: freeSubscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ValidationError')
+            expect(result.error.message.toLowerCase()).toContain(
+              'free'
+            )
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -3738,243 +3789,248 @@ describe('adjustSubscription Integration Tests', async () => {
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: 100,
-      })
+      })(
+        await comprehensiveAdminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const adjustmentDate = Date.now()
+          const newStartDate =
+            adjustmentDate - 15 * 24 * 60 * 60 * 1000 // 15 days ago
+          const newEndDate = adjustmentDate + 15 * 24 * 60 * 60 * 1000 // 15 days from now
 
-      await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const adjustmentDate = Date.now()
-        const newStartDate = adjustmentDate - 15 * 24 * 60 * 60 * 1000 // 15 days ago
-        const newEndDate = adjustmentDate + 15 * 24 * 60 * 60 * 1000 // 15 days from now
-
-        await updateBillingPeriod(
-          {
-            id: billingPeriod.id,
-            startDate: newStartDate,
-            endDate: newEndDate,
-            status: BillingPeriodStatus.Active,
-          },
-          transaction
-        )
-
-        await updateSubscription(
-          {
-            id: subscription.id,
-            renews: true,
-            currentBillingPeriodStart: newStartDate,
-            currentBillingPeriodEnd: newEndDate,
-          },
-          transaction
-        )
-
-        // Setup existing usage credits (simulating credits granted at billing period start)
-        const existingCreditIssuedAmount = 100
-        const existingCredit = await setupUsageCredit({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          billingPeriodId: billingPeriod.id,
-          issuedAmount: existingCreditIssuedAmount,
-          creditType: UsageCreditType.Grant,
-          sourceReferenceType:
-            UsageCreditSourceReferenceType.BillingPeriodTransition,
-          expiresAt: newEndDate,
-        })
-
-        // Setup payment for the premium plan (customer already paid $49.99)
-        const invoice = await setupInvoice({
-          organizationId: organization.id,
-          customerId: customer.id,
-          billingPeriodId: billingPeriod.id,
-          priceId: price.id,
-          livemode: subscription.livemode,
-        })
-        await setupPayment({
-          stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
-          status: PaymentStatus.Succeeded,
-          amount: 4999,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          billingPeriodId: billingPeriod.id,
-          subscriptionId: subscription.id,
-          paymentMethodId: paymentMethod.id,
-          livemode: true,
-        })
-
-        // Verify initial state before downgrade
-        const creditsBefore = await selectUsageCredits(
-          {
-            subscriptionId: subscription.id,
-            billingPeriodId: billingPeriod.id,
-            usageMeterId: usageMeter.id,
-          },
-          transaction
-        )
-        expect(creditsBefore.length).toBe(1)
-        expect(creditsBefore[0].id).toBe(existingCredit.id)
-
-        const itemsBefore = await selectSubscriptionItems(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-        const activeItemsBefore = itemsBefore.filter(
-          (item) => item.expiredAt === null
-        )
-        expect(activeItemsBefore.length).toBe(1)
-        expect(activeItemsBefore[0].id).toBe(premiumItem.id)
-        expect(activeItemsBefore[0].unitPrice).toBe(4999)
-
-        // Verify premium feature exists before downgrade
-        const featuresBefore = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: premiumItem.id },
-          transaction
-        )
-        const activeFeaturesBefore = featuresBefore.filter(
-          (f) => f.expiredAt === null
-        )
-        expect(activeFeaturesBefore.length).toBeGreaterThanOrEqual(1)
-
-        // Downgrade to a cheaper plan immediately (from $49.99 to $9.99)
-        // Use the basic price which has the basic feature linked
-        const newItems: SubscriptionItem.Upsert[] = [
-          {
-            ...subscriptionItemCore,
-            priceId: basicPrice.id,
-            name: 'Basic Plan',
-            quantity: 1,
-            unitPrice: 999,
-            expiredAt: null,
-            type: SubscriptionItemType.Static,
-          },
-        ]
-
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: newStartDate,
+              endDate: newEndDate,
+              status: BillingPeriodStatus.Active,
             },
-          },
-          organization,
-          ctx
-        )
+            transaction
+          )
 
-        // ============================================================
-        // ASSERTION 1: No refund issued (downgrade protection)
-        // ============================================================
-        // For immediate downgrades, no billing run is triggered (no refund)
-        // The net charge would be negative, but we cap at 0
-        // pendingBillingRunId is only present when a billing run is triggered
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.pendingBillingRunId).toBeUndefined()
-        }
+          await updateSubscription(
+            {
+              id: subscription.id,
+              renews: true,
+              currentBillingPeriodStart: newStartDate,
+              currentBillingPeriodEnd: newEndDate,
+            },
+            transaction
+          )
 
-        // Check that no proration billing period items were created for refund
-        const bpItems = await selectBillingPeriodItems(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-        const refundItems = bpItems.filter(
-          (item) =>
-            item.name?.includes('Net charge adjustment') ||
-            item.name?.includes('Credit') ||
-            item.unitPrice < 0
-        )
-        expect(refundItems.length).toBe(0)
-
-        // ============================================================
-        // ASSERTION 2: Subscription item is replaced
-        // ============================================================
-        const itemsAfter = await selectSubscriptionItems(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-
-        // Old premium item should be expired
-        const expiredPremiumItem = itemsAfter.find(
-          (item) => item.id === premiumItem.id
-        )
-        expect(typeof expiredPremiumItem?.expiredAt).toBe('number')
-        expect(expiredPremiumItem?.expiredAt).toBeLessThanOrEqual(
-          Date.now()
-        )
-
-        // New basic item should be active
-        const activeItemsAfter = itemsAfter.filter(
-          (item) => !item.expiredAt || item.expiredAt > Date.now()
-        )
-        expect(activeItemsAfter.length).toBe(1)
-        expect(activeItemsAfter[0].name).toBe('Basic Plan')
-        expect(activeItemsAfter[0].unitPrice).toBe(999)
-
-        // ============================================================
-        // ASSERTION 3: Old features are expired
-        // ============================================================
-        const oldFeaturesAfter = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: premiumItem.id },
-          transaction
-        )
-        const stillActiveOldFeatures = oldFeaturesAfter.filter(
-          (f) => f.expiredAt === null
-        )
-        // Old features should be expired when the subscription item is expired
-        expect(stillActiveOldFeatures.length).toBe(0)
-
-        // ============================================================
-        // ASSERTION 4: New downgraded features are created matching basic plan
-        // ============================================================
-        const newBasicItem = activeItemsAfter[0]
-        const newFeaturesAfter = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: newBasicItem.id },
-          transaction
-        )
-        // Verify features were created for the basic plan
-        expect(newFeaturesAfter.length).toBe(1)
-        // The new feature should be linked to the basic feature (25 credits)
-        // not the premium feature (100 credits)
-        expect(newFeaturesAfter[0].featureId).toBe(basicFeature.id)
-        expect(newFeaturesAfter[0].productFeatureId).toBe(
-          basicProductFeature.id
-        )
-
-        // ============================================================
-        // ASSERTION 5: Existing usage credits are preserved
-        // ============================================================
-        const creditsAfter = await selectUsageCredits(
-          {
+          // Setup existing usage credits (simulating credits granted at billing period start)
+          const existingCreditIssuedAmount = 100
+          const existingCredit = await setupUsageCredit({
+            organizationId: organization.id,
             subscriptionId: subscription.id,
-            billingPeriodId: billingPeriod.id,
             usageMeterId: usageMeter.id,
-          },
-          transaction
-        )
+            billingPeriodId: billingPeriod.id,
+            issuedAmount: existingCreditIssuedAmount,
+            creditType: UsageCreditType.Grant,
+            sourceReferenceType:
+              UsageCreditSourceReferenceType.BillingPeriodTransition,
+            expiresAt: newEndDate,
+          })
 
-        // Credits should still exist with the same issuedAmount
-        expect(creditsAfter.length).toBeGreaterThanOrEqual(1)
-        const originalCredit = creditsAfter.find(
-          (c) => c.id === existingCredit.id
-        )
-        expect(originalCredit?.issuedAmount).toBe(
-          existingCreditIssuedAmount
-        )
-        expect(originalCredit?.sourceReferenceType).toBe(
-          UsageCreditSourceReferenceType.BillingPeriodTransition
-        )
+          // Setup payment for the premium plan (customer already paid $49.99)
+          const invoice = await setupInvoice({
+            organizationId: organization.id,
+            customerId: customer.id,
+            billingPeriodId: billingPeriod.id,
+            priceId: price.id,
+            livemode: subscription.livemode,
+          })
+          await setupPayment({
+            stripeChargeId: `ch_${Math.random().toString(36).slice(2)}`,
+            status: PaymentStatus.Succeeded,
+            amount: 4999,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            billingPeriodId: billingPeriod.id,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: true,
+          })
 
-        // ============================================================
-        // ASSERTION 6: Subscription is updated to reflect downgrade
-        // ============================================================
-        // Since no billing run was triggered (downgrade protection),
-        // the subscription should be synced immediately
-        expect(result.status).toBe('ok')
-        if (result.status === 'ok') {
-          expect(result.value.subscription.name).toBe('Basic Plan')
-        }
-        return Result.ok(null)
-      })
+          // Verify initial state before downgrade
+          const creditsBefore = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              billingPeriodId: billingPeriod.id,
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          expect(creditsBefore.length).toBe(1)
+          expect(creditsBefore[0].id).toBe(existingCredit.id)
+
+          const itemsBefore = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          const activeItemsBefore = itemsBefore.filter(
+            (item) => item.expiredAt === null
+          )
+          expect(activeItemsBefore.length).toBe(1)
+          expect(activeItemsBefore[0].id).toBe(premiumItem.id)
+          expect(activeItemsBefore[0].unitPrice).toBe(4999)
+
+          // Verify premium feature exists before downgrade
+          const featuresBefore = await selectSubscriptionItemFeatures(
+            { subscriptionItemId: premiumItem.id },
+            transaction
+          )
+          const activeFeaturesBefore = featuresBefore.filter(
+            (f) => f.expiredAt === null
+          )
+          expect(activeFeaturesBefore.length).toBeGreaterThanOrEqual(
+            1
+          )
+
+          // Downgrade to a cheaper plan immediately (from $49.99 to $9.99)
+          // Use the basic price which has the basic feature linked
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              ...subscriptionItemCore,
+              priceId: basicPrice.id,
+              name: 'Basic Plan',
+              quantity: 1,
+              unitPrice: 999,
+              expiredAt: null,
+              type: SubscriptionItemType.Static,
+            },
+          ]
+
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // ============================================================
+          // ASSERTION 1: No refund issued (downgrade protection)
+          // ============================================================
+          // For immediate downgrades, no billing run is triggered (no refund)
+          // The net charge would be negative, but we cap at 0
+          // pendingBillingRunId is only present when a billing run is triggered
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.pendingBillingRunId).toBeUndefined()
+          }
+
+          // Check that no proration billing period items were created for refund
+          const bpItems = await selectBillingPeriodItems(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+          const refundItems = bpItems.filter(
+            (item) =>
+              item.name?.includes('Net charge adjustment') ||
+              item.name?.includes('Credit') ||
+              item.unitPrice < 0
+          )
+          expect(refundItems.length).toBe(0)
+
+          // ============================================================
+          // ASSERTION 2: Subscription item is replaced
+          // ============================================================
+          const itemsAfter = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+
+          // Old premium item should be expired
+          const expiredPremiumItem = itemsAfter.find(
+            (item) => item.id === premiumItem.id
+          )
+          expect(typeof expiredPremiumItem?.expiredAt).toBe('number')
+          expect(expiredPremiumItem?.expiredAt).toBeLessThanOrEqual(
+            Date.now()
+          )
+
+          // New basic item should be active
+          const activeItemsAfter = itemsAfter.filter(
+            (item) => !item.expiredAt || item.expiredAt > Date.now()
+          )
+          expect(activeItemsAfter.length).toBe(1)
+          expect(activeItemsAfter[0].name).toBe('Basic Plan')
+          expect(activeItemsAfter[0].unitPrice).toBe(999)
+
+          // ============================================================
+          // ASSERTION 3: Old features are expired
+          // ============================================================
+          const oldFeaturesAfter =
+            await selectSubscriptionItemFeatures(
+              { subscriptionItemId: premiumItem.id },
+              transaction
+            )
+          const stillActiveOldFeatures = oldFeaturesAfter.filter(
+            (f) => f.expiredAt === null
+          )
+          // Old features should be expired when the subscription item is expired
+          expect(stillActiveOldFeatures.length).toBe(0)
+
+          // ============================================================
+          // ASSERTION 4: New downgraded features are created matching basic plan
+          // ============================================================
+          const newBasicItem = activeItemsAfter[0]
+          const newFeaturesAfter =
+            await selectSubscriptionItemFeatures(
+              { subscriptionItemId: newBasicItem.id },
+              transaction
+            )
+          // Verify features were created for the basic plan
+          expect(newFeaturesAfter.length).toBe(1)
+          // The new feature should be linked to the basic feature (25 credits)
+          // not the premium feature (100 credits)
+          expect(newFeaturesAfter[0].featureId).toBe(basicFeature.id)
+          expect(newFeaturesAfter[0].productFeatureId).toBe(
+            basicProductFeature.id
+          )
+
+          // ============================================================
+          // ASSERTION 5: Existing usage credits are preserved
+          // ============================================================
+          const creditsAfter = await selectUsageCredits(
+            {
+              subscriptionId: subscription.id,
+              billingPeriodId: billingPeriod.id,
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+
+          // Credits should still exist with the same issuedAmount
+          expect(creditsAfter.length).toBeGreaterThanOrEqual(1)
+          const originalCredit = creditsAfter.find(
+            (c) => c.id === existingCredit.id
+          )
+          expect(originalCredit?.issuedAmount).toBe(
+            existingCreditIssuedAmount
+          )
+          expect(originalCredit?.sourceReferenceType).toBe(
+            UsageCreditSourceReferenceType.BillingPeriodTransition
+          )
+
+          // ============================================================
+          // ASSERTION 6: Subscription is updated to reflect downgrade
+          // ============================================================
+          // Since no billing run was triggered (downgrade protection),
+          // the subscription should be synced immediately
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.subscription.name).toBe('Basic Plan')
+          }
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
   })
 
@@ -4079,86 +4135,88 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: premiumResourceFeature.id,
           organizationId: organization.id,
-        })
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+                  endDate: Date.now() + 15 * 24 * 60 * 60 * 1000, // 15 days from now
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
-              endDate: Date.now() + 15 * 24 * 60 * 60 * 1000, // 15 days from now
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: premiumPrice.id,
+                  name: 'Premium Plan',
+                  quantity: 1,
+                  unitPrice: 5000,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Upgrade with proration enabled (should create billing run)
+              const result = await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: true,
+                  },
+                },
+                organization,
+                ctx
+              )
+
+              // Verify billing run was created (pendingBillingRunId is returned)
+              expect(result.status).toBe('ok')
+              if (result.status === 'ok') {
+                expect(typeof result.value.pendingBillingRunId).toBe(
+                  'string'
+                )
+              }
+
+              // Verify claims are still accessible during pending billing run state
+              // (old subscription items haven't been expired yet)
+              const activeClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(activeClaims.length).toBe(3)
+              expect(
+                activeClaims.map((c) => c.externalId).sort()
+              ).toEqual(['user-1', 'user-2', 'user-3'])
+
+              // Verify usage still reflects old capacity (adjustment not applied yet)
+              const usage = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usage.capacity).toBe(5) // Still old capacity
+              expect(usage.claimed).toBe(3)
+              expect(usage.available).toBe(2)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: premiumPrice.id,
-              name: 'Premium Plan',
-              quantity: 1,
-              unitPrice: 5000,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Upgrade with proration enabled (should create billing run)
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // Verify billing run was created (pendingBillingRunId is returned)
-          expect(result.status).toBe('ok')
-          if (result.status === 'ok') {
-            expect(typeof result.value.pendingBillingRunId).toBe(
-              'string'
-            )
-          }
-
-          // Verify claims are still accessible during pending billing run state
-          // (old subscription items haven't been expired yet)
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(3)
-          expect(
-            activeClaims.map((c) => c.externalId).sort()
-          ).toEqual(['user-1', 'user-2', 'user-3'])
-
-          // Verify usage still reflects old capacity (adjustment not applied yet)
-          const usage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usage.capacity).toBe(5) // Still old capacity
-          expect(usage.claimed).toBe(3)
-          expect(usage.available).toBe(2)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
 
       it('validates capacity before creating billing run for upgrade', async () => {
@@ -4245,71 +4303,73 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: limitedResourceFeature.id,
           organizationId: organization.id,
-        })
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 15 * 24 * 60 * 60 * 1000,
+                  endDate: Date.now() + 15 * 24 * 60 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 15 * 24 * 60 * 60 * 1000,
-              endDate: Date.now() + 15 * 24 * 60 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: expensiveButLimitedPrice.id,
+                  name: 'Expensive Limited Plan',
+                  quantity: 1,
+                  unitPrice: 10000,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Should reject because new capacity (5) < active claims (8)
+              const result = await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: true,
+                  },
+                },
+                organization,
+                ctx
+              )
+              expect(result.status).toBe('error')
+              if (result.status === 'error') {
+                expect(result.error._tag).toBe('ConflictError')
+                expect(result.error.message).toMatch(
+                  /Cannot reduce.*capacity to 5.*8.*claimed/
+                )
+              }
+
+              // Verify claims unchanged
+              const activeClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(activeClaims.length).toBe(8)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: expensiveButLimitedPrice.id,
-              name: 'Expensive Limited Plan',
-              quantity: 1,
-              unitPrice: 10000,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Should reject because new capacity (5) < active claims (8)
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
-            },
-            organization,
-            ctx
-          )
-          expect(result.status).toBe('error')
-          if (result.status === 'error') {
-            expect(result.error._tag).toBe('ConflictError')
-            expect(result.error.message).toMatch(
-              /Cannot reduce.*capacity to 5.*8.*claimed/
-            )
-          }
-
-          // Verify claims unchanged
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(8)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
     })
 
@@ -4407,77 +4467,79 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: premiumResourceFeature.id,
           organizationId: organization.id,
-        })
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: premiumPrice.id,
+                  name: 'Premium Plan',
+                  quantity: 1,
+                  unitPrice: 2000,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Upgrade without proration (no billing run)
+              await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: false,
+                  },
+                },
+                organization,
+                ctx
+              )
+
+              // Verify claims are preserved
+              const activeClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(activeClaims.length).toBe(3)
+              expect(
+                activeClaims.map((c) => c.externalId).sort()
+              ).toEqual(['user-1', 'user-2', 'user-3'])
+
+              // Verify usage shows new capacity with existing claims
+              const usage = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usage.capacity).toBe(10)
+              expect(usage.claimed).toBe(3)
+              expect(usage.available).toBe(7)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: premiumPrice.id,
-              name: 'Premium Plan',
-              quantity: 1,
-              unitPrice: 2000,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Upgrade without proration (no billing run)
-          await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // Verify claims are preserved
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(3)
-          expect(
-            activeClaims.map((c) => c.externalId).sort()
-          ).toEqual(['user-1', 'user-2', 'user-3'])
-
-          // Verify usage shows new capacity with existing claims
-          const usage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usage.capacity).toBe(10)
-          expect(usage.claimed).toBe(3)
-          expect(usage.available).toBe(7)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
 
       it('preserves existing claims after downgrade when new capacity >= active claims', async () => {
@@ -4576,74 +4638,76 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: basicResourceFeature.id,
           organizationId: organization.id,
-        })
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: basicPrice.id,
+                  name: 'Basic Plan',
+                  quantity: 1,
+                  unitPrice: 500,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Downgrade (immediate since no proration charge)
+              await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: false,
+                  },
+                },
+                organization,
+                ctx
+              )
+
+              // Verify claims are preserved
+              const activeClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(activeClaims.length).toBe(3)
+
+              // Verify usage shows reduced capacity with existing claims
+              const usage = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usage.capacity).toBe(5)
+              expect(usage.claimed).toBe(3)
+              expect(usage.available).toBe(2)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: basicPrice.id,
-              name: 'Basic Plan',
-              quantity: 1,
-              unitPrice: 500,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Downgrade (immediate since no proration charge)
-          await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // Verify claims are preserved
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(3)
-
-          // Verify usage shows reduced capacity with existing claims
-          const usage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usage.capacity).toBe(5)
-          expect(usage.claimed).toBe(3)
-          expect(usage.available).toBe(2)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
 
       it('rejects downgrade when new capacity would be less than active claims', async () => {
@@ -4742,82 +4806,84 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: tinyResourceFeature.id,
           organizationId: organization.id,
-        })
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: tinyPrice.id,
+                  name: 'Tiny Plan',
+                  quantity: 1,
+                  unitPrice: 100,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Attempt downgrade - should return error
+              const result = await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: false,
+                  },
+                },
+                organization,
+                ctx
+              )
+              expect(result.status).toBe('error')
+              if (result.status === 'error') {
+                expect(result.error._tag).toBe('ConflictError')
+                expect(result.error.message).toMatch(
+                  /Cannot reduce.*capacity to 3.*5.*claimed/
+                )
+              }
+
+              // Verify claims are unchanged
+              const activeClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(activeClaims.length).toBe(5)
+
+              // Verify subscription items are unchanged
+              const items = await selectSubscriptionItems(
+                { subscriptionId: subscription.id },
+                transaction
+              )
+              const activeItems = items.filter(
+                (i) => !i.expiredAt || i.expiredAt > Date.now()
+              )
+              expect(activeItems.length).toBe(1)
+              expect(activeItems[0].name).toBe('Premium Plan')
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: tinyPrice.id,
-              name: 'Tiny Plan',
-              quantity: 1,
-              unitPrice: 100,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Attempt downgrade - should return error
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-          expect(result.status).toBe('error')
-          if (result.status === 'error') {
-            expect(result.error._tag).toBe('ConflictError')
-            expect(result.error.message).toMatch(
-              /Cannot reduce.*capacity to 3.*5.*claimed/
-            )
-          }
-
-          // Verify claims are unchanged
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(5)
-
-          // Verify subscription items are unchanged
-          const items = await selectSubscriptionItems(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          const activeItems = items.filter(
-            (i) => !i.expiredAt || i.expiredAt > Date.now()
-          )
-          expect(activeItems.length).toBe(1)
-          expect(activeItems[0].name).toBe('Premium Plan')
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
     })
 
@@ -4919,72 +4985,74 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: tinyProduct.id,
           featureId: tinyResourceFeature.id,
           organizationId: organization.id,
-        })
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: tinyPrice.id,
+                  name: 'Tiny Plan',
+                  quantity: 1,
+                  unitPrice: 100,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Schedule end-of-period downgrade - should return error immediately
+              // because capacity validation happens at scheduling time
+              const result = await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing:
+                      SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                  },
+                },
+                organization,
+                ctx
+              )
+              expect(result.status).toBe('error')
+              if (result.status === 'error') {
+                expect(result.error._tag).toBe('ConflictError')
+                expect(result.error.message).toMatch(
+                  /Cannot reduce.*capacity to 3.*5.*claimed/
+                )
+              }
+
+              // Verify claims unchanged
+              const activeClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(activeClaims.length).toBe(5)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: tinyPrice.id,
-              name: 'Tiny Plan',
-              quantity: 1,
-              unitPrice: 100,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Schedule end-of-period downgrade - should return error immediately
-          // because capacity validation happens at scheduling time
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing:
-                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              },
-            },
-            organization,
-            ctx
-          )
-          expect(result.status).toBe('error')
-          if (result.status === 'error') {
-            expect(result.error._tag).toBe('ConflictError')
-            expect(result.error.message).toMatch(
-              /Cannot reduce.*capacity to 3.*5.*claimed/
-            )
-          }
-
-          // Verify claims unchanged
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(5)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
 
       it('preserves claims when scheduling valid end-of-period downgrade', async () => {
@@ -5078,83 +5146,87 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: basicProduct.id,
           featureId: basicResourceFeature.id,
           organizationId: organization.id,
-        })
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: basicPrice.id,
+                  name: 'Basic Plan',
+                  quantity: 1,
+                  unitPrice: 500,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Schedule end-of-period downgrade - should succeed
+              const result = await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing:
+                      SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                  },
+                },
+                organization,
+                ctx
+              )
+
+              // No billing run for end-of-period adjustments
+              expect(result.status).toBe('ok')
+              if (result.status === 'ok') {
+                expect(
+                  result.value.pendingBillingRunId
+                ).toBeUndefined()
+              }
+
+              // Verify claims still accessible (adjustment not applied yet)
+              const activeClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(activeClaims.length).toBe(3)
+              expect(
+                activeClaims.map((c) => c.externalId).sort()
+              ).toEqual(['user-1', 'user-2', 'user-3'])
+
+              // Verify capacity still shows old value (adjustment scheduled, not applied)
+              const usage = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usage.capacity).toBe(10) // Still old capacity
+              expect(usage.claimed).toBe(3)
+              expect(usage.available).toBe(7)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: basicPrice.id,
-              name: 'Basic Plan',
-              quantity: 1,
-              unitPrice: 500,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Schedule end-of-period downgrade - should succeed
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing:
-                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // No billing run for end-of-period adjustments
-          expect(result.status).toBe('ok')
-          if (result.status === 'ok') {
-            expect(result.value.pendingBillingRunId).toBeUndefined()
-          }
-
-          // Verify claims still accessible (adjustment not applied yet)
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(3)
-          expect(
-            activeClaims.map((c) => c.externalId).sort()
-          ).toEqual(['user-1', 'user-2', 'user-3'])
-
-          // Verify capacity still shows old value (adjustment scheduled, not applied)
-          const usage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usage.capacity).toBe(10) // Still old capacity
-          expect(usage.claimed).toBe(3)
-          expect(usage.available).toBe(7)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
     })
 
@@ -5273,74 +5345,79 @@ describe('adjustSubscription Integration Tests', async () => {
               )
             )
           })
-        ).unwrap()
+        )
+          .unwrap()(
+            await comprehensiveAdminTransactionWithResult(
+              async (ctx) => {
+                const { transaction } = ctx
+                await updateBillingPeriod(
+                  {
+                    id: billingPeriod.id,
+                    startDate: Date.now() - 10 * 60 * 1000,
+                    endDate: Date.now() + 10 * 60 * 1000,
+                    status: BillingPeriodStatus.Active,
+                  },
+                  transaction
+                )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
-          )
+                // Attempt to remove the addon (new capacity would be 3, but 4 are claimed)
+                const newItems: SubscriptionItem.Upsert[] = [
+                  {
+                    id: baseItem.id,
+                    subscriptionId: subscription.id,
+                    priceId: price.id,
+                    name: 'Base Plan',
+                    quantity: 1,
+                    unitPrice: 1000,
+                    livemode: subscription.livemode,
+                    createdAt: baseItem.createdAt,
+                    updatedAt: Date.now(),
+                    metadata: null,
+                    addedDate: baseItem.addedDate,
+                    externalId: null,
+                    type: SubscriptionItemType.Static,
+                    expiredAt: null,
+                  },
+                  // Addon is NOT included - effectively removing it
+                ]
 
-          // Attempt to remove the addon (new capacity would be 3, but 4 are claimed)
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              id: baseItem.id,
-              subscriptionId: subscription.id,
-              priceId: price.id,
-              name: 'Base Plan',
-              quantity: 1,
-              unitPrice: 1000,
-              livemode: subscription.livemode,
-              createdAt: baseItem.createdAt,
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: baseItem.addedDate,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-            // Addon is NOT included - effectively removing it
-          ]
+                // Should reject because removing addon leaves only 3 capacity but 4 claimed
+                const result = await adjustSubscription(
+                  {
+                    id: subscription.id,
+                    adjustment: {
+                      newSubscriptionItems: newItems,
+                      timing:
+                        SubscriptionAdjustmentTiming.Immediately,
+                      prorateCurrentBillingPeriod: false,
+                    },
+                  },
+                  organization,
+                  ctx
+                )
+                expect(result.status).toBe('error')
+                if (result.status === 'error') {
+                  expect(result.error._tag).toBe('ConflictError')
+                  expect(result.error.message).toMatch(
+                    /Cannot reduce.*capacity to 3.*4.*claimed/
+                  )
+                }
 
-          // Should reject because removing addon leaves only 3 capacity but 4 claimed
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-          expect(result.status).toBe('error')
-          if (result.status === 'error') {
-            expect(result.error._tag).toBe('ConflictError')
-            expect(result.error.message).toMatch(
-              /Cannot reduce.*capacity to 3.*4.*claimed/
+                // Verify all 4 claims unchanged
+                const activeClaims = await selectActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
+                  },
+                  transaction
+                )
+                expect(activeClaims.length).toBe(4)
+
+                return Result.ok(null)
+              }
             )
-          }
-
-          // Verify all 4 claims unchanged
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
           )
-          expect(activeClaims.length).toBe(4)
-
-          return Result.ok(null)
-        })
+          .unwrap()
       })
 
       it('allows adjustment when aggregated capacity is sufficient', async () => {
@@ -5451,76 +5528,81 @@ describe('adjustSubscription Integration Tests', async () => {
               )
             )
           })
-        ).unwrap()
+        )
+          .unwrap()(
+            await comprehensiveAdminTransactionWithResult(
+              async (ctx) => {
+                const { transaction } = ctx
+                await updateBillingPeriod(
+                  {
+                    id: billingPeriod.id,
+                    startDate: Date.now() - 10 * 60 * 1000,
+                    endDate: Date.now() + 10 * 60 * 1000,
+                    status: BillingPeriodStatus.Active,
+                  },
+                  transaction
+                )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+                // Remove the addon (new capacity would be 3, and only 2 are claimed)
+                const newItems: SubscriptionItem.Upsert[] = [
+                  {
+                    id: baseItem.id,
+                    subscriptionId: subscription.id,
+                    priceId: price.id,
+                    name: 'Base Plan',
+                    quantity: 1,
+                    unitPrice: 1000,
+                    livemode: subscription.livemode,
+                    createdAt: baseItem.createdAt,
+                    updatedAt: Date.now(),
+                    metadata: null,
+                    addedDate: baseItem.addedDate,
+                    externalId: null,
+                    type: SubscriptionItemType.Static,
+                    expiredAt: null,
+                  },
+                ]
+
+                // Should succeed because 2 claimed <= 3 remaining capacity
+                await adjustSubscription(
+                  {
+                    id: subscription.id,
+                    adjustment: {
+                      newSubscriptionItems: newItems,
+                      timing:
+                        SubscriptionAdjustmentTiming.Immediately,
+                      prorateCurrentBillingPeriod: false,
+                    },
+                  },
+                  organization,
+                  ctx
+                )
+
+                // Verify claims are preserved
+                const activeClaims = await selectActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
+                  },
+                  transaction
+                )
+                expect(activeClaims.length).toBe(2)
+
+                // Verify usage shows reduced capacity
+                const usage = await getResourceUsage(
+                  subscription.id,
+                  resource.id,
+                  transaction
+                )
+                expect(usage.capacity).toBe(3)
+                expect(usage.claimed).toBe(2)
+                expect(usage.available).toBe(1)
+
+                return Result.ok(null)
+              }
+            )
           )
-
-          // Remove the addon (new capacity would be 3, and only 2 are claimed)
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              id: baseItem.id,
-              subscriptionId: subscription.id,
-              priceId: price.id,
-              name: 'Base Plan',
-              quantity: 1,
-              unitPrice: 1000,
-              livemode: subscription.livemode,
-              createdAt: baseItem.createdAt,
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: baseItem.addedDate,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Should succeed because 2 claimed <= 3 remaining capacity
-          await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // Verify claims are preserved
-          const activeClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(activeClaims.length).toBe(2)
-
-          // Verify usage shows reduced capacity
-          const usage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usage.capacity).toBe(3)
-          expect(usage.claimed).toBe(2)
-          expect(usage.available).toBe(1)
-
-          return Result.ok(null)
-        })
+          .unwrap()
       })
     })
 
@@ -5600,111 +5682,110 @@ describe('adjustSubscription Integration Tests', async () => {
           livemode: subscription.livemode,
           isDefault: false,
           currency: organization.defaultCurrency,
-        })
+        })(
+          // Note: The new price is for the same product, and the product already
+          // has a seats feature. We intentionally do NOT attach a second seats
+          // feature, otherwise capacity would double (5 + 5) after adjustment.
 
-        // Note: The new price is for the same product, and the product already
-        // has a seats feature. We intentionally do NOT attach a second seats
-        // feature, otherwise capacity would double (5 + 5) after adjustment.
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: newPrice.id,
+                  name: 'New Plan',
+                  quantity: 1,
+                  unitPrice: 1000,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Adjust subscription
+              await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: false,
+                  },
+                },
+                organization,
+                ctx
+              )
+
+              // Verify old claims are still visible
+              const claimsAfterAdjustment =
+                await selectActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
+                  },
+                  transaction
+                )
+              expect(claimsAfterAdjustment.length).toBe(2)
+
+              // Claim 2 more resources with new subscription items
+              const newClaimResult = await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-3', 'user-4'],
+                  },
+                },
+                transaction
+              )
+
+              expect(newClaimResult.claims.length).toBe(2)
+
+              // Verify all 4 claims (old and new) are visible
+              const allClaims = await selectActiveResourceClaims(
+                {
+                  subscriptionId: subscription.id,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
+              expect(allClaims.length).toBe(4)
+              expect(
+                allClaims.map((c) => c.externalId).sort()
+              ).toEqual(['user-1', 'user-2', 'user-3', 'user-4'])
+
+              // Verify usage
+              const usage = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usage.capacity).toBe(5)
+              expect(usage.claimed).toBe(4)
+              expect(usage.available).toBe(1)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: newPrice.id,
-              name: 'New Plan',
-              quantity: 1,
-              unitPrice: 1000,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Adjust subscription
-          await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // Verify old claims are still visible
-          const claimsAfterAdjustment =
-            await selectActiveResourceClaims(
-              {
-                subscriptionId: subscription.id,
-                resourceId: resource.id,
-              },
-              transaction
-            )
-          expect(claimsAfterAdjustment.length).toBe(2)
-
-          // Claim 2 more resources with new subscription items
-          const newClaimResult = await claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-3', 'user-4'],
-              },
-            },
-            transaction
-          )
-
-          expect(newClaimResult.claims.length).toBe(2)
-
-          // Verify all 4 claims (old and new) are visible
-          const allClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(allClaims.length).toBe(4)
-          expect(allClaims.map((c) => c.externalId).sort()).toEqual([
-            'user-1',
-            'user-2',
-            'user-3',
-            'user-4',
-          ])
-
-          // Verify usage
-          const usage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usage.capacity).toBe(5)
-          expect(usage.claimed).toBe(4)
-          expect(usage.available).toBe(1)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
 
       it('allows releasing claims after adjustment', async () => {
@@ -5776,100 +5857,103 @@ describe('adjustSubscription Integration Tests', async () => {
           livemode: subscription.livemode,
           isDefault: false,
           currency: organization.defaultCurrency,
-        })
+        })(
+          // Note: The new price is for the same product, and the product already
+          // has a seats feature. We intentionally do NOT attach a second seats
+          // feature, otherwise capacity would double (5 + 5) after adjustment.
 
-        // Note: The new price is for the same product, and the product already
-        // has a seats feature. We intentionally do NOT attach a second seats
-        // feature, otherwise capacity would double (5 + 5) after adjustment.
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
+                },
+                transaction
+              )
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: newPrice.id,
+                  name: 'New Plan',
+                  quantity: 1,
+                  unitPrice: 1000,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
+
+              // Adjust subscription
+              await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: false,
+                  },
+                },
+                organization,
+                ctx
+              )
+
+              // Release one claim after adjustment
+              const releaseResult = await releaseResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalId: 'user-2',
+                  },
+                },
+                transaction
+              )
+
+              expect(releaseResult.releasedClaims.length).toBe(1)
+              expect(releaseResult.releasedClaims[0].externalId).toBe(
+                'user-2'
+              )
+
+              // Verify remaining claims
+              const remainingClaims =
+                await selectActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
+                  },
+                  transaction
+                )
+              expect(remainingClaims.length).toBe(2)
+              expect(
+                remainingClaims.map((c) => c.externalId).sort()
+              ).toEqual(['user-1', 'user-3'])
+
+              // Verify usage
+              const usage = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usage.capacity).toBe(5)
+              expect(usage.claimed).toBe(2)
+              expect(usage.available).toBe(3)
+
+              return Result.ok(null)
+            }
           )
-
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: newPrice.id,
-              name: 'New Plan',
-              quantity: 1,
-              unitPrice: 1000,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          // Adjust subscription
-          await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // Release one claim after adjustment
-          const releaseResult = await releaseResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalId: 'user-2',
-              },
-            },
-            transaction
-          )
-
-          expect(releaseResult.releasedClaims.length).toBe(1)
-          expect(releaseResult.releasedClaims[0].externalId).toBe(
-            'user-2'
-          )
-
-          // Verify remaining claims
-          const remainingClaims = await selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
-          )
-          expect(remainingClaims.length).toBe(2)
-          expect(
-            remainingClaims.map((c) => c.externalId).sort()
-          ).toEqual(['user-1', 'user-3'])
-
-          // Verify usage
-          const usage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usage.capacity).toBe(5)
-          expect(usage.claimed).toBe(2)
-          expect(usage.available).toBe(3)
-
-          return Result.ok(null)
-        })
+        ).unwrap()
       })
     })
 
@@ -5966,102 +6050,104 @@ describe('adjustSubscription Integration Tests', async () => {
           productId: product.id,
           featureId: downgradedFeature.id,
           organizationId: organization.id,
-        })
-
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: Date.now() + 10 * 60 * 1000,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
-          )
-
-          // Step 3: Downgrade to 2 seats (should succeed since 2 claims <= 2 capacity)
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: downgradedPrice.id,
-              name: 'Downgraded Plan',
-              quantity: 1,
-              unitPrice: 500,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: Date.now(),
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
-
-          await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
-            },
-            organization,
-            ctx
-          )
-
-          // Verify claims are preserved
-          const claimsAfterDowngrade =
-            await selectActiveResourceClaims(
-              {
-                subscriptionId: subscription.id,
-                resourceId: resource.id,
-              },
-              transaction
-            )
-          expect(claimsAfterDowngrade.length).toBe(2)
-
-          // Verify usage shows exact capacity match
-          const usageAfterDowngrade = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usageAfterDowngrade.capacity).toBe(2)
-          expect(usageAfterDowngrade.claimed).toBe(2)
-          expect(usageAfterDowngrade.available).toBe(0)
-
-          // Step 4: Attempt to claim a 3rd seat - should fail
-          await expect(
-            claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: resource.slug,
-                  subscriptionId: subscription.id,
-                  quantity: 1,
+        })(
+          await comprehensiveAdminTransactionWithResult(
+            async (ctx) => {
+              const { transaction } = ctx
+              await updateBillingPeriod(
+                {
+                  id: billingPeriod.id,
+                  startDate: Date.now() - 10 * 60 * 1000,
+                  endDate: Date.now() + 10 * 60 * 1000,
+                  status: BillingPeriodStatus.Active,
                 },
-              },
-              transaction
-            )
-          ).rejects.toThrow('No available capacity')
+                transaction
+              )
 
-          // Verify claims unchanged after failed claim attempt
-          const claimsAfterFailedClaim =
-            await selectActiveResourceClaims(
-              {
-                subscriptionId: subscription.id,
-                resourceId: resource.id,
-              },
-              transaction
-            )
-          expect(claimsAfterFailedClaim.length).toBe(2)
+              // Step 3: Downgrade to 2 seats (should succeed since 2 claims <= 2 capacity)
+              const newItems: SubscriptionItem.Upsert[] = [
+                {
+                  subscriptionId: subscription.id,
+                  priceId: downgradedPrice.id,
+                  name: 'Downgraded Plan',
+                  quantity: 1,
+                  unitPrice: 500,
+                  livemode: subscription.livemode,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  metadata: null,
+                  addedDate: Date.now(),
+                  externalId: null,
+                  type: SubscriptionItemType.Static,
+                  expiredAt: null,
+                },
+              ]
 
-          return Result.ok(null)
-        })
+              await adjustSubscription(
+                {
+                  id: subscription.id,
+                  adjustment: {
+                    newSubscriptionItems: newItems,
+                    timing: SubscriptionAdjustmentTiming.Immediately,
+                    prorateCurrentBillingPeriod: false,
+                  },
+                },
+                organization,
+                ctx
+              )
+
+              // Verify claims are preserved
+              const claimsAfterDowngrade =
+                await selectActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
+                  },
+                  transaction
+                )
+              expect(claimsAfterDowngrade.length).toBe(2)
+
+              // Verify usage shows exact capacity match
+              const usageAfterDowngrade = await getResourceUsage(
+                subscription.id,
+                resource.id,
+                transaction
+              )
+              expect(usageAfterDowngrade.capacity).toBe(2)
+              expect(usageAfterDowngrade.claimed).toBe(2)
+              expect(usageAfterDowngrade.available).toBe(0)
+
+              // Step 4: Attempt to claim a 3rd seat - should fail
+              await expect(
+                claimResourceTransaction(
+                  {
+                    organizationId: organization.id,
+                    customerId: customer.id,
+                    input: {
+                      resourceSlug: resource.slug,
+                      subscriptionId: subscription.id,
+                      quantity: 1,
+                    },
+                  },
+                  transaction
+                )
+              ).rejects.toThrow('No available capacity')
+
+              // Verify claims unchanged after failed claim attempt
+              const claimsAfterFailedClaim =
+                await selectActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId: resource.id,
+                  },
+                  transaction
+                )
+              expect(claimsAfterFailedClaim.length).toBe(2)
+
+              return Result.ok(null)
+            }
+          )
+        ).unwrap()
       })
 
       it('during end-of-period downgrade interim, excess claims are temporary and expire at transition', async () => {
@@ -6156,166 +6242,184 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Set billing period to end in the future
-        const periodEnd = Date.now() + 24 * 60 * 60 * 1000 // 1 day from now
+        const periodEnd =
+          Date.now() +
+          24 *
+            60 *
+            60 *
+            1000(
+              // 1 day from now
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: Date.now() - 10 * 60 * 1000,
-              endDate: periodEnd,
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
-          )
+              await comprehensiveAdminTransactionWithResult(
+                async (ctx) => {
+                  const { transaction } = ctx
+                  await updateBillingPeriod(
+                    {
+                      id: billingPeriod.id,
+                      startDate: Date.now() - 10 * 60 * 1000,
+                      endDate: periodEnd,
+                      status: BillingPeriodStatus.Active,
+                    },
+                    transaction
+                  )
 
-          // Step 3: Schedule end-of-period downgrade to 2 seats
-          const newItems: SubscriptionItem.Upsert[] = [
-            {
-              subscriptionId: subscription.id,
-              priceId: downgradedPrice.id,
-              name: 'Downgraded Plan',
-              quantity: 1,
-              unitPrice: 500,
-              livemode: subscription.livemode,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              metadata: null,
-              addedDate: periodEnd, // Scheduled for end of period
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              expiredAt: null,
-            },
-          ]
+                  // Step 3: Schedule end-of-period downgrade to 2 seats
+                  const newItems: SubscriptionItem.Upsert[] = [
+                    {
+                      subscriptionId: subscription.id,
+                      priceId: downgradedPrice.id,
+                      name: 'Downgraded Plan',
+                      quantity: 1,
+                      unitPrice: 500,
+                      livemode: subscription.livemode,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                      metadata: null,
+                      addedDate: periodEnd, // Scheduled for end of period
+                      externalId: null,
+                      type: SubscriptionItemType.Static,
+                      expiredAt: null,
+                    },
+                  ]
 
-          await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing:
-                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              },
-            },
-            organization,
-            ctx
-          )
+                  await adjustSubscription(
+                    {
+                      id: subscription.id,
+                      adjustment: {
+                        newSubscriptionItems: newItems,
+                        timing:
+                          SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                      },
+                    },
+                    organization,
+                    ctx
+                  )
 
-          // Verify adjustment is scheduled (old items have expiredAt = periodEnd)
-          const items = await selectSubscriptionItems(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          const oldItem = items.find((i) => i.name === 'Initial Plan')
-          const newItem = items.find(
-            (i) => i.name === 'Downgraded Plan'
-          )
+                  // Verify adjustment is scheduled (old items have expiredAt = periodEnd)
+                  const items = await selectSubscriptionItems(
+                    { subscriptionId: subscription.id },
+                    transaction
+                  )
+                  const oldItem = items.find(
+                    (i) => i.name === 'Initial Plan'
+                  )
+                  const newItem = items.find(
+                    (i) => i.name === 'Downgraded Plan'
+                  )
 
-          expect(oldItem?.name).toBe('Initial Plan')
-          expect(oldItem!.expiredAt).toBe(periodEnd)
-          expect(newItem?.name).toBe('Downgraded Plan')
-          expect(newItem!.addedDate).toBe(periodEnd)
+                  expect(oldItem?.name).toBe('Initial Plan')
+                  expect(oldItem!.expiredAt).toBe(periodEnd)
+                  expect(newItem?.name).toBe('Downgraded Plan')
+                  expect(newItem!.addedDate).toBe(periodEnd)
 
-          // During interim: Capacity shows OLD value (3) because old items are still active
-          const interimUsage = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(interimUsage.capacity).toBe(3) // Old capacity still active
-          expect(interimUsage.claimed).toBe(2)
-          expect(interimUsage.available).toBe(1)
+                  // During interim: Capacity shows OLD value (3) because old items are still active
+                  const interimUsage = await getResourceUsage(
+                    subscription.id,
+                    resource.id,
+                    transaction
+                  )
+                  expect(interimUsage.capacity).toBe(3) // Old capacity still active
+                  expect(interimUsage.claimed).toBe(2)
+                  expect(interimUsage.available).toBe(1)
 
-          // Step 4: During interim period, claim a 3rd seat
-          // This SUCCEEDS because validation uses currently active items (old capacity=3)
-          const thirdClaimResult = await claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-3'],
-              },
-            },
-            transaction
-          )
-          expect(thirdClaimResult.claims.length).toBe(1)
+                  // Step 4: During interim period, claim a 3rd seat
+                  // This SUCCEEDS because validation uses currently active items (old capacity=3)
+                  const thirdClaimResult =
+                    await claimResourceTransaction(
+                      {
+                        organizationId: organization.id,
+                        customerId: customer.id,
+                        input: {
+                          resourceSlug: resource.slug,
+                          subscriptionId: subscription.id,
+                          externalIds: ['user-3'],
+                        },
+                      },
+                      transaction
+                    )
+                  expect(thirdClaimResult.claims.length).toBe(1)
 
-          // Verify 3 claims now exist
-          const claimsDuringInterim =
-            await selectActiveResourceClaims(
-              {
-                subscriptionId: subscription.id,
-                resourceId: resource.id,
-              },
-              transaction
-            )
-          expect(claimsDuringInterim.length).toBe(3)
+                  // Verify 3 claims now exist
+                  const claimsDuringInterim =
+                    await selectActiveResourceClaims(
+                      {
+                        subscriptionId: subscription.id,
+                        resourceId: resource.id,
+                      },
+                      transaction
+                    )
+                  expect(claimsDuringInterim.length).toBe(3)
 
-          // Usage during interim shows all 3 claimed against old capacity
-          const usageWithThirdClaim = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
-          )
-          expect(usageWithThirdClaim.capacity).toBe(3)
-          expect(usageWithThirdClaim.claimed).toBe(3)
-          expect(usageWithThirdClaim.available).toBe(0)
+                  // Usage during interim shows all 3 claimed against old capacity
+                  const usageWithThirdClaim = await getResourceUsage(
+                    subscription.id,
+                    resource.id,
+                    transaction
+                  )
+                  expect(usageWithThirdClaim.capacity).toBe(3)
+                  expect(usageWithThirdClaim.claimed).toBe(3)
+                  expect(usageWithThirdClaim.available).toBe(0)
 
-          return Result.ok(null)
-        })
+                  return Result.ok(null)
+                }
+              )
+            ).unwrap()
 
         // Step 5: Simulate time passing - transition to new billing period
         // Use anchorDate parameter to simulate checking capacity after period end
-        const afterTransitionAnchor = periodEnd + 1000 // 1 second after period end
+        const afterTransitionAnchor =
+          periodEnd +
+          1000(
+            // 1 second after period end
 
-        await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
+            await comprehensiveAdminTransactionWithResult(
+              async (ctx) => {
+                const { transaction } = ctx
 
-          // Update billing period to reflect the new period
-          await updateBillingPeriod(
-            {
-              id: billingPeriod.id,
-              startDate: periodEnd, // New period starts where old one ended
-              endDate: periodEnd + 30 * 24 * 60 * 60 * 1000, // 30 days
-              status: BillingPeriodStatus.Active,
-            },
-            transaction
-          )
+                // Update billing period to reflect the new period
+                await updateBillingPeriod(
+                  {
+                    id: billingPeriod.id,
+                    startDate: periodEnd, // New period starts where old one ended
+                    endDate: periodEnd + 30 * 24 * 60 * 60 * 1000, // 30 days
+                    status: BillingPeriodStatus.Active,
+                  },
+                  transaction
+                )
 
-          // After transition: Claims still exist but capacity is now reduced
-          const claimsAfterTransition =
-            await selectActiveResourceClaims(
-              {
-                subscriptionId: subscription.id,
-                resourceId: resource.id,
-              },
-              transaction
+                // After transition: Claims still exist but capacity is now reduced
+                const claimsAfterTransition =
+                  await selectActiveResourceClaims(
+                    {
+                      subscriptionId: subscription.id,
+                      resourceId: resource.id,
+                    },
+                    transaction
+                  )
+                // All 3 claim records still exist in the database (not released yet)
+                // selectActiveResourceClaims uses Date.now(), so the temporary claim
+                // is still considered "active" in real time
+                expect(claimsAfterTransition.length).toBe(3)
+
+                // However, when checking usage at the anchor date (after transition),
+                // the temporary claim (user-3) has expiredAt = periodEnd, which is
+                // before afterTransitionAnchor. So it's correctly filtered out.
+                const usageAfterTransition = await getResourceUsage(
+                  subscription.id,
+                  resource.id,
+                  transaction,
+                  afterTransitionAnchor
+                )
+                expect(usageAfterTransition.capacity).toBe(2) // New capacity
+                // Temporary claim (user-3) expired at periodEnd, so only 2 claims count
+                expect(usageAfterTransition.claimed).toBe(2)
+                // Capacity matches claimed - no excess, no availability
+                expect(usageAfterTransition.available).toBe(0)
+
+                return Result.ok(null)
+              }
             )
-          // All 3 claim records still exist in the database (not released yet)
-          // selectActiveResourceClaims uses Date.now(), so the temporary claim
-          // is still considered "active" in real time
-          expect(claimsAfterTransition.length).toBe(3)
-
-          // However, when checking usage at the anchor date (after transition),
-          // the temporary claim (user-3) has expiredAt = periodEnd, which is
-          // before afterTransitionAnchor. So it's correctly filtered out.
-          const usageAfterTransition = await getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction,
-            afterTransitionAnchor
-          )
-          expect(usageAfterTransition.capacity).toBe(2) // New capacity
-          // Temporary claim (user-3) expired at periodEnd, so only 2 claims count
-          expect(usageAfterTransition.claimed).toBe(2)
-          // Capacity matches claimed - no excess, no availability
-          expect(usageAfterTransition.available).toBe(0)
-
-          return Result.ok(null)
-        })
+          ).unwrap()
       })
     })
   })

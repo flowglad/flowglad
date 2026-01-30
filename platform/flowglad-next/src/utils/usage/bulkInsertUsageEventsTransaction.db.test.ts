@@ -33,6 +33,7 @@ import {
 import {
   adminTransactionWithResult,
   comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { selectCustomerPricingInfoBatch } from '@/db/tableMethods/customerMethods'

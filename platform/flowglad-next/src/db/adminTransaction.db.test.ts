@@ -5,14 +5,14 @@ import { setupOrg } from '@/../seedDatabase'
 import {
   adminTransactionUnwrap,
   adminTransactionWithResult,
-  comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from './adminTransaction'
 import { selectOrganizations } from './tableMethods/organizationMethods'
 
-describe('comprehensiveAdminTransaction', () => {
+describe('comprehensiveAdminTransactionWithResult', () => {
   it('propagates errors from transaction callback', async () => {
     await expect(
-      comprehensiveAdminTransaction(async () => {
+      comprehensiveAdminTransactionWithResult(async () => {
         throw new Error('Admin transaction rolled back')
       })
     ).rejects.toThrow('Admin transaction rolled back')

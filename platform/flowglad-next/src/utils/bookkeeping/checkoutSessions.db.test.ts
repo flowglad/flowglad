@@ -33,6 +33,7 @@ import {
 import {
   adminTransactionWithResult,
   comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
@@ -831,19 +832,21 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      const bookkeepingResult = await comprehensiveAdminTransaction(
-        async (params) => {
-          const result =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession: updatedCheckoutSession,
-                stripeCustomerId: `cus_${core.nanoid()}`,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(result)
-        }
-      )
+      const bookkeepingResult = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const result =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession: updatedCheckoutSession,
+                  stripeCustomerId: `cus_${core.nanoid()}`,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(result)
+          }
+        )
+      ).unwrap()
 
       // Verify customer was created
       expect(typeof bookkeepingResult.customer).toBe('object')
@@ -918,37 +921,43 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(bookkeeping)
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const bookkeeping =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(bookkeeping)
+          }
+        )
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
 
     it('should use existing customer when linked to checkout session', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(bookkeeping)
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const bookkeeping =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(bookkeeping)
+          }
+        )
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
@@ -978,25 +987,27 @@ describe('Checkout Sessions', () => {
               },
               createProcessingEffectsContext(params)
             )
-          return Result.ok(bookkeeping)
+          return bookkeeping
         })
       ).rejects.toThrow('Attempting to process checkout session')
     })
 
     it('should find customer by Stripe customer ID when provided', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: customer.stripeCustomerId!,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(bookkeeping)
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const bookkeeping =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession,
+                  stripeCustomerId: customer.stripeCustomerId!,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(bookkeeping)
+          }
+        )
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
@@ -1017,19 +1028,22 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession: updatedCheckoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(bookkeeping)
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const bookkeeping =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession: updatedCheckoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(bookkeeping)
+          }
+        )
+      ).unwrap()
 
       expect(result.customer.stripeCustomerId).toEqual(
         succeededCharge.customer! as string
@@ -1052,19 +1066,22 @@ describe('Checkout Sessions', () => {
           return Result.ok(undefined)
         })
       ).unwrap()
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(bookkeeping)
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const bookkeeping =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(bookkeeping)
+          }
+        )
+      ).unwrap()
       expect(typeof result.customer.stripeCustomerId).toBe('string')
     })
 
@@ -1084,80 +1101,94 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      const newPurchaseResult = await comprehensiveAdminTransaction(
-        async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(bookkeeping)
-        }
-      )
+      const newPurchaseResult = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const bookkeeping =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(bookkeeping)
+          }
+        )
+      ).unwrap()
 
       expect(typeof newPurchaseResult.purchase.id).toBe('string')
     })
 
     it('should apply discount when fee calculation has a discount ID', async () => {
       // Update fee calculation to have a discount ID
-      await comprehensiveAdminTransaction(async (params) => {
-        const { transaction } = params
-        const updatedCheckoutSession = await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            stripePaymentIntentId:
-              succeededCharge.payment_intent! as string,
-            discountId: discount.id,
-          },
-          transaction
+      ;(
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const { transaction } = params
+            const updatedCheckoutSession =
+              await updateCheckoutSession(
+                {
+                  ...checkoutSession,
+                  stripePaymentIntentId:
+                    succeededCharge.payment_intent! as string,
+                  discountId: discount.id,
+                },
+                transaction
+              )
+            const result =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession: updatedCheckoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                createProcessingEffectsContext(params)
+              )
+            const [discountRedemption] =
+              await selectDiscountRedemptions(
+                {
+                  purchaseId: result.purchase.id,
+                },
+                transaction
+              )
+            expect(typeof discountRedemption).toBe('object')
+            expect(discountRedemption.discountId).toEqual(discount.id)
+            return Result.ok(discountRedemption)
+          }
         )
-        const result =
-          await processPurchaseBookkeepingForCheckoutSession(
-            {
-              checkoutSession: updatedCheckoutSession,
-              stripeCustomerId: succeededCharge.customer! as string,
-            },
-            createProcessingEffectsContext(params)
-          )
-        const [discountRedemption] = await selectDiscountRedemptions(
-          {
-            purchaseId: result.purchase.id,
-          },
-          transaction
-        )
-        expect(typeof discountRedemption).toBe('object')
-        expect(discountRedemption.discountId).toEqual(discount.id)
-        return Result.ok(discountRedemption)
-      })
+      ).unwrap()
     })
 
     it('should link fee calculation to purchase record', async () => {
-      const { latestFeeCalculation, bookkeepingResult } =
-        await comprehensiveAdminTransaction(async (params) => {
-          const { transaction } = params
-          const bookkeepingResult =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              createProcessingEffectsContext(params)
-            )
-          const latestFeeCalculation =
-            await selectLatestFeeCalculation(
-              {
-                checkoutSessionId: checkoutSession.id,
-              },
-              transaction
-            )
-          return Result.ok({
-            latestFeeCalculation,
-            bookkeepingResult,
-          })
-        })
+      const { latestFeeCalculation, bookkeepingResult } = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const { transaction } = params
+            const bookkeepingResult =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                createProcessingEffectsContext(params)
+              )
+            const latestFeeCalculation =
+              await selectLatestFeeCalculation(
+                {
+                  checkoutSessionId: checkoutSession.id,
+                },
+                transaction
+              )
+            return Result.ok({
+              latestFeeCalculation,
+              bookkeepingResult,
+            })
+          }
+        )
+      ).unwrap()
 
       expect(latestFeeCalculation?.purchaseId).toEqual(
         bookkeepingResult.purchase.id
@@ -1183,7 +1214,7 @@ describe('Checkout Sessions', () => {
               },
               createProcessingEffectsContext(params)
             )
-          return Result.ok(bookkeeping)
+          return bookkeeping
         })
       ).rejects.toThrow()
     })
@@ -1219,28 +1250,30 @@ describe('Checkout Sessions', () => {
 
   describe('processStripeChargeForCheckoutSession', () => {
     it('should process purchase bookkeeping and create invoice for non-invoice sessions with status Pending or Succeeded', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const { transaction } = params
-          await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripePaymentIntentId:
-                succeededCharge.payment_intent! as string,
-            },
-            transaction
-          )
-          const chargeResult =
-            await processStripeChargeForCheckoutSession(
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const { transaction } = params
+            await updateCheckoutSession(
               {
-                checkoutSessionId: checkoutSession.id,
-                charge: succeededCharge,
+                ...checkoutSession,
+                stripePaymentIntentId:
+                  succeededCharge.payment_intent! as string,
               },
-              createProcessingEffectsContext(params)
+              transaction
             )
-          return Result.ok(chargeResult)
-        }
-      )
+            const chargeResult =
+              await processStripeChargeForCheckoutSession(
+                {
+                  checkoutSessionId: checkoutSession.id,
+                  charge: succeededCharge,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(chargeResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.purchase).toMatchObject({})
       expect(result.invoice).toMatchObject({})
@@ -1255,48 +1288,52 @@ describe('Checkout Sessions', () => {
         customer.stripeCustomerId!
       )
 
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const chargeResult =
-            await processStripeChargeForCheckoutSession(
-              {
-                checkoutSessionId: checkoutSession.id,
-                charge: failedCharge,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return Result.ok(chargeResult)
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const chargeResult =
+              await processStripeChargeForCheckoutSession(
+                {
+                  checkoutSessionId: checkoutSession.id,
+                  charge: failedCharge,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(chargeResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.purchase).toBeNull()
       expect(result.invoice).toBeNull()
     })
 
     it('should update checkout session with customer information from charge', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
-          const { transaction } = params
-          await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripePaymentIntentId:
-                succeededCharge.payment_intent! as string,
-            },
-            transaction
-          )
-
-          const chargeResult =
-            await processStripeChargeForCheckoutSession(
+      const result = (
+        await comprehensiveAdminTransactionWithResult(
+          async (params) => {
+            const { transaction } = params
+            await updateCheckoutSession(
               {
-                checkoutSessionId: checkoutSession.id,
-                charge: succeededCharge,
+                ...checkoutSession,
+                stripePaymentIntentId:
+                  succeededCharge.payment_intent! as string,
               },
-              createProcessingEffectsContext(params)
+              transaction
             )
-          return Result.ok(chargeResult)
-        }
-      )
+
+            const chargeResult =
+              await processStripeChargeForCheckoutSession(
+                {
+                  checkoutSessionId: checkoutSession.id,
+                  charge: succeededCharge,
+                },
+                createProcessingEffectsContext(params)
+              )
+            return Result.ok(chargeResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.checkoutSession.customerName).toEqual(
         succeededCharge.billing_details?.name

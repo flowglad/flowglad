@@ -23,7 +23,7 @@ import {
 } from '@/../seedDatabase'
 import {
   adminTransactionWithResult,
-  comprehensiveAdminTransaction,
+  comprehensiveAdminTransactionWithResult,
 } from '@/db/adminTransaction'
 import {
   createSubscriptionFeatureItems,
@@ -115,7 +115,8 @@ describe('insertFeature uniqueness constraints', () => {
     const newPricingModelForOrg1 = await setupPricingModel({
       organizationId: organization1.id,
       name: 'Second PricingModel for Org 1',
-    })(
+    })
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await insertFeature(
@@ -320,7 +321,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
   describe('when feature is deactivated (active: true → false)', () => {
     it('should expire all associated productFeatures', async () => {
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           // Deactivate the feature
           await updateFeatureTransaction(
@@ -350,7 +351,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should detach existing subscriptionItemFeatures but preserve them', async () => {
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           // First create a subscriptionItemFeature
           const subscriptionItemFeatureInsert =
@@ -404,7 +405,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should prevent new subscriptions from getting the feature', async () => {
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           // Deactivate the feature
           await updateFeatureTransaction(
@@ -445,7 +446,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
   describe('when feature is reactivated (active: false → true)', () => {
     beforeEach(async () => {
       // First deactivate the feature
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           await updateFeatureTransaction(
             {
@@ -461,7 +462,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should unexpire all associated productFeatures', async () => {
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           // Verify it's expired first
           const expiredFeatures = await selectProductFeatures(
@@ -496,7 +497,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should allow new subscriptions to get the feature again', async () => {
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           // Reactivate the feature
           await updateFeatureTransaction(
@@ -535,7 +536,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     it('should NOT automatically grant feature to subscriptions created while inactive', async () => {
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           // Create a subscription item while feature is inactive
           const itemWhileInactive = await setupSubscriptionItem({
@@ -585,7 +586,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
   describe('when active field is not changed', () => {
     it('should not trigger productFeature sync when updating other fields', async () => {
-      await comprehensiveAdminTransaction(
+      await comprehensiveAdminTransactionWithResult(
         async ({ transaction, invalidateCache }) => {
           // Get initial state
           const initialProductFeatures = await selectProductFeatures(
@@ -630,7 +631,8 @@ describe('selectFeaturesTableRowData search', () => {
       name: 'Premium Feature',
       slug: 'premium-feature-slug',
       livemode: true,
-    })(
+    })
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         // Search by name (case-insensitive)
@@ -683,7 +685,8 @@ describe('selectFeaturesTableRowData search', () => {
       pricingModelId: pricingModel.id,
       name: 'Test Feature',
       livemode: true,
-    })(
+    })
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         const resultEmpty = await selectFeaturesTableRowData({
@@ -783,22 +786,21 @@ describe('Resource Feature schema and methods', () => {
             await insertFeature(createResourceFeatureInsert(), ctx)
           )
         })
-      )
-        .unwrap()(
-          await adminTransactionWithResult(async (ctx) => {
-            const { transaction } = ctx
-            const selected = (
-              await selectFeatureById(inserted.id, transaction)
-            ).unwrap()
+      ).unwrap()
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const selected = (
+            await selectFeatureById(inserted.id, transaction)
+          ).unwrap()
 
-            expect(selected.id).toBe(inserted.id)
-            expect(selected.type).toBe(FeatureType.Resource)
-            expect(selected.resourceId).toBe(resource.id)
-            expect(selected.amount).toBe(5)
-            return Result.ok(undefined)
-          })
-        )
-        .unwrap()
+          expect(selected.id).toBe(inserted.id)
+          expect(selected.type).toBe(FeatureType.Resource)
+          expect(selected.resourceId).toBe(resource.id)
+          expect(selected.amount).toBe(5)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
