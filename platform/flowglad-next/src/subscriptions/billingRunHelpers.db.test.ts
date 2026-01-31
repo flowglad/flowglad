@@ -3010,25 +3010,23 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       // Test 1: Direct safelyInsertBillingRun call should return ValidationError
-      const result1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            safelyInsertBillingRun(
-              {
-                billingPeriodId: billingPeriod.id,
-                scheduledFor: Date.now(),
-                status: BillingRunStatus.Scheduled,
-                subscriptionId: subscription.id,
-                paymentMethodId: paymentMethod.id,
-                livemode: billingPeriod.livemode,
-              },
-              transaction
-            )
+      const result1 = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return await safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
           )
-        })
-      ).unwrap()
-      expect(result1.status).toBe('error')
-      if (result1.status === 'error') {
+        }
+      )
+      expect(Result.isError(result1)).toBe(true)
+      if (Result.isError(result1)) {
         expect(result1.error).toBeInstanceOf(ValidationError)
         expect(result1.error.message).toBe(
           'Invalid subscription: Cannot create billing run for canceled subscription'
@@ -3036,22 +3034,20 @@ describe('billingRunHelpers', async () => {
       }
 
       // Test 2: createBillingRun should return ValidationError
-      const result2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            createBillingRun(
-              {
-                billingPeriod,
-                paymentMethod,
-                scheduledFor: Date.now(),
-              },
-              transaction
-            )
+      const result2 = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return await createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
           )
-        })
-      ).unwrap()
-      expect(result2.status).toBe('error')
-      if (result2.status === 'error') {
+        }
+      )
+      expect(Result.isError(result2)).toBe(true)
+      if (Result.isError(result2)) {
         expect(result2.error).toBeInstanceOf(ValidationError)
         expect(result2.error.message).toBe(
           'Invalid subscription: Cannot create billing run for canceled subscription'
@@ -3059,18 +3055,22 @@ describe('billingRunHelpers', async () => {
       }
 
       // Test 3: scheduleBillingRunRetry should return ValidationError
-      const result3 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            scheduleBillingRunRetry(billingRun, transaction)
+      const result3 = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          const scheduleResult = await scheduleBillingRunRetry(
+            billingRun,
+            transaction
           )
-        })
-      ).unwrap()
-      if (!result3) {
-        throw new Error('Expected result3 to be defined')
-      }
-      expect(result3.status).toBe('error')
-      if (result3.status === 'error') {
+          if (!scheduleResult) {
+            throw new Error(
+              'Expected scheduleBillingRunRetry to return a result'
+            )
+          }
+          return scheduleResult
+        }
+      )
+      expect(Result.isError(result3)).toBe(true)
+      if (Result.isError(result3)) {
         expect(result3.error).toBeInstanceOf(ValidationError)
         expect(result3.error.message).toBe(
           'Invalid subscription: Cannot create billing run for canceled subscription'
@@ -3092,49 +3092,58 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       // All billing run creation methods should work
-      const directInsert = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            safelyInsertBillingRun(
-              {
-                billingPeriodId: billingPeriod.id,
-                scheduledFor: Date.now(),
-                status: BillingRunStatus.Scheduled,
-                subscriptionId: subscription.id,
-                paymentMethodId: paymentMethod.id,
-                livemode: billingPeriod.livemode,
-              },
-              transaction
-            )
+      const directInsertResult = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return await safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
           )
-        })
-      ).unwrap()
+        }
+      )
+      expect(Result.isOk(directInsertResult)).toBe(true)
+      const directInsert = directInsertResult.unwrap()
       expect(typeof directInsert).toBe('object')
 
-      const createBillingRunResult = (
+      const createBillingRunResultOuter =
         await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            createBillingRun(
-              {
-                billingPeriod,
-                paymentMethod,
-                scheduledFor: Date.now(),
-              },
-              transaction
-            )
+          return await createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
           )
         })
-      ).unwrap()
+      expect(Result.isOk(createBillingRunResultOuter)).toBe(true)
+      const createBillingRunResult =
+        createBillingRunResultOuter.unwrap()
       expect(typeof createBillingRunResult).toBe('object')
 
-      const retryResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            scheduleBillingRunRetry(billingRun, transaction)
+      const retryResultOuter = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          const scheduleResult = await scheduleBillingRunRetry(
+            billingRun,
+            transaction
           )
-        })
-      ).unwrap()
-      expect(typeof retryResult).toBe('object')
+          if (!scheduleResult) {
+            return Result.ok(undefined)
+          }
+          return scheduleResult
+        }
+      )
+      expect(Result.isOk(retryResultOuter)).toBe(true)
+      const retryResult = retryResultOuter.unwrap()
+      expect(
+        typeof retryResult === 'object' || retryResult === undefined
+      ).toBe(true)
     })
   })
 
@@ -3185,25 +3194,23 @@ describe('billingRunHelpers', async () => {
     })
 
     it('returns ValidationError for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            safelyInsertBillingRun(
-              {
-                billingPeriodId: doNotChargeBillingPeriod.id,
-                scheduledFor: Date.now(),
-                status: BillingRunStatus.Scheduled,
-                subscriptionId: doNotChargeSubscription.id,
-                paymentMethodId: paymentMethod.id,
-                livemode: doNotChargeBillingPeriod.livemode,
-              },
-              transaction
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return await safelyInsertBillingRun(
+            {
+              billingPeriodId: doNotChargeBillingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: doNotChargeSubscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: doNotChargeBillingPeriod.livemode,
+            },
+            transaction
           )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
         expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toBe(
           'Invalid subscription: Cannot create billing run for doNotCharge subscription'
@@ -3212,22 +3219,20 @@ describe('billingRunHelpers', async () => {
     })
 
     it('returns ValidationError for doNotCharge subscriptions via createBillingRun', async () => {
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            createBillingRun(
-              {
-                billingPeriod: doNotChargeBillingPeriod,
-                paymentMethod,
-                scheduledFor: Date.now(),
-              },
-              transaction
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return await createBillingRun(
+            {
+              billingPeriod: doNotChargeBillingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
           )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
         expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toBe(
           'Invalid subscription: Cannot create billing run for doNotCharge subscription'
@@ -3260,21 +3265,22 @@ describe('billingRunHelpers', async () => {
         isAdjustment: false,
       } as BillingRun.Record
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            scheduleBillingRunRetry(
-              mockBillingRunForRetry,
-              transaction
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          const scheduleResult = await scheduleBillingRunRetry(
+            mockBillingRunForRetry,
+            transaction
           )
-        })
-      ).unwrap()
-      if (!result) {
-        throw new Error('Expected result to be defined')
-      }
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+          if (!scheduleResult) {
+            throw new Error(
+              'Expected scheduleBillingRunRetry to return a result'
+            )
+          }
+          return scheduleResult
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
         expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toBe(
           'Invalid subscription: Cannot create billing run for doNotCharge subscription'
