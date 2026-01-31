@@ -248,15 +248,13 @@ describe('grantEntitlementUsageCredits', () => {
 
     const { usageCredits, ledgerEntries } = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await grantEntitlementUsageCredits(
-            {
-              ledgerAccountsByUsageMeterId,
-              ledgerTransaction: testLedgerTransaction,
-              command,
-            },
-            transaction
-          )
+        return grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
         )
       })
     )

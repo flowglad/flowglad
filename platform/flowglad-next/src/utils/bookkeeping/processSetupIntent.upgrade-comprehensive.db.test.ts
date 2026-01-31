@@ -239,11 +239,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-          return Result.ok(
-            await processSetupIntentSucceeded(
-              setupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+          return processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).unwrap()

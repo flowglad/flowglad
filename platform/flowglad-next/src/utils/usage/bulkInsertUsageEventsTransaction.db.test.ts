@@ -138,23 +138,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
     it('should resolve priceSlug to priceId', async () => {
       const result = (
         await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await bulkInsertUsageEventsTransaction(
-              {
-                input: {
-                  usageEvents: [
-                    {
-                      subscriptionId: subscription.id,
-                      priceSlug: price.slug ?? undefined,
-                      amount: 100,
-                      transactionId: `txn_slug_${Date.now()}`,
-                    },
-                  ],
-                },
-                livemode: true,
+          return bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subscription.id,
+                    priceSlug: price.slug ?? undefined,
+                    amount: 100,
+                    transactionId: `txn_slug_${Date.now()}`,
+                  },
+                ],
               },
-              createDiscardingEffectsContext(transaction)
-            )
+              livemode: true,
+            },
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).unwrap()

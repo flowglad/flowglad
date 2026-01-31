@@ -7,7 +7,10 @@ import {
 } from '@db-core/enums'
 import type { CreateOrganizationInput } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
@@ -457,31 +460,28 @@ describe('createOrganizationTransaction', () => {
   it('should reject Platform contract type for MoR-only countries', async () => {
     const organizationName = `org_${core.nanoid()}`
 
-    const promise = adminTransactionWithResult(
-      async ({ transaction }) => {
-        const countryId = await getMoROnlyCountryId(transaction)
-        const input: CreateOrganizationInput = {
-          organization: {
-            name: organizationName,
-            countryId,
-            stripeConnectContractType:
-              StripeConnectContractType.Platform,
-          },
-        }
-
-        await createOrganizationTransaction(
-          input,
-          {
-            id: core.nanoid(),
-            email: `test+${core.nanoid()}@test.com`,
-            fullName: 'Test User',
-          },
-          transaction,
-          { type: 'admin', livemode: true }
-        )
-        return Result.ok(undefined)
+    const promise = adminTransaction(async ({ transaction }) => {
+      const countryId = await getMoROnlyCountryId(transaction)
+      const input: CreateOrganizationInput = {
+        organization: {
+          name: organizationName,
+          countryId,
+          stripeConnectContractType:
+            StripeConnectContractType.Platform,
+        },
       }
-    )
+
+      await createOrganizationTransaction(
+        input,
+        {
+          id: core.nanoid(),
+          email: `test+${core.nanoid()}@test.com`,
+          fullName: 'Test User',
+        },
+        transaction,
+        { type: 'admin', livemode: true }
+      )
+    })
 
     await expect(promise).rejects.toThrow(
       /The selected payment configuration is not available in .+\. See supported countries/

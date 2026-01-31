@@ -104,15 +104,14 @@ describe('setupPricingModelTransaction (integration)', () => {
   it('returns error if input validation fails', async () => {
     const result = (
       await adminTransactionWithResult(async (ctx) => {
-        return Result.ok(
-          await setupPricingModelTransaction(
-            {
-              input: {} as any,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+        return setupPricingModelTransaction(
+          {
+            // @ts-expect-error - Intentionally providing invalid input to test validation
+            input: {},
+            organizationId: organization.id,
+            livemode: false,
+          },
+          ctx
         )
       })
     ).unwrap()

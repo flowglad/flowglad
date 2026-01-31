@@ -264,7 +264,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
             betterAuthId: lonelyBetterAuthId,
           })
           .returning()
-        lonelyUserId = (lonelyUser as any).id
+        lonelyUserId = (lonelyUser as User.Record).id
         return Result.ok(undefined)
       })
     ).unwrap()
