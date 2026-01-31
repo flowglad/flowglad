@@ -171,15 +171,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   it('should do nothing and return empty entries if there are no ledger accounts for the subscription', async () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [],
-              ledgerTransaction: baseLedgerTransaction,
-              command: testCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
         )
       })
     )
@@ -194,15 +192,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   it('should do nothing and return empty entries if aggregateAvailableBalanceForUsageCredit returns no balances', async () => {
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [ledgerAccount1],
-              ledgerTransaction: baseLedgerTransaction,
-              command: testCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
         )
       })
     )
@@ -264,15 +260,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [ledgerAccount1],
-              ledgerTransaction: baseLedgerTransaction,
-              command: testCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
         )
       })
     )
@@ -314,15 +308,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [ledgerAccount1],
-              ledgerTransaction: baseLedgerTransaction,
-              command: testCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
         )
       })
     )
@@ -434,15 +426,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [ledgerAccount1],
-              ledgerTransaction: baseLedgerTransaction,
-              command: testCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
         )
       })
     )
@@ -489,15 +479,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [ledgerAccount1],
-              ledgerTransaction: baseLedgerTransaction,
-              command: testCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
         )
       })
     )
@@ -623,15 +611,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [ledgerAccount1],
-              ledgerTransaction: baseLedgerTransaction,
-              command: testCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
         )
       })
     )
@@ -697,15 +683,13 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const result = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await expireCreditsAtEndOfBillingPeriod(
-            {
-              ledgerAccountsForSubscription: [ledgerAccount1],
-              ledgerTransaction: baseLedgerTransaction,
-              command: livemodeFalseCommand,
-            },
-            transaction
-          )
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: livemodeFalseCommand,
+          },
+          transaction
         )
       })
     )
