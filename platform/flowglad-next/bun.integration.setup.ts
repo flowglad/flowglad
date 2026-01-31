@@ -127,7 +127,24 @@ const { beforeAll } = await import('bun:test')
 const { seedDatabase } = await import('./seedDatabase')
 
 // NO MSW servers - we want real API calls
-// Redis will automatically use real credentials from .env.integration
+
+// Inject real Redis client for integration tests
+// The redis() function uses testStubClient when IS_TEST is true,
+// so we must explicitly inject a real client for integration tests
+const { Redis } = await import('@upstash/redis')
+const { _setTestRedisClient } = await import('./src/utils/redis')
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+
+if (redisUrl && redisToken) {
+  _setTestRedisClient(
+    new Redis({
+      url: redisUrl,
+      token: redisToken,
+    })
+  )
+}
 
 beforeAll(async () => {
   await seedDatabase()
