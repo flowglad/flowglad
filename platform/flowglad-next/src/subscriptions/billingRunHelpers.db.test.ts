@@ -947,12 +947,18 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should schedule a billing run retry 3 days after the initial attempt', async () => {
-      const retryBillingRunResult = (
-        await adminTransactionWithResult(async ({ transaction }) =>
-          Result.ok(scheduleBillingRunRetry(billingRun, transaction))
-        )
+      const retryBillingRun = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await scheduleBillingRunRetry(
+            billingRun,
+            transaction
+          )
+          return (
+            result ??
+            Result.ok(undefined as BillingRun.Record | undefined)
+          )
+        })
       ).unwrap()
-      const retryBillingRun = retryBillingRunResult?.unwrap()
       expect(typeof retryBillingRun).toBe('object')
       expect(retryBillingRun?.scheduledFor).toBeGreaterThan(
         Date.now() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
@@ -995,7 +1001,7 @@ describe('billingRunHelpers', async () => {
 
     it('returns ValidationError when trying to create a retry billing run for a canceled subscription', async () => {
       // Update the subscription status to canceled
-      const canceledSubscription = (
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           return Result.ok(
             await safelyUpdateSubscriptionStatus(
@@ -1008,16 +1014,20 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       // The database-level protection should return a ValidationError
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
-          Result.ok(scheduleBillingRunRetry(billingRun, transaction))
-        )
-      ).unwrap()
-      if (!result) {
-        throw new Error('Expected result to be defined')
-      }
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          const innerResult = await scheduleBillingRunRetry(
+            billingRun,
+            transaction
+          )
+          return (
+            innerResult ??
+            Result.ok(undefined as BillingRun.Record | undefined)
+          )
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
         expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toBe(
           'Invalid subscription: Cannot create billing run for canceled subscription'
@@ -1039,12 +1049,18 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      const retryBillingRunResult = (
-        await adminTransactionWithResult(async ({ transaction }) =>
-          Result.ok(scheduleBillingRunRetry(billingRun, transaction))
-        )
+      const retryBillingRun = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await scheduleBillingRunRetry(
+            billingRun,
+            transaction
+          )
+          return (
+            result ??
+            Result.ok(undefined as BillingRun.Record | undefined)
+          )
+        })
       ).unwrap()
-      const retryBillingRun = retryBillingRunResult?.unwrap()
 
       expect(retryBillingRun).toMatchObject({
         status: BillingRunStatus.Scheduled,
