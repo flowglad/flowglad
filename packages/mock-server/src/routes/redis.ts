@@ -152,6 +152,42 @@ function handleRedisCommand(
     case 'PING':
       return { result: 'PONG' }
 
+    // Stream commands for Redis Streams
+    case 'XADD': {
+      // XADD returns a stream entry ID like "1234567890123-0"
+      // When '*' is used, Redis auto-generates the ID based on timestamp
+      const timestamp = Date.now()
+      return { result: `${timestamp}-0` }
+    }
+
+    case 'XREAD':
+    case 'XRANGE':
+    case 'XREVRANGE':
+      // Return empty array (no entries in stream)
+      return { result: [] }
+
+    case 'XLEN':
+      // Return 0 (empty stream)
+      return { result: 0 }
+
+    case 'XTRIM':
+      // Return number of entries deleted (0 for stateless mock)
+      return { result: 0 }
+
+    case 'XDEL':
+      // Return number of entries deleted
+      return { result: 1 }
+
+    case 'XINFO':
+      // Return basic stream info (stateless mock returns empty info)
+      return {
+        result: {
+          length: 0,
+          'first-entry': null,
+          'last-entry': null,
+        },
+      }
+
     // Default - return OK for unknown commands
     default:
       return { result: 'OK' }

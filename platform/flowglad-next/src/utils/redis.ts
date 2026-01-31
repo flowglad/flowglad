@@ -108,6 +108,14 @@ const testStubClient = {
   smembers: () => [] as string[],
   expire: () => null,
   exists: () => 0,
+  // Stream commands for Redis Streams support
+  xadd: () => `${Date.now()}-0`, // Returns stream entry ID
+  xread: () => [], // Returns empty array (no entries)
+  xrange: () => [], // Returns empty array (no entries)
+  xrevrange: () => [], // Returns empty array (no entries)
+  xlen: () => 0, // Returns stream length
+  xtrim: () => 0, // Returns number of entries trimmed
+  xdel: () => 1, // Returns number of entries deleted
 }
 
 /**

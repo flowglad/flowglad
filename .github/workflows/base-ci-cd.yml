@@ -126,7 +126,7 @@ jobs:
           DATABASE_URL=postgresql://test:test@localhost:5432/test_db
           STRIPE_TEST_MODE_SECRET_KEY=${{ secrets.STRIPE_TEST_MODE_SECRET_KEY }}
           UPSTASH_REDIS_REST_URL=http://localhost:9004
-          UPSTASH_REDIS_REST_TOKEN=mock_token
+          UPSTASH_REDIS_REST_TOKEN=test_secret_token
           UNKEY_ROOT_KEY=unkey_test_mock
           UNKEY_API_ID=api_test_mock
           SVIX_API_KEY=svix_test_stub

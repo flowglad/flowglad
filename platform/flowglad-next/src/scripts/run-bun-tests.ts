@@ -181,7 +181,7 @@ if (nodeEnv === 'test') {
   // Explicitly set mock server URLs for test environment
   // This overrides any values inherited from the parent process
   childEnv.UPSTASH_REDIS_REST_URL = 'http://localhost:9004'
-  childEnv.UPSTASH_REDIS_REST_TOKEN = 'mock_token'
+  childEnv.UPSTASH_REDIS_REST_TOKEN = 'test_secret_token'
   childEnv.TRIGGER_API_URL = 'http://localhost:9003'
   childEnv.SVIX_MOCK_HOST = 'http://localhost:9001'
   childEnv.UNKEY_MOCK_HOST = 'http://localhost:9002'
