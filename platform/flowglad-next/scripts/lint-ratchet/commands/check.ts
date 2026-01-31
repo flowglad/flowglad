@@ -6,6 +6,7 @@ import {
 } from '../biome'
 import {
   getBaselinePathForPackage,
+  getFirstRule,
   loadConfig,
   resolvePackagePaths,
 } from '../config'
@@ -209,26 +210,7 @@ export const checkCommand = async (): Promise<{
     }
   }
 
-  // For now, we only support one rule at a time
-  // Future: loop through all rules
-  const rule = config.rules[0]
-  if (!rule) {
-    console.error('No rules configured in .lint-ratchet.json')
-    return {
-      passed: false,
-      summary: {
-        rule: '',
-        passed: false,
-        packages: [],
-        totals: {
-          baselineTotal: 0,
-          currentTotal: 0,
-          filesWithNewViolations: 0,
-          filesImproved: 0,
-        },
-      },
-    }
-  }
+  const rule = getFirstRule(config)
 
   console.log(`Checking rule: ${rule.name}`)
   console.log(`Packages: ${packages.map((p) => p.path).join(', ')}`)

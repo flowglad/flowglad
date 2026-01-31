@@ -2,6 +2,7 @@ import { readBaseline } from '../baseline'
 import { countViolationsByFile, runBiomeLint } from '../biome'
 import {
   getBaselinePathForPackage,
+  getFirstRule,
   loadConfig,
   resolvePackagePaths,
 } from '../config'
@@ -157,11 +158,7 @@ export const statusCommand = async (): Promise<void> => {
     return
   }
 
-  const rule = config.rules[0]
-  if (!rule) {
-    console.log('No rules configured in .lint-ratchet.json')
-    return
-  }
+  const rule = getFirstRule(config)
 
   console.log(`Lint Ratchet Status: ${rule.name}`)
   console.log('─'.repeat(50))
