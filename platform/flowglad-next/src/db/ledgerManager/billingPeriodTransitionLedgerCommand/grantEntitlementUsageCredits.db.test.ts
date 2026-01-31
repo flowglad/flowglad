@@ -257,9 +257,7 @@ describe('grantEntitlementUsageCredits', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(usageCredits.length).toBe(1)
     const usageCredit = usageCredits[0]
@@ -384,9 +382,7 @@ describe('grantEntitlementUsageCredits', () => {
           )
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(2)
     // Sort by usageMeterId to ensure consistent order for assertions
@@ -552,9 +548,7 @@ describe('grantEntitlementUsageCredits', () => {
           )
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(1)
     const usageCredit = createdUsageCredits[0]
@@ -638,9 +632,7 @@ describe('grantEntitlementUsageCredits', () => {
           )
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     // Expects:
     // - Query the `usageCredits` table:
@@ -690,9 +682,7 @@ describe('grantEntitlementUsageCredits', () => {
           )
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(1)
     const usageCredit = createdUsageCredits[0]
@@ -813,9 +803,7 @@ describe('grantEntitlementUsageCredits', () => {
           )
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     // Assertions:
     // 1. Ledger Accounts
@@ -999,9 +987,7 @@ describe('grantEntitlementUsageCredits', () => {
             )
           )
         })
-      )
-        .unwrap()
-        .unwrap()
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(2)
@@ -1131,9 +1117,7 @@ describe('grantEntitlementUsageCredits', () => {
             )
           )
         })
-      )
-        .unwrap()
-        .unwrap()
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(1)
@@ -1225,9 +1209,7 @@ describe('grantEntitlementUsageCredits', () => {
             )
           )
         })
-      )
-        .unwrap()
-        .unwrap()
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(0)

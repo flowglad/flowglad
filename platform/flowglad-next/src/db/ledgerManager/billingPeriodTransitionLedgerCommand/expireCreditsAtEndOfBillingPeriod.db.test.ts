@@ -180,9 +180,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -201,9 +199,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -269,9 +265,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -317,9 +311,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -435,9 +427,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerEntries).toHaveLength(1)
     const expiredEntry = result.ledgerEntries[0]
@@ -488,9 +478,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -620,9 +608,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerEntries).toBeInstanceOf(Array)
     expect(result.ledgerEntries).toHaveLength(2)
@@ -692,9 +678,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
           transaction
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(result.ledgerEntries).toBeInstanceOf(Array)
     expect(result.ledgerEntries).toHaveLength(1)
