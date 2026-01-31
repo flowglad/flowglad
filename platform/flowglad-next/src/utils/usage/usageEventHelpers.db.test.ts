@@ -38,6 +38,11 @@ import {
 } from '@/db/adminTransaction'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from '@/errors'
 import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { LedgerTransactionInitiatingSourceType } from '@/types'
 // Function to test
@@ -136,17 +141,15 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input, livemode: true },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -171,7 +174,8 @@ describe('usageEventHelpers', () => {
         new Date(createdUsageEvent.usageDate!).getTime()
       ).toEqual(usageEventDetails.usageDate!)
 
-      let ledgerTransactions: LedgerTransaction.Record[] = [](
+      let ledgerTransactions: LedgerTransaction.Record[] = []
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           ledgerTransactions = await selectLedgerTransactions(
             {
@@ -187,7 +191,8 @@ describe('usageEventHelpers', () => {
       expect(ledgerTransactions.length).toBe(1)
       const ledgerTransactionId = ledgerTransactions[0].id
 
-      let ledgerItems: LedgerEntry.Record[] = [](
+      let ledgerItems: LedgerEntry.Record[] = []
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           ledgerItems = await selectLedgerEntries(
             { ledgerTransactionId },
@@ -219,25 +224,24 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: initialEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: initialEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
 
-      let initialLedgerTransactions: LedgerTransaction.Record[] = [](
+      let initialLedgerTransactions: LedgerTransaction.Record[] = []
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           initialLedgerTransactions = await selectLedgerTransactions(
             {
@@ -278,20 +282,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: initialEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: initialEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -299,22 +301,21 @@ describe('usageEventHelpers', () => {
       expect(resultEvent.id).toBe(initialEvent.id)
 
       let subsequentLedgerTransactions: LedgerTransaction.Record[] =
-        [](
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              subsequentLedgerTransactions =
-                await selectLedgerTransactions(
-                  {
-                    initiatingSourceId: resultEvent!.id,
-                    initiatingSourceType:
-                      LedgerTransactionInitiatingSourceType.UsageEvent,
-                  },
-                  transaction
-                )
-              return Result.ok(undefined)
-            }
-          )
-        ).unwrap()
+        []
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          subsequentLedgerTransactions =
+            await selectLedgerTransactions(
+              {
+                initiatingSourceId: resultEvent!.id,
+                initiatingSourceType:
+                  LedgerTransactionInitiatingSourceType.UsageEvent,
+              },
+              transaction
+            )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
       const subsequentLedgerItemCount =
         subsequentLedgerTransactions.length > 0
           ? (
@@ -363,22 +364,20 @@ describe('usageEventHelpers', () => {
 
       ;(
         await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await ingestAndProcessUsageEvent(
-              {
-                input: {
-                  usageEvent: {
-                    priceId: usagePrice.id,
-                    usageMeterId: usagePrice.usageMeterId!,
-                    subscriptionId: sub2.id,
-                    transactionId: sharedTransactionId,
-                    amount: 1,
-                  },
+          return ingestAndProcessUsageEvent(
+            {
+              input: {
+                usageEvent: {
+                  priceId: usagePrice.id,
+                  usageMeterId: usagePrice.usageMeterId!,
+                  subscriptionId: sub2.id,
+                  transactionId: sharedTransactionId,
+                  amount: 1,
                 },
-                livemode: true,
               },
-              createDiscardingEffectsContext(transaction)
-            )
+              livemode: true,
+            },
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).unwrap()
@@ -395,18 +394,17 @@ describe('usageEventHelpers', () => {
         usageEvent: usageEventDetailsMainSub,
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await ingestAndProcessUsageEvent(
-              { input: inputMainSub, livemode: true },
-              createDiscardingEffectsContext(transaction)
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: inputMainSub, livemode: true },
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(ConflictError)
         expect(result.error.message).toContain(
           `A usage event already exists for transactionid ${sharedTransactionId}, but does not belong to subscription ${mainSubscription.id}.`
         )
@@ -432,20 +430,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: propsPresentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: propsPresentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -470,20 +466,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: propsAbsentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: propsAbsentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -510,20 +504,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: datePresentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: datePresentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -545,20 +537,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: dateAbsentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: dateAbsentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -582,20 +572,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: liveTrueDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: liveTrueDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -661,20 +649,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: liveFalseDetails },
-                  livemode: false,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: liveFalseDetails },
+                livemode: false,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -782,20 +768,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: firstEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: firstEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -850,20 +834,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: secondEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: secondEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -920,20 +902,18 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: thirdEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: thirdEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -1006,20 +986,19 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await ingestAndProcessUsageEvent(
-              { input, livemode: true },
-              createDiscardingEffectsContext(transaction)
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input, livemode: true },
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
         // When both usageMeterId and priceId from a different org are provided,
         // the priceId validation runs first since it's explicitly provided
+        expect(result.error).toBeInstanceOf(NotFoundError)
         expect(result.error.message).toContain(
           `Price not found: ${otherOrgPrice.id} (not in customer's pricing model)`
         )
@@ -1062,18 +1041,17 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await ingestAndProcessUsageEvent(
-              { input, livemode: true },
-              createDiscardingEffectsContext(transaction)
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input, livemode: true },
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(NotFoundError)
         expect(result.error.message).toContain(
           `Price not found: ${otherOrgPrice.id} (not in customer's pricing model)`
         )
@@ -1116,17 +1094,15 @@ describe('usageEventHelpers', () => {
             enqueueLedgerCommand,
             cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input, livemode: true },
-                {
-                  transaction,
-                  cacheRecomputationContext,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -1173,18 +1149,17 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await ingestAndProcessUsageEvent(
-              { input: undefinedPropsInput, livemode: true },
-              createDiscardingEffectsContext(transaction)
-            )
+      const result1 = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: undefinedPropsInput, livemode: true },
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).unwrap()
-      expect(result1.status).toBe('error')
-      if (result1.status === 'error') {
+        }
+      )
+      expect(Result.isError(result1)).toBe(true)
+      if (Result.isError(result1)) {
+        expect(result1.error).toBeInstanceOf(ValidationError)
         expect(result1.error.message).toContain(
           'Properties are required'
         )
@@ -1202,18 +1177,17 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await ingestAndProcessUsageEvent(
-              { input: emptyPropsInput, livemode: true },
-              createDiscardingEffectsContext(transaction)
-            )
+      const result2 = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: emptyPropsInput, livemode: true },
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).unwrap()
-      expect(result2.status).toBe('error')
-      if (result2.status === 'error') {
+        }
+      )
+      expect(Result.isError(result2)).toBe(true)
+      if (Result.isError(result2)) {
+        expect(result2.error).toBeInstanceOf(ValidationError)
         expect(result2.error.message).toContain(
           'Properties are required'
         )
@@ -1487,18 +1461,14 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await resolveUsageEventInput(
-              inputNonExistent,
-              transaction
-            )
-          )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(inputNonExistent, transaction)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(NotFoundError)
         expect(result.error.message).toContain(
           "Price not found: with slug non-existent-slug (not in customer's pricing model)"
         )
@@ -1559,18 +1529,17 @@ describe('usageEventHelpers', () => {
       }
 
       // Should fail because the slug belongs to a different pricing model
-      const result2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await resolveUsageEventInput(
-              inputDifferentPricingModel,
-              transaction
-            )
+      const result2 = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(
+            inputDifferentPricingModel,
+            transaction
           )
-        })
-      ).unwrap()
-      expect(result2.status).toBe('error')
-      if (result2.status === 'error') {
+        }
+      )
+      expect(Result.isError(result2)).toBe(true)
+      if (Result.isError(result2)) {
+        expect(result2.error).toBeInstanceOf(NotFoundError)
         expect(result2.error.message).toContain(
           "Price not found: with slug other-pricing-model-price-slug (not in customer's pricing model)"
         )
@@ -1586,18 +1555,17 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await resolveUsageEventInput(
-              inputWithoutPrice,
-              transaction
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(
+            inputWithoutPrice,
+            transaction
           )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toContain(
           'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
         )
@@ -1757,15 +1725,14 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await resolveUsageEventInput(input, transaction)
-          )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(NotFoundError)
         expect(result.error.message).toContain(
           `UsageMeter not found: ${otherOrgUsageMeter.id} (not in customer's pricing model)`
         )
@@ -1782,15 +1749,14 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await resolveUsageEventInput(input, transaction)
-          )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(NotFoundError)
         expect(result.error.message).toContain(
           "UsageMeter not found: with slug non-existent-usage-meter-slug (not in customer's pricing model)"
         )

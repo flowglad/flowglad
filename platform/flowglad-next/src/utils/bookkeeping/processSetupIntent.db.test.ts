@@ -52,6 +52,7 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import { ValidationError } from '@/errors'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import {
   createDiscardingEffectsContext,
@@ -900,18 +901,17 @@ describe('Process setup intent', async () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await processSetupIntentSucceeded(
-              invalidSetupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+      const result = await adminTransactionWithResult(
+        async ({ transaction }) => {
+          return processSetupIntentSucceeded(
+            invalidSetupIntent,
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).unwrap()
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toMatch(/not checkout_session/)
       }
     })
@@ -1018,11 +1018,9 @@ describe('Process setup intent', async () => {
         const firstActivationResult =
           await comprehensiveAdminTransaction(
             async ({ transaction }) => {
-              return Result.ok(
-                await processSetupIntentSucceeded(
-                  setupIntent,
-                  createDiscardingEffectsContext(transaction)
-                )
+              return processSetupIntentSucceeded(
+                setupIntent,
+                createDiscardingEffectsContext(transaction)
               )
             }
           )
@@ -1074,11 +1072,9 @@ describe('Process setup intent', async () => {
         const secondActivationResult =
           await comprehensiveAdminTransaction(
             async ({ transaction }) => {
-              return Result.ok(
-                await processSetupIntentSucceeded(
-                  setupIntent,
-                  createDiscardingEffectsContext(transaction)
-                )
+              return processSetupIntentSucceeded(
+                setupIntent,
+                createDiscardingEffectsContext(transaction)
               )
             }
           )
@@ -1185,11 +1181,9 @@ describe('Process setup intent', async () => {
         const firstActivationResult =
           await comprehensiveAdminTransaction(
             async ({ transaction }) => {
-              return Result.ok(
-                await processSetupIntentSucceeded(
-                  setupIntent1,
-                  createDiscardingEffectsContext(transaction)
-                )
+              return processSetupIntentSucceeded(
+                setupIntent1,
+                createDiscardingEffectsContext(transaction)
               )
             }
           )
@@ -1236,11 +1230,9 @@ describe('Process setup intent', async () => {
         const secondActivationResult =
           await comprehensiveAdminTransaction(
             async ({ transaction }) => {
-              return Result.ok(
-                await processSetupIntentSucceeded(
-                  setupIntent1, // Same setup intent as before
-                  createDiscardingEffectsContext(transaction)
-                )
+              return processSetupIntentSucceeded(
+                setupIntent1, // Same setup intent as before
+                createDiscardingEffectsContext(transaction)
               )
             }
           )
@@ -1315,11 +1307,9 @@ describe('Process setup intent', async () => {
               freshCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            return Result.ok(
-              await processSetupIntentSucceeded(
-                freshSetupIntentSucceeded,
-                createDiscardingEffectsContext(transaction)
-              )
+            return processSetupIntentSucceeded(
+              freshSetupIntentSucceeded,
+              createDiscardingEffectsContext(transaction)
             )
           }
         )
