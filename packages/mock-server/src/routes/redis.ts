@@ -14,7 +14,9 @@ import { delay, parseErrorConfig } from '../utils/errors'
  * - X-Mock-Error-Message: <custom message>
  */
 
-type RedisCommand = string[]
+// Redis commands can have string or number arguments (e.g., ZADD key score member)
+type RedisCommandArg = string | number
+type RedisCommand = RedisCommandArg[]
 
 interface RedisSuccessResponse {
   result: unknown
@@ -25,13 +27,20 @@ interface RedisErrorResponse {
 }
 
 /**
- * Type guard to check if a value is a valid Redis command (array of strings)
+ * Check if a value is a valid Redis command argument (string or number)
+ */
+function isValidArg(value: unknown): value is RedisCommandArg {
+  return typeof value === 'string' || typeof value === 'number'
+}
+
+/**
+ * Type guard to check if a value is a valid Redis command (array of strings/numbers)
  */
 function isRedisCommand(value: unknown): value is RedisCommand {
   return (
     Array.isArray(value) &&
     value.length > 0 &&
-    value.every((item) => typeof item === 'string')
+    value.every(isValidArg)
   )
 }
 
@@ -45,11 +54,7 @@ function isRedisCommandArray(
     Array.isArray(value) &&
     value.length > 0 &&
     Array.isArray(value[0]) &&
-    value.every(
-      (cmd) =>
-        Array.isArray(cmd) &&
-        cmd.every((arg) => typeof arg === 'string')
-    )
+    value.every((cmd) => Array.isArray(cmd) && cmd.every(isValidArg))
   )
 }
 
@@ -76,7 +81,8 @@ function handleRedisCommand(
   command: RedisCommand
 ): RedisSuccessResponse {
   const [cmd] = command
-  const upperCmd = cmd?.toUpperCase()
+  // Convert to string in case it's a number (shouldn't happen for command names, but be safe)
+  const upperCmd = String(cmd).toUpperCase()
 
   switch (upperCmd) {
     // Single-value read commands - return null (cache miss)
@@ -187,6 +193,27 @@ function handleRedisCommand(
           'last-entry': null,
         },
       }
+
+    // Lua script commands - return mock result for LRU eviction script
+    // The LRU script returns JSON array [evictedCount, orphansRemoved]
+    case 'EVAL':
+    case 'EVALSHA':
+      // Return [0, 0] as JSON string (no evictions in stateless mock)
+      return { result: '[0,0]' }
+
+    // Sorted set read commands
+    case 'ZCARD':
+      // Return 0 (empty sorted set)
+      return { result: 0 }
+
+    case 'ZSCORE':
+      // Return null (member not found)
+      return { result: null }
+
+    // GETDEL - get and delete atomically
+    case 'GETDEL':
+      // Return null (cache miss, like GET)
+      return { result: null }
 
     // Default - return OK for unknown commands
     default:

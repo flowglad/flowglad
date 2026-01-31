@@ -51,6 +51,33 @@ describe('handleRedisRoute', () => {
     })
   })
 
+  describe('ZADD command', () => {
+    it('returns OK for ZADD with numeric score', async () => {
+      // ZADD commands have numeric scores - this tests that we handle mixed types
+      const req = createRedisRequest(['ZADD', 'myset', 0, 'member1'])
+      const response = await handleRedisRoute(req, '/')
+      expect(response).toBeInstanceOf(Response)
+      const body = await response!.json()
+      expect(body.result).toBe('OK')
+    })
+
+    it('handles ZADD in pipeline with numeric scores', async () => {
+      const req = createRedisRequest([
+        ['ZADD', 'lru:test', 1234567890, 'cache:key1'],
+        ['ZADD', 'lru:test', 1234567891, 'cache:key2'],
+        ['ZRANGE', 'lru:test', 0, -1],
+      ])
+      const response = await handleRedisRoute(req, '/')
+      expect(response).toBeInstanceOf(Response)
+      const body = await response!.json()
+      expect(body).toEqual([
+        { result: 'OK' },
+        { result: 'OK' },
+        { result: [] },
+      ])
+    })
+  })
+
   describe('DEL command', () => {
     it('returns 1 for DEL (success count)', async () => {
       const req = createRedisRequest(['DEL', 'some-key'])
