@@ -1579,34 +1579,29 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should handle nested billing details address for tax country', async () => {
-      const billingAddress: PaymentMethod.BillingDetails =
-        paymentMethod
-          .billingDetails(
-            // Update payment method with nested address
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                await updatePaymentMethod(
-                  {
-                    id: paymentMethod.id,
-                    billingDetails: {
-                      ...billingAddress,
-                      address: {
-                        country: 'US',
-                        line1: null,
-                        line2: null,
-                        city: null,
-                        state: null,
-                        postal_code: null,
-                      },
-                    },
-                  },
-                  transaction
-                )
-                return Result.ok(undefined)
-              }
-            )
+      // Update payment method with nested address
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              billingDetails: {
+                ...paymentMethod.billingDetails,
+                address: {
+                  country: 'US',
+                  line1: null,
+                  line2: null,
+                  city: null,
+                  state: null,
+                  postal_code: null,
+                },
+              },
+            },
+            transaction
           )
-          .unwrap()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const result = (
         await adminTransactionWithResult(async ({ transaction }) =>
@@ -2072,7 +2067,7 @@ describe('billingRunHelpers', async () => {
       const [updatedEntry] = (
         await adminTransactionWithResult(async ({ transaction }) =>
           Result.ok(
-            selectLedgerEntries(
+            await selectLedgerEntries(
               {
                 sourceUsageEventId: usageEvent.id,
                 entryType: LedgerEntryType.UsageCost,
@@ -2131,7 +2126,7 @@ describe('billingRunHelpers', async () => {
       const finalInvoice = (
         await adminTransactionWithResult(async ({ transaction }) =>
           Result.ok(
-            selectInvoices(
+            await selectInvoices(
               { billingPeriodId: billingPeriod.id },
               transaction
             )
@@ -3497,7 +3492,7 @@ describe('billingRunHelpers', async () => {
       const { rawOutstandingUsageCosts } = (
         await adminTransactionWithResult(async ({ transaction }) => {
           return Result.ok(
-            tabulateOutstandingUsageCosts(
+            await tabulateOutstandingUsageCosts(
               doNotChargeSubscription.id,
               billingPeriod.endDate,
               transaction
