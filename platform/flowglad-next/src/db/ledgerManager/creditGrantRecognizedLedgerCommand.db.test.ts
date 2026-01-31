@@ -566,16 +566,20 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       },
     }
 
-    await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await processCreditGrantRecognizedLedgerCommand(
-            command,
-            transaction
-          )
+    const result = await adminTransactionWithResult(
+      async ({ transaction }) => {
+        return processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
         )
-      })
-    ).rejects.toThrowError('No subscriptions found with id')
+      }
+    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'No subscriptions found with id'
+      )
+    }
 
     // Verify that no partial/rogue transactions were persisted due to the error.
     // This ensures the database transaction was properly rolled back.

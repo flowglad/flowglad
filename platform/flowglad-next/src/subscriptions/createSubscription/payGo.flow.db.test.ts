@@ -53,7 +53,8 @@ describe('Pay as You Go Workflow E2E', () => {
       pricingModel,
       product: freeProduct,
       price: freePrice,
-    } = await setupOrg()(
+    } = await setupOrg()
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await updateOrganization(

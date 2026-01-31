@@ -1183,19 +1183,20 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       livemode: TEST_LIVEMODE,
     }
 
-    await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        // Expects: The call to processUsageEventProcessedLedgerCommand to throw an error
-        return Result.ok(
-          await (
-            await processUsageEventProcessedLedgerCommand(
-              command,
-              transaction
-            )
-          ).unwrap()
+    const result = await adminTransactionWithResult(
+      async ({ transaction }) => {
+        return processUsageEventProcessedLedgerCommand(
+          command,
+          transaction
         )
-      })
-    ).rejects.toThrowError('No subscriptions found with id')
+      }
+    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'No subscriptions found with id'
+      )
+    }
     const rogueTransactions = (
       await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(

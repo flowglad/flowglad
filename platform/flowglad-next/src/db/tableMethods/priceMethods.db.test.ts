@@ -2925,7 +2925,8 @@ describe('priceMethods.ts', () => {
         currency: CurrencyCode.USD,
       })
 
-      const nonExistentPriceId = `price_${core.nanoid()}`(
+      const nonExistentPriceId = `price_${core.nanoid()}`
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const featureMap = await selectResourceFeaturesForPrices(

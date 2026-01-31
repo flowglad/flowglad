@@ -339,22 +339,21 @@ describe('timestampWithTimezoneColumn with null values', () => {
       })
     ).unwrap()
 
-    expect(filteredOutRecords)
-      .toHaveLength(0)(
-        // Update back to null using the helper function
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          await updateProductFeature(
-            {
-              id: insertedFeature.id,
-              expiredAt: null,
-            },
-            ctx
-          )
-          return Result.ok(undefined)
-        })
-      )
-      .unwrap()
+    expect(filteredOutRecords).toHaveLength(0)
+    // Update back to null using the helper function
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await updateProductFeature(
+          {
+            id: insertedFeature.id,
+            expiredAt: null,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Verify it's back to null
     const nullAgainRecords = (

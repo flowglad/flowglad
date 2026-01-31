@@ -2270,7 +2270,7 @@ describe('ledgerEntryMethods', () => {
           })
 
           return Result.ok(
-            aggregateAvailableBalanceForUsageCredit(
+            await aggregateAvailableBalanceForUsageCredit(
               {
                 ledgerAccountId: ledgerAccount.id,
                 sourceUsageCreditId: usageCreditId1,
@@ -2473,6 +2473,7 @@ describe('ledgerEntryMethods', () => {
 
           expect(sortedResult).toHaveLength(3)
           expect(sortedResult).toEqual(expectedBalances)
+          return Result.ok(undefined)
         })
       ).unwrap()
     })
@@ -3305,7 +3306,7 @@ describe('ledgerEntryMethods', () => {
           await adminTransactionWithResult(
             async ({ transaction }) => {
               return Result.ok(
-                aggregateAvailableBalanceForUsageCredit(
+                await aggregateAvailableBalanceForUsageCredit(
                   {
                     ledgerAccountId: ledgerAccount.id,
                     sourceUsageCreditId: usageCreditWithExpiry.id,
@@ -3361,7 +3362,7 @@ describe('ledgerEntryMethods', () => {
           await adminTransactionWithResult(
             async ({ transaction }) => {
               return Result.ok(
-                aggregateAvailableBalanceForUsageCredit(
+                await aggregateAvailableBalanceForUsageCredit(
                   {
                     ledgerAccountId: ledgerAccount.id,
                     sourceUsageCreditId: usageCreditNullExpiry.id,
@@ -3459,7 +3460,7 @@ describe('ledgerEntryMethods', () => {
           await adminTransactionWithResult(
             async ({ transaction }) => {
               return Result.ok(
-                aggregateAvailableBalanceForUsageCredit(
+                await aggregateAvailableBalanceForUsageCredit(
                   {
                     ledgerAccountId: ledgerAccount.id, // Query for all in the account
                   },
@@ -3540,7 +3541,7 @@ describe('ledgerEntryMethods', () => {
           await adminTransactionWithResult(
             async ({ transaction }) => {
               return Result.ok(
-                aggregateAvailableBalanceForUsageCredit(
+                await aggregateAvailableBalanceForUsageCredit(
                   {
                     ledgerAccountId: ledgerAccount.id,
                     sourceUsageCreditId: usageCreditPastExpiry.id,

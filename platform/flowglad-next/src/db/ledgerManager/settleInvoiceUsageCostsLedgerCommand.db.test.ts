@@ -528,8 +528,10 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
           invoice,
           invoiceLineItems: [usageInvoiceLineItem],
         },
-      }(
-        // 2. Successfully execute the command once.
+      }
+
+      // 2. Successfully execute the command once.
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
@@ -822,8 +824,10 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
           invoice,
           invoiceLineItems: [usageInvoiceLineItem],
         },
-      }(
-        // execute:
+      }
+
+      // execute:
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
@@ -891,8 +895,10 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
           invoice,
           invoiceLineItems: [usageInvoiceLineItem],
         },
-      }(
-        // execute:
+      }
+
+      // execute:
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
@@ -976,8 +982,10 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
           invoice,
           invoiceLineItems: [usageInvoiceLineItem],
         },
-      }(
-        // execute:
+      }
+
+      // execute:
+      ;(
         await adminTransactionWithResult(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
