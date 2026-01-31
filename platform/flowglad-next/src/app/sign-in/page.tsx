@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import type { FieldErrors } from 'react-hook-form'
 import { useForm } from 'react-hook-form'
@@ -61,6 +62,10 @@ function OrDivider() {
 export default function SignIn() {
   type SigninValues = z.infer<typeof signInSchema>
 
+  const searchParams = useSearchParams()
+  // Support callbackURL from URL params (used by CLI auth flow, etc.)
+  const callbackURL = searchParams.get('callbackURL') || '/'
+
   const {
     register,
     handleSubmit,
@@ -115,7 +120,7 @@ export default function SignIn() {
       {
         email: values.email,
         password: values.password,
-        callbackURL: '/',
+        callbackURL,
         rememberMe,
       },
       signinFetchOptions
@@ -154,7 +159,7 @@ export default function SignIn() {
           await signIn.social(
             {
               provider: 'google',
-              callbackURL: '/',
+              callbackURL,
             },
             signinFetchOptions
           )

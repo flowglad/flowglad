@@ -46,14 +46,31 @@ type AuthorizationState =
  * 4. User approves or denies the authorization
  * 5. CLI receives the token and completes the login
  */
+const CLI_USER_CODE_STORAGE_KEY = 'cli_auth_user_code'
+
 export default function CliAuthorizePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, isPending: isSessionLoading } = useSession()
 
-  const [userCode, setUserCode] = useState(
-    searchParams.get('user_code') || ''
-  )
+  // Get user_code from URL params first, then fall back to localStorage
+  // We use localStorage instead of sessionStorage because it persists across
+  // the OAuth redirect chain (which may involve new tabs/windows)
+  const [userCode, setUserCode] = useState(() => {
+    const urlCode = searchParams.get('user_code')
+    if (urlCode) {
+      // Store in localStorage for persistence through OAuth flow
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CLI_USER_CODE_STORAGE_KEY, urlCode)
+      }
+      return urlCode
+    }
+    // Try to recover from localStorage (after OAuth redirect)
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(CLI_USER_CODE_STORAGE_KEY) || ''
+    }
+    return ''
+  })
   const [state, setState] = useState<AuthorizationState>('loading')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -76,15 +93,22 @@ export default function CliAuthorizePage() {
     }
 
     if (!session) {
-      // Redirect to sign-in with callback
-      const callbackUrl = `/cli/authorize${userCode ? `?user_code=${encodeURIComponent(userCode)}` : ''}`
+      // Store user_code in localStorage before redirecting (handles OAuth flows)
+      if (userCode && typeof window !== 'undefined') {
+        localStorage.setItem(CLI_USER_CODE_STORAGE_KEY, userCode)
+      }
+      // Redirect to sign-in with callback to return here
+      // Include user_code in the callback URL so it survives OAuth redirects
+      const callbackPath = userCode
+        ? `/cli/authorize?user_code=${encodeURIComponent(userCode)}`
+        : '/cli/authorize'
       router.push(
-        `/sign-in?callbackURL=${encodeURIComponent(callbackUrl)}`
+        `/sign-in?callbackURL=${encodeURIComponent(callbackPath)}`
       )
       return
     }
 
-    // If we have a user code from URL, verify it
+    // If we have a user code (from URL or localStorage), verify it
     if (userCode) {
       setState('verifying')
     } else {
@@ -124,6 +148,10 @@ export default function CliAuthorizePage() {
     try {
       const result = await approveMutation.mutateAsync({ userCode })
       if (result.success) {
+        // Clear stored user_code after successful authorization
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CLI_USER_CODE_STORAGE_KEY)
+        }
         setState('approved')
       } else {
         setState('error')
@@ -140,6 +168,10 @@ export default function CliAuthorizePage() {
     try {
       const result = await denyMutation.mutateAsync({ userCode })
       if (result.success) {
+        // Clear stored user_code after denial
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CLI_USER_CODE_STORAGE_KEY)
+        }
         setState('denied')
       } else {
         setState('error')
