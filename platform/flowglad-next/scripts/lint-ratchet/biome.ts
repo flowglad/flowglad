@@ -168,7 +168,9 @@ export const runBiomeLint = async (
         continue
       }
 
-      const absoluteFilePath = diag.location.path.file
+      const filePath = diag.location.path.file
+      // Biome returns paths relative to cwd (repo root), resolve to absolute first
+      const absoluteFilePath = resolve(repoRoot, filePath)
       // Make path relative to package
       const relativeFilePath = relative(
         absolutePackagePath,
