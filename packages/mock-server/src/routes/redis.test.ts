@@ -70,8 +70,13 @@ describe('handleRedisRoute', () => {
       ])
       const response = await handleRedisRoute(req, '/')
       expect(response).toBeInstanceOf(Response)
+      // Upstash pipeline returns array of {result: value} objects at top level
       const body = await response!.json()
-      expect(body.result).toEqual(['OK', null, 1])
+      expect(body).toEqual([
+        { result: 'OK' },
+        { result: null },
+        { result: 1 },
+      ])
     })
   })
 
@@ -138,8 +143,9 @@ describe('handleRedisRoute', () => {
       })
       const response = await handleRedisRoute(req, '/pipeline')
       expect(response).toBeInstanceOf(Response)
+      // Upstash pipeline returns array of {result: value} objects at top level
       const body = await response!.json()
-      expect(body.result).toEqual(['OK', null])
+      expect(body).toEqual([{ result: 'OK' }, { result: null }])
     })
   })
 
