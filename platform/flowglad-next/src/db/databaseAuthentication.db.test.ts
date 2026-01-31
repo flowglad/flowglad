@@ -69,7 +69,7 @@ beforeEach(async () => {
   webUserEmail = `webapp+${core.nanoid()}@test.com`
   ;(
     await adminTransactionWithResult(async ({ transaction }) => {
-      const [insertedUser] = await transaction
+      const [insertedUser]: [User.Record] = (await transaction
         .insert(users)
         .values({
           id: `usr_${core.nanoid()}`,
@@ -77,10 +77,10 @@ beforeEach(async () => {
           name: 'Webapp Test User',
           betterAuthId: webBetterAuthId,
         })
-        .returning()
-      webUser = insertedUser as User.Record
+        .returning()) as [User.Record]
+      webUser = insertedUser
 
-      const [mA] = await transaction
+      const [mA]: [Membership.Record] = (await transaction
         .insert(memberships)
         .values({
           userId: webUser.id,
@@ -89,8 +89,8 @@ beforeEach(async () => {
           livemode: false,
           focusedPricingModelId: webPmA,
         })
-        .returning()
-      const [mB] = await transaction
+        .returning()) as [Membership.Record]
+      const [mB]: [Membership.Record] = (await transaction
         .insert(memberships)
         .values({
           userId: webUser.id,
@@ -99,8 +99,8 @@ beforeEach(async () => {
           livemode: true,
           focusedPricingModelId: webPmB,
         })
-        .returning()
-      const [mC] = await transaction
+        .returning()) as [Membership.Record]
+      const [mC]: [Membership.Record] = (await transaction
         .insert(memberships)
         .values({
           userId: webUser.id,
@@ -109,10 +109,10 @@ beforeEach(async () => {
           livemode: false,
           focusedPricingModelId: webPmC,
         })
-        .returning()
-      webMemA = mA as Membership.Record
-      webMemB = mB as Membership.Record
-      webMemC = mC as Membership.Record
+        .returning()) as [Membership.Record]
+      webMemA = mA
+      webMemB = mB
+      webMemC = mC
       return Result.ok(undefined)
     })
   ).unwrap()
