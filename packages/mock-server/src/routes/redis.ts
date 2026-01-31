@@ -268,9 +268,14 @@ export async function handleRedisRoute(
   }
 
   // Handle pipeline (array of commands)
+  // Upstash pipeline returns array of {result: value} objects at top level
   if (isPipeline(command)) {
     const results = command.map((cmd) => handleRedisCommand(cmd))
-    return jsonResponse({ result: results.map((r) => r.result) })
+    // Return array directly, not wrapped in {result: ...}
+    return new Response(JSON.stringify(results), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   // Handle single command
