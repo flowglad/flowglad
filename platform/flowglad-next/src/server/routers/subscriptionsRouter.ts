@@ -36,7 +36,7 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
-  comprehensiveAuthenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -78,8 +78,11 @@ import {
   uncancelSubscriptionProcedureTransaction,
 } from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
+import { cancelScheduledAdjustmentProcedureTransaction } from '@/subscriptions/scheduledAdjustmentHelpers'
 import {
   adjustSubscriptionInputSchema,
+  cancelScheduledAdjustmentInputSchema,
+  cancelScheduledAdjustmentOutputSchema,
   previewAdjustSubscriptionOutputSchema,
   scheduleSubscriptionCancellationSchema,
   uncancelSubscriptionSchema,
@@ -107,6 +110,9 @@ export const subscriptionsRouteConfigs = [
     routeParams: ['id'],
   }),
   trpcToRest('subscriptions.uncancel', {
+    routeParams: ['id'],
+  }),
+  trpcToRest('subscriptions.cancelScheduledAdjustment', {
     routeParams: ['id'],
   }),
 ]
@@ -430,8 +436,8 @@ const adjustSubscriptionProcedure = protectedProcedure
     // This triggers the billing run but doesn't wait for it
     // Cache invalidations are handled automatically by the comprehensive transaction
     // Domain errors are automatically converted to TRPCErrors by domainErrorMiddleware
-    const adjustmentResult =
-      await comprehensiveAuthenticatedTransaction(
+    const adjustmentResult = (
+      await authenticatedTransactionWithResult(
         async (transactionCtx) => {
           return adjustSubscription(
             input,
@@ -443,6 +449,7 @@ const adjustSubscriptionProcedure = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
+    ).unwrap()
 
     const {
       subscription,
@@ -581,6 +588,26 @@ const uncancelSubscriptionProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       uncancelSubscriptionProcedureTransaction
+    )
+  )
+
+const cancelScheduledAdjustmentProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/subscriptions/{id}/cancel-scheduled-adjustment',
+      summary: 'Cancel Scheduled Adjustment',
+      description:
+        'Cancels a scheduled subscription adjustment. The subscription must have a pending scheduled adjustment (scheduledAdjustmentAt is not null). This will expire any subscription items that were scheduled to become active at the end of the billing period and clear the scheduledAdjustmentAt field.',
+      tags: ['Subscriptions'],
+      protect: true,
+    },
+  })
+  .input(cancelScheduledAdjustmentInputSchema)
+  .output(cancelScheduledAdjustmentOutputSchema)
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      cancelScheduledAdjustmentProcedureTransaction
     )
   )
 
@@ -1097,6 +1124,7 @@ export const subscriptionsRouter = router({
   previewAdjust: previewAdjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
   uncancel: uncancelSubscriptionProcedure,
+  cancelScheduledAdjustment: cancelScheduledAdjustmentProcedure,
   list: listSubscriptionsProcedure,
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,

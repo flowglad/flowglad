@@ -515,9 +515,12 @@ describe('subscriptionsRouteConfigs', () => {
       ) // custom preview-adjust
       expect(routeKeys).toContain('POST /subscriptions/:id/cancel') // custom cancel
       expect(routeKeys).toContain('POST /subscriptions/:id/uncancel') // custom uncancel
+      expect(routeKeys).toContain(
+        'POST /subscriptions/:id/cancel-scheduled-adjustment'
+      ) // custom cancel-scheduled-adjustment
 
-      // Check that we have exactly 9 routes (5 CRUD + 4 custom)
-      expect(routeKeys).toHaveLength(9)
+      // Check that we have exactly 10 routes (5 CRUD + 5 custom)
+      expect(routeKeys).toHaveLength(10)
     })
 
     it('should have consistent id parameter usage', () => {
@@ -528,22 +531,28 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/adjust',
         'POST /subscriptions/:id/cancel',
         'POST /subscriptions/:id/uncancel',
+        'POST /subscriptions/:id/cancel-scheduled-adjustment',
       ]
 
       idRoutes.forEach((routeKey) => {
         const config = findRouteConfig(routeKey)
 
-        // For adjust, cancel, and uncancel routes, use full match array; for others use sliced
+        // For adjust, cancel, uncancel, and cancel-scheduled-adjustment routes, use full match array; for others use sliced
         if (
           routeKey.includes('adjust') ||
           routeKey.includes('cancel') ||
           routeKey.includes('uncancel')
         ) {
-          const path = routeKey.includes('adjust')
-            ? 'subscriptions/test-id/adjust'
-            : routeKey.includes('uncancel')
-              ? 'subscriptions/test-id/uncancel'
-              : 'subscriptions/test-id/cancel'
+          let path: string
+          if (routeKey.includes('cancel-scheduled-adjustment')) {
+            path = 'subscriptions/test-id/cancel-scheduled-adjustment'
+          } else if (routeKey.includes('adjust')) {
+            path = 'subscriptions/test-id/adjust'
+          } else if (routeKey.includes('uncancel')) {
+            path = 'subscriptions/test-id/uncancel'
+          } else {
+            path = 'subscriptions/test-id/cancel'
+          }
           const fullMatch = config!.pattern.exec(path)
           const result = config!.mapParams(fullMatch!.slice(1), {
             someData: 'value',

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   getCustomerBillingPortalEmail,
@@ -51,12 +51,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const { otp, organizationId, customerId } = parseResult.data
-    if (!otp || typeof otp !== 'string' || otp.length !== 6) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid OTP format' },
-        { status: 400 }
-      )
-    }
+    // Note: otp format already validated by Zod schema above
 
     if (!organizationId || !customerId) {
       return NextResponse.json(
@@ -67,13 +62,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    const customer = await adminTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectCustomerById(customerId, transaction)
-        ).unwrap()
-      }
-    )
+    const customer = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return selectCustomerById(customerId, transaction)
+      })
+    ).unwrap()
     if (!customer) {
       return NextResponse.json(
         {

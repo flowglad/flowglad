@@ -7,6 +7,12 @@
  * are registered before module resolution caches the real implementations.
  *
  * This file is used by ALL test types (unit, db, integration).
+ *
+ * NOTE: Svix, Unkey, and Redis mocks are NOT in this file. They are:
+ * - For unit tests: mocked in bun.unit.mocks.ts (no network calls)
+ * - For db tests: real SDK calls passthrough to flowglad-mock-server containers
+ *   (similar to how Stripe uses stripe-mock)
+ *
  * For db-specific blockers and mocks, see bun.db.mocks.ts.
  */
 
@@ -18,25 +24,5 @@ process.env.UNKEY_ROOT_KEY =
 process.env.BETTER_AUTH_URL =
   process.env.BETTER_AUTH_URL || 'http://localhost:3000'
 
-import { mock } from 'bun:test'
-
 // Import common module mocks (trigger tasks, auth, server-only)
 import './mocks/module-mocks'
-
-// Import and register the Unkey SDK mock (working mock for unit tests)
-import { MockUnkey } from './mocks/unkey-sdk-mock'
-
-mock.module('@unkey/api', () => ({
-  Unkey: MockUnkey,
-  default: MockUnkey,
-}))
-
-// Import and register Redis utility mock
-import { redisMockExports } from './mocks/redis-mock'
-
-mock.module('@/utils/redis', () => redisMockExports)
-
-// Import and register Svix utility mock
-import { svixMockExports } from './mocks/svix-mock'
-
-mock.module('@/utils/svix', () => svixMockExports)

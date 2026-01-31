@@ -2,7 +2,7 @@
  * Server-only subscription item methods.
  *
  * This file contains functions that:
- * 1. Use cachedRecomputable (server-only caching with auto-recomputation)
+ * 1. Use cached (server-only caching with dependency-based invalidation)
  * 2. Import from subscriptionItemFeatureMethods (which would create circular deps if in main file)
  *
  * IMPORTANT: Only import this file from server-side code. Importing from client code
@@ -34,10 +34,9 @@ import {
 } from '@/subscriptions/schemas'
 import {
   CacheDependency,
-  type CacheRecomputationContext,
+  cached,
   cachedBulkLookup,
 } from '@/utils/cache'
-import { cachedRecomputable } from '@/utils/cache-recomputable'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
@@ -89,49 +88,39 @@ const subscriptionItemWithPriceSchema = z.object({
 })
 
 /**
- * Params schema for selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal.
- * Used by cachedRecomputable() for validation during recomputation.
- */
-const selectSubscriptionItemsParamsSchema = z.object({
-  subscriptionId: z.string(),
-  livemode: z.boolean(),
-})
-
-/**
- * Params type for selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal.
- */
-type SelectSubscriptionItemsParams = z.infer<
-  typeof selectSubscriptionItemsParamsSchema
->
-
-/**
- * Internal cached implementation for single subscription lookup with automatic recomputation.
+ * Internal cached implementation for single subscription lookup.
  * Cache key includes livemode to prevent mixing live/test data.
  */
 const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
-  cachedRecomputable<
-    SelectSubscriptionItemsParams,
-    {
-      subscriptionItem: SubscriptionItem.Record
-      price: Price.ClientRecord | null
-    }[]
-  >(
+  cached(
     {
       namespace: RedisKeyNamespace.ItemsBySubscription,
-      paramsSchema: selectSubscriptionItemsParamsSchema,
-      keyFn: (params) =>
-        `${params.subscriptionId}:${params.livemode}`,
+      keyFn: (
+        subscriptionId: string,
+        livemode: boolean,
+        _transaction: DbTransaction
+      ) => `${subscriptionId}:${livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
-      dependenciesFn: (params, items) => [
-        CacheDependency.subscriptionItems(params.subscriptionId),
+      dependenciesFn: (
+        items: {
+          subscriptionItem: SubscriptionItem.Record
+          price: Price.ClientRecord | null
+        }[],
+        subscriptionId: string
+      ) => [
+        CacheDependency.subscriptionItems(subscriptionId),
         ...items.map((item) =>
           CacheDependency.subscriptionItem(item.subscriptionItem.id)
         ),
       ],
     },
-    async (params, transaction, _cacheRecomputationContext) => {
+    async (
+      subscriptionId: string,
+      _livemode: boolean,
+      transaction: DbTransaction
+    ) => {
       return selectSubscriptionItemsWithPricesInternal(
-        [params.subscriptionId],
+        [subscriptionId],
         transaction
       )
     }
@@ -145,7 +134,7 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
   async (
     subscriptionId: string,
     transaction: DbTransaction,
-    cacheRecomputationContext: CacheRecomputationContext,
+    livemode: boolean,
     options: { ignoreCache?: boolean } = {}
   ) => {
     if (options.ignoreCache) {
@@ -155,12 +144,9 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
       )
     }
     return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
-      {
-        subscriptionId,
-        livemode: cacheRecomputationContext.livemode,
-      },
-      transaction,
-      cacheRecomputationContext
+      subscriptionId,
+      livemode,
+      transaction
     )
   }
 
@@ -223,12 +209,17 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
   }
 
 /**
- * Determines if a subscription item is currently active based on its expiry date.
+ * Determines if a subscription item is currently active based on its added date and expiry date.
+ * An item is active if it has already started (addedDate <= now) and hasn't expired yet.
  */
 const isSubscriptionItemActive = (item: {
+  addedDate: number
   expiredAt?: number | null
 }): boolean => {
-  return !item.expiredAt || item.expiredAt > Date.now()
+  const now = Date.now()
+  return (
+    item.addedDate <= now && (!item.expiredAt || item.expiredAt > now)
+  )
 }
 
 /**
@@ -282,9 +273,8 @@ const buildRichSubscriptionsMap = (
 export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
   transaction: DbTransaction,
-  cacheRecomputationContext: CacheRecomputationContext
+  livemode: boolean
 ): Promise<RichSubscription[]> => {
-  const { livemode } = cacheRecomputationContext
   let subscriptionRecords: Subscription.Record[]
   const customerId = whereConditions.customerId
   const isSimpleCustomerIdQuery =

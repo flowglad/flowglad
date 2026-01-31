@@ -13,10 +13,7 @@ import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { OrganizationSubscriptionCancellationScheduledNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { ValidationError } from '@/errors'
-import {
-  createTriggerIdempotencyKey,
-  testSafeTriggerInvoker,
-} from '@/utils/backendCore'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { formatDate, isNil } from '@/utils/core'
 import {
   formatEmailSubject,
@@ -214,21 +211,19 @@ const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
   })
 
 export const idempotentSendOrganizationSubscriptionCancellationScheduledNotification =
-  testSafeTriggerInvoker(
-    async (
-      subscription: Subscription.Record,
-      scheduledCancellationDate: number
-    ) => {
-      await sendOrganizationSubscriptionCancellationScheduledNotificationTask.trigger(
-        {
-          subscription,
-          scheduledCancellationDate,
-        },
-        {
-          idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-subscription-cancellation-scheduled-notification-${subscription.id}-${scheduledCancellationDate}`
-          ),
-        }
-      )
-    }
-  )
+  async (
+    subscription: Subscription.Record,
+    scheduledCancellationDate: number
+  ) => {
+    await sendOrganizationSubscriptionCancellationScheduledNotificationTask.trigger(
+      {
+        subscription,
+        scheduledCancellationDate,
+      },
+      {
+        idempotencyKey: await createTriggerIdempotencyKey(
+          `send-organization-subscription-cancellation-scheduled-notification-${subscription.id}-${scheduledCancellationDate}`
+        ),
+      }
+    )
+  }

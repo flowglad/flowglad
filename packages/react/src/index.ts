@@ -13,6 +13,13 @@ export {
 export { FlowgladProvider } from './FlowgladProvider'
 export { humanReadableCurrencyAmount } from './lib/utils'
 export {
+  FEATURES_QUERY_KEY,
+  type UseFeatureResult,
+  type UseFeaturesResult,
+  useFeature,
+  useFeatures,
+} from './useFeatures'
+export {
   RESOURCE_CLAIMS_QUERY_KEY,
   RESOURCES_QUERY_KEY,
   type UseResourceResult,

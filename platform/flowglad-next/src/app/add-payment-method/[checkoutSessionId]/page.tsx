@@ -2,13 +2,14 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
 } from '@db-core/enums'
+import { Result } from 'better-result'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutForm from '@/components/CheckoutForm'
 import { LightThemeWrapper } from '@/components/LightThemeWrapper'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -23,18 +24,22 @@ const CheckoutSessionPage = async ({
   params: Promise<{ checkoutSessionId: string }>
 }) => {
   const { checkoutSessionId } = await params
-  const { checkoutSession, sellerOrganization, customer } =
-    await adminTransaction(async ({ transaction }) => {
+  const result = await adminTransactionWithResult(
+    async ({ transaction }) => {
       const checkoutSession = (
         await selectCheckoutSessionById(
           checkoutSessionId,
           transaction
         )
       ).unwrap()
+      // For non-AddPaymentMethod sessions or missing customerId, return null
+      // to signal a 404 case (vs throwing which would be a 500)
       if (
-        checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
+        checkoutSession.type !==
+          CheckoutSessionType.AddPaymentMethod ||
+        !checkoutSession.customerId
       ) {
-        notFound()
+        return Result.ok(null)
       }
       const customer = (
         await selectCustomerById(
@@ -48,16 +53,23 @@ const CheckoutSessionPage = async ({
           transaction
         )
       ).unwrap()
-      return {
+      return Result.ok({
         checkoutSession,
         sellerOrganization: organization,
         customer,
-      }
-    })
+      })
+    }
+  )
 
-  if (!checkoutSession) {
+  // Let transaction/DB errors surface as 500s
+  const data = result.unwrap()
+
+  // Only the "invalid checkout session type" case should be a 404
+  if (!data) {
     notFound()
   }
+
+  const { checkoutSession, sellerOrganization, customer } = data
 
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
     redirect(

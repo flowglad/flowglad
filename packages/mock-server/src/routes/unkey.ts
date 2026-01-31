@@ -1,3 +1,8 @@
+import {
+  createErrorResponse,
+  delay,
+  parseErrorConfig,
+} from '../utils/errors'
 import { generateId } from '../utils/ids'
 
 /**
@@ -88,8 +93,31 @@ export function handleVerifyKeyV2(): Response {
 /**
  * Handler for POST /v2/keys.deleteKey
  * Deletes an API key
+ *
+ * Error simulation: If the keyId contains '_error_' or '_fail_', returns a 404 error.
+ * This enables testing error handling without header injection.
  */
-export function handleDeleteKeyV2(): Response {
+export function handleDeleteKeyV2(keyId?: string): Response {
+  // Simulate error for keyIds containing '_error_' or '_fail_'
+  if (
+    keyId &&
+    (keyId.includes('_error_') || keyId.includes('_fail_'))
+  ) {
+    return jsonResponse(
+      {
+        meta: {
+          requestId: generateRequestId(),
+        },
+        error: {
+          code: 'NOT_FOUND',
+          message: `Key ${keyId} not found`,
+          docs: 'https://unkey.dev/docs/api-reference/errors/code/NOT_FOUND',
+        },
+      },
+      404
+    )
+  }
+
   return jsonResponse({
     meta: {
       requestId: generateRequestId(),
@@ -128,13 +156,36 @@ export function handleVerifyKeyV1(): Response {
 /**
  * Route handler for Unkey mock server.
  * Returns a Response if the route matches, null otherwise.
+ *
+ * Supports error simulation via headers:
+ * - X-Mock-Error: true | <status-code> | timeout
+ * - X-Mock-Error-Message: <custom message>
  */
-export function handleUnkeyRoute(
+export async function handleUnkeyRoute(
   req: Request,
   pathname: string
-): Response | null {
+): Promise<Response | null> {
   if (req.method !== 'POST') {
     return null
+  }
+
+  // Check for error simulation
+  const errorConfig = parseErrorConfig(req)
+  if (errorConfig) {
+    if (errorConfig.isTimeout) {
+      await delay(5000) // 5 second delay for timeout simulation
+    }
+    return createErrorResponse('unkey', errorConfig)
+  }
+
+  // Parse request body for routes that need it
+  let body: { keyId?: string } = {}
+  if (pathname === '/v2/keys.deleteKey') {
+    try {
+      body = await req.json()
+    } catch {
+      // Ignore parse errors, body will be empty
+    }
   }
 
   switch (pathname) {
@@ -143,7 +194,7 @@ export function handleUnkeyRoute(
     case '/v2/keys.verifyKey':
       return handleVerifyKeyV2()
     case '/v2/keys.deleteKey':
-      return handleDeleteKeyV2()
+      return handleDeleteKeyV2(body.keyId)
     case '/v2/keys.updateKey':
       return handleUpdateKeyV2()
     case '/v1/keys.verifyKey':

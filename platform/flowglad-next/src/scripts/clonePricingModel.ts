@@ -57,7 +57,6 @@ const clonePricingModel = async (db: PostgresJsDatabase) => {
 
     // Create transaction context with noop callbacks for scripts
     const ctx = createTransactionEffectsContext(transaction, {
-      type: 'admin',
       livemode: sourcePricingModel.livemode,
     })
 

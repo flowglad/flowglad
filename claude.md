@@ -24,6 +24,53 @@ bun run init:flowglad-next
 
 You run in an environment where `ast-grep` is available; whenever a search requires syntax-aware or structural matching, default to `ast-grep --lang <language> -p '<pattern>'` (e.g., `--lang typescript` for TypeScript files) and avoid falling back to text-only tools like `rg` or `grep` unless I explicitly request a plain-text search.
 
+## Writing Scripts
+
+When writing CLI scripts in this codebase, use Bun's built-in APIs for cleaner, more idiomatic code.
+
+### Shell Commands: Use Bun's Shell API
+
+Use Bun's `$` tagged template for shell commands instead of `spawn` or `exec`. See [Bun Shell docs](https://bun.sh/docs/runtime/shell).
+
+```typescript
+import { $ } from 'bun'
+
+// Simple command - output streams to terminal, throws on non-zero exit
+await $`docker build -t ${imageName} .`
+
+// Capture output
+const result = await $`git status --porcelain`.text()
+
+// Don't throw on error
+const { exitCode } = await $`command-that-might-fail`.nothrow()
+```
+
+### Argument Parsing: Use Node's parseArgs
+
+Use Node's built-in `util.parseArgs` instead of manual `process.argv` parsing. It's available in Bun and provides type-safe argument handling with automatic validation.
+
+```typescript
+import { parseArgs } from 'util'
+
+const { values: args } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    tag: { type: 'string', default: 'latest' },
+    push: { type: 'boolean', default: false },
+    help: { type: 'boolean', short: 'h', default: false },
+  },
+  strict: true, // Errors on unknown flags
+})
+
+// args.tag is string, args.push is boolean
+```
+
+Benefits over manual parsing:
+- Automatic type coercion
+- `strict: true` validates unknown flags
+- Handles `--flag=value` and `--flag value` syntax
+- Short flag support (`-h` for `--help`)
+
 ## Database Migrations
 
 This project uses Drizzle ORM for migrations. There are two types of migrations:

@@ -11,12 +11,15 @@ import {
 /**
  * Assert that a response is not null and return it with proper type narrowing
  */
-function assertResponse(response: Response | null): Response {
-  expect(response).toBeInstanceOf(Response)
-  if (!response) {
+async function assertResponse(
+  response: Promise<Response | null>
+): Promise<Response> {
+  const result = await response
+  expect(result).toBeInstanceOf(Response)
+  if (!result) {
     throw new Error('Expected Response but got null')
   }
-  return response
+  return result
 }
 
 describe('Unkey V2 Routes', () => {
@@ -146,7 +149,7 @@ describe('handleUnkeyRoute', () => {
 
   it('routes POST /v2/keys.createKey to handleCreateKeyV2', async () => {
     const req = createPostRequest('/v2/keys.createKey')
-    const response = assertResponse(
+    const response = await assertResponse(
       handleUnkeyRoute(req, '/v2/keys.createKey')
     )
     const body = await response.json()
@@ -156,7 +159,7 @@ describe('handleUnkeyRoute', () => {
 
   it('routes POST /v2/keys.verifyKey to handleVerifyKeyV2', async () => {
     const req = createPostRequest('/v2/keys.verifyKey')
-    const response = assertResponse(
+    const response = await assertResponse(
       handleUnkeyRoute(req, '/v2/keys.verifyKey')
     )
     const body = await response.json()
@@ -166,7 +169,7 @@ describe('handleUnkeyRoute', () => {
 
   it('routes POST /v2/keys.deleteKey to handleDeleteKeyV2', async () => {
     const req = createPostRequest('/v2/keys.deleteKey')
-    const response = assertResponse(
+    const response = await assertResponse(
       handleUnkeyRoute(req, '/v2/keys.deleteKey')
     )
     const body = await response.json()
@@ -175,7 +178,7 @@ describe('handleUnkeyRoute', () => {
 
   it('routes POST /v2/keys.updateKey to handleUpdateKeyV2', async () => {
     const req = createPostRequest('/v2/keys.updateKey')
-    const response = assertResponse(
+    const response = await assertResponse(
       handleUnkeyRoute(req, '/v2/keys.updateKey')
     )
     const body = await response.json()
@@ -184,7 +187,7 @@ describe('handleUnkeyRoute', () => {
 
   it('routes POST /v1/keys.verifyKey to handleVerifyKeyV1', async () => {
     const req = createPostRequest('/v1/keys.verifyKey')
-    const response = assertResponse(
+    const response = await assertResponse(
       handleUnkeyRoute(req, '/v1/keys.verifyKey')
     )
     const body = await response.json()
@@ -192,21 +195,111 @@ describe('handleUnkeyRoute', () => {
     expect(body.ownerId).toMatch(/^owner_mock_id_/)
   })
 
-  it('returns null for GET requests', () => {
+  it('returns null for GET requests', async () => {
     const req = createGetRequest('/v2/keys.createKey')
-    const response = handleUnkeyRoute(req, '/v2/keys.createKey')
+    const response = await handleUnkeyRoute(req, '/v2/keys.createKey')
     expect(response).toBeNull()
   })
 
-  it('returns null for unknown routes', () => {
+  it('returns null for unknown routes', async () => {
     const req = createPostRequest('/v2/keys.unknownEndpoint')
-    const response = handleUnkeyRoute(req, '/v2/keys.unknownEndpoint')
+    const response = await handleUnkeyRoute(
+      req,
+      '/v2/keys.unknownEndpoint'
+    )
     expect(response).toBeNull()
   })
 
-  it('returns null for root path', () => {
+  it('returns null for root path', async () => {
     const req = createPostRequest('/')
-    const response = handleUnkeyRoute(req, '/')
+    const response = await handleUnkeyRoute(req, '/')
     expect(response).toBeNull()
+  })
+
+  describe('error simulation', () => {
+    function createErrorRequest(
+      pathname: string,
+      errorValue: string,
+      customMessage?: string
+    ): Request {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Mock-Error': errorValue,
+      }
+      if (customMessage) {
+        headers['X-Mock-Error-Message'] = customMessage
+      }
+      return new Request(`http://localhost:9002${pathname}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({}),
+      })
+    }
+
+    it('returns 500 error when X-Mock-Error header is set to true', async () => {
+      const req = createErrorRequest('/v2/keys.createKey', 'true')
+      const response = await assertResponse(
+        handleUnkeyRoute(req, '/v2/keys.createKey')
+      )
+      expect(response.status).toBe(500)
+      const body = await response.json()
+      expect(body.error.code).toBe('INTERNAL_SERVER_ERROR')
+      expect(body.error.message).toBe('Internal Server Error')
+    })
+
+    it('returns specified status code when X-Mock-Error is a number', async () => {
+      const req = createErrorRequest('/v2/keys.verifyKey', '404')
+      const response = await assertResponse(
+        handleUnkeyRoute(req, '/v2/keys.verifyKey')
+      )
+      expect(response.status).toBe(404)
+      const body = await response.json()
+      expect(body.error.code).toBe('NOT_FOUND')
+      expect(body.error.message).toBe('Not Found')
+    })
+
+    it('returns 401 unauthorized error', async () => {
+      const req = createErrorRequest('/v2/keys.createKey', '401')
+      const response = await assertResponse(
+        handleUnkeyRoute(req, '/v2/keys.createKey')
+      )
+      expect(response.status).toBe(401)
+      const body = await response.json()
+      expect(body.error.code).toBe('UNAUTHORIZED')
+    })
+
+    it('returns 429 rate limited error', async () => {
+      const req = createErrorRequest('/v2/keys.createKey', '429')
+      const response = await assertResponse(
+        handleUnkeyRoute(req, '/v2/keys.createKey')
+      )
+      expect(response.status).toBe(429)
+      const body = await response.json()
+      expect(body.error.code).toBe('RATE_LIMITED')
+      expect(body.error.message).toBe('Rate Limit Exceeded')
+    })
+
+    it('uses custom error message when X-Mock-Error-Message is set', async () => {
+      const req = createErrorRequest(
+        '/v2/keys.createKey',
+        '500',
+        'Custom error message'
+      )
+      const response = await assertResponse(
+        handleUnkeyRoute(req, '/v2/keys.createKey')
+      )
+      expect(response.status).toBe(500)
+      const body = await response.json()
+      expect(body.error.message).toBe('Custom error message')
+    })
+
+    it('includes meta.requestId in error response', async () => {
+      const req = createErrorRequest('/v2/keys.createKey', '500')
+      const response = await assertResponse(
+        handleUnkeyRoute(req, '/v2/keys.createKey')
+      )
+      const body = await response.json()
+      expect(body.meta.requestId).toMatch(/^req_error_/)
+    })
   })
 })

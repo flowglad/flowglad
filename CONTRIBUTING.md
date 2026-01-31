@@ -235,3 +235,65 @@ Guidelines:
 - Use the seeding helpers in `platform/flowglad-next/seedDatabase.ts` to create state; avoid ad‑hoc inserts.
 - When asserting existence or absence, fetch and compare primary keys (ids) rather than relying solely on list lengths.
 - Useful commands: `bun run test` (CI run), `bun run test:watch` (local TDD), `bun run test:setup` (reset DB), `bun run test:teardown` (stop DB).
+
+---
+
+# Contributing to the Mock Server (packages/mock-server)
+
+The mock server provides lightweight HTTP stubs for external services (Svix, Unkey, Trigger.dev) used during testing.
+
+## Prerequisites
+
+- Docker installed and running
+- `gh` CLI installed and authenticated (for pushing images to GHCR)
+
+To authenticate with GitHub CLI:
+```bash
+gh auth login
+```
+
+If you need to push Docker images, ensure your token has the `write:packages` scope:
+```bash
+gh auth refresh --scopes write:packages
+```
+
+## Running Locally
+
+```bash
+cd packages/mock-server
+bun run dev      # Start with hot reload
+bun run start    # Start without hot reload
+```
+
+## Building and Pushing Docker Images
+
+The mock server image is hosted on GitHub Container Registry (GHCR) and used by CI for integration tests.
+
+### Build only (for local testing)
+```bash
+cd packages/mock-server
+bun run docker:build                  # Build with tag 'latest'
+bun run docker:build --tag v1.0.0     # Build with custom tag
+```
+
+### Build and push to GHCR
+```bash
+cd packages/mock-server
+bun run docker:push                   # Build and push 'latest'
+bun run docker:push --tag v1.0.0      # Build and push custom tag
+```
+
+The push command automatically logs into GHCR using your `gh` CLI credentials.
+
+### Manual GHCR login (if needed)
+```bash
+cd packages/mock-server
+bun run ghcr:login
+```
+
+## When to Push a New Image
+
+Push a new image when:
+- You've made changes to the mock server code
+- You need CI to use the updated version
+- The CI workflow for `packages/mock-server/**` will also auto-build on merge to main

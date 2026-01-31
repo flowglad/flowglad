@@ -1,3 +1,8 @@
+import {
+  createErrorResponse,
+  delay,
+  parseErrorConfig,
+} from '../utils/errors'
 import { generateId } from '../utils/ids'
 
 /**
@@ -51,13 +56,26 @@ export function parseTriggerPath(pathname: string): string | null {
 /**
  * Route handler for Trigger.dev mock server.
  * Returns a Response if the route matches, null otherwise.
+ *
+ * Supports error simulation via headers:
+ * - X-Mock-Error: true | <status-code> | timeout
+ * - X-Mock-Error-Message: <custom message>
  */
-export function handleTriggerRoute(
+export async function handleTriggerRoute(
   req: Request,
   pathname: string
-): Response | null {
+): Promise<Response | null> {
   if (req.method !== 'POST') {
     return null
+  }
+
+  // Check for error simulation
+  const errorConfig = parseErrorConfig(req)
+  if (errorConfig) {
+    if (errorConfig.isTimeout) {
+      await delay(5000) // 5 second delay for timeout simulation
+    }
+    return createErrorResponse('trigger', errorConfig)
   }
 
   const taskId = parseTriggerPath(pathname)

@@ -12,6 +12,7 @@ import {
   selectMemberships,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
+import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import {
   insertUser,
   selectUserById,
@@ -34,7 +35,12 @@ export const innerInviteUserToOrganizationHandler = async (
   },
   inviterUser: {
     name: string | null
-  }
+  },
+  /**
+   * The ID of the organization's default test mode pricing model.
+   * Used to set focusedPricingModelId on new memberships.
+   */
+  defaultTestPricingModelId: string
 ): Promise<{ action: InviteAction }> => {
   // Use admin transaction to find user by email
   const [userForEmail] = await adminTransaction(
@@ -63,6 +69,7 @@ export const innerInviteUserToOrganizationHandler = async (
           focused: false,
           livemode: false,
           role: MembershipRole.Member,
+          focusedPricingModelId: defaultTestPricingModelId,
         },
         transaction
       )
@@ -112,6 +119,7 @@ export const innerInviteUserToOrganizationHandler = async (
           focused: false,
           livemode: false,
           role: MembershipRole.Member,
+          focusedPricingModelId: defaultTestPricingModelId,
         },
         transaction
       )
@@ -141,7 +149,7 @@ export const innerInviteUserToOrganizationHandler = async (
 export const inviteUserToOrganization = protectedProcedure
   .input(inviteUserToOrganizationSchema)
   .mutation(async ({ input, ctx }) => {
-    // Get focused membership to get organization ID
+    // Get focused membership (uses RLS to verify user has access)
     const { focusedMembership, user: inviterUser } =
       await authenticatedTransaction(
         async ({ transaction, userId }) => {
@@ -156,16 +164,43 @@ export const inviteUserToOrganization = protectedProcedure
               transaction
             )
           ).unwrap()
-          return { focusedMembership, user }
+          return {
+            focusedMembership,
+            user,
+          }
         },
         {
           apiKey: ctx.apiKey,
         }
       )
+
+    // Get the org's default test mode PM for new memberships.
+    // Uses admin transaction to bypass livemode RLS filtering,
+    // since the inviter may be in live mode but new memberships
+    // always start in test mode for safe onboarding.
+    const [defaultTestPm] = await adminTransaction(
+      async ({ transaction }) => {
+        return selectPricingModels(
+          {
+            organizationId: focusedMembership.organization.id,
+            livemode: false,
+            isDefault: true,
+          },
+          transaction
+        )
+      }
+    )
+    if (!defaultTestPm) {
+      throw new Error(
+        `No default test mode pricing model found for organization ${focusedMembership.organization.id}`
+      )
+    }
+
     await innerInviteUserToOrganizationHandler(
       focusedMembership,
       input,
-      inviterUser
+      inviterUser,
+      defaultTestPm.id
     )
     return {
       success: true,

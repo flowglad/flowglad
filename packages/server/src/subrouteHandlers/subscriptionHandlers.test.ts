@@ -564,4 +564,42 @@ describe('Subscription subroute handlers', () => {
       )
     })
   })
+
+  describe('getSubscriptions handler', () => {
+    it.skip('returns 405 for GET request', async () => {
+      // Test stub: Verify GET requests return 405 Method Not Allowed
+    })
+
+    it.skip('returns 405 for PUT request', async () => {
+      // Test stub: Verify PUT requests return 405 Method Not Allowed
+    })
+
+    it.skip('returns subscriptions via FlowgladServer', async () => {
+      // Test stub: Verify handler delegates to FlowgladServer.getSubscriptions()
+    })
+
+    it.skip('returns currentSubscriptions', async () => {
+      // Test stub: Verify response includes currentSubscriptions array
+    })
+
+    it.skip('returns currentSubscription (singular)', async () => {
+      // Test stub: Verify response includes currentSubscription (single object or null)
+    })
+
+    it.skip('includes historical when flag is true', async () => {
+      // Test stub: Verify includeHistorical=true returns all subscriptions
+    })
+
+    it.skip('excludes historical by default', async () => {
+      // Test stub: Verify default behavior only returns current subscriptions
+    })
+
+    it.skip('returns empty arrays when no subscriptions', async () => {
+      // Test stub: Verify response structure when customer has no subscriptions
+    })
+
+    it.skip('returns 500 with parsed error on failure', async () => {
+      // Test stub: Verify error handling when FlowgladServer method throws
+    })
+  })
 })

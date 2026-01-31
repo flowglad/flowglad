@@ -1,10 +1,10 @@
 import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
 import type {
+  CacheRecomputationContext,
   ComprehensiveAuthenticatedTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -100,30 +100,9 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     }
 
     return withRLS(transaction, { jwtClaim, livemode }, async () => {
-      // Construct transaction context based on JWT role, not the optional customerId parameter.
-      // This is important because customer billing portal auth sets role='customer' in the JWT
-      // even when customerId is not explicitly passed as a parameter.
-      const cacheRecomputationContext: CacheRecomputationContext =
-        jwtClaim.role === 'customer'
-          ? {
-              type: 'customer',
-              livemode,
-              organizationId,
-              userId,
-              // Prefer explicit customerId parameter, fall back to JWT metadata
-              customerId:
-                customerId ??
-                (jwtClaim.user_metadata.app_metadata?.customer_id as
-                  | string
-                  | undefined) ??
-                '',
-            }
-          : {
-              type: 'merchant',
-              livemode,
-              organizationId,
-              userId,
-            }
+      const cacheRecomputationContext: CacheRecomputationContext = {
+        livemode,
+      }
       const paramsForFn: ComprehensiveAuthenticatedTransactionParams =
         {
           transaction,

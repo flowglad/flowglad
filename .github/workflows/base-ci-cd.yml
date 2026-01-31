@@ -65,6 +65,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Integration tests use real Stripe API, so no stripe-mock needed
+    # Mock server is used for Trigger.dev, Svix, and other services
     services:
       postgres:
         image: postgres:15
@@ -80,6 +81,18 @@ jobs:
           --health-timeout 5s
           --health-retries 5
           --health-start-period 10s
+      flowglad-mock-server:
+        image: ghcr.io/flowglad/flowglad/mock-server:latest
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 9001:9001 # Svix
+          - 9002:9002 # Unkey
+          - 9003:9003 # Trigger.dev
+          - 9004:9004 # Redis
+          - 9005:9005 # Resend
+          - 9006:9006 # Cloudflare R2
 
     defaults:
       run:
@@ -117,6 +130,11 @@ jobs:
           UNKEY_ROOT_KEY=unkey_test_mock
           UNKEY_API_ID=api_test_mock
           SVIX_API_KEY=svix_test_stub
+          SVIX_MOCK_HOST=http://localhost:9001
+          TRIGGER_API_URL=http://localhost:9003
+          TRIGGER_SECRET_KEY=tr_test_mock_secret_key
+          RESEND_BASE_URL=http://localhost:9005
+          CLOUDFLARE_R2_ENDPOINT=http://localhost:9006
           NEXT_PUBLIC_APP_URL=http://localhost:3000
           BETTER_AUTH_URL=http://localhost:3000
           DEV_EMAIL_REDIRECT=test@example.com
@@ -150,6 +168,18 @@ jobs:
         ports:
           - 12111:12111
           - 12112:12112
+      flowglad-mock-server:
+        image: ghcr.io/flowglad/flowglad/mock-server:latest
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 9001:9001 # Svix
+          - 9002:9002 # Unkey
+          - 9003:9003 # Trigger.dev
+          - 9004:9004 # Redis
+          - 9005:9005 # Resend
+          - 9006:9006 # Cloudflare R2
 
     defaults:
       run:
@@ -175,6 +205,13 @@ jobs:
           UNKEY_ROOT_KEY=unkey_test_mock
           UNKEY_API_ID=api_test_mock
           SVIX_API_KEY=svix_test_stub
+          SVIX_MOCK_HOST=http://localhost:9001
+          UNKEY_MOCK_HOST=http://localhost:9002
+          TRIGGER_API_URL=http://localhost:9003
+          TRIGGER_SECRET_KEY=tr_test_mock_secret_key
+          UPSTASH_REDIS_REST_URL=http://localhost:9004
+          RESEND_BASE_URL=http://localhost:9005
+          CLOUDFLARE_R2_ENDPOINT=http://localhost:9006
           NEXT_PUBLIC_APP_URL=http://localhost:3000
           BETTER_AUTH_URL=http://localhost:3000
           DEV_EMAIL_REDIRECT=test@example.com
@@ -240,6 +277,8 @@ jobs:
         run: cd packages/server && bun run test
       - name: Run mock-server tests
         run: cd packages/mock-server && bun run test
+      - name: Run react tests
+        run: cd packages/react && bun run test
 
   check-todo:
     if: github.event_name == 'merge_group'

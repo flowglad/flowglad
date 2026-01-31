@@ -86,6 +86,30 @@ if (process.env.STRIPE_MOCK_HOST) {
 // (due to script name starting with "test"), but integration tests need real Stripe
 delete process.env.STRIPE_MOCK_HOST
 
+// Guard against mock server hosts being set - integration tests should use real APIs
+// Note: TRIGGER_API_URL is intentionally NOT included here because we want integration
+// tests to use the mock server for Trigger.dev to avoid triggering real background jobs
+const mockHostVars = ['SVIX_MOCK_HOST', 'UNKEY_MOCK_HOST'] as const
+
+// Check for localhost variants: hostname, IPv4 loopback, IPv6 loopback
+const isLocalhostUrl = (url: string): boolean => {
+  const lower = url.toLowerCase()
+  return (
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1') ||
+    lower.includes('[::1]')
+  )
+}
+
+for (const envVar of mockHostVars) {
+  const value = process.env[envVar]
+  if (value && isLocalhostUrl(value)) {
+    // Delete localhost mock URLs - they may have been set by Bun loading .env.test
+    // Integration tests should use real APIs, not mock servers
+    delete process.env[envVar]
+  }
+}
+
 // Set FORCE_TEST_MODE so IS_TEST=true in core.ts
 // This is needed because we use NODE_ENV=integration (not 'test')
 process.env.FORCE_TEST_MODE = '1'
@@ -103,7 +127,24 @@ const { beforeAll } = await import('bun:test')
 const { seedDatabase } = await import('./seedDatabase')
 
 // NO MSW servers - we want real API calls
-// Redis will automatically use real credentials from .env.integration
+
+// Inject real Redis client for integration tests
+// The redis() function uses testStubClient when IS_TEST is true,
+// so we must explicitly inject a real client for integration tests
+const { Redis } = await import('@upstash/redis')
+const { _setTestRedisClient } = await import('./src/utils/redis')
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+
+if (redisUrl && redisToken) {
+  _setTestRedisClient(
+    new Redis({
+      url: redisUrl,
+      token: redisToken,
+    })
+  )
+}
 
 beforeAll(async () => {
   await seedDatabase()

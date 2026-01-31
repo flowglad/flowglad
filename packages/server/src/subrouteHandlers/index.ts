@@ -13,6 +13,7 @@ import {
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
+import { getFeatureAccessItems } from './featureHandlers'
 import { getPricingModel } from './pricingModelHandlers'
 import {
   claimResource,
@@ -63,16 +64,7 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.ReleaseResource]: releaseResource,
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
   [FlowgladActionKey.GetUsageMeterBalances]: getUsageMeterBalances,
-  [FlowgladActionKey.GetFeatureAccess]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {},
-      },
-    }
-  },
+  [FlowgladActionKey.GetFeatureAccess]: getFeatureAccessItems,
 }
 
 export const hybridRouteToHandlerMap: {
