@@ -157,11 +157,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
         })
       ).unwrap()
 
-      expect(result.unwrap().usageEvents).toHaveLength(1)
-      expect(result.unwrap().usageEvents[0].priceId).toBe(price.id)
-      expect(result.unwrap().usageEvents[0].usageMeterId).toBe(
-        usageMeter.id
-      )
+      expect(result.usageEvents).toHaveLength(1)
+      expect(result.usageEvents[0].priceId).toBe(price.id)
+      expect(result.usageEvents[0].usageMeterId).toBe(usageMeter.id)
     })
 
     it('should resolve usageMeterSlug to usageMeterId with default price', async () => {

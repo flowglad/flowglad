@@ -102,19 +102,17 @@ describe('externalIdFromProductData', () => {
 
 describe('setupPricingModelTransaction (integration)', () => {
   it('returns error if input validation fails', async () => {
-    const result = (
-      await adminTransactionWithResult(async (ctx) => {
-        return setupPricingModelTransaction(
-          {
-            // @ts-expect-error - Intentionally providing invalid input to test validation
-            input: {},
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
-        )
-      })
-    ).unwrap()
+    const result = await adminTransactionWithResult(async (ctx) => {
+      return setupPricingModelTransaction(
+        {
+          // @ts-expect-error - Intentionally providing invalid input to test validation
+          input: {},
+          organizationId: organization.id,
+          livemode: false,
+        },
+        ctx
+      )
+    })
     expect(Result.isError(result)).toBe(true)
   })
 
