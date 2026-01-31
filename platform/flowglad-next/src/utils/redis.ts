@@ -133,6 +133,12 @@ export const _setTestRedisClient = (client: any) => {
 
 /**
  * Returns true if Redis credentials appear to be real (not stubs).
+ *
+ * Returns false (use stub client) when:
+ * - URL or token is missing
+ * - URL or token contains "stub" or "mock"
+ * - Token contains "test" (e.g., "test_secret_token")
+ * - URL points to localhost (indicates mock server, not real Upstash)
  */
 const hasRealRedisCredentials = () => {
   const url = process.env.UPSTASH_REDIS_REST_URL
@@ -141,6 +147,11 @@ const hasRealRedisCredentials = () => {
   if (!url || !token) return false
   if (url.includes('stub') || token.includes('stub')) return false
   if (url.includes('mock') || token.includes('mock')) return false
+  // Check for test tokens (e.g., "test_secret_token")
+  if (token.includes('test')) return false
+  // Check for localhost URLs (indicates mock server, not real Upstash)
+  if (url.includes('localhost') || url.includes('127.0.0.1'))
+    return false
   return true
 }
 
