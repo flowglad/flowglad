@@ -10,6 +10,7 @@ import { ping } from './queries/ping'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { bannersRouter } from './routers/bannersRouter'
 import { checkoutSessionsRouter } from './routers/checkoutSessionsRouter'
+import { cliRouter } from './routers/cliRouter'
 import { countriesRouter } from './routers/countriesRouter'
 import { customerBillingPortalRouter } from './routers/customerBillingPortalRouter'
 import { customersRouter } from './routers/customersRouter'
@@ -75,6 +76,7 @@ export const appRouter = router({
   docsSearch: docsSearchRouter,
   resources: resourcesRouter,
   resourceClaims: resourceClaimsRouter,
+  cli: cliRouter,
 })
 
 // This would map to REST endpoints like:
