@@ -222,6 +222,9 @@ describe('selectInvoicesTableRowData', () => {
           await selectInvoicesTableRowData({
             input: {
               pageSize: 1,
+              filters: {
+                organizationId: org1Id,
+              },
             },
             transaction,
           })
@@ -240,6 +243,9 @@ describe('selectInvoicesTableRowData', () => {
           await selectInvoicesTableRowData({
             input: {
               pageSize: 3,
+              filters: {
+                organizationId: org1Id,
+              },
             },
             transaction,
           })
@@ -263,6 +269,9 @@ describe('selectInvoicesTableRowData', () => {
           await selectInvoicesTableRowData({
             input: {
               pageSize: 2,
+              filters: {
+                organizationId: org1Id,
+              },
             },
             transaction,
           })
@@ -278,6 +287,9 @@ describe('selectInvoicesTableRowData', () => {
             input: {
               pageSize: 2,
               pageAfter: firstPage.endCursor!,
+              filters: {
+                organizationId: org1Id,
+              },
             },
             transaction,
           })
@@ -387,6 +399,9 @@ describe('selectInvoicesTableRowData', () => {
           await selectInvoicesTableRowData({
             input: {
               pageSize: 1,
+              filters: {
+                organizationId: org1Id,
+              },
             },
             transaction,
           })
