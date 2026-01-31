@@ -160,29 +160,25 @@ describe('createSubscriptionWorkflow', async () => {
     ).unwrap()
 
     const stripeSetupIntentIdNew = `setupintent_new_${core.nanoid()}`
-    const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          createSubscriptionWorkflow(
-            {
-              organization, // from beforeEach
-              product, // from beforeEach
-              price: defaultPrice, // from beforeEach
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              defaultPaymentMethod: paymentMethod, // from beforeEach
-              customer, // IMPORTANT: Use the same customer from beforeEach
-              stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
-              // autoStart behavior for the second subscription attempt can be default or true
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        )
-      })
-    ).unwrap()
+    const result = await adminTransactionWithResult(async ({ transaction }) => {
+      return createSubscriptionWorkflow(
+        {
+          organization, // from beforeEach
+          product, // from beforeEach
+          price: defaultPrice, // from beforeEach
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod, // from beforeEach
+          customer, // IMPORTANT: Use the same customer from beforeEach
+          stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
+          // autoStart behavior for the second subscription attempt can be default or true
+        },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
       expect(result.error.message).toContain(
