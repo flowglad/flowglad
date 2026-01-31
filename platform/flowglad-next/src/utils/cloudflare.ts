@@ -15,8 +15,13 @@ const cloudflareSecretAccessKey = core.envVariable(
 
 const cloudflareBucket = core.envVariable('CLOUDFLARE_R2_BUCKET')
 
+// Support mock endpoint for testing (via CLOUDFLARE_R2_ENDPOINT env var)
+const cloudflareEndpoint =
+  process.env.CLOUDFLARE_R2_ENDPOINT ||
+  `https://${cloudflareAccountID}.r2.cloudflarestorage.com`
+
 const s3 = new S3({
-  endpoint: `https://${cloudflareAccountID}.r2.cloudflarestorage.com`,
+  endpoint: cloudflareEndpoint,
   region: 'auto',
   credentials: {
     accessKeyId: cloudflareAccessKeyID,

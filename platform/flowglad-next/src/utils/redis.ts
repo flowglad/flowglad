@@ -108,6 +108,14 @@ const testStubClient = {
   smembers: () => [] as string[],
   expire: () => null,
   exists: () => 0,
+  // Stream commands for Redis Streams support
+  xadd: () => `${Date.now()}-0`, // Returns stream entry ID
+  xread: () => [], // Returns empty array (no entries)
+  xrange: () => [], // Returns empty array (no entries)
+  xrevrange: () => [], // Returns empty array (no entries)
+  xlen: () => 0, // Returns stream length
+  xtrim: () => 0, // Returns number of entries trimmed
+  xdel: () => 1, // Returns number of entries deleted
 }
 
 /**
@@ -124,38 +132,28 @@ export const _setTestRedisClient = (client: any) => {
 }
 
 /**
- * Returns true if Redis credentials appear to be real (not stubs).
- */
-const hasRealRedisCredentials = () => {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  // Check for stub values that won't work with real Redis
-  if (!url || !token) return false
-  if (url.includes('stub') || token.includes('stub')) return false
-  if (url.includes('mock') || token.includes('mock')) return false
-  return true
-}
-
-/**
  * Returns a Redis client.
  *
  * Priority:
- * 1. If _setTestRedisClient() was called, always use that client (test override)
- * 2. In tests without real Redis credentials, returns testStubClient
- * 3. In production or integration tests with real credentials, returns real Redis
+ * 1. If _setTestRedisClient() was called, use that client (test override)
+ * 2. In test environment (IS_TEST), use the no-op stub client
+ * 3. In production, use real Redis
+ *
+ * For integration tests that need real Redis, use _setTestRedisClient() to
+ * inject a real client explicitly.
  */
 export const redis = () => {
-  // Always respect explicit test client injection (used for testing specific behaviors)
+  // Explicit test client injection takes priority
   if (_testRedisClient !== null) {
     return _testRedisClient
   }
 
-  // In tests without real Redis credentials, use the no-op stub
-  if (core.IS_TEST && !hasRealRedisCredentials()) {
+  // In test environment, always use the no-op stub
+  if (core.IS_TEST) {
     return testStubClient
   }
 
-  // Integration tests (with real credentials) and production use real Redis
+  // Production uses real Redis
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
     token: core.envVariable('UPSTASH_REDIS_REST_TOKEN'),
@@ -177,7 +175,6 @@ export enum RedisKeyNamespace {
   InvoicesByCustomer = 'invoicesByCustomer',
   UsageMetersByPricingModel = 'usageMetersByPricingModel',
   CacheDependencyRegistry = 'cacheDeps',
-  CacheRecomputeMetadata = 'cacheRecompute',
   // Pricing model cache atoms
   PricingModel = 'pricingModel',
   ProductsByPricingModel = 'productsByPricingModel',
@@ -239,10 +236,6 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.CacheDependencyRegistry]: {
     max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
     ttl: 86400, // 24 hours
-  },
-  [RedisKeyNamespace.CacheRecomputeMetadata]: {
-    max: 500000, // One metadata entry per recomputable cache key
-    ttl: 86400, // 24 hours - same as dependency registry
   },
   // Pricing model cache atoms - keyed by pricingModelId
   [RedisKeyNamespace.PricingModel]: {
@@ -485,7 +478,7 @@ export const resetDismissedBanners = async (
  * 2. Checks if the set size exceeds the max
  * 3. If so, iterates through oldest entries and:
  *    - For orphans (expired TTL): removes from sorted set only
- *    - For real entries: deletes cache key, metadata key, and removes from sorted set
+ *    - For real entries: deletes cache key and removes from sorted set
  *
  * This lazy cleanup ensures that TTL-expired entries don't accumulate in the
  * LRU sorted set, which would otherwise degrade eviction accuracy.
@@ -494,7 +487,6 @@ export const resetDismissedBanners = async (
  * KEYS[2] = cache key to add
  * ARGV[1] = current timestamp
  * ARGV[2] = max size
- * ARGV[3] = metadata key prefix (e.g., "cacheRecompute:")
  *
  * Returns: JSON array [evictedCount, orphansRemoved]
  */
@@ -503,7 +495,6 @@ local zsetKey = KEYS[1]
 local cacheKey = KEYS[2]
 local timestamp = tonumber(ARGV[1])
 local maxSize = tonumber(ARGV[2])
-local metadataPrefix = ARGV[3]
 
 -- Add the cache key with current timestamp as score
 redis.call('ZADD', zsetKey, timestamp, cacheKey)
@@ -531,9 +522,8 @@ while size > maxSize and maxIterations > 0 do
   local exists = redis.call('EXISTS', oldestKey)
 
   if exists == 1 then
-    -- Real entry - delete cache key and its metadata
+    -- Real entry - delete cache key
     redis.call('DEL', oldestKey)
-    redis.call('DEL', metadataPrefix .. oldestKey)
     evictedCount = evictedCount + 1
   else
     -- Orphan (TTL expired) - just clean up the sorted set entry
@@ -641,13 +631,12 @@ export async function trackAndEvictLRU(
     const zsetKey = `${namespace}:lru`
     const maxSize = getMaxSizeForNamespace(namespace)
     const timestamp = Date.now()
-    const metadataPrefix = `${RedisKeyNamespace.CacheRecomputeMetadata}:`
 
     const result = await evalWithShaFallback<string>(
       LRU_EVICTION_SCRIPT,
       LRU_EVICTION_SCRIPT_SHA,
       [zsetKey, cacheKey],
-      [timestamp, maxSize, metadataPrefix]
+      [timestamp, maxSize]
     )
 
     // Parse the JSON array result [evictedCount, orphansRemoved]

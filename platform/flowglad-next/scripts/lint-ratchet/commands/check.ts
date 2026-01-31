@@ -283,13 +283,24 @@ export const checkCommand = async (): Promise<{
 
   if (baselineTotal > 0) {
     const improvement = baselineTotal - currentTotal
-    const percentage =
-      improvement > 0
-        ? ((improvement / baselineTotal) * 100).toFixed(1)
-        : '0'
-    console.log(
-      `  Total: ${baselineTotal} → ${currentTotal} (${improvement >= 0 ? '-' : '+'}${Math.abs(improvement)}, ${percentage}% improvement)`
-    )
+    const percentage = (
+      (Math.abs(improvement) / baselineTotal) *
+      100
+    ).toFixed(1)
+
+    if (improvement > 0) {
+      console.log(
+        `  Total: ${baselineTotal} → ${currentTotal} (-${improvement}, ${percentage}% improvement)`
+      )
+    } else if (improvement < 0) {
+      console.log(
+        `  Total: ${baselineTotal} → ${currentTotal} (+${Math.abs(improvement)}, ${percentage}% regression)`
+      )
+    } else {
+      console.log(
+        `  Total: ${baselineTotal} → ${currentTotal} (no change)`
+      )
+    }
   }
 
   if (filesImproved > 0) {

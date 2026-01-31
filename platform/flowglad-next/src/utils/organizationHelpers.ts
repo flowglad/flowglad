@@ -22,13 +22,13 @@ import {
 } from '@/db/tableMethods/organizationMethods'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
 import {
+  type CacheRecomputationContext,
   createTransactionEffectsContext,
   type DbTransaction,
 } from '@/db/types'
 import { type FeatureFlag } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import {
   countryNameByCountryCode,

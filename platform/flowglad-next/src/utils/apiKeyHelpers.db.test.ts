@@ -11,10 +11,7 @@ import {
   setupMemberships,
   setupOrg,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   insertApiKey,
   selectApiKeyById,
@@ -67,21 +64,19 @@ describe('apiKeyHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await createSecretApiKeyTransaction(
-              input,
-              withAdminCacheContext({
-                transaction,
-                userId,
-                livemode: false,
-                organizationId: organization.id,
-              })
-            )
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            })
           )
-        })
-      ).unwrap()
+        }
+      )
 
       expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
@@ -91,19 +86,16 @@ describe('apiKeyHelpers', () => {
 
     it('should throw an error if no focused membership is found', async () => {
       // Delete the focused membership
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          // Update the membership to not be focused
-          await updateMembership(
-            {
-              id: membershipId,
-              focused: false,
-            },
-            transaction
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        // Update the membership to not be focused
+        await updateMembership(
+          {
+            id: membershipId,
+            focused: false,
+          },
+          transaction
+        )
+      })
 
       const input: CreateApiKeyInput = {
         apiKey: {
@@ -115,7 +107,7 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          await createSecretApiKeyTransaction(
+          return createSecretApiKeyTransaction(
             input,
             withAdminCacheContext({
               transaction,
@@ -130,18 +122,15 @@ describe('apiKeyHelpers', () => {
 
     it('should throw an error when creating a livemode secret key for an organization without payouts enabled', async () => {
       // Update organization to have payouts disabled
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await updateOrganization(
-            {
-              id: organization.id,
-              payoutsEnabled: false,
-            },
-            transaction
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            payoutsEnabled: false,
+          },
+          transaction
+        )
+      })
 
       const input: CreateApiKeyInput = {
         apiKey: {
@@ -153,7 +142,7 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          await createSecretApiKeyTransaction(
+          return createSecretApiKeyTransaction(
             input,
             withAdminCacheContext({
               transaction,
@@ -170,18 +159,15 @@ describe('apiKeyHelpers', () => {
 
     it('should allow creating a test mode secret key even if payouts are not enabled', async () => {
       // Update organization to have payouts disabled
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await updateOrganization(
-            {
-              id: organization.id,
-              payoutsEnabled: false,
-            },
-            transaction
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            payoutsEnabled: false,
+          },
+          transaction
+        )
+      })
 
       const input: CreateApiKeyInput = {
         apiKey: {
@@ -191,21 +177,19 @@ describe('apiKeyHelpers', () => {
         },
       }
 
-      const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await createSecretApiKeyTransaction(
-              input,
-              withAdminCacheContext({
-                transaction,
-                userId,
-                livemode: false,
-                organizationId: organization.id,
-              })
-            )
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            })
           )
-        })
-      ).unwrap()
+        }
+      )
 
       expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
@@ -213,18 +197,15 @@ describe('apiKeyHelpers', () => {
 
     it('should throw an error when trying to create a publishable key since they are not supported', async () => {
       // Update organization to have payouts disabled
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await updateOrganization(
-            {
-              id: organization.id,
-              payoutsEnabled: false,
-            },
-            transaction
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            payoutsEnabled: false,
+          },
+          transaction
+        )
+      })
 
       const input: CreateApiKeyInput = {
         apiKey: {
@@ -237,7 +218,7 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          await createSecretApiKeyTransaction(
+          return createSecretApiKeyTransaction(
             input,
             withAdminCacheContext({
               transaction,
@@ -261,67 +242,57 @@ describe('apiKeyHelpers', () => {
 
     beforeEach(async () => {
       // Create a livemode secret API key for testing deletion
-      secretApiKey = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await insertApiKey(
-              {
-                organizationId: organization.id,
-                pricingModelId: livemodePricingModelId,
-                name: 'Test Secret API Key for Deletion',
-                token: `live_sk_${core.nanoid()}`,
-                type: FlowgladApiKeyType.Secret,
-                active: true,
-                livemode: true,
-                hashText: `hash_${core.nanoid()}`,
-              },
-              transaction
-            )
+      secretApiKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
+              name: 'Test Secret API Key for Deletion',
+              token: `live_sk_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              hashText: `hash_${core.nanoid()}`,
+            },
+            transaction
           )
-        })
-      ).unwrap()
+        }
+      )
     })
 
     it('should successfully delete a secret API key', async () => {
       // Verify the key exists before deletion
-      const keyBeforeDelete = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            (
-              await selectApiKeyById(secretApiKey.id, transaction)
-            ).unwrap()
-          )
-        })
-      ).unwrap()
+      const keyBeforeDelete = await adminTransaction(
+        async ({ transaction }) => {
+          return (
+            await selectApiKeyById(secretApiKey.id, transaction)
+          ).unwrap()
+        }
+      )
       expect(keyBeforeDelete.id).toBe(secretApiKey.id)
 
       // Delete the livemode API key
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await deleteSecretApiKeyTransaction(
-            { id: secretApiKey.id },
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
-              organizationId: organization.id,
-            })
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        await deleteSecretApiKeyTransaction(
+          { id: secretApiKey.id },
+          withAdminCacheContext({
+            transaction,
+            userId,
+            livemode: true,
+            organizationId: organization.id,
+          })
+        )
+      })
 
       // Verify the key no longer exists
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const result = await selectApiKeyById(
-            secretApiKey.id,
-            transaction
-          )
-          expect(Result.isError(result)).toBe(true)
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectApiKeyById(
+          secretApiKey.id,
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
 
     it('should throw an error if the API key does not exist', async () => {
@@ -344,24 +315,22 @@ describe('apiKeyHelpers', () => {
 
     it('should throw an error if the API key is not a secret key', async () => {
       // Create a livemode publishable API key
-      const publishableApiKey = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await insertApiKey(
-              {
-                organizationId: organization.id,
-                pricingModelId: livemodePricingModelId,
-                name: 'Test Publishable API Key',
-                token: `live_pk_${core.nanoid()}`,
-                type: FlowgladApiKeyType.Publishable,
-                active: true,
-                livemode: true,
-              },
-              transaction
-            )
+      const publishableApiKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
+              name: 'Test Publishable API Key',
+              token: `live_pk_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Publishable,
+              active: true,
+              livemode: true,
+            },
+            transaction
           )
-        })
-      ).unwrap()
+        }
+      )
 
       await expect(
         adminTransaction(async ({ transaction }) => {
@@ -382,134 +351,114 @@ describe('apiKeyHelpers', () => {
 
     it('should successfully delete a secret API key without unkeyId', async () => {
       // Create a livemode legacy API key without unkeyId
-      const legacyApiKey = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await insertApiKey(
-              {
-                organizationId: organization.id,
-                pricingModelId: livemodePricingModelId,
-                name: 'Secret API Key without Unkey ID',
-                token: `live_sk_${core.nanoid()}`,
-                type: FlowgladApiKeyType.Secret,
-                active: true,
-                livemode: true,
-                // No unkeyId - legacy key
-                hashText: `hash_${core.nanoid()}`,
-              },
-              transaction
-            )
-          )
-        })
-      ).unwrap()
-
-      // Delete should succeed without calling Unkey
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await deleteSecretApiKeyTransaction(
-            { id: legacyApiKey.id },
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
+      const legacyApiKey = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
               organizationId: organization.id,
-            })
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
-
-      // Verify the key no longer exists
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const result = await selectApiKeyById(
-            legacyApiKey.id,
+              pricingModelId: livemodePricingModelId,
+              name: 'Secret API Key without Unkey ID',
+              token: `live_sk_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              // No unkeyId - legacy key
+              hashText: `hash_${core.nanoid()}`,
+            },
             transaction
           )
-          expect(Result.isError(result)).toBe(true)
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+        }
+      )
+
+      // Delete should succeed without calling Unkey
+      await adminTransaction(async ({ transaction }) => {
+        await deleteSecretApiKeyTransaction(
+          { id: legacyApiKey.id },
+          withAdminCacheContext({
+            transaction,
+            userId,
+            livemode: true,
+            organizationId: organization.id,
+          })
+        )
+      })
+
+      // Verify the key no longer exists
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectApiKeyById(
+          legacyApiKey.id,
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
 
     it('should successfully delete a secret API key without hashText', async () => {
       // Create a livemode API key without hashText
-      const apiKeyNoHash = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await insertApiKey(
-              {
-                organizationId: organization.id,
-                pricingModelId: livemodePricingModelId,
-                name: 'API Key Without Hash',
-                token: `live_sk_nohash_${core.nanoid()}`,
-                type: FlowgladApiKeyType.Secret,
-                active: true,
-                livemode: true,
-                // No hashText
-              },
-              transaction
-            )
-          )
-        })
-      ).unwrap()
-
-      // Delete should succeed without Redis cache invalidation
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          await deleteSecretApiKeyTransaction(
-            { id: apiKeyNoHash.id },
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
+      const apiKeyNoHash = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
               organizationId: organization.id,
-            })
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
-
-      // Verify the key no longer exists
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const result = await selectApiKeyById(
-            apiKeyNoHash.id,
+              pricingModelId: livemodePricingModelId,
+              name: 'API Key Without Hash',
+              token: `live_sk_nohash_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              // No hashText
+            },
             transaction
           )
-          expect(Result.isError(result)).toBe(true)
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+        }
+      )
+
+      // Delete should succeed without Redis cache invalidation
+      await adminTransaction(async ({ transaction }) => {
+        await deleteSecretApiKeyTransaction(
+          { id: apiKeyNoHash.id },
+          withAdminCacheContext({
+            transaction,
+            userId,
+            livemode: true,
+            organizationId: organization.id,
+          })
+        )
+      })
+
+      // Verify the key no longer exists
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectApiKeyById(
+          apiKeyNoHash.id,
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
 
     it('should NOT delete the database record if Unkey deletion fails', async () => {
-      // Configure the mock to reject for this test
-      globalThis.__mockUnkeyDeleteApiKey.mockRejectedValueOnce(
-        new Error('Unkey API error: Key not found')
-      )
+      // This test verifies atomicity: if Unkey deletion fails, the DB record should not be deleted.
+      // The mock server returns a 404 error when the keyId contains '_error_' or '_fail_'.
 
-      // Create a livemode API key WITH a fake unkeyId
-      const apiKeyWithUnkeyId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await insertApiKey(
-              {
-                organizationId: organization.id,
-                pricingModelId: livemodePricingModelId,
-                name: 'API Key With Fake Unkey ID',
-                token: `live_sk_unkey_${core.nanoid()}`,
-                type: FlowgladApiKeyType.Secret,
-                active: true,
-                livemode: true,
-                unkeyId: `fake_unkey_id_${core.nanoid()}`, // Fake Unkey ID that will fail
-                hashText: `hash_${core.nanoid()}`,
-              },
-              transaction
-            )
+      // Create a livemode API key with an unkeyId that triggers mock server error
+      const apiKeyWithUnkeyId = await adminTransaction(
+        async ({ transaction }) => {
+          return insertApiKey(
+            {
+              organizationId: organization.id,
+              pricingModelId: livemodePricingModelId,
+              name: 'API Key With Error-Triggering Unkey ID',
+              token: `live_sk_unkey_${core.nanoid()}`,
+              type: FlowgladApiKeyType.Secret,
+              active: true,
+              livemode: true,
+              unkeyId: `key_error_${core.nanoid()}`, // Contains '_error_' to trigger mock server 404
+              hashText: `hash_${core.nanoid()}`,
+            },
+            transaction
           )
-        })
-      ).unwrap()
+        }
+      )
 
       // Attempt to delete should fail because Unkey deletion will fail
       await expect(
@@ -527,21 +476,16 @@ describe('apiKeyHelpers', () => {
       ).rejects.toThrow('Failed to delete API key from Unkey')
 
       // Verify the key STILL EXISTS in the database (deletion was aborted)
-      const keyAfterFailedDelete = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            (
-              await selectApiKeyById(
-                apiKeyWithUnkeyId.id,
-                transaction
-              )
-            ).unwrap()
-          )
-        })
-      ).unwrap()
+      const keyAfterFailedDelete = await adminTransaction(
+        async ({ transaction }) => {
+          return (
+            await selectApiKeyById(apiKeyWithUnkeyId.id, transaction)
+          ).unwrap()
+        }
+      )
       expect(keyAfterFailedDelete.id).toBe(apiKeyWithUnkeyId.id)
       expect(keyAfterFailedDelete.name).toBe(
-        'API Key With Fake Unkey ID'
+        'API Key With Error-Triggering Unkey ID'
       )
     })
   })

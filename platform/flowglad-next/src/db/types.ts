@@ -1,9 +1,15 @@
 import type { Event } from '@db-core/schema/events'
-import type {
-  CacheDependencyKey,
-  CacheRecomputationContext,
-} from '@/utils/cache'
+import type { CacheDependencyKey } from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
+
+/**
+ * Simplified cache recomputation context.
+ * Previously contained type/role information for recomputing cached values,
+ * but since recomputation was removed, only livemode is needed.
+ */
+export interface CacheRecomputationContext {
+  livemode: boolean
+}
 
 // Re-export pure types from db-core for backwards compatibility
 export type {

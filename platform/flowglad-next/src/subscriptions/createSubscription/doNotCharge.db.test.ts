@@ -1,11 +1,4 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from 'bun:test'
+import { beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -16,7 +9,6 @@ import type { Customer } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import type { Product } from '@db-core/schema/products'
-import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -25,42 +17,16 @@ import {
   setupProduct,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionInputSchema } from '@/server/routers/subscriptionsRouter'
-import {
-  createDiscardingEffectsContext,
-  noopEmitEvent,
-  noopInvalidateCache,
-} from '@/test-utils/transactionCallbacks'
-import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
-import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
+import * as customerSubscriptionCreatedNotifications from '@/trigger/notifications/send-customer-subscription-created-notification'
+import * as organizationSubscriptionCreatedNotifications from '@/trigger/notifications/send-organization-subscription-created-notification'
 import { CancellationReason } from '@/types'
 import { core } from '@/utils/core'
 import type { CreateSubscriptionParams } from './types'
 import { createSubscriptionWorkflow } from './workflow'
-
-// Mock the notification functions
-mock.module(
-  '@/trigger/notifications/send-organization-subscription-created-notification',
-  () => ({
-    idempotentSendOrganizationSubscriptionCreatedNotification: mock(),
-  })
-)
-
-mock.module(
-  '@/trigger/notifications/send-customer-subscription-created-notification',
-  () => ({
-    idempotentSendCustomerSubscriptionCreatedNotification: mock(),
-  })
-)
-
-mock.module(
-  '@/trigger/notifications/send-customer-subscription-upgraded-notification',
-  () => ({
-    idempotentSendCustomerSubscriptionUpgradedNotification: mock(),
-  })
-)
 
 describe('doNotCharge subscription creation', () => {
   let organization: Organization.Record
@@ -71,8 +37,6 @@ describe('doNotCharge subscription creation', () => {
   let freeProduct: Product.Record
 
   beforeEach(async () => {
-    mock.clearAllMocks()
-
     const orgData = await setupOrg()
     organization = orgData.organization
 
@@ -148,17 +112,13 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscription, subscriptionItems } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(0)
@@ -192,60 +152,63 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscription } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(subscription.isFreePlan).toBe(false)
   })
 
   it('should send notifications when doNotCharge is true and price.unitPrice > 0 (treated as paid plan)', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const orgNotificationSpy = spyOn(
+      organizationSubscriptionCreatedNotifications,
+      'idempotentSendOrganizationSubscriptionCreatedNotification'
+    ).mockResolvedValue(undefined)
+    const customerNotificationSpy = spyOn(
+      customerSubscriptionCreatedNotifications,
+      'idempotentSendCustomerSubscriptionCreatedNotification'
+    ).mockResolvedValue(undefined)
 
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: true,
-    }
+    try {
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
 
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      const params: CreateSubscriptionParams = {
+        customer,
+        price: paidPrice,
+        product: paidProduct,
+        organization,
+        quantity: 1,
+        livemode: true,
+        startDate: new Date(),
+        interval: IntervalUnit.Month,
+        intervalCount: 1,
+        autoStart: true,
+        defaultPaymentMethod: paymentMethod,
+        doNotCharge: true,
+      }
+
+      await adminTransaction(async ({ transaction }) => {
         await createSubscriptionWorkflow(
           params,
           createDiscardingEffectsContext(transaction)
         )
-        return Result.ok(undefined)
       })
-    ).unwrap()
 
-    expect(
-      idempotentSendOrganizationSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
-    expect(
-      idempotentSendCustomerSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
+      expect(orgNotificationSpy).toHaveBeenCalledTimes(1)
+      expect(customerNotificationSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      orgNotificationSpy.mockRestore()
+      customerNotificationSpy.mockRestore()
+    }
   })
 
   it('should cancel existing free subscriptions when doNotCharge is true and price.unitPrice > 0 (treated as paid plan)', async () => {
@@ -282,36 +245,29 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscription: newSubscription } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
-      })
-    )
-      .unwrap()
-      .unwrap()
-
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        const canceledFree = (
-          await selectSubscriptionById(
-            existingFreeSubscription.id,
-            transaction
-          )
-        ).unwrap()
-        expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
-        expect(canceledFree.cancellationReason).toBe(
-          CancellationReason.UpgradedToPaid
-        )
-        expect(canceledFree.replacedBySubscriptionId).toBe(
-          newSubscription.id
-        )
-        return Result.ok(undefined)
       })
     ).unwrap()
+
+    await adminTransaction(async ({ transaction }) => {
+      const canceledFree = (
+        await selectSubscriptionById(
+          existingFreeSubscription.id,
+          transaction
+        )
+      ).unwrap()
+      expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+      expect(canceledFree.cancellationReason).toBe(
+        CancellationReason.UpgradedToPaid
+      )
+      expect(canceledFree.replacedBySubscriptionId).toBe(
+        newSubscription.id
+      )
+    })
   })
 
   it('should set subscription item unitPrice to price.unitPrice when doNotCharge is false', async () => {
@@ -338,17 +294,13 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscriptionItems } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(paidPrice.unitPrice)
@@ -378,17 +330,13 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscriptionItems } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(paidPrice.unitPrice)
@@ -418,17 +366,13 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscriptionItems } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     // All subscription items should have unitPrice 0
     expect(subscriptionItems).toHaveLength(1) // Single item with quantity
@@ -522,33 +466,27 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscription } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     // Should be treated as paid plan (isFreePlan = false)
     expect(subscription.isFreePlan).toBe(false)
+
     // Should cancel existing free subscription (paid plan behavior)
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        const canceledFree = (
-          await selectSubscriptionById(
-            existingFreeSubscription.id,
-            transaction
-          )
-        ).unwrap()
-        expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    await adminTransaction(async ({ transaction }) => {
+      const canceledFree = (
+        await selectSubscriptionById(
+          existingFreeSubscription.id,
+          transaction
+        )
+      ).unwrap()
+      expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+    })
   })
 
   it('should create subscription as Active when doNotCharge is true and no payment method is provided', async () => {
@@ -568,17 +506,13 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscription, subscriptionItems } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     expect(subscriptionItems).toHaveLength(1)
     expect(subscriptionItems[0].unitPrice).toBe(0)
@@ -587,16 +521,14 @@ describe('doNotCharge subscription creation', () => {
     expect(subscription.isFreePlan).toBe(false)
     // Verify doNotCharge flag is stored
     expect(subscription.doNotCharge).toBe(true)
+
     // Verify it persists when queried later
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        const retrieved = (
-          await selectSubscriptionById(subscription.id, transaction)
-        ).unwrap()
-        expect(retrieved.doNotCharge).toBe(true)
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    await adminTransaction(async ({ transaction }) => {
+      const retrieved = (
+        await selectSubscriptionById(subscription.id, transaction)
+      ).unwrap()
+      expect(retrieved.doNotCharge).toBe(true)
+    })
   })
 
   it('should create subscription as Incomplete when doNotCharge is false and no payment method is provided', async () => {
@@ -616,17 +548,13 @@ describe('doNotCharge subscription creation', () => {
     }
 
     const { subscription } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await createSubscriptionWorkflow(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
         )
       })
-    )
-      .unwrap()
-      .unwrap()
+    ).unwrap()
 
     // Subscription should be Incomplete without payment method when doNotCharge is false
     expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
@@ -660,17 +588,13 @@ describe('doNotCharge subscription creation', () => {
       }
 
       const { billingRun } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await createSubscriptionWorkflow(
-              params,
-              createDiscardingEffectsContext(transaction)
-            )
+        await adminTransaction(async ({ transaction }) => {
+          return createSubscriptionWorkflow(
+            params,
+            createDiscardingEffectsContext(transaction)
           )
         })
-      )
-        .unwrap()
-        .unwrap()
+      ).unwrap()
 
       // No billing run should be created when doNotCharge is true
       // (even though payment method exists, since unitPrice is 0)
