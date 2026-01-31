@@ -2,10 +2,10 @@ import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type {
+  CacheRecomputationContext,
   ComprehensiveAdminTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -73,7 +73,6 @@ async function executeComprehensiveAdminTransaction<T>(
     // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
 
     const cacheRecomputationContext: CacheRecomputationContext = {
-      type: 'admin',
       livemode: effectiveLivemode,
     }
     const paramsForFn: ComprehensiveAdminTransactionParams = {
