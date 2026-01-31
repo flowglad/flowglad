@@ -7,6 +7,7 @@ import {
   PaymentStatus,
   StripeConnectContractType,
 } from '@db-core/enums'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupInvoice,
@@ -14,7 +15,7 @@ import {
   setupPayment,
   setupPurchase,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   insertFeeCalculation,
   selectFeeCalculationById,
@@ -76,8 +77,8 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
       purchaseId: purchase.id,
     })
 
-    const { updatedPayment, updatedFeeCalculation } =
-      await adminTransaction(async ({ transaction }) => {
+    const { updatedPayment, updatedFeeCalculation } = (
+      await adminTransactionWithResult(async ({ transaction }) => {
         const feeCalculation = await insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -131,8 +132,11 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
           )
         ).unwrap()
 
-        return { updatedPayment, updatedFeeCalculation }
+        return Result.ok(
+          await { updatedPayment, updatedFeeCalculation }
+        )
       })
+    ).unwrap()
 
     // Just verify a tax transaction ID was stored - don't assert on mock response format
     expect(typeof updatedPayment.stripeTaxTransactionId).toBe(
@@ -172,8 +176,8 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
       purchaseId: purchase.id,
     })
 
-    const stripeTaxTransactionId = await adminTransaction(
-      async ({ transaction }) => {
+    const stripeTaxTransactionId = (
+      await adminTransactionWithResult(async ({ transaction }) => {
         await insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -212,12 +216,14 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
           transaction
         )
 
-        return createStripeTaxTransactionIfNeededForPayment(
-          { organization, payment, invoice },
-          transaction
+        return Result.ok(
+          await createStripeTaxTransactionIfNeededForPayment(
+            { organization, payment, invoice },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(stripeTaxTransactionId).toBeNull()
   })

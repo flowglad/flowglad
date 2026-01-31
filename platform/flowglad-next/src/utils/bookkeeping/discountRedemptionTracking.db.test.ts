@@ -14,6 +14,7 @@ import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { Price } from '@db-core/schema/prices'
 import type { Purchase } from '@db-core/schema/purchases'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupDiscount,
@@ -24,7 +25,10 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   insertDiscountRedemption,
   selectDiscountRedemptions,
@@ -102,24 +106,27 @@ describe('Discount Redemption Tracking', () => {
   describe('incrementNumberOfPaymentsForDiscountRedemption', () => {
     it('should increment numberOfPaymentsMade when numberOfPayments is not set', async () => {
       // Create a discount redemption with NumberOfPayments duration
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 1,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 1,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a payment
       const payment = await setupPayment({
@@ -134,48 +141,54 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function
-      await adminTransaction(async ({ transaction }) => {
-        await incrementNumberOfPaymentsForDiscountRedemption(
-          discountRedemption,
-          payment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await incrementNumberOfPaymentsForDiscountRedemption(
+            discountRedemption,
+            payment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption was not marked as fully redeemed
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(true)
     })
 
     it('does not mark as fully redeemed when payment is the first successful payment', async () => {
       // Create a discount redemption with numberOfPayments = 3
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 3,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 3,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a payment
       const payment = await setupPayment({
@@ -190,48 +203,54 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function
-      await adminTransaction(async ({ transaction }) => {
-        await incrementNumberOfPaymentsForDiscountRedemption(
-          discountRedemption,
-          payment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await incrementNumberOfPaymentsForDiscountRedemption(
+            discountRedemption,
+            payment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption was not marked as fully redeemed
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(false)
     })
 
     it('marks as fully redeemed when payment is the last payment needed', async () => {
       // Create a discount redemption with numberOfPayments = 2
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 2,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 2,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a first payment
       const firstPayment = await setupPayment({
@@ -260,48 +279,54 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function with the second payment
-      await adminTransaction(async ({ transaction }) => {
-        await incrementNumberOfPaymentsForDiscountRedemption(
-          discountRedemption,
-          secondPayment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await incrementNumberOfPaymentsForDiscountRedemption(
+            discountRedemption,
+            secondPayment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption was marked as fully redeemed
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(true)
     })
 
     it('marks as fully redeemed when payment is beyond the required number', async () => {
       // Create a discount redemption with numberOfPayments = 1
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 1,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 1,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a first payment
       const firstPayment = await setupPayment({
@@ -330,47 +355,53 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function with the second payment
-      await adminTransaction(async ({ transaction }) => {
-        await incrementNumberOfPaymentsForDiscountRedemption(
-          discountRedemption,
-          secondPayment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await incrementNumberOfPaymentsForDiscountRedemption(
+            discountRedemption,
+            secondPayment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption was marked as fully redeemed
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(true)
     })
 
     it('does not count payments for other purchases when subscriptionId is null', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: null,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 2,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: null,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 2,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const otherCustomer = await setupCustomer({
         organizationId: organization.id,
@@ -435,46 +466,52 @@ describe('Discount Redemption Tracking', () => {
         }
       )
 
-      await adminTransaction(async ({ transaction }) => {
-        await incrementNumberOfPaymentsForDiscountRedemption(
-          discountRedemption,
-          paymentForDiscountRedemptionPurchase,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await incrementNumberOfPaymentsForDiscountRedemption(
+            discountRedemption,
+            paymentForDiscountRedemptionPurchase,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(false)
     })
 
     it('throws when discount redemption has neither purchaseId nor subscriptionId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 2,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 2,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const payment = await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -520,19 +557,22 @@ describe('Discount Redemption Tracking', () => {
     //   })
 
     //   // Call the function
-    //   await adminTransaction(async ({ transaction }) => {
-    //     await safelyIncrementDiscountRedemptionSubscriptionPayment(
-    //       payment,
-    //       transaction
-    //     )
-    //   })
+    //   ;(
+    //     await adminTransactionWithResult(async ({ transaction }) => {
+    //       await safelyIncrementDiscountRedemptionSubscriptionPayment(
+    //         payment,
+    //         transaction
+    //       )
+    //       return Result.ok(undefined)
+    //     })
+    //   ).unwrap()
 
     //   // Verify no discount redemption was created
-    //   const discountRedemptions = await adminTransaction(
-    //     async ({ transaction }) => {
-    //       return await selectDiscountRedemptions({}, transaction)
-    //     }
-    //   )
+    //   const discountRedemptions = (
+    //     await adminTransactionWithResult(async ({ transaction }) => {
+    //       return Result.ok(await selectDiscountRedemptions({}, transaction))
+    //     })
+    //   ).unwrap()
 
     //   expect(discountRedemptions).toHaveLength(0)
     // })
@@ -552,48 +592,56 @@ describe('Discount Redemption Tracking', () => {
     //   })
 
     //   // Call the function
-    //   await adminTransaction(async ({ transaction }) => {
-    //     await safelyIncrementDiscountRedemptionSubscriptionPayment(
-    //       payment,
-    //       transaction
-    //     )
-    //   })
-
-    //   // Verify no discount redemption was created
-    //   const discountRedemptions = await adminTransaction(
-    //     async ({ transaction }) => {
-    //       return await selectDiscountRedemptions(
-    //         {
-    //           purchaseId: purchase.id,
-    //         },
+    //   ;(
+    //     await adminTransactionWithResult(async ({ transaction }) => {
+    //       await safelyIncrementDiscountRedemptionSubscriptionPayment(
+    //         payment,
     //         transaction
     //       )
-    //     }
-    //   )
+    //       return Result.ok(undefined)
+    //     })
+    //   ).unwrap()
+
+    //   // Verify no discount redemption was created
+    //   const discountRedemptions = (
+    //     await adminTransactionWithResult(async ({ transaction }) => {
+    //       return Result.ok(
+    //         await selectDiscountRedemptions(
+    //           {
+    //             purchaseId: purchase.id,
+    //           },
+    //           transaction
+    //         )
+    //       )
+    //     })
+    //   ).unwrap()
 
     //   expect(discountRedemptions).toHaveLength(0)
     // })
 
     it('returns early when discount redemption is already fully redeemed', async () => {
       // Create a discount redemption that is already fully redeemed
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 2,
-            livemode: true,
-            fullyRedeemed: true,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 2,
+              livemode: true,
+              fullyRedeemed: true,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a payment
       const payment = await setupPayment({
@@ -609,47 +657,53 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function
-      await adminTransaction(async ({ transaction }) => {
-        await safelyIncrementDiscountRedemptionSubscriptionPayment(
-          payment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            payment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption is still fully redeemed
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(true)
     })
 
     it('returns early when discount duration is Forever', async () => {
       // Create a discount redemption with Forever duration
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.Forever,
-            numberOfPayments: null,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.Forever,
+              numberOfPayments: null,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a payment
       const payment = await setupPayment({
@@ -665,47 +719,53 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function
-      await adminTransaction(async ({ transaction }) => {
-        await safelyIncrementDiscountRedemptionSubscriptionPayment(
-          payment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            payment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption is not fully redeemed
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(false)
     })
 
     it('marks as fully redeemed when discount duration is Once', async () => {
       // Create a discount redemption with Once duration
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.Once,
-            numberOfPayments: null,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.Once,
+              numberOfPayments: null,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a payment
       const payment = await setupPayment({
@@ -721,47 +781,53 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function
-      await adminTransaction(async ({ transaction }) => {
-        await safelyIncrementDiscountRedemptionSubscriptionPayment(
-          payment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            payment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption is fully redeemed
-      const updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(true)
     })
 
     it('increments number of payments when discount duration is NumberOfPayments', async () => {
       // Create a discount redemption with NumberOfPayments duration
-      await adminTransaction(async ({ transaction }) => {
-        discountRedemption = await insertDiscountRedemption(
-          {
-            discountId: discount.id,
-            purchaseId: purchase.id,
-            discountName: discount.name,
-            discountCode: discount.code,
-            discountAmount: discount.amount,
-            discountAmountType: discount.amountType,
-            subscriptionId: subscription.id,
-            duration: DiscountDuration.NumberOfPayments,
-            numberOfPayments: 2,
-            livemode: true,
-            fullyRedeemed: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          discountRedemption = await insertDiscountRedemption(
+            {
+              discountId: discount.id,
+              purchaseId: purchase.id,
+              discountName: discount.name,
+              discountCode: discount.code,
+              discountAmount: discount.amount,
+              discountAmountType: discount.amountType,
+              subscriptionId: subscription.id,
+              duration: DiscountDuration.NumberOfPayments,
+              numberOfPayments: 2,
+              livemode: true,
+              fullyRedeemed: false,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Create a first payment
       const firstPayment = await setupPayment({
@@ -777,23 +843,26 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function with the first payment
-      await adminTransaction(async ({ transaction }) => {
-        await safelyIncrementDiscountRedemptionSubscriptionPayment(
-          firstPayment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            firstPayment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption is not fully redeemed after first payment
-      let updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      let updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(false)
 
@@ -811,23 +880,26 @@ describe('Discount Redemption Tracking', () => {
       })
 
       // Call the function with the second payment
-      await adminTransaction(async ({ transaction }) => {
-        await safelyIncrementDiscountRedemptionSubscriptionPayment(
-          secondPayment,
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await safelyIncrementDiscountRedemptionSubscriptionPayment(
+            secondPayment,
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the discount redemption is fully redeemed after second payment
-      updatedDiscountRedemption = await adminTransaction(
-        async ({ transaction }) => {
+      updatedDiscountRedemption = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const [redemption] = await selectDiscountRedemptions(
             { id: discountRedemption.id },
             transaction
           )
-          return redemption
-        }
-      )
+          return Result.ok(redemption)
+        })
+      ).unwrap()
 
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(true)
     })

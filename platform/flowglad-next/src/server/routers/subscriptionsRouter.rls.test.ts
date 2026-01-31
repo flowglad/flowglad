@@ -13,6 +13,7 @@ import type { Price } from '@db-core/schema/prices'
 import type { Product } from '@db-core/schema/products'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -22,7 +23,7 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
   subscriptionsRouter,
@@ -162,35 +163,41 @@ describe('validateAndResolvePriceForSubscription', () => {
   })
 
   it('returns price, product, and organization when given a valid subscription priceId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await validateAndResolvePriceForSubscription({
-        priceId: subscriptionPrice.id,
-        customerId: customer.id,
-        transaction,
-      })
-
-      expect(result.price.id).toBe(subscriptionPrice.id)
-      expect(result.price.type).toBe(PriceType.Subscription)
-      expect(result.product.id).toBe(product.id)
-      expect(result.organization.id).toBe(organization.id)
-    })
-  })
-
-  it('throws NOT_FOUND when priceId does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentId = 'non-existent-price-id'
-
-      await expect(
-        validateAndResolvePriceForSubscription({
-          priceId: nonExistentId,
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await validateAndResolvePriceForSubscription({
+          priceId: subscriptionPrice.id,
           customerId: customer.id,
           transaction,
         })
-      ).rejects.toMatchObject({
-        code: 'NOT_FOUND',
-        message: `Price with id "${nonExistentId}" not found`,
+
+        expect(result.price.id).toBe(subscriptionPrice.id)
+        expect(result.price.type).toBe(PriceType.Subscription)
+        expect(result.product.id).toBe(product.id)
+        expect(result.organization.id).toBe(organization.id)
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
+  })
+
+  it('throws NOT_FOUND when priceId does not exist', async () => {
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentId = 'non-existent-price-id'
+
+        await expect(
+          validateAndResolvePriceForSubscription({
+            priceId: nonExistentId,
+            customerId: customer.id,
+            transaction,
+          })
+        ).rejects.toMatchObject({
+          code: 'NOT_FOUND',
+          message: `Price with id "${nonExistentId}" not found`,
+        })
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('throws BAD_REQUEST when price is a usage price (via priceId)', async () => {
@@ -214,64 +221,76 @@ describe('validateAndResolvePriceForSubscription', () => {
       isDefault: false,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      await expect(
-        validateAndResolvePriceForSubscription({
-          priceId: usagePrice.id,
-          customerId: customer.id,
-          transaction,
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await expect(
+          validateAndResolvePriceForSubscription({
+            priceId: usagePrice.id,
+            customerId: customer.id,
+            transaction,
+          })
+        ).rejects.toMatchObject({
+          code: 'BAD_REQUEST',
+          message: `Price "${usagePrice.id}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
         })
-      ).rejects.toMatchObject({
-        code: 'BAD_REQUEST',
-        message: `Price "${usagePrice.id}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 
   it('throws BAD_REQUEST when price is a single payment price', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await expect(
-        validateAndResolvePriceForSubscription({
-          priceId: singlePaymentPrice.id,
-          customerId: customer.id,
-          transaction,
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await expect(
+          validateAndResolvePriceForSubscription({
+            priceId: singlePaymentPrice.id,
+            customerId: customer.id,
+            transaction,
+          })
+        ).rejects.toMatchObject({
+          code: 'BAD_REQUEST',
+          message: `Price ${singlePaymentPrice.id} is a single payment price and cannot be used to create a subscription.`,
         })
-      ).rejects.toMatchObject({
-        code: 'BAD_REQUEST',
-        message: `Price ${singlePaymentPrice.id} is a single payment price and cannot be used to create a subscription.`,
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 
   it('throws BAD_REQUEST when neither priceId nor priceSlug is provided', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await expect(
-        validateAndResolvePriceForSubscription({
-          customerId: customer.id,
-          transaction,
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await expect(
+          validateAndResolvePriceForSubscription({
+            customerId: customer.id,
+            transaction,
+          })
+        ).rejects.toMatchObject({
+          code: 'BAD_REQUEST',
+          message: 'Either priceId or priceSlug must be provided',
         })
-      ).rejects.toMatchObject({
-        code: 'BAD_REQUEST',
-        message: 'Either priceId or priceSlug must be provided',
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 
   it('throws NOT_FOUND when priceSlug does not exist for the customer', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentSlug = 'non-existent-price-slug'
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentSlug = 'non-existent-price-slug'
 
-      await expect(
-        validateAndResolvePriceForSubscription({
-          priceSlug: nonExistentSlug,
-          customerId: customer.id,
-          transaction,
+        await expect(
+          validateAndResolvePriceForSubscription({
+            priceSlug: nonExistentSlug,
+            customerId: customer.id,
+            transaction,
+          })
+        ).rejects.toMatchObject({
+          code: 'NOT_FOUND',
+          message: `Price with slug "${nonExistentSlug}" not found for this customer's pricing model`,
         })
-      ).rejects.toMatchObject({
-        code: 'NOT_FOUND',
-        message: `Price with slug "${nonExistentSlug}" not found for this customer's pricing model`,
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 })
 
@@ -292,60 +311,74 @@ describe('validateAndResolveCustomerForSubscription', () => {
   })
 
   it('returns customer when given a valid customerId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await validateAndResolveCustomerForSubscription({
-        customerId: customer.id,
-        organizationId: organization.id,
-        transaction,
-      })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result =
+          await validateAndResolveCustomerForSubscription({
+            customerId: customer.id,
+            organizationId: organization.id,
+            transaction,
+          })
 
-      expect(result.id).toBe(customer.id)
-      expect(result.email).toBe(customer.email)
-    })
+        expect(result.id).toBe(customer.id)
+        expect(result.email).toBe(customer.email)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('returns customer when given a valid customerExternalId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await validateAndResolveCustomerForSubscription({
-        customerExternalId: customer.externalId!,
-        organizationId: organization.id,
-        transaction,
-      })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result =
+          await validateAndResolveCustomerForSubscription({
+            customerExternalId: customer.externalId!,
+            organizationId: organization.id,
+            transaction,
+          })
 
-      expect(result.id).toBe(customer.id)
-      expect(result.externalId).toBe(customer.externalId)
-    })
+        expect(result.id).toBe(customer.id)
+        expect(result.externalId).toBe(customer.externalId)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('throws NOT_FOUND when customerExternalId does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentExternalId = 'non-existent-external-id'
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentExternalId = 'non-existent-external-id'
 
-      await expect(
-        validateAndResolveCustomerForSubscription({
-          customerExternalId: nonExistentExternalId,
-          organizationId: organization.id,
-          transaction,
+        await expect(
+          validateAndResolveCustomerForSubscription({
+            customerExternalId: nonExistentExternalId,
+            organizationId: organization.id,
+            transaction,
+          })
+        ).rejects.toMatchObject({
+          code: 'NOT_FOUND',
+          message: `Customer with externalId ${nonExistentExternalId} not found`,
         })
-      ).rejects.toMatchObject({
-        code: 'NOT_FOUND',
-        message: `Customer with externalId ${nonExistentExternalId} not found`,
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 
   it('throws BAD_REQUEST when neither customerId nor customerExternalId is provided', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await expect(
-        validateAndResolveCustomerForSubscription({
-          organizationId: organization.id,
-          transaction,
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await expect(
+          validateAndResolveCustomerForSubscription({
+            organizationId: organization.id,
+            transaction,
+          })
+        ).rejects.toMatchObject({
+          code: 'BAD_REQUEST',
+          message:
+            'Either customerId or customerExternalId must be provided',
         })
-      ).rejects.toMatchObject({
-        code: 'BAD_REQUEST',
-        message:
-          'Either customerId or customerExternalId must be provided',
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 })

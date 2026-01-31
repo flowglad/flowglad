@@ -12,8 +12,9 @@ import type { Membership } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { User } from '@db-core/schema/users'
+import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
 import {
@@ -71,21 +72,24 @@ describe('RLS Access Control with selectOrganizations', () => {
     apiKeyB = userApiKeyB.apiKey
 
     // Create memberships for cross-organization testing
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Give userA membership in testOrg2 as well (focused: false)
-      await insertMembership(
-        {
-          organizationId: testOrg2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: pricingModel2.id,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        // Give userA membership in testOrg2 as well (focused: false)
+        await insertMembership(
+          {
+            organizationId: testOrg2.id,
+            userId: userA.id,
+            focused: false,
+            livemode: true,
+            role: MembershipRole.Member,
+            focusedPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   describe('Single Organization Access', () => {
@@ -215,33 +219,36 @@ describe('RLS Access Control with selectMemberships', () => {
     userB = userApiKeyB.user
 
     // Create specific membership configurations for testing
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Give userA membership in testOrg2 (focused: false)
-      membershipA2 = await insertMembership(
-        {
-          organizationId: testOrg2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: org2PricingModelIdLive,
-        },
-        transaction
-      )
-
-      const [existingMembership] = await selectMemberships(
-        { userId: userA.id, organizationId: testOrg1.id },
-        transaction
-      )
-      if (existingMembership) {
-        await updateMembership(
-          { id: existingMembership.id, focused: true },
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        // Give userA membership in testOrg2 (focused: false)
+        membershipA2 = await insertMembership(
+          {
+            organizationId: testOrg2.id,
+            userId: userA.id,
+            focused: false,
+            livemode: true,
+            role: MembershipRole.Member,
+            focusedPricingModelId: org2PricingModelIdLive,
+          },
           transaction
         )
-        membershipA1 = { ...existingMembership, focused: true }
-      }
-    })
+
+        const [existingMembership] = await selectMemberships(
+          { userId: userA.id, organizationId: testOrg1.id },
+          transaction
+        )
+        if (existingMembership) {
+          await updateMembership(
+            { id: existingMembership.id, focused: true },
+            transaction
+          )
+          membershipA1 = { ...existingMembership, focused: true }
+        }
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   describe('Focused Membership Access', () => {
@@ -274,21 +281,25 @@ describe('RLS Access Control with selectMemberships', () => {
 
       // expects:
       // - selectMemberships should return the membership because API key auth bypasses focused check
-      const testApiKey = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return insertApiKey(
-          {
-            organizationId: testOrg2.id,
-            pricingModelId: org2PricingModelIdLive,
-            name: 'Test API Key for unfocused membership',
-            token: `test_unfocused_${Date.now()}`,
-            type: FlowgladApiKeyType.Secret,
-            active: true,
-            livemode: true,
-          },
-          transaction
-        )
-      })
+      const testApiKey = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await insertApiKey(
+              {
+                organizationId: testOrg2.id,
+                pricingModelId: org2PricingModelIdLive,
+                name: 'Test API Key for unfocused membership',
+                token: `test_unfocused_${Date.now()}`,
+                type: FlowgladApiKeyType.Secret,
+                active: true,
+                livemode: true,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Determine which userId this API key will authenticate as, then force their membership to focused=false
       const apiUserId = await authenticatedTransaction(
@@ -296,17 +307,20 @@ describe('RLS Access Control with selectMemberships', () => {
         { apiKey: testApiKey.token }
       )
 
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const [membership] = await selectMemberships(
-          { userId: apiUserId, organizationId: testOrg2.id },
-          transaction
-        )
-        await updateMembership(
-          { id: membership.id, focused: false },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const [membership] = await selectMemberships(
+            { userId: apiUserId, organizationId: testOrg2.id },
+            transaction
+          )
+          await updateMembership(
+            { id: membership.id, focused: false },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const result = await authenticatedTransaction(
         async (ctx) => {
@@ -390,20 +404,23 @@ describe('RLS for selectProducts', () => {
     apiKeyAForOrg1 = uaOrg1.apiKey
 
     // Also give user A a membership in org2, unfocused
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await insertMembership(
-        {
-          organizationId: prodOrg2.id,
-          userId: prodUserA.id,
-          focused: false,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: prodPricingModel2.id,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await insertMembership(
+          {
+            organizationId: prodOrg2.id,
+            userId: prodUserA.id,
+            focused: false,
+            livemode: true,
+            role: MembershipRole.Member,
+            focusedPricingModelId: prodPricingModel2.id,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Create user B focused on org2 for negative-access scenarios
     const ubOrg2 = await setupUserAndApiKey({
@@ -664,20 +681,23 @@ describe('RLS for selectPricingModels', () => {
     apiKeyCatAOrg1Testmode = uaOrg1Testmode.apiKey
 
     // Also give user A a membership in org2, unfocused
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await insertMembership(
-        {
-          organizationId: catOrg2.id,
-          userId: catUserA.id,
-          focused: false,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: pricingModel2.id,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await insertMembership(
+          {
+            organizationId: catOrg2.id,
+            userId: catUserA.id,
+            focused: false,
+            livemode: true,
+            role: MembershipRole.Member,
+            focusedPricingModelId: pricingModel2.id,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Create user B focused on org2 for negative-access scenarios
     const ubOrg2 = await setupUserAndApiKey({
@@ -1044,29 +1064,32 @@ describe('Edge cases and robustness for second-order RLS', () => {
     expect(first.every((p) => p.organizationId === o1.id)).toBe(true)
 
     // Switch focus: add focused membership for org2 and unfocus org1
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await insertMembership(
-        {
-          organizationId: o2.id,
-          userId: user.id,
-          focused: true,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: pm2.id,
-        },
-        transaction
-      )
-      const [mem] = await selectMemberships(
-        { organizationId: o1.id, userId: user.id },
-        transaction
-      )
-      if (mem)
-        await updateMembership(
-          { id: mem.id, focused: false },
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await insertMembership(
+          {
+            organizationId: o2.id,
+            userId: user.id,
+            focused: true,
+            livemode: true,
+            role: MembershipRole.Member,
+            focusedPricingModelId: pm2.id,
+          },
           transaction
         )
-    })
+        const [mem] = await selectMemberships(
+          { organizationId: o1.id, userId: user.id },
+          transaction
+        )
+        if (mem)
+          await updateMembership(
+            { id: mem.id, focused: false },
+            transaction
+          )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // API key is tied to o1, so it should still access o1's products
     // even when the user's membership in o1 has focused=false

@@ -10,7 +10,7 @@ import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import {
@@ -151,23 +151,34 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
-    )
+    const resolvedIds = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await resolveExistingIds(
+            setupResult.pricingModel.id,
+            ctx.transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Verify features map
     expect(resolvedIds.features.size).toBe(2)
@@ -284,23 +295,34 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
-    )
+    const resolvedIds = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await resolveExistingIds(
+            setupResult.pricingModel.id,
+            ctx.transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Expect: returns empty or minimal maps without error
     expect(resolvedIds.features.size).toBe(0)
@@ -339,48 +361,63 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Directly insert resources for the pricing model
-    const createdResources = await adminTransaction(async (ctx) =>
-      bulkInsertResources(
-        [
-          {
-            slug: 'resource-a',
-            name: 'Resource A',
-            pricingModelId: setupResult.pricingModel.id,
-            organizationId: organization.id,
-            livemode: false,
-            active: true,
-          },
-          {
-            slug: 'resource-b',
-            name: 'Resource B',
-            pricingModelId: setupResult.pricingModel.id,
-            organizationId: organization.id,
-            livemode: false,
-            active: true,
-          },
-        ],
-        ctx.transaction
-      )
-    )
+    const createdResources = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await bulkInsertResources(
+            [
+              {
+                slug: 'resource-a',
+                name: 'Resource A',
+                pricingModelId: setupResult.pricingModel.id,
+                organizationId: organization.id,
+                livemode: false,
+                active: true,
+              },
+              {
+                slug: 'resource-b',
+                name: 'Resource B',
+                pricingModelId: setupResult.pricingModel.id,
+                organizationId: organization.id,
+                livemode: false,
+                active: true,
+              },
+            ],
+            ctx.transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
-    )
+    const resolvedIds = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await resolveExistingIds(
+            setupResult.pricingModel.id,
+            ctx.transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Verify resources map exists and has correct entries
     expect(resolvedIds.resources).toBeInstanceOf(Map)
@@ -473,23 +510,34 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
-    )
+    const resolvedIds = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await resolveExistingIds(
+            setupResult.pricingModel.id,
+            ctx.transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Find the created usage prices (they should have null slugs in DB)
     const usagePrices = setupResult.prices.filter(
@@ -558,23 +606,34 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
-    )
+    const resolvedIds = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await resolveExistingIds(
+            setupResult.pricingModel.id,
+            ctx.transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Verify resources map exists and is empty
     expect(resolvedIds.resources).toBeInstanceOf(Map)
@@ -662,18 +721,22 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Build feature slug to ID map
     const featureSlugToIdMap = new Map<string, string>()
@@ -812,18 +875,22 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Build feature slug to ID map
     const featureSlugToIdMap = new Map<string, string>()
@@ -977,18 +1044,22 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Build feature slug to ID map
     const featureSlugToIdMap = new Map<string, string>()
@@ -1168,18 +1239,22 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Build feature slug to ID map
     const featureSlugToIdMap = new Map<string, string>()
@@ -1314,18 +1389,22 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     const productA = setupResult.products.find(
       (p) => p.slug === 'product-a'
@@ -1395,12 +1474,16 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(reAddResult.removed.length).toBe(0)
 
     // Verify the database state: both features should now be active
-    const finalProductFeatures = await adminTransaction(async (ctx) =>
-      selectProductFeatures(
-        { productId: productA.id },
-        ctx.transaction
-      )
-    )
+    const finalProductFeatures = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: productA.id },
+            ctx.transaction
+          )
+        )
+      })
+    ).unwrap()
 
     const activeFeatures = finalProductFeatures.filter(
       (pf) => !pf.expiredAt
@@ -1460,44 +1543,51 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     const productA = setupResult.products.find(
       (p) => p.slug === 'product-a'
     )!
-
     // Manually expire feature-b's productFeature
-    await adminTransaction(async (ctx) => {
-      const productFeatures = await selectProductFeatures(
-        { productId: productA.id },
-        ctx.transaction
-      )
-      const featureBProductFeature = productFeatures.find(
-        (pf) =>
-          pf.featureId ===
-          setupResult.features.find((f) => f.slug === 'feature-b')?.id
-      )
-      if (featureBProductFeature) {
-        await updateProductFeature(
-          {
-            id: featureBProductFeature.id,
-            expiredAt: Date.now() - 1000,
-          },
-          ctx
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const productFeatures = await selectProductFeatures(
+          { productId: productA.id },
+          ctx.transaction
         )
-      }
-    })
+        const featureBProductFeature = productFeatures.find(
+          (pf) =>
+            pf.featureId ===
+            setupResult.features.find((f) => f.slug === 'feature-b')
+              ?.id
+        )
+        if (featureBProductFeature) {
+          await updateProductFeature(
+            {
+              id: featureBProductFeature.id,
+              expiredAt: Date.now() - 1000,
+            },
+            ctx
+          )
+        }
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Build feature slug to ID map
     const featureSlugToIdMap = new Map<string, string>()

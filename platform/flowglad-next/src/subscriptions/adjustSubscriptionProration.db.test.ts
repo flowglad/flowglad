@@ -27,10 +27,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 // Database query functions
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'

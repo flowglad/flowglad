@@ -9,7 +9,7 @@ import {
 import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { hashData } from '@/utils/backendCore'
 import type {
   SetupPricingModelInput,
@@ -102,16 +102,17 @@ describe('externalIdFromProductData', () => {
 
 describe('setupPricingModelTransaction (integration)', () => {
   it('returns error if input validation fails', async () => {
-    const result = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
+    const result = await adminTransactionWithResult(async (ctx) => {
+      return setupPricingModelTransaction(
         {
-          input: {} as any,
+          // @ts-expect-error - Intentionally providing invalid input to test validation
+          input: {},
           organizationId: organization.id,
           livemode: false,
         },
         ctx
       )
-    )
+    })
     expect(Result.isError(result)).toBe(true)
   })
 
@@ -161,12 +162,20 @@ describe('setupPricingModelTransaction (integration)', () => {
       ],
     }
     {
-      const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          )
+        })
+      ).unwrap()
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
         expect(result.error.message).toContain(
@@ -252,14 +261,22 @@ describe('setupPricingModelTransaction (integration)', () => {
       ],
     }
 
-    const result = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // PricingModel
     expect(typeof result.pricingModel.id).toBe('string')
@@ -332,18 +349,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [], // No products provided
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       // Should have auto-generated default product
       expect(result.products).toHaveLength(1)
@@ -373,18 +394,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       const defaultPrice = result.prices[0]
       expect(defaultPrice.currency).toEqual(
@@ -430,18 +455,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         ],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       // Should have user-provided default product, no auto-generated one
       expect(result.products).toHaveLength(1)
@@ -508,16 +537,20 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       {
-        const result = await adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
-        )
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            )
+          })
+        ).unwrap()
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
           expect(result.error.message).toContain(
@@ -564,16 +597,20 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       {
-        const result = await adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
-        )
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            )
+          })
+        ).unwrap()
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
           expect(result.error.message).toContain(
@@ -620,16 +657,20 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       {
-        const result = await adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
-        )
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            )
+          })
+        ).unwrap()
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
           expect(result.error.message).toContain(
@@ -652,16 +693,20 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       {
-        const result = await adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
-        )
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            )
+          })
+        ).unwrap()
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
           expect(result.error.message).toContain(
@@ -681,16 +726,20 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       {
-        const result = await adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
-        )
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            )
+          })
+        ).unwrap()
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
           expect(result.error.message).toContain('Field is required')
@@ -737,16 +786,20 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       {
-        const result = await adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
-        )
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            )
+          })
+        ).unwrap()
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
           expect(result.error.message).toMatch(
@@ -776,18 +829,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       // Should have 2 usage meters
       expect(result.usageMeters).toHaveLength(2)
@@ -818,18 +875,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       const noChargePrice = result.prices.find(
         (p) => p.slug === 'requests_no_charge'
@@ -866,18 +927,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       const noChargePrice = result.prices.find(
         (p) => p.slug === 'compute_no_charge'
@@ -913,18 +978,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       const noChargePrice = result.prices.find(
         (p) => p.slug === 'bandwidth_no_charge'
@@ -965,18 +1034,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       const noChargePrice = result.prices.find(
         (p) => p.slug === 'tokens_no_charge'
@@ -1025,18 +1098,22 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async (ctx) =>
-        (
-          await setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await (
+              await setupPricingModelTransaction(
+                {
+                  input,
+                  organizationId: organization.id,
+                  livemode: false,
+                },
+                ctx
+              )
+            ).unwrap()
           )
-        ).unwrap()
-      )
+        })
+      ).unwrap()
 
       // Should have 3 usage prices: 2 user + 1 no_charge
       const usagePrices = result.prices.filter(

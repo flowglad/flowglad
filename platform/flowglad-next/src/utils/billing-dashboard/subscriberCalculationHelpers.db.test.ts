@@ -5,6 +5,7 @@ import {
   RevenueChartIntervalUnit,
   SubscriptionStatus,
 } from '@db-core/enums'
+import { Result } from 'better-result'
 import {
   addMonths,
   endOfMonth,
@@ -20,7 +21,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   calculateActiveSubscribersByMonth,
   calculateSubscriberBreakdown,
@@ -33,17 +34,21 @@ describe('calculateActiveSubscribersByMonth', () => {
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(3)
     expect(result[0].count).toBe(0)
@@ -84,17 +89,21 @@ describe('calculateActiveSubscribersByMonth', () => {
       status: SubscriptionStatus.Active,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(3)
     expect(result[0].count).toBe(1)
@@ -168,17 +177,21 @@ describe('calculateActiveSubscribersByMonth', () => {
       canceledAt: new Date('2023-02-10T05:00:00.000Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(3)
     expect(result[0].count).toBe(2) // Subscriptions 1 and 3
@@ -200,17 +213,21 @@ describe('calculateActiveSubscribersByMonth', () => {
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(3)
     result.forEach((month) => {
@@ -241,17 +258,21 @@ describe('calculateActiveSubscribersByMonth', () => {
       canceledAt: null,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     expect(result[0].count).toBe(1)
@@ -283,17 +304,21 @@ describe('calculateActiveSubscribersByMonth', () => {
       canceledAt: null,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(3)
     expect(result[0].count).toBe(0)
@@ -333,17 +358,21 @@ describe('calculateActiveSubscribersByMonth', () => {
       canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(3)
     expect(result[0].count).toBe(1)
@@ -399,17 +428,21 @@ describe('calculateActiveSubscribersByMonth', () => {
       canceledAt: new Date('2023-02-28T23:59:59.999Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(3)
     expect(result[0].count).toBe(1) // Only subscription 2
@@ -451,14 +484,18 @@ describe('calculateSubscriberBreakdown', () => {
       canceledAt: null,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(0)
     expect(result.churned).toBe(0)
@@ -488,14 +525,18 @@ describe('calculateSubscriberBreakdown', () => {
       canceledAt: null,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(1)
     expect(result.churned).toBe(0)
@@ -525,14 +566,18 @@ describe('calculateSubscriberBreakdown', () => {
       canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(0)
     expect(result.churned).toBe(1)
@@ -579,14 +624,18 @@ describe('calculateSubscriberBreakdown', () => {
       canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(1)
     expect(result.churned).toBe(1)
@@ -640,14 +689,18 @@ describe('calculateSubscriberBreakdown', () => {
       })
     }
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(2)
     expect(result.churned).toBe(2)
@@ -696,14 +749,18 @@ describe('calculateSubscriberBreakdown', () => {
       canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(3)
     expect(result.churned).toBe(1)
@@ -753,14 +810,18 @@ describe('calculateSubscriberBreakdown', () => {
       })
     }
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(1)
     expect(result.churned).toBe(3)
@@ -772,14 +833,18 @@ describe('calculateSubscriberBreakdown', () => {
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(0)
     expect(result.churned).toBe(0)
@@ -826,14 +891,18 @@ describe('calculateSubscriberBreakdown', () => {
       canceledAt: new Date('2023-02-28T05:00:00.000Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateSubscriberBreakdown(
-        organization.id,
-        currentMonth,
-        previousMonth,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result.newSubscribers).toBe(0)
     expect(result.churned).toBe(2)
@@ -862,15 +931,19 @@ describe('getCurrentActiveSubscribers', () => {
       canceledAt: null,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getCurrentActiveSubscribers(
-        {
-          organizationId: organization.id,
-          currentDate: new Date('2023-02-15T05:00:00.000Z'),
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await getCurrentActiveSubscribers(
+            {
+              organizationId: organization.id,
+              currentDate: new Date('2023-02-15T05:00:00.000Z'),
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toBe(1)
   })
@@ -878,15 +951,19 @@ describe('getCurrentActiveSubscribers', () => {
   it('should return 0 when there are no active subscribers', async () => {
     const { organization } = await setupOrg()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getCurrentActiveSubscribers(
-        {
-          organizationId: organization.id,
-          currentDate: new Date('2023-02-15T05:00:00.000Z'),
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await getCurrentActiveSubscribers(
+            {
+              organizationId: organization.id,
+              currentDate: new Date('2023-02-15T05:00:00.000Z'),
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toBe(0)
   })
@@ -911,15 +988,19 @@ describe('getCurrentActiveSubscribers', () => {
       canceledAt: new Date('2023-02-10T05:00:00.000Z').getTime(),
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getCurrentActiveSubscribers(
-        {
-          organizationId: organization.id,
-          currentDate: new Date('2023-02-15T05:00:00.000Z'),
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await getCurrentActiveSubscribers(
+            {
+              organizationId: organization.id,
+              currentDate: new Date('2023-02-15T05:00:00.000Z'),
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Subscription was active during February, so it should be counted
     expect(result).toBe(1)
@@ -967,18 +1048,22 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
       status: SubscriptionStatus.Active,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-          productId: undefined, // No filter
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+              productId: undefined, // No filter
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     expect(result[0].count).toBe(2)
@@ -1087,57 +1172,63 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     })
 
     // Query for Product A only
-    const resultA = await adminTransaction(
-      async ({ transaction }) => {
-        return calculateActiveSubscribersByMonth(
-          organization.id,
-          {
-            startDate,
-            endDate,
-            granularity: RevenueChartIntervalUnit.Month,
-            productId: productA.id,
-          },
-          transaction
+    const resultA = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+              productId: productA.id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultA).toHaveLength(1)
     expect(resultA[0].count).toBe(2)
 
     // Query for Product B only
-    const resultB = await adminTransaction(
-      async ({ transaction }) => {
-        return calculateActiveSubscribersByMonth(
-          organization.id,
-          {
-            startDate,
-            endDate,
-            granularity: RevenueChartIntervalUnit.Month,
-            productId: productB.id,
-          },
-          transaction
+    const resultB = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+              productId: productB.id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultB).toHaveLength(1)
     expect(resultB[0].count).toBe(1)
 
     // Query for all products (no filter)
-    const resultAll = await adminTransaction(
-      async ({ transaction }) => {
-        return calculateActiveSubscribersByMonth(
-          organization.id,
-          {
-            startDate,
-            endDate,
-            granularity: RevenueChartIntervalUnit.Month,
-          },
-          transaction
+    const resultAll = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultAll).toHaveLength(1)
     expect(resultAll[0].count).toBe(3) // 2 + 1
@@ -1175,18 +1266,22 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     })
 
     // Query for Product B (which has no subscriptions)
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-          productId: productB.id,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+              productId: productB.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     expect(result[0].count).toBe(0)
@@ -1226,18 +1321,22 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     })
 
     // Query for this product
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateActiveSubscribersByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-          productId: product.id,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+              productId: product.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Should count the subscription only once, not twice
     expect(result).toHaveLength(1)
@@ -1309,57 +1408,63 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     })
 
     // Query for Product A - should find the subscription
-    const resultA = await adminTransaction(
-      async ({ transaction }) => {
-        return calculateActiveSubscribersByMonth(
-          organization.id,
-          {
-            startDate,
-            endDate,
-            granularity: RevenueChartIntervalUnit.Month,
-            productId: productA.id,
-          },
-          transaction
+    const resultA = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+              productId: productA.id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultA).toHaveLength(1)
     expect(resultA[0].count).toBe(1)
 
     // Query for Product B - should also find the same subscription
-    const resultB = await adminTransaction(
-      async ({ transaction }) => {
-        return calculateActiveSubscribersByMonth(
-          organization.id,
-          {
-            startDate,
-            endDate,
-            granularity: RevenueChartIntervalUnit.Month,
-            productId: productB.id,
-          },
-          transaction
+    const resultB = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+              productId: productB.id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultB).toHaveLength(1)
     expect(resultB[0].count).toBe(1)
 
     // Query for all products - should count the subscription only once
-    const resultAll = await adminTransaction(
-      async ({ transaction }) => {
-        return calculateActiveSubscribersByMonth(
-          organization.id,
-          {
-            startDate,
-            endDate,
-            granularity: RevenueChartIntervalUnit.Month,
-          },
-          transaction
+    const resultAll = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await calculateActiveSubscribersByMonth(
+            organization.id,
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Month,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultAll).toHaveLength(1)
     expect(resultAll[0].count).toBe(1) // Still just 1 subscription
