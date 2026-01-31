@@ -7,7 +7,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
 import {
@@ -53,6 +53,10 @@ export default function CliAuthorizePage() {
   const searchParams = useSearchParams()
   const { data: session, isPending: isSessionLoading } = useSession()
 
+  // Track whether the code was provided via URL/localStorage (auto-verify)
+  // vs manually typed by user (require button click to verify)
+  const isCodeFromUrlOrStorage = useRef(false)
+
   // Get user_code from URL params first, then fall back to localStorage
   // We use localStorage instead of sessionStorage because it persists across
   // the OAuth redirect chain (which may involve new tabs/windows)
@@ -63,11 +67,18 @@ export default function CliAuthorizePage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem(CLI_USER_CODE_STORAGE_KEY, urlCode)
       }
+      isCodeFromUrlOrStorage.current = true
       return urlCode
     }
     // Try to recover from localStorage (after OAuth redirect)
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(CLI_USER_CODE_STORAGE_KEY) || ''
+      const storedCode = localStorage.getItem(
+        CLI_USER_CODE_STORAGE_KEY
+      )
+      if (storedCode) {
+        isCodeFromUrlOrStorage.current = true
+        return storedCode
+      }
     }
     return ''
   })
@@ -108,8 +119,9 @@ export default function CliAuthorizePage() {
       return
     }
 
-    // If we have a user code (from URL or localStorage), verify it
-    if (userCode) {
+    // Only auto-verify if the code came from URL or localStorage on initial load
+    // User-typed codes require clicking the "Verify Code" button
+    if (userCode && isCodeFromUrlOrStorage.current) {
       setState('verifying')
     } else {
       setState('input')
@@ -224,9 +236,11 @@ export default function CliAuthorizePage() {
                 <Input
                   placeholder="Enter your code (e.g., ABCD-1234)"
                   value={userCode}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    // Mark as user-typed so it won't auto-verify
+                    isCodeFromUrlOrStorage.current = false
                     setUserCode(e.target.value.toUpperCase())
-                  }
+                  }}
                   className="text-center font-mono text-lg tracking-widest"
                   autoFocus
                 />

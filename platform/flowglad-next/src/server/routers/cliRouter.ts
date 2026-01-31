@@ -25,15 +25,30 @@ const verifyDeviceCode = protectedProcedure
     // Use BETTER_AUTH_URL (server-only env var) instead of NEXT_PUBLIC_APP_URL
     const baseUrl =
       process.env.BETTER_AUTH_URL || 'http://localhost:3000'
-    const response = await fetch(
-      `${baseUrl}/api/auth/device?user_code=${encodeURIComponent(input.userCode)}`
-    )
 
-    if (!response.ok) {
-      return { valid: false, error: 'Invalid or expired code' }
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/api/auth/device?user_code=${encodeURIComponent(input.userCode)}`,
+        { signal: controller.signal }
+      )
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        return { valid: false, error: 'Invalid or expired code' }
+      }
+
+      return { valid: true }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        return { valid: false, error: 'Request timed out' }
+      }
+      return { valid: false, error: 'Failed to verify code' }
     }
-
-    return { valid: true }
   })
 
 /**

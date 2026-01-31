@@ -47,6 +47,24 @@ function GoogleLogo() {
   )
 }
 
+/**
+ * Validate callbackURL to prevent open redirect attacks.
+ * Only allows relative paths starting with / (not //)
+ */
+function validateCallbackURL(url: string | null): string {
+  if (!url) return '/'
+  // Must start with / but not // (protocol-relative URL)
+  // Must not contain :// (absolute URL)
+  if (
+    url.startsWith('/') &&
+    !url.startsWith('//') &&
+    !url.includes('://')
+  ) {
+    return url
+  }
+  return '/'
+}
+
 /** "Or" divider component */
 function OrDivider() {
   return (
@@ -64,7 +82,10 @@ export default function SignIn() {
 
   const searchParams = useSearchParams()
   // Support callbackURL from URL params (used by CLI auth flow, etc.)
-  const callbackURL = searchParams.get('callbackURL') || '/'
+  // Validate to prevent open redirect attacks
+  const callbackURL = validateCallbackURL(
+    searchParams.get('callbackURL')
+  )
 
   const {
     register,

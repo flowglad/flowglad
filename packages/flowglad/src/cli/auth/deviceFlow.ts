@@ -218,12 +218,21 @@ const fetchSession = async (
 
   const data: unknown = await response.json()
 
-  // Debug: log the actual session response structure
+  // Debug: log redacted session response structure (no PII/tokens)
   if (process.env.DEBUG) {
-    console.error(
-      'Debug: Session response:',
-      JSON.stringify(data, null, 2)
-    )
+    const redactedData = isRecord(data)
+      ? {
+          hasUser: isRecord(data.user),
+          hasSession: isRecord(data.session),
+          userFields: isRecord(data.user)
+            ? Object.keys(data.user as Record<string, unknown>)
+            : [],
+          sessionFields: isRecord(data.session)
+            ? Object.keys(data.session as Record<string, unknown>)
+            : [],
+        }
+      : { dataType: typeof data }
+    console.error('Debug: Session response structure:', redactedData)
   }
 
   // Validate session response structure
