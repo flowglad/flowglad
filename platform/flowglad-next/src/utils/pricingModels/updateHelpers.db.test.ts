@@ -1562,8 +1562,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     const productA = setupResult.products.find(
       (p) => p.slug === 'product-a'
-    )!(
-      // Manually expire feature-b's productFeature
+    )!
+    // Manually expire feature-b's productFeature
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const productFeatures = await selectProductFeatures(
           { productId: productA.id },

@@ -238,20 +238,21 @@ describe('getOrganizationCodebaseMarkdown', () => {
   it('should successfully retrieve markdown content from R2', async () => {
     const testHash = 'testhash789'
     const expectedContent =
-      '# Codebase Documentation\n\nThis is the content.'(
-        // Set codebaseMarkdownHash in database
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          await updateOrganization(
-            {
-              id: organization.id,
-              codebaseMarkdownHash: testHash,
-            },
-            transaction
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      '# Codebase Documentation\n\nThis is the content.'
+    // Set codebaseMarkdownHash in database
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await updateOrganization(
+          {
+            id: organization.id,
+            codebaseMarkdownHash: testHash,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     mockGetMarkdownFile.mockResolvedValue(expectedContent)
 
@@ -327,8 +328,9 @@ describe('getOrganizationCodebaseMarkdown', () => {
   })
 
   it('should return null when R2 file is not found', async () => {
-    const testHash = 'testhash123'(
-      // Set codebaseMarkdownHash in database
+    const testHash = 'testhash123'
+    // Set codebaseMarkdownHash in database
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await updateOrganization(
@@ -450,20 +452,21 @@ describe('getPricingModelIntegrationMarkdown', () => {
   it('should successfully retrieve markdown content from R2', async () => {
     const testHash = 'testhash999'
     const expectedContent =
-      '# Integration Guide\n\nThis is the content.'(
-        // Set integrationGuideHash in database
-        await adminTransactionWithResult(async (ctx) => {
-          const { transaction } = ctx
-          await updatePricingModel(
-            {
-              id: pricingModel.id,
-              integrationGuideHash: testHash,
-            },
-            ctx
-          )
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      '# Integration Guide\n\nThis is the content.'
+    // Set integrationGuideHash in database
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        await updatePricingModel(
+          {
+            id: pricingModel.id,
+            integrationGuideHash: testHash,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     mockGetMarkdownFile.mockResolvedValue(expectedContent)
 
@@ -545,8 +548,9 @@ describe('getPricingModelIntegrationMarkdown', () => {
   })
 
   it('should return null when R2 file is not found', async () => {
-    const testHash = 'testhash456'(
-      // Set integrationGuideHash in database
+    const testHash = 'testhash456'
+    // Set integrationGuideHash in database
+    ;(
       await adminTransactionWithResult(async (ctx) => {
         const { transaction } = ctx
         await updatePricingModel(

@@ -363,8 +363,9 @@ describe('pricesRouter - Default Price Constraints', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
-      }(
-        // create another product with its own price
+      }
+      // create another product with its own price
+      ;(
         await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const otherProduct = await insertProduct(

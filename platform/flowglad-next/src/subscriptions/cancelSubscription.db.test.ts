@@ -2087,23 +2087,19 @@ describe('Subscription Cancellation Test Suite', async () => {
       // so they obtain separate DB connections and truly run concurrently
       const [output1, output2] = await Promise.all([
         adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await cancelSubscriptionImmediately(
-              {
-                subscription,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
+          return cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
           )
         }),
         adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await cancelSubscriptionImmediately(
-              {
-                subscription,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
+          return cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
           )
         }),
       ])
