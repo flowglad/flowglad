@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import type { FieldErrors } from 'react-hook-form'
 import { useForm } from 'react-hook-form'
@@ -47,24 +46,6 @@ function GoogleLogo() {
   )
 }
 
-/**
- * Validate callbackURL to prevent open redirect attacks.
- * Only allows relative paths starting with / (not //)
- */
-function validateCallbackURL(url: string | null): string {
-  if (!url) return '/'
-  // Must start with / but not // (protocol-relative URL)
-  // Must not contain :// (absolute URL)
-  if (
-    url.startsWith('/') &&
-    !url.startsWith('//') &&
-    !url.includes('://')
-  ) {
-    return url
-  }
-  return '/'
-}
-
 /** "Or" divider component */
 function OrDivider() {
   return (
@@ -79,13 +60,6 @@ function OrDivider() {
 
 export default function SignIn() {
   type SigninValues = z.infer<typeof signInSchema>
-
-  const searchParams = useSearchParams()
-  // Support callbackURL from URL params (used by CLI auth flow, etc.)
-  // Validate to prevent open redirect attacks
-  const callbackURL = validateCallbackURL(
-    searchParams.get('callbackURL')
-  )
 
   const {
     register,
@@ -141,7 +115,7 @@ export default function SignIn() {
       {
         email: values.email,
         password: values.password,
-        callbackURL,
+        callbackURL: '/',
         rememberMe,
       },
       signinFetchOptions
@@ -180,7 +154,7 @@ export default function SignIn() {
           await signIn.social(
             {
               provider: 'google',
-              callbackURL,
+              callbackURL: '/',
             },
             signinFetchOptions
           )

@@ -52,12 +52,6 @@ const publicRoutes = [
    */
   '/preview-ui(.*)',
   '/blog/(.*)',
-  /**
-   * CLI authorization routes need to be public to handle their own auth flow.
-   * The pages themselves redirect to sign-in if not authenticated.
-   */
-  '/cli/authorize',
-  '/device',
 ]
 
 if (core.IS_DEV) {
