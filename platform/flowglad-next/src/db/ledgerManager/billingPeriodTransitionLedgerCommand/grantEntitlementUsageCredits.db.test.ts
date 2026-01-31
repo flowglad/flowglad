@@ -371,15 +371,13 @@ describe('grantEntitlementUsageCredits', () => {
       ledgerEntries: createdLedgerEntries,
     } = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await grantEntitlementUsageCredits(
-            {
-              ledgerAccountsByUsageMeterId,
-              ledgerTransaction: testLedgerTransaction,
-              command,
-            },
-            transaction
-          )
+        return grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
         )
       })
     ).unwrap()
@@ -537,15 +535,13 @@ describe('grantEntitlementUsageCredits', () => {
       ledgerEntries: createdLedgerEntries,
     } = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await grantEntitlementUsageCredits(
-            {
-              ledgerAccountsByUsageMeterId,
-              ledgerTransaction: testLedgerTransaction,
-              command,
-            },
-            transaction
-          )
+        return grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
         )
       })
     ).unwrap()
@@ -621,15 +617,13 @@ describe('grantEntitlementUsageCredits', () => {
       ledgerEntries: createdLedgerEntries,
     } = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await grantEntitlementUsageCredits(
-            {
-              ledgerAccountsByUsageMeterId,
-              ledgerTransaction: testLedgerTransaction,
-              command,
-            },
-            transaction
-          )
+        return grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
         )
       })
     ).unwrap()
@@ -671,15 +665,13 @@ describe('grantEntitlementUsageCredits', () => {
       ledgerEntries: createdLedgerEntries,
     } = (
       await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await grantEntitlementUsageCredits(
-            {
-              ledgerAccountsByUsageMeterId,
-              ledgerTransaction: testLedgerTransaction,
-              command, // command now has livemode: false
-            },
-            transaction
-          )
+        return grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command, // command now has livemode: false
+          },
+          transaction
         )
       })
     ).unwrap()
@@ -792,15 +784,13 @@ describe('grantEntitlementUsageCredits', () => {
     } = (
       await adminTransactionWithResult(async ({ transaction }) => {
         // The ledgerAccountsByUsageMeterId passed here is the original one from beforeEach
-        return Result.ok(
-          await grantEntitlementUsageCredits(
-            {
-              ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
-              ledgerTransaction: testLedgerTransaction,
-              command,
-            },
-            transaction
-          )
+        return grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
         )
       })
     ).unwrap()
@@ -976,15 +966,13 @@ describe('grantEntitlementUsageCredits', () => {
       // Action
       const { usageCredits, ledgerEntries } = (
         await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await grantEntitlementUsageCredits(
-              {
-                ledgerAccountsByUsageMeterId,
-                ledgerTransaction: testLedgerTransaction,
-                command,
-              },
-              transaction
-            )
+          return grantEntitlementUsageCredits(
+            {
+              ledgerAccountsByUsageMeterId,
+              ledgerTransaction: testLedgerTransaction,
+              command,
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1106,15 +1094,13 @@ describe('grantEntitlementUsageCredits', () => {
       // Action
       const { usageCredits, ledgerEntries } = (
         await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await grantEntitlementUsageCredits(
-              {
-                ledgerAccountsByUsageMeterId,
-                ledgerTransaction: testLedgerTransaction,
-                command,
-              },
-              transaction
-            )
+          return grantEntitlementUsageCredits(
+            {
+              ledgerAccountsByUsageMeterId,
+              ledgerTransaction: testLedgerTransaction,
+              command,
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1198,15 +1184,13 @@ describe('grantEntitlementUsageCredits', () => {
       // Action
       const { usageCredits, ledgerEntries } = (
         await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await grantEntitlementUsageCredits(
-              {
-                ledgerAccountsByUsageMeterId,
-                ledgerTransaction: testLedgerTransaction,
-                command,
-              },
-              transaction
-            )
+          return grantEntitlementUsageCredits(
+            {
+              ledgerAccountsByUsageMeterId,
+              ledgerTransaction: testLedgerTransaction,
+              command,
+            },
+            transaction
           )
         })
       ).unwrap()
