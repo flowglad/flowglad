@@ -9,6 +9,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import {
   admin,
+  bearer,
   customSession,
   deviceAuthorization,
   emailOTP,
@@ -122,6 +123,9 @@ export const auth = betterAuth({
   }),
   plugins: [
     admin(),
+    // Bearer plugin enables authentication via Authorization: Bearer tokens
+    // Required for CLI authentication where cookies aren't available
+    bearer(),
     customSession(async ({ user, session }) => {
       return {
         focusedRole: [],
