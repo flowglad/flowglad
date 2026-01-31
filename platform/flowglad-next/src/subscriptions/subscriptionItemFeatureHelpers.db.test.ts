@@ -1836,26 +1836,24 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await insertSubscriptionItem(
-              {
-                subscriptionId: testSubscription.id,
-                name: 'Invalid Item',
-                priceId: null,
-                unitPrice: 0,
-                quantity: 0,
-                addedDate: Date.now(),
-                expiredAt: null,
-                metadata: null,
-                externalId: null,
-                type: SubscriptionItemType.Static,
-                manuallyCreated: false,
-                livemode: testSubscription.livemode,
-              },
-              transaction
-            )
+          await insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: false,
+              livemode: testSubscription.livemode,
+            },
+            transaction
           )
         })
       ).rejects.toThrow()
@@ -1871,26 +1869,24 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await insertSubscriptionItem(
-              {
-                subscriptionId: testSubscription.id,
-                name: 'Invalid Manual Item',
-                priceId: null,
-                unitPrice: 100,
-                quantity: 0,
-                addedDate: Date.now(),
-                expiredAt: null,
-                metadata: null,
-                externalId: null,
-                type: SubscriptionItemType.Static,
-                manuallyCreated: true,
-                livemode: testSubscription.livemode,
-              },
-              transaction
-            )
+          await insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Manual Item',
+              priceId: null,
+              unitPrice: 100,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
           )
         })
       ).rejects.toThrow()
@@ -1972,26 +1968,24 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       // Try to create second manual item
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await insertSubscriptionItem(
-              {
-                subscriptionId: testSubscription.id,
-                name: 'Second Manual Item',
-                priceId: null,
-                unitPrice: 0,
-                quantity: 0,
-                addedDate: Date.now(),
-                expiredAt: null,
-                metadata: null,
-                externalId: null,
-                type: SubscriptionItemType.Static,
-                manuallyCreated: true,
-                livemode: testSubscription.livemode,
-              },
-              transaction
-            )
+          await insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Second Manual Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
           )
         })
       ).rejects.toThrow()
@@ -2007,26 +2001,24 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await insertSubscriptionItem(
-              {
-                subscriptionId: testSubscription.id,
-                name: 'Invalid Manual Item',
-                priceId: null,
-                unitPrice: 0,
-                quantity: 1, // Should be 0
-                addedDate: Date.now(),
-                expiredAt: null,
-                metadata: null,
-                externalId: null,
-                type: SubscriptionItemType.Static,
-                manuallyCreated: true,
-                livemode: testSubscription.livemode,
-              },
-              transaction
-            )
+          await insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Manual Item',
+              priceId: null,
+              unitPrice: 0,
+              quantity: 1, // Should be 0
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
           )
         })
       ).rejects.toThrow()
@@ -2042,26 +2034,24 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await insertSubscriptionItem(
-              {
-                subscriptionId: testSubscription.id,
-                name: 'Invalid Manual Item',
-                priceId: priceForFeatures.id, // Should be null
-                unitPrice: 0,
-                quantity: 0,
-                addedDate: Date.now(),
-                expiredAt: null,
-                metadata: null,
-                externalId: null,
-                type: SubscriptionItemType.Static,
-                manuallyCreated: true,
-                livemode: testSubscription.livemode,
-              },
-              transaction
-            )
+          await insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Manual Item',
+              priceId: priceForFeatures.id, // Should be null
+              unitPrice: 0,
+              quantity: 0,
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: true,
+              livemode: testSubscription.livemode,
+            },
+            transaction
           )
         })
       ).rejects.toThrow()
@@ -2077,26 +2067,24 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await insertSubscriptionItem(
-              {
-                subscriptionId: testSubscription.id,
-                name: 'Invalid Item',
-                priceId: priceForFeatures.id,
-                unitPrice: 1000,
-                quantity: 0, // Should be > 0
-                addedDate: Date.now(),
-                expiredAt: null,
-                metadata: null,
-                externalId: null,
-                type: SubscriptionItemType.Static,
-                manuallyCreated: false,
-                livemode: testSubscription.livemode,
-              },
-              transaction
-            )
+          await insertSubscriptionItem(
+            {
+              subscriptionId: testSubscription.id,
+              name: 'Invalid Item',
+              priceId: priceForFeatures.id,
+              unitPrice: 1000,
+              quantity: 0, // Should be > 0
+              addedDate: Date.now(),
+              expiredAt: null,
+              metadata: null,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              manuallyCreated: false,
+              livemode: testSubscription.livemode,
+            },
+            transaction
           )
         })
       ).rejects.toThrow()

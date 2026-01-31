@@ -10,7 +10,10 @@ import {
   setupOrg,
   setupPurchase,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   enrichDiscountsWithRedemptionCounts,
   insertDiscount,
@@ -56,7 +59,7 @@ describe('insertDiscount uniqueness constraints', () => {
     ).unwrap()
 
     await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
+      adminTransaction(async ({ transaction }) => {
         await insertDiscount(
           {
             organizationId: organization1.id,
@@ -72,7 +75,6 @@ describe('insertDiscount uniqueness constraints', () => {
           },
           transaction
         )
-        return Result.ok(undefined)
       })
     ).rejects.toThrow()
   })

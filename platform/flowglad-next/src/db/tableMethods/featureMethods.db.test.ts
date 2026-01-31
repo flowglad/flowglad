@@ -22,6 +22,7 @@ import {
   setupToggleFeature,
 } from '@/../seedDatabase'
 import {
+  adminTransaction,
   adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
@@ -95,7 +96,7 @@ describe('insertFeature uniqueness constraints', () => {
     ).unwrap()
 
     await expect(
-      adminTransactionWithResult(async (ctx) => {
+      adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertFeature(
           createToggleFeatureInsert(
@@ -106,7 +107,6 @@ describe('insertFeature uniqueness constraints', () => {
           ),
           ctx
         )
-        return Result.ok(undefined)
       })
     ).rejects.toThrow()
   })

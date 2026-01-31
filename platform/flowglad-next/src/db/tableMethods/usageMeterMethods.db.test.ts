@@ -6,7 +6,10 @@ import {
   setupPricingModel,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { selectPricingModelForCustomer } from './pricingModelMethods'
 import {
   insertUsageMeter,
@@ -123,13 +126,11 @@ describe('usageMeterMethods', () => {
 
     it('should throw an error when updating a non-existent usage meter', async () => {
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await updateUsageMeter(
-              { id: 'non-existent-id', name: 'Name' },
-              ctx
-            )
+          await updateUsageMeter(
+            { id: 'non-existent-id', name: 'Name' },
+            ctx
           )
         })
       ).rejects.toThrow()
@@ -284,7 +285,7 @@ describe('usageMeterMethods', () => {
 
     it('should throw an error when inserting a usage meter with a non-existent pricingModelId', async () => {
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await insertUsageMeter(
             {
@@ -300,7 +301,6 @@ describe('usageMeterMethods', () => {
             input: { pageSize: 10 },
             transaction,
           })
-          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
@@ -385,7 +385,7 @@ describe('usageMeterMethods', () => {
       // Insert this fake customer record to make selectCustomerById work
       // but with a pricingModelId that doesn't exist
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Note: selectUsageMeterBySlugAndCustomerId internally looks up the customer
           // and then their pricing model. We're testing the case where both:
@@ -394,11 +394,9 @@ describe('usageMeterMethods', () => {
           // To properly test this, we need to mock or override the customer lookup
 
           // For now, we test by directly calling selectPricingModelForCustomer with the fake data
-          return Result.ok(
-            await selectPricingModelForCustomer(
-              customerWithInvalidPricingModel,
-              transaction
-            )
+          await selectPricingModelForCustomer(
+            customerWithInvalidPricingModel,
+            transaction
           )
         })
       ).rejects.toThrow(

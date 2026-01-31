@@ -26,7 +26,10 @@ import {
   setupResourceFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { updateCustomer } from './customerMethods'
 import {
@@ -364,10 +367,9 @@ describe('priceMethods.ts', () => {
 
       // Expect the entire transaction to fail due to the unique constraint violation
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await insertPrice(newPriceInsert, ctx)
-          return Result.ok(undefined)
         })
       ).rejects.toThrow(/Failed query:/)
     })
@@ -560,7 +562,7 @@ describe('priceMethods.ts', () => {
     it('throws an error when inserting a price with duplicate slug in same pricing model across products (both active)', async () => {
       const slug = 'duplicate-slug'
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -608,7 +610,6 @@ describe('priceMethods.ts', () => {
             },
             ctx
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow(/Failed query: /)
     })
@@ -617,7 +618,7 @@ describe('priceMethods.ts', () => {
       const slug1 = 'slug-one'
       const slug2 = 'slug-two'
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -674,7 +675,6 @@ describe('priceMethods.ts', () => {
             },
             ctx
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow(/Failed query: /)
     })
@@ -998,7 +998,7 @@ describe('priceMethods.ts', () => {
     it('throws an error when updating inactive price to active when another active price has the same slug', async () => {
       const slug = 'conflicting-slug'
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -1055,7 +1055,6 @@ describe('priceMethods.ts', () => {
             },
             ctx
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow(/Failed query: /)
     })
@@ -1574,7 +1573,7 @@ describe('priceMethods.ts', () => {
 
     it('should throw error when no default pricing model exists', async () => {
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a new organization without a default pricing model
           const nonDefaultPricingModel = await setupPricingModel({
@@ -1624,7 +1623,6 @@ describe('priceMethods.ts', () => {
             },
             transaction
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow(
         /No default pricing model found for organization/

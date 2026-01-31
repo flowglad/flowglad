@@ -10,7 +10,10 @@ import {
   setupInvoice,
   setupOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { updateInvoiceTransaction } from './invoiceHelpers'
 
@@ -39,24 +42,22 @@ describe('updateInvoiceTransaction', () => {
       // Attempt to exploit by passing draft invoice ID for validation
       // but paid invoice ID in the invoice object for the actual update
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await updateInvoiceTransaction(
-              {
-                id: draftInvoice.id, // Use draft invoice ID for terminal check
-                invoice: {
-                  id: paidInvoice.id, // But try to update paid invoice
-                  type: InvoiceType.Purchase,
-                  status: InvoiceStatus.Open,
-                  currency: paidInvoice.currency,
-                  dueDate: paidInvoice.dueDate,
-                  invoiceDate: paidInvoice.invoiceDate,
-                },
-                invoiceLineItems: [],
+        adminTransaction(async ({ transaction }) => {
+          await updateInvoiceTransaction(
+            {
+              id: draftInvoice.id, // Use draft invoice ID for terminal check
+              invoice: {
+                id: paidInvoice.id, // But try to update paid invoice
+                type: InvoiceType.Purchase,
+                status: InvoiceStatus.Open,
+                currency: paidInvoice.currency,
+                dueDate: paidInvoice.dueDate,
+                invoiceDate: paidInvoice.invoiceDate,
               },
-              true,
-              transaction
-            )
+              invoiceLineItems: [],
+            },
+            true,
+            transaction
           )
         })
       ).rejects.toThrow(/ID mismatch/)
@@ -165,8 +166,8 @@ describe('updateInvoiceTransaction', () => {
     //       })
 
     //       await expect(
-    //         adminTransactionWithResult(async ({ transaction }) => {
-    //           return Result.ok(await updateInvoiceTransaction(
+    //         adminTransaction(async ({ transaction }) => {
+    //           await updateInvoiceTransaction(
     //             {
     //               invoice: {
     //                 id: invoice.id,
@@ -179,7 +180,7 @@ describe('updateInvoiceTransaction', () => {
     //             },
     //             true,
     //             transaction
-    //           ))
+    //           )
     //         })
     //       ).rejects.toThrow(/terminal state/)
     //     })
@@ -197,8 +198,8 @@ describe('updateInvoiceTransaction', () => {
     //       })
 
     //       await expect(
-    //         adminTransactionWithResult(async ({ transaction }) => {
-    //           return Result.ok(await updateInvoiceTransaction(
+    //         adminTransaction(async ({ transaction }) => {
+    //           await updateInvoiceTransaction(
     //             {
     //               invoice: {
     //                 id: invoice.id,
@@ -211,7 +212,7 @@ describe('updateInvoiceTransaction', () => {
     //             },
     //             true,
     //             transaction
-    //           ))
+    //           )
     //         })
     //       ).rejects.toThrow(/Cannot update a paid invoice/)
     //     })
@@ -494,8 +495,8 @@ describe('updateInvoiceTransaction', () => {
   //       const { organization } = await setupOrg()
 
   //       await expect(
-  //         adminTransactionWithResult(async ({ transaction }) => {
-  //           return Result.ok(await updateInvoiceTransaction(
+  //         adminTransaction(async ({ transaction }) => {
+  //           await updateInvoiceTransaction(
   //             {
   //               invoice: {
   //                 id: 'non-existent-id',
@@ -507,7 +508,7 @@ describe('updateInvoiceTransaction', () => {
   //             },
   //             true,
   //             transaction
-  //           ))
+  //)
   //         })
   //       ).rejects.toThrow()
   //     })
@@ -526,8 +527,8 @@ describe('updateInvoiceTransaction', () => {
 
   //       // Attempt an update that should fail
   //       await expect(
-  //         adminTransactionWithResult(async ({ transaction }) => {
-  //           return Result.ok(await updateInvoiceTransaction(
+  //         adminTransaction(async ({ transaction }) => {
+  //           await updateInvoiceTransaction(
   //             {
   //               invoice: {
   //                 id: invoice.id,
@@ -547,7 +548,7 @@ describe('updateInvoiceTransaction', () => {
   //             },
   //             true,
   //             transaction
-  //           ))
+  //           )
   //         })
   //       ).rejects.toThrow()
 

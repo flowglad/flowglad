@@ -41,7 +41,10 @@ import {
   setupUsageLedgerScenario,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import type { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   processSettleInvoiceUsageCostsLedgerCommand,
@@ -541,14 +544,13 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       // execute & expects:
       // 3. Calling the command processing function a second time should fail.
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
               command,
               transaction
             )
           ).unwrap()
-          return Result.ok(undefined)
         })
       ).rejects.toThrow()
 
@@ -588,14 +590,13 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute & expects:
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
               command,
               transaction
             )
           ).unwrap()
-          return Result.ok(undefined)
         })
       ).rejects.toThrowError(
         'Expected 1 ledger accounts for usage line items, but got 0'

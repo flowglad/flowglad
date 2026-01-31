@@ -20,7 +20,10 @@ import { Result } from 'better-result'
 import { eq, inArray, or, sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { setupCustomer, setupOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   selectCustomersCursorPaginatedWithTableRowData,
@@ -1810,15 +1813,13 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should enforce maximum limit of 100', async () => {
     await expect(
-      adminTransactionWithResult(async (ctx) => {
+      adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return Result.ok(
-          await selectCustomersPaginated(
-            {
-              limit: 101,
-            },
-            transaction
-          )
+        await selectCustomersPaginated(
+          {
+            limit: 101,
+          },
+          transaction
         )
       })
     ).rejects.toThrow('limit must be less than or equal to 100')

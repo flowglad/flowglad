@@ -36,7 +36,10 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { countActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { claimResourceTransaction } from '@/resources/resourceClaimHelpers'
@@ -324,21 +327,19 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Try to create one more claim
     await expect(
-      adminTransactionWithResult(
+      adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  quantity: 1,
-                },
+          await claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                quantity: 1,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }

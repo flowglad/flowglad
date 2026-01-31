@@ -25,7 +25,10 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   insertDiscountRedemption,
   selectDiscountRedemptions,
@@ -522,7 +525,7 @@ describe('Discount Redemption Tracking', () => {
       })
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await incrementNumberOfPaymentsForDiscountRedemption(
             {
               ...discountRedemption,
@@ -532,7 +535,6 @@ describe('Discount Redemption Tracking', () => {
             payment,
             transaction
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow(
         'Expected discountRedemption to have purchaseId or subscriptionId'

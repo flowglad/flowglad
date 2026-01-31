@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 import { user } from '@db-core/schema/betterAuthSchema'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   selectBetterAuthUserByEmail,
@@ -47,10 +50,8 @@ describe('selectBetterAuthUserById', () => {
     const nonExistentId = `bau_nonexistent_${core.nanoid()}`
 
     await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await selectBetterAuthUserById(nonExistentId, transaction)
-        )
+      adminTransaction(async ({ transaction }) => {
+        await selectBetterAuthUserById(nonExistentId, transaction)
       })
     ).rejects.toThrow('BetterAuth user not found')
   })
@@ -95,12 +96,10 @@ describe('selectBetterAuthUserByEmail', () => {
     const nonExistentEmail = `nonexistent+${core.nanoid()}@test.com`
 
     await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await selectBetterAuthUserByEmail(
-            nonExistentEmail,
-            transaction
-          )
+      adminTransaction(async ({ transaction }) => {
+        await selectBetterAuthUserByEmail(
+          nonExistentEmail,
+          transaction
         )
       })
     ).rejects.toThrow('BetterAuth user not found')

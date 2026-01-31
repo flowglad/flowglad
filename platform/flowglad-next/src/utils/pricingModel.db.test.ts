@@ -31,7 +31,10 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { comprehensiveAuthenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -1657,17 +1660,14 @@ describe('clonePricingModelTransaction', () => {
       // another pricing model to livemode should fail with the expected error
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
-          return Result.ok(
-            await clonePricingModelTransaction(
-              {
-                id: sourcePricingModel.id,
-                name: 'Attempted Livemode Clone',
-                destinationEnvironment:
-                  DestinationEnvironment.Livemode,
-              },
-              ctx
-            )
+        adminTransaction(async (ctx) => {
+          await clonePricingModelTransaction(
+            {
+              id: sourcePricingModel.id,
+              name: 'Attempted Livemode Clone',
+              destinationEnvironment: DestinationEnvironment.Livemode,
+            },
+            ctx
           )
         })
       ).rejects.toThrow(
@@ -2159,30 +2159,28 @@ describe('createPriceTransaction', () => {
 
   it('rejects creating additional prices for a default product', async () => {
     await expect(
-      adminTransactionWithResult(async (ctx) => {
-        return Result.ok(
-          await createPriceTransaction(
-            {
-              price: {
-                name: 'Disallowed Additional Price',
-                productId: defaultProduct.id,
-                type: PriceType.Subscription,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                unitPrice: 3000,
-                trialPeriodDays: 0,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
-                isDefault: false,
-                slug: `disallowed-price-${core.nanoid()}`,
-              },
+      adminTransaction(async (ctx) => {
+        await createPriceTransaction(
+          {
+            price: {
+              name: 'Disallowed Additional Price',
+              productId: defaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 3000,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `disallowed-price-${core.nanoid()}`,
             },
-            {
-              ...ctx,
-              livemode: true,
-              organizationId: organization.id,
-            }
-          )
+          },
+          {
+            ...ctx,
+            livemode: true,
+            organizationId: organization.id,
+          }
         )
       })
     ).rejects.toThrow(
@@ -2305,30 +2303,28 @@ describe('createPriceTransaction', () => {
     ).unwrap()
 
     await expect(
-      adminTransactionWithResult(async (ctx) => {
-        return Result.ok(
-          await createPriceTransaction(
-            {
-              price: {
-                name: 'Mismatched Type Price',
-                productId: nonDefaultProduct.id,
-                type: PriceType.SinglePayment,
-                unitPrice: 3500,
-                intervalUnit: null,
-                intervalCount: null,
-                trialPeriodDays: null,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
-                isDefault: false,
-                slug: `mismatched-type-price-${core.nanoid()}`,
-              },
+      adminTransaction(async (ctx) => {
+        await createPriceTransaction(
+          {
+            price: {
+              name: 'Mismatched Type Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.SinglePayment,
+              unitPrice: 3500,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `mismatched-type-price-${core.nanoid()}`,
             },
-            {
-              ...ctx,
-              livemode: true,
-              organizationId: organization.id,
-            }
-          )
+          },
+          {
+            ...ctx,
+            livemode: true,
+            organizationId: organization.id,
+          }
         )
       })
     ).rejects.toThrow(

@@ -8,7 +8,10 @@ import {
 import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   selectFeaturesByProductFeatureWhere,
   updateProductFeature,
@@ -315,15 +318,11 @@ describe('getPricingModelSetupData', () => {
 
   it('should throw an error if pricing model is not found', async () => {
     await expect(
-      adminTransactionWithResult(async (ctx) => {
-        return Result.ok(
-          await (
-            await getPricingModelSetupData(
-              'non-existent-id',
-              ctx.transaction
-            )
-          ).unwrap()
-        )
+      adminTransaction(async (ctx) => {
+        await await getPricingModelSetupData(
+          'non-existent-id',
+          ctx.transaction
+        ).unwrap()
       })
     ).rejects.toThrow()
   })

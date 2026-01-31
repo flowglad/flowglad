@@ -7,7 +7,10 @@ import {
   setupPaymentMethod,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { buildNotificationContext } from './notificationContext'
 
 describe('buildNotificationContext', () => {
@@ -34,12 +37,10 @@ describe('buildNotificationContext', () => {
       const nonExistentId = 'org_non_existent_12345'
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await buildNotificationContext(
-              { organizationId: nonExistentId },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await buildNotificationContext(
+            { organizationId: nonExistentId },
+            transaction
           )
         })
       ).rejects.toThrow(
@@ -82,15 +83,13 @@ describe('buildNotificationContext', () => {
       const nonExistentCustomerId = 'cust_non_existent_12345'
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await buildNotificationContext(
-              {
-                organizationId: organization.id,
-                customerId: nonExistentCustomerId,
-              },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await buildNotificationContext(
+            {
+              organizationId: organization.id,
+              customerId: nonExistentCustomerId,
+            },
+            transaction
           )
         })
       ).rejects.toThrow(
@@ -325,17 +324,15 @@ describe('buildNotificationContext', () => {
       const nonExistentSubscriptionId = 'sub_non_existent_12345'
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await buildNotificationContext(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                subscriptionId: nonExistentSubscriptionId,
-                include: ['price', 'defaultPaymentMethod'],
-              },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await buildNotificationContext(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              subscriptionId: nonExistentSubscriptionId,
+              include: ['price', 'defaultPaymentMethod'],
+            },
+            transaction
           )
         })
       ).rejects.toThrow(
@@ -351,17 +348,15 @@ describe('buildNotificationContext', () => {
       const nonExistentSubscriptionId = 'sub_non_existent_67890'
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await buildNotificationContext(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                subscriptionId: nonExistentSubscriptionId,
-                // no include array - subscription should still be fetched and throw
-              },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await buildNotificationContext(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              subscriptionId: nonExistentSubscriptionId,
+              // no include array - subscription should still be fetched and throw
+            },
+            transaction
           )
         })
       ).rejects.toThrow(

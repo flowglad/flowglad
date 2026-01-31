@@ -3,7 +3,10 @@ import { FlowgladEventType } from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { createWebhookTransaction } from './webhooks'
 
 describe('createWebhookTransaction', () => {
@@ -82,21 +85,19 @@ describe('createWebhookTransaction', () => {
       const otherOrgPricingModelId = otherOrgSetup.pricingModel.id
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await createWebhookTransaction({
-              webhook: {
-                name: 'Should Not Create',
-                url: 'https://example.com/should-fail',
-                filterTypes: [],
-                active: true,
-                pricingModelId: otherOrgPricingModelId,
-              },
-              organization, // Original organization
-              livemode: true,
-              transaction,
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await createWebhookTransaction({
+            webhook: {
+              name: 'Should Not Create',
+              url: 'https://example.com/should-fail',
+              filterTypes: [],
+              active: true,
+              pricingModelId: otherOrgPricingModelId,
+            },
+            organization, // Original organization
+            livemode: true,
+            transaction,
+          })
         })
       ).rejects.toThrow(
         'Invalid pricing model for this organization and mode'
@@ -105,21 +106,19 @@ describe('createWebhookTransaction', () => {
 
     it('rejects webhook creation when pricingModelId has different livemode than the webhook', async () => {
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await createWebhookTransaction({
-              webhook: {
-                name: 'Should Not Create',
-                url: 'https://example.com/should-fail',
-                filterTypes: [],
-                active: true,
-                pricingModelId: testmodePricingModelId, // testmode pricing model
-              },
-              organization,
-              livemode: true, // but livemode webhook
-              transaction,
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await createWebhookTransaction({
+            webhook: {
+              name: 'Should Not Create',
+              url: 'https://example.com/should-fail',
+              filterTypes: [],
+              active: true,
+              pricingModelId: testmodePricingModelId, // testmode pricing model
+            },
+            organization,
+            livemode: true, // but livemode webhook
+            transaction,
+          })
         })
       ).rejects.toThrow(
         'Invalid pricing model for this organization and mode'
@@ -128,21 +127,19 @@ describe('createWebhookTransaction', () => {
 
     it('rejects webhook creation when livemode pricingModelId is used with testmode webhook', async () => {
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await createWebhookTransaction({
-              webhook: {
-                name: 'Should Not Create',
-                url: 'https://example.com/should-fail',
-                filterTypes: [],
-                active: true,
-                pricingModelId: livePricingModelId, // livemode pricing model
-              },
-              organization,
-              livemode: false, // but testmode webhook
-              transaction,
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await createWebhookTransaction({
+            webhook: {
+              name: 'Should Not Create',
+              url: 'https://example.com/should-fail',
+              filterTypes: [],
+              active: true,
+              pricingModelId: livePricingModelId, // livemode pricing model
+            },
+            organization,
+            livemode: false, // but testmode webhook
+            transaction,
+          })
         })
       ).rejects.toThrow(
         'Invalid pricing model for this organization and mode'

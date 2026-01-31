@@ -37,7 +37,10 @@ import {
   setupSubscription,
   setupUserAndCustomer,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import * as databaseAuthentication from '@/db/databaseAuthentication'
 import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
@@ -572,13 +575,11 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
     // Attempt to set a non-existent payment method as default
     await expect(
-      adminTransactionWithResult(async (ctx) => {
+      adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return Result.ok(
-          await setDefaultPaymentMethodForCustomer(
-            { paymentMethodId: nonExistentId },
-            createDiscardingEffectsContext(transaction)
-          )
+        await setDefaultPaymentMethodForCustomer(
+          { paymentMethodId: nonExistentId },
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).rejects.toThrow()
@@ -1574,15 +1575,15 @@ describe('customerBillingTransaction - currentSubscription field', () => {
   // it('should throw error when customer has no current subscriptions', async () => {
   //   // Customer has no subscriptions at all
   //   await expect(
-  //     adminTransactionWithResult(async (ctx) => {
+  //     adminTransaction(async (ctx) => {
   //       const { transaction } = ctx
-  //       return Result.ok(await customerBillingTransaction(
+  //       await customerBillingTransaction(
   //         {
   //           externalId: customer.externalId,
   //           organizationId: organization.id,
   //         },
   //         transaction
-  //       ))
+  //       )
   //     })
   //   ).rejects.toThrow('Customer has no current subscriptions')
   // })

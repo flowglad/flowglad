@@ -8,7 +8,10 @@ import {
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import * as orgSetup from '@/db/tableMethods/organizationMethods'
 import {
   insertPrice,
@@ -659,7 +662,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should enforce single default price per product constraint', async () => {
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Try to create another default price for the default product
           await insertPrice(
@@ -682,7 +685,6 @@ describe('pricesRouter - Default Price Constraints', () => {
             },
             ctx
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow() // Database constraint will throw an error
     })

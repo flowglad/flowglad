@@ -17,7 +17,10 @@ import {
   setupSubscription,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { ValidationError } from '@/errors'
 import { core } from '@/utils/core'
 import {
@@ -417,19 +420,17 @@ describe('billingRunMethods', () => {
     it('should throw error when subscription does not exist during pricingModelId derivation', async () => {
       const nonExistentSubscriptionId = `sub_${core.nanoid()}`
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await safelyInsertBillingRun(
-              {
-                billingPeriodId: billingPeriod.id,
-                scheduledFor: Date.now(),
-                status: BillingRunStatus.Scheduled,
-                subscriptionId: nonExistentSubscriptionId,
-                paymentMethodId: paymentMethod.id,
-                livemode: billingPeriod.livemode,
-              },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: nonExistentSubscriptionId,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
           )
         })
       ).rejects.toThrowError('No subscriptions found with id')

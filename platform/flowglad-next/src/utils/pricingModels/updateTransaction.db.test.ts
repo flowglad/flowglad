@@ -119,20 +119,22 @@ const createBasicPricingModel = async (
     products: finalProducts,
   }
 
-  return adminTransactionWithResult(async (ctx) => {
-    return Result.ok(
-      await (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
-        )
-      ).unwrap()
-    )
-  })
+  return (
+    await adminTransactionWithResult(async (ctx) => {
+      return Result.ok(
+        await (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
+      )
+    })
+  ).unwrap()
 }
 
 describe('updatePricingModelTransaction', () => {
@@ -142,58 +144,56 @@ describe('updatePricingModelTransaction', () => {
         name: 'Old Name',
       })
 
-      const updateResult = (
-        await comprehensiveAdminTransaction(
-          async (params) => {
-            const result = (
-              await updatePricingModelTransaction(
-                {
-                  pricingModelId: setupResult.pricingModel.id,
-                  proposedInput: {
-                    name: 'New Name',
-                    isDefault: false,
-                    usageMeters: [],
-                    features: [
-                      {
-                        type: FeatureType.Toggle,
-                        slug: 'feature-a',
-                        name: 'Feature A',
-                        description: 'A toggle feature',
+      const updateResult = await comprehensiveAdminTransaction(
+        async (params) => {
+          const result = (
+            await updatePricingModelTransaction(
+              {
+                pricingModelId: setupResult.pricingModel.id,
+                proposedInput: {
+                  name: 'New Name',
+                  isDefault: false,
+                  usageMeters: [],
+                  features: [
+                    {
+                      type: FeatureType.Toggle,
+                      slug: 'feature-a',
+                      name: 'Feature A',
+                      description: 'A toggle feature',
+                      active: true,
+                    },
+                  ],
+                  products: [
+                    {
+                      product: {
+                        name: 'Starter Plan',
+                        slug: 'starter',
+                        default: false,
                         active: true,
                       },
-                    ],
-                    products: [
-                      {
-                        product: {
-                          name: 'Starter Plan',
-                          slug: 'starter',
-                          default: false,
-                          active: true,
-                        },
-                        price: {
-                          type: PriceType.Subscription,
-                          slug: 'starter-monthly',
-                          unitPrice: 1999,
-                          isDefault: true,
-                          active: true,
-                          intervalCount: 1,
-                          intervalUnit: IntervalUnit.Month,
-                          usageMeterId: null,
-                          usageEventsPerUnit: null,
-                        },
-                        features: ['feature-a'],
+                      price: {
+                        type: PriceType.Subscription,
+                        slug: 'starter-monthly',
+                        unitPrice: 1999,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageMeterId: null,
+                        usageEventsPerUnit: null,
                       },
-                    ],
-                  },
+                      features: ['feature-a'],
+                    },
+                  ],
                 },
-                params
-              )
-            ).unwrap()
-            return Result.ok(result)
-          },
-          { livemode: false }
-        )
-      ).unwrap()
+              },
+              params
+            )
+          ).unwrap()
+          return Result.ok(result)
+        },
+        { livemode: false }
+      )
 
       expect(updateResult.pricingModel.name).toBe('New Name')
       expect(updateResult.features.created).toHaveLength(0)

@@ -17,7 +17,10 @@ import {
   setupUsageEvent,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   calculateUsageVolumeByInterval,
@@ -522,19 +525,17 @@ describe('calculateUsageVolumeByInterval', () => {
 
       // Request from org2 should fail
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await calculateUsageVolumeByInterval(
-              org2.id, // Different org
-              {
-                startDate,
-                endDate,
-                granularity: RevenueChartIntervalUnit.Day,
-                usageMeterId: usageMeter.id,
-                livemode: true,
-              },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await calculateUsageVolumeByInterval(
+            org2.id, // Different org
+            {
+              startDate,
+              endDate,
+              granularity: RevenueChartIntervalUnit.Day,
+              usageMeterId: usageMeter.id,
+              livemode: true,
+            },
+            transaction
           )
         })
       ).rejects.toThrow('Usage meter not found')

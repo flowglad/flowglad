@@ -52,6 +52,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
+  adminTransaction,
   adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
@@ -411,13 +412,11 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     ).unwrap()
 
     await expect(
-      adminTransactionWithResult(async (ctx) => {
+      adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return Result.ok(
-          await ledgerCommandForPaymentSucceeded(
-            { priceId: singlePaymentPrice.id, payment },
-            transaction
-          )
+        await ledgerCommandForPaymentSucceeded(
+          { priceId: singlePaymentPrice.id, payment },
+          transaction
         )
       })
     ).rejects.toThrow('Too small: expected number to be >0')
@@ -1054,15 +1053,13 @@ describe('Process payment intent status updated', async () => {
         type: IntentMetadataType.CheckoutSession,
       } as StripeIntentMetadata
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await upsertPaymentForStripeCharge(
-              {
-                charge: fakeCharge,
-                paymentIntentMetadata: fakeMetadata,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
+        adminTransaction(async ({ transaction }) => {
+          await upsertPaymentForStripeCharge(
+            {
+              charge: fakeCharge,
+              paymentIntentMetadata: fakeMetadata,
+            },
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow()

@@ -3,7 +3,10 @@ import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
@@ -64,32 +67,26 @@ describe('validateAndResolvePricingModelId', () => {
 
   it('throws TRPCError with BAD_REQUEST when pricingModelId belongs to a different organization', async () => {
     await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await validateAndResolvePricingModelId({
-            pricingModelId: org2PricingModelId, // org2's pricing model
-            organizationId: org1Id, // but trying to use in org1's context
-            livemode,
-            transaction,
-          })
-        )
+      adminTransaction(async ({ transaction }) => {
+        await validateAndResolvePricingModelId({
+          pricingModelId: org2PricingModelId, // org2's pricing model
+          organizationId: org1Id, // but trying to use in org1's context
+          livemode,
+          transaction,
+        })
       })
     ).rejects.toThrow(TRPCError)
 
     // Verify the error details
     try {
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await validateAndResolvePricingModelId({
-              pricingModelId: org2PricingModelId,
-              organizationId: org1Id,
-              livemode,
-              transaction,
-            })
-          )
+      await adminTransaction(async ({ transaction }) => {
+        await validateAndResolvePricingModelId({
+          pricingModelId: org2PricingModelId,
+          organizationId: org1Id,
+          livemode,
+          transaction,
         })
-      ).unwrap()
+      })
     } catch (error) {
       expect(error).toBeInstanceOf(TRPCError)
       expect((error as TRPCError).code).toBe('BAD_REQUEST')
@@ -103,32 +100,26 @@ describe('validateAndResolvePricingModelId', () => {
     const nonExistentPricingModelId = 'pricing_model_nonexistent123'
 
     await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await validateAndResolvePricingModelId({
-            pricingModelId: nonExistentPricingModelId,
-            organizationId: org1Id,
-            livemode,
-            transaction,
-          })
-        )
+      adminTransaction(async ({ transaction }) => {
+        await validateAndResolvePricingModelId({
+          pricingModelId: nonExistentPricingModelId,
+          organizationId: org1Id,
+          livemode,
+          transaction,
+        })
       })
     ).rejects.toThrow(TRPCError)
 
     // Verify the error details
     try {
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await validateAndResolvePricingModelId({
-              pricingModelId: nonExistentPricingModelId,
-              organizationId: org1Id,
-              livemode,
-              transaction,
-            })
-          )
+      await adminTransaction(async ({ transaction }) => {
+        await validateAndResolvePricingModelId({
+          pricingModelId: nonExistentPricingModelId,
+          organizationId: org1Id,
+          livemode,
+          transaction,
         })
-      ).unwrap()
+      })
     } catch (error) {
       expect(error).toBeInstanceOf(TRPCError)
       expect((error as TRPCError).code).toBe('BAD_REQUEST')
@@ -193,32 +184,26 @@ describe('validateAndResolvePricingModelId', () => {
     // Attempting to use it in testmode (livemode: false) should fail
 
     await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await validateAndResolvePricingModelId({
-            pricingModelId: org1PricingModelId,
-            organizationId: org1Id,
-            livemode: false, // testmode context
-            transaction,
-          })
-        )
+      adminTransaction(async ({ transaction }) => {
+        await validateAndResolvePricingModelId({
+          pricingModelId: org1PricingModelId,
+          organizationId: org1Id,
+          livemode: false, // testmode context
+          transaction,
+        })
       })
     ).rejects.toThrow(TRPCError)
 
     // Verify the error details
     try {
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await validateAndResolvePricingModelId({
-              pricingModelId: org1PricingModelId,
-              organizationId: org1Id,
-              livemode: false,
-              transaction,
-            })
-          )
+      await adminTransaction(async ({ transaction }) => {
+        await validateAndResolvePricingModelId({
+          pricingModelId: org1PricingModelId,
+          organizationId: org1Id,
+          livemode: false,
+          transaction,
         })
-      ).unwrap()
+      })
     } catch (error) {
       expect(error).toBeInstanceOf(TRPCError)
       expect((error as TRPCError).code).toBe('BAD_REQUEST')
@@ -266,7 +251,7 @@ describe('validateAndResolvePricingModelId', () => {
 
     it('prevents discount creation with cross-tenant pricingModelId through validation', async () => {
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           // Validation will throw before we can create the discount
           const resolvedPricingModelId =
             await validateAndResolvePricingModelId({
@@ -277,22 +262,20 @@ describe('validateAndResolvePricingModelId', () => {
             })
 
           // This line should never be reached
-          return Result.ok(
-            await insertDiscount(
-              {
-                organizationId: org1Id,
-                pricingModelId: resolvedPricingModelId,
-                name: 'Test Discount',
-                code: 'INVALID10',
-                amount: 10,
-                amountType: DiscountAmountType.Percent,
-                duration: DiscountDuration.Once,
-                active: true,
-                livemode,
-                numberOfPayments: null,
-              },
-              transaction
-            )
+          await insertDiscount(
+            {
+              organizationId: org1Id,
+              pricingModelId: resolvedPricingModelId,
+              name: 'Test Discount',
+              code: 'INVALID10',
+              amount: 10,
+              amountType: DiscountAmountType.Percent,
+              duration: DiscountDuration.Once,
+              active: true,
+              livemode,
+              numberOfPayments: null,
+            },
+            transaction
           )
         })
       ).rejects.toThrow(TRPCError)

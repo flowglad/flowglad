@@ -35,6 +35,7 @@ import {
   setupSubscriptionItem,
 } from '@/../seedDatabase'
 import {
+  adminTransaction,
   adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
@@ -934,16 +935,14 @@ describe('Process setup intent', async () => {
         stripeCustomerId: 'newcust_' + core.nanoid(),
       })
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             newCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-          return Result.ok(
-            await processSetupIntentSucceeded(
-              newSetupIntentSucceeded,
-              createDiscardingEffectsContext(transaction)
-            )
+          await processSetupIntentSucceeded(
+            newSetupIntentSucceeded,
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow(/^Attempting to process checkout session/)
@@ -1587,12 +1586,10 @@ describe('Process setup intent', async () => {
         ).unwrap()
 
         await expect(
-          adminTransactionWithResult(async ({ transaction }) => {
-            return Result.ok(
-              await processSetupIntentSucceeded(
-                succeededSetupIntent,
-                createDiscardingEffectsContext(transaction)
-              )
+          adminTransaction(async ({ transaction }) => {
+            await processSetupIntentSucceeded(
+              succeededSetupIntent,
+              createDiscardingEffectsContext(transaction)
             )
           })
         ).rejects.toThrow()
@@ -1609,12 +1606,10 @@ describe('Process setup intent', async () => {
         } as CoreSripeSetupIntent
 
         await expect(
-          adminTransactionWithResult(async ({ transaction }) => {
-            return Result.ok(
-              await processSetupIntentSucceeded(
-                invalidSetupIntent,
-                createDiscardingEffectsContext(transaction)
-              )
+          adminTransaction(async ({ transaction }) => {
+            await processSetupIntentSucceeded(
+              invalidSetupIntent,
+              createDiscardingEffectsContext(transaction)
             )
           })
         ).rejects.toThrow()

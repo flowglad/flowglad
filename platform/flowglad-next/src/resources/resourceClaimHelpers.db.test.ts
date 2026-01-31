@@ -25,7 +25,10 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import {
   countActiveResourceClaims,
@@ -164,21 +167,19 @@ describe('resourceClaimHelpers', () => {
       ).unwrap()
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 1,
-                },
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 1,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).rejects.toThrow('is not active')
@@ -197,21 +198,19 @@ describe('resourceClaimHelpers', () => {
       }
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 1,
-                },
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 1,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).rejects.toThrow('No available capacity')
@@ -416,21 +415,19 @@ describe('resourceClaimHelpers', () => {
         // Try to claim 2 resources when only 1 slot available
         // Should fail completely - no partial insert
         await expect(
-          adminTransactionWithResult(async (ctx) => {
+          adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: 'seats',
-                    subscriptionId: subscription.id,
-                    quantity: 2,
-                  },
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 2,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).rejects.toThrow('No available capacity')
@@ -536,21 +533,19 @@ describe('resourceClaimHelpers', () => {
 
         // Trying to claim one more should fail
         await expect(
-          adminTransactionWithResult(async (ctx) => {
+          adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: 'seats',
-                    subscriptionId: subscription.id,
-                    quantity: 1,
-                  },
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 1,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).rejects.toThrow('No available capacity')
@@ -684,21 +679,19 @@ describe('resourceClaimHelpers', () => {
 
       // Try to release 3
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await releaseResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 3,
-                },
+          await releaseResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).rejects.toThrow(
@@ -764,21 +757,19 @@ describe('resourceClaimHelpers', () => {
 
     it('when releasing a non-existent externalId, throws an error', async () => {
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await releaseResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'nonexistent_user',
-                },
+          await releaseResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'nonexistent_user',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).rejects.toThrow('No active claim found with externalId')
@@ -1191,21 +1182,19 @@ describe('resourceClaimHelpers', () => {
       ).unwrap()
 
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  // subscriptionId intentionally omitted
-                  quantity: 1,
-                },
+          await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                // subscriptionId intentionally omitted
+                quantity: 1,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).rejects.toThrow('No active subscription found')
@@ -1311,25 +1300,19 @@ describe('resourceClaimHelpers', () => {
 
       // Try to release 3 claims, including one that doesn't exist
       await expect(
-        adminTransactionWithResult(async (ctx) => {
+        adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await releaseResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalIds: [
-                    'user_1',
-                    'user_2',
-                    'nonexistent_user',
-                  ],
-                },
+          await releaseResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['user_1', 'user_2', 'nonexistent_user'],
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).rejects.toThrow('No active claim found with externalId')

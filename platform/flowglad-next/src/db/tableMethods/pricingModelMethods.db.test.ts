@@ -14,7 +14,10 @@ import {
   setupToggleFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { safelyUpdatePrice } from './priceMethods'
 import {
   countProductsWithPricesByPricingModelIds,
@@ -491,17 +494,15 @@ describe('safelyInsertPricingModel', () => {
     // Attempting to insert another livemode PM should throw an error
 
     await expect(
-      adminTransactionWithResult(async (ctx) => {
-        return Result.ok(
-          await safelyInsertPricingModel(
-            {
-              name: 'Second Livemode PricingModel',
-              organizationId: organization.id,
-              isDefault: false,
-              livemode: true, // This should be rejected
-            },
-            ctx
-          )
+      adminTransaction(async (ctx) => {
+        await safelyInsertPricingModel(
+          {
+            name: 'Second Livemode PricingModel',
+            organizationId: organization.id,
+            isDefault: false,
+            livemode: true, // This should be rejected
+          },
+          ctx
         )
       })
     ).rejects.toThrow(
@@ -885,13 +886,11 @@ describe('selectPricingModelForCustomer', () => {
     }
 
     await expect(
-      adminTransactionWithResult(async (ctx) => {
+      adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return Result.ok(
-          await selectPricingModelForCustomer(
-            customerWithFakeOrgAndPricingModel,
-            transaction
-          )
+        await selectPricingModelForCustomer(
+          customerWithFakeOrgAndPricingModel,
+          transaction
         )
       })
     ).rejects.toThrow(

@@ -31,6 +31,7 @@ import {
   setupPurchase,
 } from '@/../seedDatabase'
 import {
+  adminTransaction,
   adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
@@ -342,20 +343,18 @@ describe('Checkout Sessions', () => {
       ).unwrap()
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await editCheckoutSession(
-              {
-                checkoutSession: {
-                  id: checkoutSession.id,
-                  type: CheckoutSessionType.Purchase,
-                  priceId: price.id,
-                  targetSubscriptionId: null,
-                  automaticallyUpdateSubscriptions: null,
-                },
+        adminTransaction(async ({ transaction }) => {
+          await editCheckoutSession(
+            {
+              checkoutSession: {
+                id: checkoutSession.id,
+                type: CheckoutSessionType.Purchase,
+                priceId: price.id,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
               },
-              createDiscardingEffectsContext(transaction)
-            )
+            },
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Checkout session is not open')
@@ -550,21 +549,19 @@ describe('Checkout Sessions', () => {
       ).unwrap()
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await editCheckoutSession(
-              {
-                checkoutSession: {
-                  id: checkoutSession.id,
-                  type: CheckoutSessionType.Product,
-                  priceId: price.id,
-                  targetSubscriptionId: null,
-                  automaticallyUpdateSubscriptions: null,
-                },
-                purchaseId: purchase.id,
+        adminTransaction(async ({ transaction }) => {
+          await editCheckoutSession(
+            {
+              checkoutSession: {
+                id: checkoutSession.id,
+                type: CheckoutSessionType.Product,
+                priceId: price.id,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
               },
-              createDiscardingEffectsContext(transaction)
-            )
+              purchaseId: purchase.id,
+            },
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Purchase is not pending')
@@ -1591,15 +1588,13 @@ describe('editCheckoutSessionBillingAddress', async () => {
       }
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await editCheckoutSessionBillingAddress(
-              {
-                checkoutSessionId: 'non-existent-id',
-                billingAddress,
-              },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await editCheckoutSessionBillingAddress(
+            {
+              checkoutSessionId: 'non-existent-id',
+              billingAddress,
+            },
+            transaction
           )
         })
       ).rejects.toThrow('No checkout sessions found with id:')
@@ -1627,15 +1622,13 @@ describe('editCheckoutSessionBillingAddress', async () => {
       }
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await editCheckoutSessionBillingAddress(
-              {
-                checkoutSessionId: checkoutSession.id,
-                billingAddress,
-              },
-              transaction
-            )
+        adminTransaction(async ({ transaction }) => {
+          await editCheckoutSessionBillingAddress(
+            {
+              checkoutSessionId: checkoutSession.id,
+              billingAddress,
+            },
+            transaction
           )
         })
       ).rejects.toThrow('Checkout session is not open')

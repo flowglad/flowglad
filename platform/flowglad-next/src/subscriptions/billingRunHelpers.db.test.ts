@@ -60,7 +60,10 @@ import {
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { type OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   selectBillingPeriodItems,
@@ -1967,7 +1970,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1996,7 +1999,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) =>
+        adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,

@@ -37,7 +37,10 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import {
@@ -345,20 +348,18 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Attempting to claim more than available should fail
     await expect(
-      adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                quantity: 4, // More than available (3)
-              },
+      adminTransaction(async ({ transaction }) => {
+        await claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              quantity: 4, // More than available (3)
             },
-            transaction
-          )
+          },
+          transaction
         )
       })
     ).rejects.toThrow('No available capacity')

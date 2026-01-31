@@ -4,7 +4,10 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Resource } from '@db-core/schema/resources'
 import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug,
   insertResource,
@@ -227,7 +230,7 @@ describe('resourceMethods', () => {
       ).unwrap()
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await insertResource(
             createResourceInsert({
               slug: 'seats',
@@ -235,7 +238,6 @@ describe('resourceMethods', () => {
             }),
             transaction
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })

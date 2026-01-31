@@ -36,7 +36,10 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import {
@@ -1423,52 +1426,48 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should throw UNAUTHORIZED when organizationId is missing', async () => {
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await migrateCustomerPricingModelProcedureTransaction({
-              input: {
-                externalId: customer.externalId,
-                newPricingModelId: pricingModel2.id,
-              },
-              ctx: {
-                apiKey: undefined,
-                organizationId: undefined as unknown as string,
-              },
-              transactionCtx: withAdminCacheContext({
-                transaction,
-                livemode: true,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-                enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              }),
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await migrateCustomerPricingModelProcedureTransaction({
+            input: {
+              externalId: customer.externalId,
+              newPricingModelId: pricingModel2.id,
+            },
+            ctx: {
+              apiKey: undefined,
+              organizationId: undefined as unknown as string,
+            },
+            transactionCtx: withAdminCacheContext({
+              transaction,
+              livemode: true,
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+            }),
+          })
         })
       ).rejects.toThrow('Organization ID is required')
     })
 
     it('should throw NOT_FOUND when customer does not exist', async () => {
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await migrateCustomerPricingModelProcedureTransaction({
-              input: {
-                externalId: 'non-existent-customer',
-                newPricingModelId: pricingModel2.id,
-              },
-              ctx: {
-                apiKey: undefined,
-                organizationId: organization.id,
-              },
-              transactionCtx: withAdminCacheContext({
-                transaction,
-                livemode: true,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-                enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              }),
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await migrateCustomerPricingModelProcedureTransaction({
+            input: {
+              externalId: 'non-existent-customer',
+              newPricingModelId: pricingModel2.id,
+            },
+            ctx: {
+              apiKey: undefined,
+              organizationId: organization.id,
+            },
+            transactionCtx: withAdminCacheContext({
+              transaction,
+              livemode: true,
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+            }),
+          })
         })
       ).rejects.toThrow(
         'Customer with external ID non-existent-customer not found'
@@ -1477,26 +1476,24 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should throw NOT_FOUND when new pricing model does not exist', async () => {
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await migrateCustomerPricingModelProcedureTransaction({
-              input: {
-                externalId: customer.externalId,
-                newPricingModelId: 'non-existent-pricing-model',
-              },
-              ctx: {
-                apiKey: undefined,
-                organizationId: organization.id,
-              },
-              transactionCtx: withAdminCacheContext({
-                transaction,
-                livemode: true,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-                enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              }),
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await migrateCustomerPricingModelProcedureTransaction({
+            input: {
+              externalId: customer.externalId,
+              newPricingModelId: 'non-existent-pricing-model',
+            },
+            ctx: {
+              apiKey: undefined,
+              organizationId: organization.id,
+            },
+            transactionCtx: withAdminCacheContext({
+              transaction,
+              livemode: true,
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+            }),
+          })
         })
       ).rejects.toThrow(
         'Pricing model non-existent-pricing-model not found'
@@ -1512,26 +1509,24 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await migrateCustomerPricingModelProcedureTransaction({
-              input: {
-                externalId: customer.externalId,
-                newPricingModelId: otherPricingModel.id,
-              },
-              ctx: {
-                apiKey: undefined,
-                organizationId: organization.id,
-              },
-              transactionCtx: withAdminCacheContext({
-                transaction,
-                livemode: true,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-                enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              }),
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await migrateCustomerPricingModelProcedureTransaction({
+            input: {
+              externalId: customer.externalId,
+              newPricingModelId: otherPricingModel.id,
+            },
+            ctx: {
+              apiKey: undefined,
+              organizationId: organization.id,
+            },
+            transactionCtx: withAdminCacheContext({
+              transaction,
+              livemode: true,
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+            }),
+          })
         })
       ).rejects.toThrow(
         'Pricing model does not belong to your organization'
@@ -1541,26 +1536,24 @@ describe('Pricing Model Migration Test Suite', async () => {
     it('should throw BAD_REQUEST when customer livemode does not match pricing model livemode', async () => {
       // customer.livemode is false, orgLivePricingModel.livemode is true
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
-          return Result.ok(
-            await migrateCustomerPricingModelProcedureTransaction({
-              input: {
-                externalId: customer.externalId,
-                newPricingModelId: orgLivePricingModel.id,
-              },
-              ctx: {
-                apiKey: undefined,
-                organizationId: organization.id,
-              },
-              transactionCtx: withAdminCacheContext({
-                transaction,
-                livemode: true,
-                invalidateCache: noopInvalidateCache,
-                emitEvent: noopEmitEvent,
-                enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              }),
-            })
-          )
+        adminTransaction(async ({ transaction }) => {
+          await migrateCustomerPricingModelProcedureTransaction({
+            input: {
+              externalId: customer.externalId,
+              newPricingModelId: orgLivePricingModel.id,
+            },
+            ctx: {
+              apiKey: undefined,
+              organizationId: organization.id,
+            },
+            transactionCtx: withAdminCacheContext({
+              transaction,
+              livemode: true,
+              invalidateCache: noopInvalidateCache,
+              emitEvent: noopEmitEvent,
+              enqueueLedgerCommand: noopEnqueueLedgerCommand,
+            }),
+          })
         })
       ).rejects.toThrow(
         'Pricing model livemode must match customer livemode'

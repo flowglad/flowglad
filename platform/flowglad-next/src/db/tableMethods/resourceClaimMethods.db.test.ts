@@ -16,7 +16,10 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   countActiveResourceClaims,
   countActiveResourceClaimsBatch,
@@ -359,12 +362,11 @@ describe('resourceClaimMethods', () => {
 
       // Attempting to create another active claim with same external_id should fail
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'user-123' }),
             transaction
           )
-          return Result.ok(undefined)
         })
       ).rejects.toThrow()
     })
