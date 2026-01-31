@@ -1,11 +1,4 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { NormalBalanceType } from '@db-core/enums'
 import type { Customer } from '@db-core/schema/customers'
 import type { LedgerAccount } from '@db-core/schema/ledgerAccounts'
@@ -26,10 +19,6 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase' // Corrected path
 import { adminTransactionWithResult } from '@/db/adminTransaction'
-import {
-  AdminTransactionParams,
-  type DbTransaction,
-} from '@/db/types'
 import { core } from '@/utils/core'
 import {
   bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId,
@@ -123,7 +112,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
             subscriptionId: subscription.id,
             usageMeterId: [usageMeter1.id, usageMeter2.id],
           },
-          transaction as DbTransaction
+          transaction
         )
         expect(initialLedgerAccounts.length).toBe(2)
 
@@ -134,7 +123,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
               subscriptionId: subscription.id,
               usageMeterIds: [usageMeter1.id, usageMeter2.id],
             },
-            transaction as DbTransaction
+            transaction
           )
 
         // expectations:
@@ -148,7 +137,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
         const finalLedgerAccounts = await selectLedgerAccounts(
           { subscriptionId: subscription.id },
-          transaction as DbTransaction
+          transaction
         )
         const relevantFinalLedgerAccounts =
           finalLedgerAccounts.filter(
@@ -177,7 +166,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
             subscriptionId: subscription.id,
             usageMeterId: usageMeterIdsToCreateFor,
           },
-          transaction as DbTransaction
+          transaction
         )
         expect(initialLedgerAccounts.length).toBe(0)
 
@@ -188,7 +177,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
               subscriptionId: subscription.id,
               usageMeterIds: usageMeterIdsToCreateFor,
             },
-            transaction as DbTransaction
+            transaction
           )
 
         // expectations:
@@ -199,7 +188,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
             subscriptionId: subscription.id,
             usageMeterId: usageMeterIdsToCreateFor,
           },
-          transaction as DbTransaction
+          transaction
         )
         expect(createdLedgerAccounts).toHaveLength(2)
         for (const usageMeterId of usageMeterIdsToCreateFor) {
@@ -242,7 +231,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
             subscriptionId: subscription.id,
             usageMeterId: [usageMeter1.id],
           },
-          transaction as DbTransaction
+          transaction
         )
         expect(initiallyExisting.length).toBe(1)
         expect(initiallyExisting[0].id).toBe(
@@ -254,7 +243,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
             subscriptionId: subscription.id,
             usageMeterId: [usageMeter2.id],
           },
-          transaction as DbTransaction
+          transaction
         )
         expect(nonExistingCheck.length).toBe(0)
 
@@ -265,7 +254,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
               subscriptionId: subscription.id,
               usageMeterIds: usageMeterIdsToProcess,
             },
-            transaction as DbTransaction
+            transaction
           )
 
         // expectations:
@@ -287,7 +276,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
             subscriptionId: subscription.id,
             usageMeterId: [usageMeter2.id],
           },
-          transaction as DbTransaction
+          transaction
         )
         expect(newLedgerAccountForUM2).toHaveLength(1)
         expect(newLedgerAccountForUM2[0].organizationId).toBe(
@@ -305,7 +294,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
             subscriptionId: subscription.id,
             usageMeterId: [usageMeter1.id],
           },
-          transaction as DbTransaction
+          transaction
         )
         expect(finalLedgerAccountForUM1).toHaveLength(1)
         expect(finalLedgerAccountForUM1[0].id).toBe(
@@ -323,7 +312,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
         const initialTotalLedgerAccountsForSub = (
           await selectLedgerAccounts(
             { subscriptionId: subscription.id },
-            transaction as DbTransaction
+            transaction
           )
         ).length
 
@@ -334,7 +323,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
               subscriptionId: subscription.id,
               usageMeterIds: [],
             },
-            transaction as DbTransaction
+            transaction
           )
 
         // expectations:
@@ -343,7 +332,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
         const finalTotalLedgerAccountsForSub = (
           await selectLedgerAccounts(
             { subscriptionId: subscription.id },
-            transaction as DbTransaction
+            transaction
           )
         ).length
         expect(finalTotalLedgerAccountsForSub).toBe(

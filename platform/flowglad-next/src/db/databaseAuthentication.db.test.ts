@@ -255,7 +255,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     let lonelyUserId: string
     ;(
       await adminTransactionWithResult(async ({ transaction }) => {
-        const [lonelyUser] = await transaction
+        const [lonelyUser] = (await transaction
           .insert(users)
           .values({
             id: `usr_${core.nanoid()}`,
@@ -263,8 +263,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
             name: 'Lonely User',
             betterAuthId: lonelyBetterAuthId,
           })
-          .returning()
-        lonelyUserId = (lonelyUser as User.Record).id
+          .returning()) as User.Record[]
+        lonelyUserId = lonelyUser.id
         return Result.ok(undefined)
       })
     ).unwrap()
