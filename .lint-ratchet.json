@@ -10,6 +10,12 @@
   "exclude": ["node_modules/**", "dist/**", ".next/**"],
   "packages": [
     { "path": "platform/flowglad-next" },
+    { "path": "packages/flowglad" },
+    { "path": "packages/mock-server" },
+    { "path": "packages/nextjs" },
+    { "path": "packages/nextjs/server" },
+    { "path": "packages/react" },
+    { "path": "packages/server" },
     { "path": "packages/shared" }
   ]
 }

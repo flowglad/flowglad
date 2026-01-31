@@ -71,12 +71,9 @@ export const runBiomeLint = async (
   const absolutePackagePath = resolve(repoRoot, packagePath)
   const absolutePluginPath = resolve(repoRoot, pluginPath)
 
-  // Build file paths to lint (relative to package)
-  const filesToLint = filePatterns.map((pattern) =>
-    resolve(absolutePackagePath, pattern)
-  )
-
   // Create a temporary biome config that only uses the specified plugin
+  // Note: We pass the package directory to biome (not glob patterns) and let
+  // overrides.includes filter which files the plugin applies to
   const tempConfig = {
     $schema:
       './node_modules/@biomejs/biome/configuration_schema.json',
@@ -110,7 +107,7 @@ export const runBiomeLint = async (
         'lint',
         '--reporter=json',
         `--config-path=${tempConfigPath}`,
-        ...filesToLint,
+        absolutePackagePath,
       ],
       {
         cwd: repoRoot,
@@ -122,27 +119,46 @@ export const runBiomeLint = async (
       throw new Error(`Failed to run Biome: ${result.error.message}`)
     }
     // Biome exits with 1 when there are lint errors, which is expected
-    const output = result.stdout || ''
+    const output = [result.stdout, result.stderr]
+      .filter((chunk) => chunk && chunk.length > 0)
+      .join('\n')
 
-    // Parse JSON output (skip the warning line about unstable JSON)
-    const jsonLines = output.split('\n').filter((line) => {
+    // Parse JSON output (Biome prints a single JSON object, often multi-line)
+    const trimmed = output.trim()
+    let biomeOutput: BiomeJsonOutput | null = null
+
+    if (trimmed.startsWith('{')) {
       try {
-        JSON.parse(line)
-        return true
+        biomeOutput = JSON.parse(trimmed) as BiomeJsonOutput
       } catch {
-        return false
+        biomeOutput = null
       }
-    })
+    }
 
-    if (jsonLines.length === 0) {
+    if (!biomeOutput) {
+      const firstBrace = output.indexOf('{')
+      const lastBrace = output.lastIndexOf('}')
+      if (
+        firstBrace !== -1 &&
+        lastBrace !== -1 &&
+        lastBrace > firstBrace
+      ) {
+        const jsonSlice = output.slice(firstBrace, lastBrace + 1)
+        try {
+          biomeOutput = JSON.parse(jsonSlice) as BiomeJsonOutput
+        } catch {
+          biomeOutput = null
+        }
+      }
+    }
+
+    if (!biomeOutput) {
       // No JSON output means no diagnostics or an error
       if (result.stderr && !result.stderr.includes('unstable')) {
         throw new Error(`Biome failed with stderr: ${result.stderr}`)
       }
       return []
     }
-
-    const biomeOutput: BiomeJsonOutput = JSON.parse(jsonLines[0])
 
     // Convert Biome diagnostics to our format
     const diagnostics: BiomeDiagnostic[] = []
@@ -240,13 +256,15 @@ export const countViolationsByFile = (
   const counts = new Map<string, number>()
 
   // The category format for GritQL plugins is "lint/plugin/<rule-name>"
+  // but some Biome versions emit "plugin" without the rule name.
   const expectedCategory = `lint/plugin/${ruleName}`
 
   for (const diag of diagnostics) {
     // Match either exact category or category that contains the rule name
     if (
       diag.category === expectedCategory ||
-      diag.category.includes(ruleName)
+      diag.category.includes(ruleName) ||
+      diag.category === 'plugin'
     ) {
       const current = counts.get(diag.filePath) || 0
       counts.set(diag.filePath, current + 1)
@@ -270,6 +288,7 @@ export const getDiagnosticsForFile = (
     (diag) =>
       diag.filePath === filePath &&
       (diag.category === expectedCategory ||
-        diag.category.includes(ruleName))
+        diag.category.includes(ruleName) ||
+        diag.category === 'plugin')
   )
 }
