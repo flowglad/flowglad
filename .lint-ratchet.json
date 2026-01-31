@@ -1,0 +1,15 @@
+{
+  "rules": [
+    {
+      "name": "no-explicit-any-in-tests",
+      "plugin": "./plugins/no-explicit-any-in-tests.grit",
+      "filePatterns": ["**/*.test.ts", "**/*.test.tsx"],
+      "severity": "warn"
+    }
+  ],
+  "exclude": ["node_modules/**", "dist/**", ".next/**"],
+  "packages": [
+    { "path": "platform/flowglad-next" },
+    { "path": "packages/shared" }
+  ]
+}
