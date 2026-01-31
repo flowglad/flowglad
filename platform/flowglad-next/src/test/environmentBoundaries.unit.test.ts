@@ -98,17 +98,27 @@ describe('Environment boundaries', () => {
 
     it('should use bun.unit.setup.ts which blocks database access at runtime', () => {
       const setupPath = path.join(PROJECT_ROOT, 'bun.unit.setup.ts')
-      const content = fs.readFileSync(setupPath, 'utf-8')
+      const setupContent = fs.readFileSync(setupPath, 'utf-8')
 
-      // Verify that the setup file blocks database imports
-      expect(content).toMatch(/mock\.module\(['"]@\/db\/client['"]/)
-      expect(content).toMatch(
+      // Verify that the setup file imports the unit mocks (which block database access)
+      expect(setupContent).toMatch(
+        /import ['"]\.\/bun\.unit\.mocks['"]/
+      )
+
+      // Verify the unit mocks file contains the database blocking logic
+      const mocksPath = path.join(PROJECT_ROOT, 'bun.unit.mocks.ts')
+      const mocksContent = fs.readFileSync(mocksPath, 'utf-8')
+
+      expect(mocksContent).toMatch(
+        /mock\.module\(['"]@\/db\/client['"]/
+      )
+      expect(mocksContent).toMatch(
         /mock\.module\(['"]@\/db\/adminTransaction['"]/
       )
-      expect(content).toMatch(
+      expect(mocksContent).toMatch(
         /mock\.module\(['"]@\/db\/authenticatedTransaction['"]/
       )
-      expect(content).toMatch(
+      expect(mocksContent).toMatch(
         /Database access is blocked in unit tests/
       )
     })

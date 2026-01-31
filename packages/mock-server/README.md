@@ -9,6 +9,9 @@ A lightweight HTTP mock server that stubs external service APIs for testing. Use
 | Svix        | 9001 | Webhook delivery                 |
 | Unkey       | 9002 | API key management               |
 | Trigger.dev | 9003 | Background job orchestration     |
+| Redis       | 9004 | In-memory cache (Upstash REST)   |
+| Resend      | 9005 | Email delivery                   |
+| Cloudflare  | 9006 | R2 object storage (S3-compatible)|
 
 ## Quick Start
 
@@ -29,7 +32,7 @@ bun run start
 bun run docker:build
 
 # Run the container
-docker run -p 9001:9001 -p 9002:9002 -p 9003:9003 ghcr.io/flowglad/flowglad/mock-server:latest
+docker run -p 9001:9001 -p 9002:9002 -p 9003:9003 -p 9004:9004 -p 9005:9005 -p 9006:9006 ghcr.io/flowglad/flowglad/mock-server:latest
 ```
 
 ## Environment Variables
@@ -41,6 +44,9 @@ Configure your test environment to use the mock server:
 SVIX_MOCK_HOST=http://localhost:9001
 UNKEY_MOCK_HOST=http://localhost:9002
 TRIGGER_API_URL=http://localhost:9003
+UPSTASH_REDIS_REST_URL=http://localhost:9004
+RESEND_BASE_URL=http://localhost:9005
+CLOUDFLARE_R2_ENDPOINT=http://localhost:9006
 ```
 
 ## Docker Image Management
@@ -89,6 +95,9 @@ services:
       - 9001:9001
       - 9002:9002
       - 9003:9003
+      - 9004:9004
+      - 9005:9005
+      - 9006:9006
 ```
 
 A separate workflow (`.github/workflows/build-mock-server.yml`) automatically builds and pushes the image when changes are made to `packages/mock-server/**`.
@@ -104,6 +113,42 @@ bun run check
 
 # Run tests
 bun test
+```
+
+## Performance Benchmarking
+
+The benchmark script validates that the mock server meets performance criteria:
+
+```bash
+# Run all benchmarks (endpoints + test suite comparison)
+bun run benchmark
+
+# Only benchmark endpoint response times
+bun run benchmark --endpoints-only
+
+# Only compare test suite times (MSW vs mock server)
+bun run benchmark --suite-only
+
+# Custom iteration count (default: 3)
+bun run benchmark --iterations 5
+```
+
+### Acceptance Criteria
+
+| Metric | Threshold |
+|--------|-----------|
+| Health check response | < 10ms |
+| Mock endpoint response | < 5ms average |
+| Docker image size | < 200MB |
+| Test suite regression | < 5% vs MSW |
+
+The benchmark outputs a comparison object:
+```json
+{
+  "mswAvg": 1234,
+  "mockServerAvg": 1245,
+  "regressionPct": 0.9
+}
 ```
 
 ## Adding New Mock Endpoints

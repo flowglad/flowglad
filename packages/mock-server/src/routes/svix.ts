@@ -1,4 +1,9 @@
 import {
+  createErrorResponse,
+  delay,
+  parseErrorConfig,
+} from '../utils/errors'
+import {
   generateId,
   generateSvixEndpointId,
   generateSvixMessageId,
@@ -77,12 +82,32 @@ export async function handleCreateApp(
 /**
  * GET /api/v1/app/:appId
  * Get an application by ID
+ *
+ * Sentinel values for testing:
+ * - `_notfound_` in appId → returns 404 (app does not exist)
+ * - `_exists_` in appId → returns 200 (overrides _notfound_ if both present)
+ *
+ * Example usage for testing legacy-first routing:
+ * - Use orgId: `org_notfound_test` for legacy app → 404
+ * - Use pricingModelId: `pm_exists_test` for PM app → 200 (has _exists_)
  */
 export function handleGetApp(appId: string): Response {
+  // _exists_ overrides _notfound_ (allows PM app to exist while legacy doesn't)
+  const hasExists = appId.includes('_exists_')
+  const hasNotFound = appId.includes('_notfound_')
+
+  if (hasNotFound && !hasExists) {
+    return jsonResponse(
+      { code: 'not_found', detail: 'Application not found' },
+      404
+    )
+  }
+
+  // Return the requested appId as both id and uid for consistency
   const response: SvixAppResponse = {
-    id: appId.startsWith('app_') ? appId : `app_mock_${generateId()}`,
+    id: appId,
     name: 'Mock Application',
-    uid: generateId(),
+    uid: appId,
     createdAt: new Date().toISOString(),
   }
 
@@ -154,21 +179,24 @@ export function handleGetEndpointSecret(
 /**
  * POST /api/v1/app/:appId/msg
  * Send a message (webhook event) to an application
+ *
+ * Returns the appId in the response for test verification of routing behavior.
  */
 export async function handleSendMessage(
   req: Request,
-  _appId: string
+  appId: string
 ): Promise<Response> {
   const body = await parseJsonBody<{
     eventType?: string
     payload?: Record<string, unknown>
   }>(req)
 
-  const response: SvixMessageResponse = {
+  const response: SvixMessageResponse & { appId: string } = {
     id: generateSvixMessageId(),
     eventType: body?.eventType ?? 'mock.event',
     payload: body?.payload ?? {},
     timestamp: new Date().toISOString(),
+    appId, // Include appId for test verification
   }
 
   return jsonResponse(response, 202)
@@ -177,12 +205,25 @@ export async function handleSendMessage(
 /**
  * Route handler for Svix mock server
  * Matches paths against Svix API patterns and dispatches to appropriate handlers
+ *
+ * Supports error simulation via headers:
+ * - X-Mock-Error: true | <status-code> | timeout
+ * - X-Mock-Error-Message: <custom message>
  */
-export function handleSvixRoute(
+export async function handleSvixRoute(
   req: Request,
   pathname: string
-): Response | Promise<Response> | null {
+): Promise<Response | null> {
   const method = req.method
+
+  // Check for error simulation
+  const errorConfig = parseErrorConfig(req)
+  if (errorConfig) {
+    if (errorConfig.isTimeout) {
+      await delay(5000) // 5 second delay for timeout simulation
+    }
+    return createErrorResponse('svix', errorConfig)
+  }
 
   // POST /api/v1/app - Create application
   if (method === 'POST' && pathname === '/api/v1/app') {

@@ -108,6 +108,14 @@ const testStubClient = {
   smembers: () => [] as string[],
   expire: () => null,
   exists: () => 0,
+  // Stream commands for Redis Streams support
+  xadd: () => `${Date.now()}-0`, // Returns stream entry ID
+  xread: () => [], // Returns empty array (no entries)
+  xrange: () => [], // Returns empty array (no entries)
+  xrevrange: () => [], // Returns empty array (no entries)
+  xlen: () => 0, // Returns stream length
+  xtrim: () => 0, // Returns number of entries trimmed
+  xdel: () => 1, // Returns number of entries deleted
 }
 
 /**
@@ -124,38 +132,28 @@ export const _setTestRedisClient = (client: any) => {
 }
 
 /**
- * Returns true if Redis credentials appear to be real (not stubs).
- */
-const hasRealRedisCredentials = () => {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  // Check for stub values that won't work with real Redis
-  if (!url || !token) return false
-  if (url.includes('stub') || token.includes('stub')) return false
-  if (url.includes('mock') || token.includes('mock')) return false
-  return true
-}
-
-/**
  * Returns a Redis client.
  *
  * Priority:
- * 1. If _setTestRedisClient() was called, always use that client (test override)
- * 2. In tests without real Redis credentials, returns testStubClient
- * 3. In production or integration tests with real credentials, returns real Redis
+ * 1. If _setTestRedisClient() was called, use that client (test override)
+ * 2. In test environment (IS_TEST), use the no-op stub client
+ * 3. In production, use real Redis
+ *
+ * For integration tests that need real Redis, use _setTestRedisClient() to
+ * inject a real client explicitly.
  */
 export const redis = () => {
-  // Always respect explicit test client injection (used for testing specific behaviors)
+  // Explicit test client injection takes priority
   if (_testRedisClient !== null) {
     return _testRedisClient
   }
 
-  // In tests without real Redis credentials, use the no-op stub
-  if (core.IS_TEST && !hasRealRedisCredentials()) {
+  // In test environment, always use the no-op stub
+  if (core.IS_TEST) {
     return testStubClient
   }
 
-  // Integration tests (with real credentials) and production use real Redis
+  // Production uses real Redis
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
     token: core.envVariable('UPSTASH_REDIS_REST_TOKEN'),
