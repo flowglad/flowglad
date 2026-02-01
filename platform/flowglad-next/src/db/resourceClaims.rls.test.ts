@@ -6,6 +6,7 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { ResourceClaim } from '@db-core/schema/resourceClaims'
 import type { Resource } from '@db-core/schema/resources'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -19,7 +20,7 @@ import {
   setupSubscriptionItem,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertResourceClaim,
@@ -59,19 +60,23 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
     apiKey = userApiKey.apiKey
 
     // Create a resource using admin transaction (bypasses RLS for setup)
-    resource = await adminTransaction(async ({ transaction }) => {
-      return insertResource(
-        {
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          slug: 'test-seats',
-          name: 'Test Seats',
-          livemode: true,
-          active: true,
-        },
-        transaction
-      )
-    })
+    resource = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertResource(
+            {
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              slug: 'test-seats',
+              name: 'Test Seats',
+              livemode: true,
+              active: true,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Set up customer, payment method, product, price, subscription chain
     const customer = await setupCustomer({

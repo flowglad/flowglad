@@ -47,7 +47,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -219,6 +219,7 @@ describe('adjustSubscription Integration Tests', async () => {
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
       })
+
       await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
@@ -334,6 +335,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 0,
       })
+
       await comprehensiveAdminTransaction(async (ctx) => {
         const result = await adjustSubscription(
           {
@@ -601,6 +603,7 @@ describe('adjustSubscription Integration Tests', async () => {
         endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
       })
+
       await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
@@ -1876,6 +1879,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
+
       await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
@@ -2464,6 +2468,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
+
       await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
@@ -3794,23 +3799,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 5,
         })
-
         // Claim 3 resources before adjustment
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-1', 'user-2', 'user-3'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create premium plan with higher price (triggers proration charge)
         const premiumPrice = await setupPrice({
@@ -3958,23 +3966,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 10,
         })
-
         // Claim 8 resources
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 8,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    quantity: 8,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create a lower capacity plan (even though higher price)
         const expensiveButLimitedPrice = await setupPrice({
@@ -4118,23 +4129,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 5,
         })
-
         // Claim 3 resources
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-1', 'user-2', 'user-3'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create a higher capacity plan
         const premiumPrice = await setupPrice({
@@ -4285,23 +4299,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 10,
         })
-
         // Claim 3 resources (less than new capacity)
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 3,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    quantity: 3,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create a lower capacity plan (but still >= claimed)
         const basicPrice = await setupPrice({
@@ -4449,23 +4466,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 10,
         })
-
         // Claim 5 resources
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 5,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    quantity: 5,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create a plan with capacity less than claims
         const tinyPrice = await setupPrice({
@@ -4617,23 +4637,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 10,
         })
-
         // Claim 5 resources
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 5,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    quantity: 5,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create a plan with capacity less than current claims
         const tinyProduct = await setupProduct({
@@ -4774,23 +4797,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 10,
         })
-
         // Claim 3 resources (less than new capacity)
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-1', 'user-2', 'user-3'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create a plan with capacity >= current claims
         const basicProduct = await setupProduct({
@@ -5002,23 +5028,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 2,
         })
-
         // Claim 4 resources (uses capacity from both items)
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 4,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    quantity: 4,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -5178,23 +5207,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 2,
         })
-
         // Claim 2 resources (can be satisfied by base plan alone)
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 2,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    quantity: 2,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -5312,23 +5344,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 5,
         })
-
         // Claim 2 resources before adjustment
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2'],
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-1', 'user-2'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create same-capacity plan for adjustment
         const newPrice = await setupPrice({
@@ -5342,11 +5377,9 @@ describe('adjustSubscription Integration Tests', async () => {
           isDefault: false,
           currency: organization.defaultCurrency,
         })
-
         // Note: The new price is for the same product, and the product already
         // has a seats feature. We intentionally do NOT attach a second seats
         // feature, otherwise capacity would double (5 + 5) after adjustment.
-
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -5486,23 +5519,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 5,
         })
-
         // Claim 3 resources before adjustment
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-1', 'user-2', 'user-3'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create same-capacity plan for adjustment
         const newPrice = await setupPrice({
@@ -5516,11 +5552,9 @@ describe('adjustSubscription Integration Tests', async () => {
           isDefault: false,
           currency: organization.defaultCurrency,
         })
-
         // Note: The new price is for the same product, and the product already
         // has a seats feature. We intentionally do NOT attach a second seats
         // feature, otherwise capacity would double (5 + 5) after adjustment.
-
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -5659,23 +5693,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 3,
         })
-
         // Step 2: Claim 2 seats
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2'],
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-1', 'user-2'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create downgrade plan with exactly 2 seat capacity (matches claimed)
         const downgradedPrice = await setupPrice({
@@ -5844,23 +5881,26 @@ describe('adjustSubscription Integration Tests', async () => {
           pricingModelId: pricingModel.id,
           amount: 3,
         })
-
         // Step 2: Claim 2 seats initially
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2'],
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-1', 'user-2'],
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Create downgrade plan with 2 seat capacity
         const downgradedPrice = await setupPrice({

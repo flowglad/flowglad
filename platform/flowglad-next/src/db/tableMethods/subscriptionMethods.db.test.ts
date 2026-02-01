@@ -11,6 +11,7 @@ import {
   Subscription,
   subscriptions,
 } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import { inArray } from 'drizzle-orm'
 import {
   setupCustomer,
@@ -21,7 +22,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { SubscriptionTerminalStateError } from '@/errors'
 import { core } from '@/utils/core'
 import {
@@ -66,13 +67,16 @@ describe('selectDistinctSubscriptionProductNames', () => {
   })
 
   it('should return empty array when organization has no subscriptions', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await selectDistinctSubscriptionProductNames(
-        organization.id,
-        transaction
-      )
-      expect(result).toEqual([])
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await selectDistinctSubscriptionProductNames(
+          organization.id,
+          transaction
+        )
+        expect(result).toEqual([])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should return deduplicated, case-insensitively ordered products for the given organization', async () => {
@@ -180,15 +184,18 @@ describe('selectDistinctSubscriptionProductNames', () => {
     expect(subscription4.pricingModelId).toBe(product2.pricingModelId)
     expect(subscription4.pricingModelId).toBe(pricingModel.id)
 
-    await adminTransaction(async ({ transaction }) => {
-      const result = await selectDistinctSubscriptionProductNames(
-        organization.id,
-        transaction
-      )
-      // Should be deduplicated (Apple appears only once despite 2 subscriptions)
-      // Should be case-insensitively sorted (Apple, Banana, zebra)
-      expect(result).toEqual(['Apple', 'Banana', 'zebra'])
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await selectDistinctSubscriptionProductNames(
+          organization.id,
+          transaction
+        )
+        // Should be deduplicated (Apple appears only once despite 2 subscriptions)
+        // Should be case-insensitively sorted (Apple, Banana, zebra)
+        expect(result).toEqual(['Apple', 'Banana', 'zebra'])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should only return products for the given organization', async () => {
@@ -257,19 +264,22 @@ describe('selectDistinctSubscriptionProductNames', () => {
     )
     expect(subscriptionOrg2.pricingModelId).toBe(pricingModel2.id)
 
-    await adminTransaction(async ({ transaction }) => {
-      const result1 = await selectDistinctSubscriptionProductNames(
-        organization.id,
-        transaction
-      )
-      expect(result1).toEqual(['Product Org1'])
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result1 = await selectDistinctSubscriptionProductNames(
+          organization.id,
+          transaction
+        )
+        expect(result1).toEqual(['Product Org1'])
 
-      const result2 = await selectDistinctSubscriptionProductNames(
-        organization2.id,
-        transaction
-      )
-      expect(result2).toEqual(['Product Org2'])
-    })
+        const result2 = await selectDistinctSubscriptionProductNames(
+          organization2.id,
+          transaction
+        )
+        expect(result2).toEqual(['Product Org2'])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -440,263 +450,291 @@ describe('selectSubscriptionsTableRowData', () => {
 
   describe('search functionality', () => {
     it('should search by subscription ID or customer name (case-insensitive, trims whitespace)', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Test subscription ID search
-        const resultById = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            searchQuery: subscription1.id,
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
-        expect(resultById.items.length).toBe(1)
-        expect(resultById.items[0].subscription.id).toBe(
-          subscription1.id
-        )
-        expect(resultById.total).toBe(1)
-
-        // Test partial customer name search (case-insensitive)
-        const resultByName = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            searchQuery: 'alice',
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
-        expect(resultByName.items.length).toBe(1)
-        expect(resultByName.items[0].subscription.id).toBe(
-          subscription1.id
-        )
-        expect(resultByName.items[0].customer.name).toBe(
-          'Alice Smith'
-        )
-
-        // Test case-insensitive search
-        const resultCaseInsensitive =
-          await selectSubscriptionsTableRowData({
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Test subscription ID search
+          const resultById = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
-              searchQuery: 'CHARLIE',
+              searchQuery: subscription1.id,
               filters: { organizationId: organization.id },
             },
             transaction,
           })
-        expect(resultCaseInsensitive.items.length).toBe(1)
-        expect(resultCaseInsensitive.items[0].customer.name).toBe(
-          'Charlie Brown'
-        )
+          expect(resultById.items.length).toBe(1)
+          expect(resultById.items[0].subscription.id).toBe(
+            subscription1.id
+          )
+          expect(resultById.total).toBe(1)
 
-        // Test whitespace trimming
-        const resultTrimmed = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            searchQuery: '  alice  ',
-            filters: { organizationId: organization.id },
-          },
-          transaction,
+          // Test partial customer name search (case-insensitive)
+          const resultByName = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+          expect(resultByName.items.length).toBe(1)
+          expect(resultByName.items[0].subscription.id).toBe(
+            subscription1.id
+          )
+          expect(resultByName.items[0].customer.name).toBe(
+            'Alice Smith'
+          )
+
+          // Test case-insensitive search
+          const resultCaseInsensitive =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 10,
+                searchQuery: 'CHARLIE',
+                filters: { organizationId: organization.id },
+              },
+              transaction,
+            })
+          expect(resultCaseInsensitive.items.length).toBe(1)
+          expect(resultCaseInsensitive.items[0].customer.name).toBe(
+            'Charlie Brown'
+          )
+
+          // Test whitespace trimming
+          const resultTrimmed = await selectSubscriptionsTableRowData(
+            {
+              input: {
+                pageSize: 10,
+                searchQuery: '  alice  ',
+                filters: { organizationId: organization.id },
+              },
+              transaction,
+            }
+          )
+          expect(resultTrimmed.items.length).toBe(1)
+          expect(resultTrimmed.items[0].subscription.id).toBe(
+            subscription1.id
+          )
+          return Result.ok(undefined)
         })
-        expect(resultTrimmed.items.length).toBe(1)
-        expect(resultTrimmed.items[0].subscription.id).toBe(
-          subscription1.id
-        )
-      })
+      ).unwrap()
     })
 
     it('should ignore empty or whitespace-only search queries', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const resultEmpty = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            searchQuery: '',
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
-
-        const resultWhitespace =
-          await selectSubscriptionsTableRowData({
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const resultEmpty = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
-              searchQuery: '   ',
+              searchQuery: '',
               filters: { organizationId: organization.id },
             },
             transaction,
           })
 
-        const resultUndefined = await selectSubscriptionsTableRowData(
-          {
-            input: {
-              pageSize: 10,
-              searchQuery: undefined,
-              filters: { organizationId: organization.id },
-            },
-            transaction,
-          }
-        )
+          const resultWhitespace =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 10,
+                searchQuery: '   ',
+                filters: { organizationId: organization.id },
+              },
+              transaction,
+            })
 
-        // All should return all 3 subscriptions
-        expect(resultEmpty.items.length).toBe(3)
-        expect(resultEmpty.total).toBe(3)
-        expect(resultWhitespace.items.length).toBe(3)
-        expect(resultWhitespace.total).toBe(3)
-        expect(resultUndefined.items.length).toBe(3)
-        expect(resultUndefined.total).toBe(3)
-      })
+          const resultUndefined =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 10,
+                searchQuery: undefined,
+                filters: { organizationId: organization.id },
+              },
+              transaction,
+            })
+
+          // All should return all 3 subscriptions
+          expect(resultEmpty.items.length).toBe(3)
+          expect(resultEmpty.total).toBe(3)
+          expect(resultWhitespace.items.length).toBe(3)
+          expect(resultWhitespace.total).toBe(3)
+          expect(resultUndefined.items.length).toBe(3)
+          expect(resultUndefined.total).toBe(3)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should only return subscriptions for the specified organization', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Search for "Alice" - should only return subscription1, not subscriptionOtherOrg
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            searchQuery: 'alice',
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Search for "Alice" - should only return subscription1, not subscriptionOtherOrg
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
 
-        expect(result.items.length).toBe(1)
-        expect(result.items[0].subscription.id).toBe(subscription1.id)
-        expect(result.items[0].subscription.organizationId).toBe(
-          organization.id
-        )
-        expect(result.total).toBe(1)
-      })
+          expect(result.items.length).toBe(1)
+          expect(result.items[0].subscription.id).toBe(
+            subscription1.id
+          )
+          expect(result.items[0].subscription.organizationId).toBe(
+            organization.id
+          )
+          expect(result.total).toBe(1)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
   describe('productName filter functionality', () => {
     it('should filter by product name (trims whitespace)', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Test Premium Plan filter
-        const resultPremium = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              productName: 'Premium Plan',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Test Premium Plan filter
+          const resultPremium = await selectSubscriptionsTableRowData(
+            {
+              input: {
+                pageSize: 10,
+                filters: {
+                  organizationId: organization.id,
+                  productName: 'Premium Plan',
+                } as SubscriptionTableFilters,
+              },
+              transaction,
+            }
+          )
 
-        expect(resultPremium.items.length).toBe(2) // subscription1 and subscription2
-        const subscriptionIds = resultPremium.items.map(
-          (item) => item.subscription.id
-        )
-        expect(subscriptionIds).toContain(subscription1.id)
-        expect(subscriptionIds).toContain(subscription2.id)
-        expect(subscriptionIds).not.toContain(subscription3.id)
-        expect(resultPremium.total).toBe(2)
+          expect(resultPremium.items.length).toBe(2) // subscription1 and subscription2
+          const subscriptionIds = resultPremium.items.map(
+            (item) => item.subscription.id
+          )
+          expect(subscriptionIds).toContain(subscription1.id)
+          expect(subscriptionIds).toContain(subscription2.id)
+          expect(subscriptionIds).not.toContain(subscription3.id)
+          expect(resultPremium.total).toBe(2)
 
-        // Test Basic Plan filter
-        const resultBasic = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              productName: 'Basic Plan',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
-
-        expect(resultBasic.items.length).toBe(1)
-        expect(resultBasic.items[0].subscription.id).toBe(
-          subscription3.id
-        )
-        // Product may be null for usage prices, but this test uses subscription prices
-        expect(resultBasic.items[0].product!.name).toBe('Basic Plan')
-
-        // Test whitespace trimming
-        const resultTrimmed = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              productName: '  Premium Plan  ',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
-
-        expect(resultTrimmed.items.length).toBe(2)
-        expect(resultTrimmed.total).toBe(2)
-      })
-    })
-
-    it('should ignore empty or whitespace-only product name filters', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const resultEmpty = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              productName: '',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
-
-        const resultWhitespace =
-          await selectSubscriptionsTableRowData({
+          // Test Basic Plan filter
+          const resultBasic = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
               filters: {
                 organizationId: organization.id,
-                productName: '   ',
+                productName: 'Basic Plan',
               } as SubscriptionTableFilters,
             },
             transaction,
           })
 
-        const resultNoFilter = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-            },
-          },
-          transaction,
-        })
+          expect(resultBasic.items.length).toBe(1)
+          expect(resultBasic.items[0].subscription.id).toBe(
+            subscription3.id
+          )
+          // Product may be null for usage prices, but this test uses subscription prices
+          expect(resultBasic.items[0].product!.name).toBe(
+            'Basic Plan'
+          )
 
-        // All should return all 3 subscriptions
-        expect(resultEmpty.items.length).toBe(3)
-        expect(resultEmpty.total).toBe(3)
-        expect(resultWhitespace.items.length).toBe(3)
-        expect(resultWhitespace.total).toBe(3)
-        expect(resultNoFilter.items.length).toBe(3)
-        expect(resultNoFilter.total).toBe(3)
-      })
+          // Test whitespace trimming
+          const resultTrimmed = await selectSubscriptionsTableRowData(
+            {
+              input: {
+                pageSize: 10,
+                filters: {
+                  organizationId: organization.id,
+                  productName: '  Premium Plan  ',
+                } as SubscriptionTableFilters,
+              },
+              transaction,
+            }
+          )
+
+          expect(resultTrimmed.items.length).toBe(2)
+          expect(resultTrimmed.total).toBe(2)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('should ignore empty or whitespace-only product name filters', async () => {
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const resultEmpty = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                productName: '',
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
+
+          const resultWhitespace =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 10,
+                filters: {
+                  organizationId: organization.id,
+                  productName: '   ',
+                } as SubscriptionTableFilters,
+              },
+              transaction,
+            })
+
+          const resultNoFilter =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 10,
+                filters: {
+                  organizationId: organization.id,
+                },
+              },
+              transaction,
+            })
+
+          // All should return all 3 subscriptions
+          expect(resultEmpty.items.length).toBe(3)
+          expect(resultEmpty.total).toBe(3)
+          expect(resultWhitespace.items.length).toBe(3)
+          expect(resultWhitespace.total).toBe(3)
+          expect(resultNoFilter.items.length).toBe(3)
+          expect(resultNoFilter.total).toBe(3)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should only return subscriptions for the specified organization', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Filter by "Premium Plan" - should only return subscriptions from organization, not organization2
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              productName: 'Premium Plan',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Filter by "Premium Plan" - should only return subscriptions from organization, not organization2
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                productName: 'Premium Plan',
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
 
-        expect(result.items.length).toBe(2)
-        result.items.forEach((item) => {
-          expect(item.subscription.organizationId).toBe(
-            organization.id
-          )
-          // Product may be null for usage prices, but this test uses subscription prices
-          expect(item.product!.name).toBe('Premium Plan')
+          expect(result.items.length).toBe(2)
+          result.items.forEach((item) => {
+            expect(item.subscription.organizationId).toBe(
+              organization.id
+            )
+            // Product may be null for usage prices, but this test uses subscription prices
+            expect(item.product!.name).toBe('Premium Plan')
+          })
+          expect(result.total).toBe(2)
+          return Result.ok(undefined)
         })
-        expect(result.total).toBe(2)
-      })
+      ).unwrap()
     })
   })
 
@@ -722,73 +760,78 @@ describe('selectSubscriptionsTableRowData', () => {
         status: SubscriptionStatus.Active,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Test search + filter combination
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            searchQuery: 'alice',
-            filters: {
-              organizationId: organization.id,
-              productName: 'Premium Plan',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Test search + filter combination
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: {
+                organizationId: organization.id,
+                productName: 'Premium Plan',
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
 
-        expect(result.items.length).toBe(1)
-        expect(result.items[0].subscription.id).toBe(subscription1.id)
-        expect(result.items[0].customer.name).toBe('Alice Smith')
-        // Product may be null for usage prices, but this test uses subscription prices
-        expect(result.items[0].product!.name).toBe('Premium Plan')
-        expect(result.total).toBe(1)
-
-        // Test pagination with search + filter
-        const page1 = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 1,
-            searchQuery: 'bob',
-            filters: {
-              organizationId: organization.id,
-              productName: 'Premium Plan',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
-
-        expect(page1.items.length).toBe(1)
-        expect(page1.total).toBe(2) // subscription2 and subscription4
-        expect(page1.hasNextPage).toBe(true)
-
-        const page2 = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 1,
-            pageAfter: page1.endCursor ?? undefined,
-            searchQuery: 'bob',
-            filters: {
-              organizationId: organization.id,
-              productName: 'Premium Plan',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
-
-        expect(page2.items.length).toBe(1)
-        expect(page2.total).toBe(2)
-        expect(page2.hasNextPage).toBe(false)
-
-        // Verify both pages have correct data
-        const allItems = [...page1.items, ...page2.items]
-        const customerNames = allItems.map(
-          (item) => item.customer.name
-        )
-        expect(customerNames).toContain('Bob Jones')
-        expect(customerNames).toContain('Bobby Johnson')
-        allItems.forEach((item) => {
+          expect(result.items.length).toBe(1)
+          expect(result.items[0].subscription.id).toBe(
+            subscription1.id
+          )
+          expect(result.items[0].customer.name).toBe('Alice Smith')
           // Product may be null for usage prices, but this test uses subscription prices
-          expect(item.product!.name).toBe('Premium Plan')
+          expect(result.items[0].product!.name).toBe('Premium Plan')
+          expect(result.total).toBe(1)
+
+          // Test pagination with search + filter
+          const page1 = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 1,
+              searchQuery: 'bob',
+              filters: {
+                organizationId: organization.id,
+                productName: 'Premium Plan',
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
+
+          expect(page1.items.length).toBe(1)
+          expect(page1.total).toBe(2) // subscription2 and subscription4
+          expect(page1.hasNextPage).toBe(true)
+
+          const page2 = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 1,
+              pageAfter: page1.endCursor ?? undefined,
+              searchQuery: 'bob',
+              filters: {
+                organizationId: organization.id,
+                productName: 'Premium Plan',
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
+
+          expect(page2.items.length).toBe(1)
+          expect(page2.total).toBe(2)
+          expect(page2.hasNextPage).toBe(false)
+
+          // Verify both pages have correct data
+          const allItems = [...page1.items, ...page2.items]
+          const customerNames = allItems.map(
+            (item) => item.customer.name
+          )
+          expect(customerNames).toContain('Bob Jones')
+          expect(customerNames).toContain('Bobby Johnson')
+          allItems.forEach((item) => {
+            // Product may be null for usage prices, but this test uses subscription prices
+            expect(item.product!.name).toBe('Premium Plan')
+          })
+          return Result.ok(undefined)
         })
-      })
+      ).unwrap()
     })
   })
 
@@ -875,84 +918,93 @@ describe('selectSubscriptionsTableRowData', () => {
     })
 
     it('should return only free plan subscriptions when isFreePlan: true', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              isFreePlan: true,
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                isFreePlan: true,
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
 
-        expect(result.items.length).toBe(2)
-        const subscriptionIds = result.items.map(
-          (item) => item.subscription.id
-        )
-        expect(subscriptionIds).toContain(freeSubscription1.id)
-        expect(subscriptionIds).toContain(freeSubscription2.id)
-        expect(subscriptionIds).not.toContain(paidSubscription1.id)
-        expect(subscriptionIds).not.toContain(paidSubscription2.id)
-        result.items.forEach((item) => {
-          expect(item.subscription.isFreePlan).toBe(true)
+          expect(result.items.length).toBe(2)
+          const subscriptionIds = result.items.map(
+            (item) => item.subscription.id
+          )
+          expect(subscriptionIds).toContain(freeSubscription1.id)
+          expect(subscriptionIds).toContain(freeSubscription2.id)
+          expect(subscriptionIds).not.toContain(paidSubscription1.id)
+          expect(subscriptionIds).not.toContain(paidSubscription2.id)
+          result.items.forEach((item) => {
+            expect(item.subscription.isFreePlan).toBe(true)
+          })
+          expect(result.total).toBe(2)
+          return Result.ok(undefined)
         })
-        expect(result.total).toBe(2)
-      })
+      ).unwrap()
     })
 
     it('should return only paid subscriptions when isFreePlan: false', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              isFreePlan: false,
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                isFreePlan: false,
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
 
-        // 5 total: 3 from main beforeEach (default isFreePlan: false) + 2 from this beforeEach
-        expect(result.items.length).toBe(5)
-        const subscriptionIds = result.items.map(
-          (item) => item.subscription.id
-        )
-        // Should include paid subscriptions from this beforeEach
-        expect(subscriptionIds).toContain(paidSubscription1.id)
-        expect(subscriptionIds).toContain(paidSubscription2.id)
-        // Should include subscriptions from main beforeEach (default isFreePlan: false)
-        expect(subscriptionIds).toContain(subscription1.id)
-        expect(subscriptionIds).toContain(subscription2.id)
-        expect(subscriptionIds).toContain(subscription3.id)
-        // Should NOT include free subscriptions
-        expect(subscriptionIds).not.toContain(freeSubscription1.id)
-        expect(subscriptionIds).not.toContain(freeSubscription2.id)
-        result.items.forEach((item) => {
-          expect(item.subscription.isFreePlan).toBe(false)
+          // 5 total: 3 from main beforeEach (default isFreePlan: false) + 2 from this beforeEach
+          expect(result.items.length).toBe(5)
+          const subscriptionIds = result.items.map(
+            (item) => item.subscription.id
+          )
+          // Should include paid subscriptions from this beforeEach
+          expect(subscriptionIds).toContain(paidSubscription1.id)
+          expect(subscriptionIds).toContain(paidSubscription2.id)
+          // Should include subscriptions from main beforeEach (default isFreePlan: false)
+          expect(subscriptionIds).toContain(subscription1.id)
+          expect(subscriptionIds).toContain(subscription2.id)
+          expect(subscriptionIds).toContain(subscription3.id)
+          // Should NOT include free subscriptions
+          expect(subscriptionIds).not.toContain(freeSubscription1.id)
+          expect(subscriptionIds).not.toContain(freeSubscription2.id)
+          result.items.forEach((item) => {
+            expect(item.subscription.isFreePlan).toBe(false)
+          })
+          expect(result.total).toBe(5)
+          return Result.ok(undefined)
         })
-        expect(result.total).toBe(5)
-      })
+      ).unwrap()
     })
 
     it('should return all subscriptions when isFreePlan is undefined', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 20,
-            filters: {
-              organizationId: organization.id,
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 20,
+              filters: {
+                organizationId: organization.id,
+              },
             },
-          },
-          transaction,
-        })
+            transaction,
+          })
 
-        // Should return all 7 subscriptions (3 from main beforeEach + 4 from this beforeEach)
-        expect(result.items.length).toBe(7)
-        expect(result.total).toBe(7)
-      })
+          // Should return all 7 subscriptions (3 from main beforeEach + 4 from this beforeEach)
+          expect(result.items.length).toBe(7)
+          expect(result.total).toBe(7)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -1115,126 +1167,136 @@ describe('selectSubscriptionsTableRowData', () => {
     })
 
     it('should combine isFreePlan and productName filters', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              isFreePlan: false,
-              productName: 'Premium Plan',
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
-
-        // Should return paid subscriptions with Premium Plan:
-        // - subscription1, subscription2 from main beforeEach (price1 = Premium Plan, default isFreePlan: false)
-        // - paidSubscriptionPremium, activePaidSub, canceledPaidSub from this beforeEach
-        expect(result.items.length).toBe(5)
-        const subscriptionIds = result.items.map(
-          (item) => item.subscription.id
-        )
-        expect(subscriptionIds).toContain(paidSubscriptionPremium.id)
-        expect(subscriptionIds).toContain(activePaidSub.id)
-        expect(subscriptionIds).toContain(canceledPaidSub.id)
-        expect(subscriptionIds).toContain(subscription1.id)
-        expect(subscriptionIds).toContain(subscription2.id)
-        result.items.forEach((item) => {
-          expect(item.subscription.isFreePlan).toBe(false)
-          // Product may be null for usage prices, but this test uses subscription prices
-          expect(item.product!.name).toBe('Premium Plan')
-        })
-        expect(result.total).toBe(5)
-      })
-    })
-
-    it('should combine isFreePlan and status filters', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: {
-              organizationId: organization.id,
-              isFreePlan: false,
-              status: SubscriptionStatus.Active,
-            } as SubscriptionTableFilters,
-          },
-          transaction,
-        })
-
-        // Should only return active paid subscriptions
-        const subscriptionIds = result.items.map(
-          (item) => item.subscription.id
-        )
-        expect(subscriptionIds).toContain(activePaidSub.id)
-        expect(subscriptionIds).not.toContain(canceledPaidSub.id)
-        expect(subscriptionIds).not.toContain(activeFreeSub.id)
-        expect(subscriptionIds).not.toContain(canceledFreeSub.id)
-
-        result.items.forEach((item) => {
-          expect(item.subscription.isFreePlan).toBe(false)
-          expect(item.subscription.status).toBe(
-            SubscriptionStatus.Active
-          )
-        })
-      })
-    })
-  })
-
-  describe('edge cases and error handling', () => {
-    it('should handle invalid inputs gracefully and maintain correct total count', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Test null/undefined searchQuery
-        const resultUndefined = await selectSubscriptionsTableRowData(
-          {
-            input: {
-              pageSize: 10,
-              searchQuery: undefined,
-              filters: { organizationId: organization.id },
-            },
-            transaction,
-          }
-        )
-        expect(resultUndefined.items.length).toBe(3)
-        expect(resultUndefined.total).toBe(3)
-
-        // Test non-string productName
-        const resultInvalidProduct =
-          await selectSubscriptionsTableRowData({
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
               filters: {
                 organizationId: organization.id,
-                // @ts-expect-error - Testing invalid input: productName should be string, not number
-                productName: 123, // Non-string value
-              },
-            },
-            transaction,
-          })
-        // Should ignore the invalid productName and return all subscriptions
-        expect(resultInvalidProduct.items.length).toBe(3)
-        expect(resultInvalidProduct.total).toBe(3)
-
-        // Test total count accuracy with search + filter
-        const resultWithFilters =
-          await selectSubscriptionsTableRowData({
-            input: {
-              pageSize: 1, // Small page size
-              searchQuery: 'alice',
-              filters: {
-                organizationId: organization.id,
+                isFreePlan: false,
                 productName: 'Premium Plan',
               } as SubscriptionTableFilters,
             },
             transaction,
           })
 
-        // Should return 1 item but total should be 1 (not items.length)
-        expect(resultWithFilters.items.length).toBe(1)
-        expect(resultWithFilters.total).toBe(1)
-        expect(resultWithFilters.hasNextPage).toBe(false)
-      })
+          // Should return paid subscriptions with Premium Plan:
+          // - subscription1, subscription2 from main beforeEach (price1 = Premium Plan, default isFreePlan: false)
+          // - paidSubscriptionPremium, activePaidSub, canceledPaidSub from this beforeEach
+          expect(result.items.length).toBe(5)
+          const subscriptionIds = result.items.map(
+            (item) => item.subscription.id
+          )
+          expect(subscriptionIds).toContain(
+            paidSubscriptionPremium.id
+          )
+          expect(subscriptionIds).toContain(activePaidSub.id)
+          expect(subscriptionIds).toContain(canceledPaidSub.id)
+          expect(subscriptionIds).toContain(subscription1.id)
+          expect(subscriptionIds).toContain(subscription2.id)
+          result.items.forEach((item) => {
+            expect(item.subscription.isFreePlan).toBe(false)
+            // Product may be null for usage prices, but this test uses subscription prices
+            expect(item.product!.name).toBe('Premium Plan')
+          })
+          expect(result.total).toBe(5)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('should combine isFreePlan and status filters', async () => {
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                isFreePlan: false,
+                status: SubscriptionStatus.Active,
+              } as SubscriptionTableFilters,
+            },
+            transaction,
+          })
+
+          // Should only return active paid subscriptions
+          const subscriptionIds = result.items.map(
+            (item) => item.subscription.id
+          )
+          expect(subscriptionIds).toContain(activePaidSub.id)
+          expect(subscriptionIds).not.toContain(canceledPaidSub.id)
+          expect(subscriptionIds).not.toContain(activeFreeSub.id)
+          expect(subscriptionIds).not.toContain(canceledFreeSub.id)
+
+          result.items.forEach((item) => {
+            expect(item.subscription.isFreePlan).toBe(false)
+            expect(item.subscription.status).toBe(
+              SubscriptionStatus.Active
+            )
+          })
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+  })
+
+  describe('edge cases and error handling', () => {
+    it('should handle invalid inputs gracefully and maintain correct total count', async () => {
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          // Test null/undefined searchQuery
+          const resultUndefined =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 10,
+                searchQuery: undefined,
+                filters: { organizationId: organization.id },
+              },
+              transaction,
+            })
+          expect(resultUndefined.items.length).toBe(3)
+          expect(resultUndefined.total).toBe(3)
+
+          // Test non-string productName
+          const resultInvalidProduct =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 10,
+                filters: {
+                  organizationId: organization.id,
+                  // @ts-expect-error - Testing invalid input: productName should be string, not number
+                  productName: 123, // Non-string value
+                },
+              },
+              transaction,
+            })
+          // Should ignore the invalid productName and return all subscriptions
+          expect(resultInvalidProduct.items.length).toBe(3)
+          expect(resultInvalidProduct.total).toBe(3)
+
+          // Test total count accuracy with search + filter
+          const resultWithFilters =
+            await selectSubscriptionsTableRowData({
+              input: {
+                pageSize: 1, // Small page size
+                searchQuery: 'alice',
+                filters: {
+                  organizationId: organization.id,
+                  productName: 'Premium Plan',
+                } as SubscriptionTableFilters,
+              },
+              transaction,
+            })
+
+          // Should return 1 item but total should be 1 (not items.length)
+          expect(resultWithFilters.items.length).toBe(1)
+          expect(resultWithFilters.total).toBe(1)
+          expect(resultWithFilters.hasNextPage).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -1280,31 +1342,36 @@ describe('selectSubscriptionsTableRowData', () => {
         status: SubscriptionStatus.Active,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await selectSubscriptionsTableRowData({
-          input: {
-            pageSize: 10,
-            filters: { organizationId: org.id },
-          },
-          transaction,
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const result = await selectSubscriptionsTableRowData({
+            input: {
+              pageSize: 10,
+              filters: { organizationId: org.id },
+            },
+            transaction,
+          })
+
+          // Find the subscription with usage price
+          const usageSubRow = result.items.find(
+            (item) => item.subscription.id === usageSubscription.id
+          )
+
+          // Verify the subscription is returned with expected id
+          expect(usageSubRow?.subscription.id).toBe(
+            usageSubscription.id
+          )
+          expect(usageSubRow!.subscription.priceId).toBe(
+            usagePrice.id
+          )
+          expect(usageSubRow!.price.id).toBe(usagePrice.id)
+          expect(usageSubRow!.price.type).toBe(PriceType.Usage)
+          // Usage prices have null product
+          expect(usageSubRow!.product).toBeNull()
+          expect(usageSubRow!.customer.id).toBe(usageCustomer.id)
+          return Result.ok(undefined)
         })
-
-        // Find the subscription with usage price
-        const usageSubRow = result.items.find(
-          (item) => item.subscription.id === usageSubscription.id
-        )
-
-        // Verify the subscription is returned with expected id
-        expect(usageSubRow?.subscription.id).toBe(
-          usageSubscription.id
-        )
-        expect(usageSubRow!.subscription.priceId).toBe(usagePrice.id)
-        expect(usageSubRow!.price.id).toBe(usagePrice.id)
-        expect(usageSubRow!.price.type).toBe(PriceType.Usage)
-        // Usage prices have null product
-        expect(usageSubRow!.product).toBeNull()
-        expect(usageSubRow!.customer.id).toBe(usageCustomer.id)
-      })
+      ).unwrap()
     })
   })
 })
@@ -1350,84 +1417,90 @@ describe('insertSubscription', () => {
   })
 
   it('should derive pricingModelId from price', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const subscription = await insertSubscription(
-        {
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          defaultPaymentMethodId: paymentMethod.id,
-          backupPaymentMethodId: null,
-          status: SubscriptionStatus.Active,
-          livemode: true,
-          startDate: Date.now(),
-          trialEnd: null,
-          currentBillingPeriodStart: Date.now(),
-          currentBillingPeriodEnd:
-            Date.now() + 30 * 24 * 60 * 60 * 1000,
-          billingCycleAnchorDate: Date.now(),
-          canceledAt: null,
-          cancelScheduledAt: null,
-          metadata: {},
-          stripeSetupIntentId: `si_${core.nanoid()}`,
-          name: 'Test Subscription',
-          runBillingAtPeriodStart: true,
-          externalId: null,
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          renews: true,
-          isFreePlan: false,
-          doNotCharge: false,
-          cancellationReason: null,
-          replacedBySubscriptionId: null,
-        },
-        transaction
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const subscription = await insertSubscription(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price.id,
+            defaultPaymentMethodId: paymentMethod.id,
+            backupPaymentMethodId: null,
+            status: SubscriptionStatus.Active,
+            livemode: true,
+            startDate: Date.now(),
+            trialEnd: null,
+            currentBillingPeriodStart: Date.now(),
+            currentBillingPeriodEnd:
+              Date.now() + 30 * 24 * 60 * 60 * 1000,
+            billingCycleAnchorDate: Date.now(),
+            canceledAt: null,
+            cancelScheduledAt: null,
+            metadata: {},
+            stripeSetupIntentId: `si_${core.nanoid()}`,
+            name: 'Test Subscription',
+            runBillingAtPeriodStart: true,
+            externalId: null,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            renews: true,
+            isFreePlan: false,
+            doNotCharge: false,
+            cancellationReason: null,
+            replacedBySubscriptionId: null,
+          },
+          transaction
+        )
 
-      // Verify pricingModelId was derived from price
-      expect(subscription.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify pricingModelId was derived from price
+        expect(subscription.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should use provided pricingModelId without derivation', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const subscription = await insertSubscription(
-        {
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          defaultPaymentMethodId: paymentMethod.id,
-          backupPaymentMethodId: null,
-          status: SubscriptionStatus.Active,
-          livemode: true,
-          startDate: Date.now(),
-          trialEnd: null,
-          currentBillingPeriodStart: Date.now(),
-          currentBillingPeriodEnd:
-            Date.now() + 30 * 24 * 60 * 60 * 1000,
-          billingCycleAnchorDate: Date.now(),
-          canceledAt: null,
-          cancelScheduledAt: null,
-          metadata: {},
-          stripeSetupIntentId: `si_${core.nanoid()}`,
-          name: 'Test Subscription',
-          runBillingAtPeriodStart: true,
-          externalId: null,
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          renews: true,
-          isFreePlan: false,
-          doNotCharge: false,
-          cancellationReason: null,
-          replacedBySubscriptionId: null,
-          pricingModelId: pricingModel.id, // Pre-provided
-        },
-        transaction
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const subscription = await insertSubscription(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price.id,
+            defaultPaymentMethodId: paymentMethod.id,
+            backupPaymentMethodId: null,
+            status: SubscriptionStatus.Active,
+            livemode: true,
+            startDate: Date.now(),
+            trialEnd: null,
+            currentBillingPeriodStart: Date.now(),
+            currentBillingPeriodEnd:
+              Date.now() + 30 * 24 * 60 * 60 * 1000,
+            billingCycleAnchorDate: Date.now(),
+            canceledAt: null,
+            cancelScheduledAt: null,
+            metadata: {},
+            stripeSetupIntentId: `si_${core.nanoid()}`,
+            name: 'Test Subscription',
+            runBillingAtPeriodStart: true,
+            externalId: null,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            renews: true,
+            isFreePlan: false,
+            doNotCharge: false,
+            cancellationReason: null,
+            replacedBySubscriptionId: null,
+            pricingModelId: pricingModel.id, // Pre-provided
+          },
+          transaction
+        )
 
-      // Verify the provided pricingModelId is used
-      expect(subscription.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify the provided pricingModelId is used
+        expect(subscription.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -1484,85 +1557,88 @@ describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
   })
 
   it('should bulk insert subscriptions and derive pricingModelId for each', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const externalId1 = `ext_sub_1_${core.nanoid()}`
-      const externalId2 = `ext_sub_2_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const externalId1 = `ext_sub_1_${core.nanoid()}`
+        const externalId2 = `ext_sub_2_${core.nanoid()}`
 
-      await bulkInsertOrDoNothingSubscriptionsByExternalId(
-        [
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            priceId: price1.id,
-            defaultPaymentMethodId: paymentMethod.id,
-            backupPaymentMethodId: null,
-            status: SubscriptionStatus.Active,
-            livemode: true,
-            startDate: Date.now(),
-            trialEnd: null,
-            currentBillingPeriodStart: Date.now(),
-            currentBillingPeriodEnd:
-              Date.now() + 30 * 24 * 60 * 60 * 1000,
-            billingCycleAnchorDate: Date.now(),
-            canceledAt: null,
-            cancelScheduledAt: null,
-            metadata: {},
-            stripeSetupIntentId: `si_${core.nanoid()}`,
-            name: 'Test Subscription 1',
-            runBillingAtPeriodStart: true,
-            externalId: externalId1,
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            renews: true,
-            isFreePlan: false,
-            doNotCharge: false,
-            cancellationReason: null,
-            replacedBySubscriptionId: null,
-          },
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            priceId: price2.id,
-            defaultPaymentMethodId: paymentMethod.id,
-            backupPaymentMethodId: null,
-            status: SubscriptionStatus.Active,
-            livemode: true,
-            startDate: Date.now(),
-            trialEnd: null,
-            currentBillingPeriodStart: Date.now(),
-            currentBillingPeriodEnd:
-              Date.now() + 30 * 24 * 60 * 60 * 1000,
-            billingCycleAnchorDate: Date.now(),
-            canceledAt: null,
-            cancelScheduledAt: null,
-            metadata: {},
-            stripeSetupIntentId: `si_${core.nanoid()}`,
-            name: 'Test Subscription 2',
-            runBillingAtPeriodStart: true,
-            externalId: externalId2,
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            renews: true,
-            isFreePlan: false,
-            doNotCharge: false,
-            cancellationReason: null,
-            replacedBySubscriptionId: null,
-          },
-        ],
-        transaction
-      )
+        await bulkInsertOrDoNothingSubscriptionsByExternalId(
+          [
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              priceId: price1.id,
+              defaultPaymentMethodId: paymentMethod.id,
+              backupPaymentMethodId: null,
+              status: SubscriptionStatus.Active,
+              livemode: true,
+              startDate: Date.now(),
+              trialEnd: null,
+              currentBillingPeriodStart: Date.now(),
+              currentBillingPeriodEnd:
+                Date.now() + 30 * 24 * 60 * 60 * 1000,
+              billingCycleAnchorDate: Date.now(),
+              canceledAt: null,
+              cancelScheduledAt: null,
+              metadata: {},
+              stripeSetupIntentId: `si_${core.nanoid()}`,
+              name: 'Test Subscription 1',
+              runBillingAtPeriodStart: true,
+              externalId: externalId1,
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              renews: true,
+              isFreePlan: false,
+              doNotCharge: false,
+              cancellationReason: null,
+              replacedBySubscriptionId: null,
+            },
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              priceId: price2.id,
+              defaultPaymentMethodId: paymentMethod.id,
+              backupPaymentMethodId: null,
+              status: SubscriptionStatus.Active,
+              livemode: true,
+              startDate: Date.now(),
+              trialEnd: null,
+              currentBillingPeriodStart: Date.now(),
+              currentBillingPeriodEnd:
+                Date.now() + 30 * 24 * 60 * 60 * 1000,
+              billingCycleAnchorDate: Date.now(),
+              canceledAt: null,
+              cancelScheduledAt: null,
+              metadata: {},
+              stripeSetupIntentId: `si_${core.nanoid()}`,
+              name: 'Test Subscription 2',
+              runBillingAtPeriodStart: true,
+              externalId: externalId2,
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              renews: true,
+              isFreePlan: false,
+              doNotCharge: false,
+              cancellationReason: null,
+              replacedBySubscriptionId: null,
+            },
+          ],
+          transaction
+        )
 
-      // Verify by selecting the inserted subscriptions
-      const insertedSubscriptions = await selectSubscriptions(
-        { externalId: [externalId1, externalId2] },
-        transaction
-      )
+        // Verify by selecting the inserted subscriptions
+        const insertedSubscriptions = await selectSubscriptions(
+          { externalId: [externalId1, externalId2] },
+          transaction
+        )
 
-      expect(insertedSubscriptions.length).toBe(2)
-      insertedSubscriptions.forEach((sub) => {
-        expect(sub.pricingModelId).toBe(pricingModel.id)
+        expect(insertedSubscriptions.length).toBe(2)
+        insertedSubscriptions.forEach((sub) => {
+          expect(sub.pricingModelId).toBe(pricingModel.id)
+        })
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
   })
 })
 
@@ -1615,29 +1691,37 @@ describe('derivePricingModelIdFromSubscription', () => {
   })
 
   it('should derive pricingModelId from an existing subscription', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdFromSubscription(
-          subscription.id,
-          transaction
-        )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const derivedPricingModelId =
+          await derivePricingModelIdFromSubscription(
+            subscription.id,
+            transaction
+          )
 
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-      expect(derivedPricingModelId).toBe(subscription.pricingModelId)
-    })
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        expect(derivedPricingModelId).toBe(
+          subscription.pricingModelId
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should throw error when subscription does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromSubscription(
-          nonExistentSubscriptionId,
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          derivePricingModelIdFromSubscription(
+            nonExistentSubscriptionId,
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 

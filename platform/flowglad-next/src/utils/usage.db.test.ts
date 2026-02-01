@@ -15,7 +15,7 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
@@ -169,20 +169,22 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                 }
               )
-            return Result.ok(usageMeterResult)
+            return usageMeterResult
           }
         )
       ).rejects.toThrow()
 
       // Verify only the original usage meter exists (transaction rolled back)
-      const usageMeters = await adminTransaction(
-        async ({ transaction }) => {
-          return selectUsageMeters(
-            { slug, pricingModelId: pricingModel.id },
-            transaction
+      const usageMeters = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectUsageMeters(
+              { slug, pricingModelId: pricingModel.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(usageMeters).toHaveLength(1)
       expect(usageMeters[0].name).toBe('Existing Usage Meter')
     })
@@ -250,14 +252,16 @@ describe('createUsageMeterTransaction', () => {
       expect(result.noChargePrice.slug).toBe(`${slug}_no_charge`)
 
       // Verify both the product price and usage meter price exist with same slug
-      const usageMeters = await adminTransaction(
-        async ({ transaction }) => {
-          return selectUsageMeters(
-            { slug, pricingModelId: pricingModel.id },
-            transaction
+      const usageMeters = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectUsageMeters(
+              { slug, pricingModelId: pricingModel.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(usageMeters).toHaveLength(1)
       expect(usageMeters[0].slug).toBe(slug)
     })
@@ -336,8 +340,8 @@ describe('createUsageMeterTransaction', () => {
       })
 
       // Count records before the failed transaction
-      const beforeCounts = await adminTransaction(
-        async ({ transaction }) => {
+      const beforeCounts = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const usageMeters = await selectUsageMeters(
             { pricingModelId: pricingModel.id },
             transaction
@@ -346,12 +350,14 @@ describe('createUsageMeterTransaction', () => {
             { pricingModelId: pricingModel.id },
             transaction
           )
-          return {
-            usageMeters: usageMeters.length,
-            prices: allPrices.length,
-          }
-        }
-      )
+          return Result.ok(
+            await {
+              usageMeters: usageMeters.length,
+              prices: allPrices.length,
+            }
+          )
+        })
+      ).unwrap()
 
       // Attempt to create usage meter (should fail due to slug collision)
       await expect(
@@ -378,14 +384,14 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                 }
               )
-            return Result.ok(usageMeterResult)
+            return usageMeterResult
           }
         )
       ).rejects.toThrow()
 
       // Count records after the failed transaction
-      const afterCounts = await adminTransaction(
-        async ({ transaction }) => {
+      const afterCounts = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const usageMeters = await selectUsageMeters(
             { pricingModelId: pricingModel.id },
             transaction
@@ -394,12 +400,14 @@ describe('createUsageMeterTransaction', () => {
             { pricingModelId: pricingModel.id },
             transaction
           )
-          return {
-            usageMeters: usageMeters.length,
-            prices: allPrices.length,
-          }
-        }
-      )
+          return Result.ok(
+            await {
+              usageMeters: usageMeters.length,
+              prices: allPrices.length,
+            }
+          )
+        })
+      ).unwrap()
 
       // Verify no new records were created (transaction rolled back completely)
       expect(afterCounts.usageMeters).toBe(beforeCounts.usageMeters)

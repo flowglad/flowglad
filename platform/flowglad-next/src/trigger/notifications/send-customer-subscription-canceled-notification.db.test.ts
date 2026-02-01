@@ -3,12 +3,13 @@ import { SubscriptionStatus } from '@db-core/enums'
 import type { Customer } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import * as actualEmail from '@/utils/email'
 import { runSendCustomerSubscriptionCanceledNotification } from './send-customer-subscription-canceled-notification'
@@ -77,12 +78,15 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
     })
 
     // Update customer to have empty email (null is not allowed by schema)
-    await adminTransaction(async ({ transaction }) => {
-      await updateCustomer(
-        { id: customerWithEmail.id, email: '' },
-        transaction
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await updateCustomer(
+          { id: customerWithEmail.id, email: '' },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     const orgSetup2 = await setupOrg()
     const subscriptionForCustomerWithoutEmail =

@@ -20,6 +20,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -30,7 +31,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import {
   createAndFinalizeSubscriptionFeeCalculation,
@@ -69,16 +70,19 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       startDate: new Date('2023-01-01T00:00:00.000Z').getTime(),
       endDate: new Date('2023-01-31T23:59:59.999Z').getTime(),
     })
-    const countries = await adminTransaction(
-      async ({ transaction }) =>
-        selectCountries(
-          {
-            id: (orgData.organization as Organization.Record)
-              .countryId,
-          },
-          transaction
+    const countries = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectCountries(
+            {
+              id: (orgData.organization as Organization.Record)
+                .countryId,
+            },
+            transaction
+          )
         )
-    )
+      })
+    ).unwrap()
     if (!countries || countries.length === 0)
       throw new Error(
         'Organization country not found during test setup'
@@ -316,40 +320,46 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
       endDate: new Date('2023-01-31T23:59:59.999Z').getTime(),
     })
 
-    const countries = await adminTransaction(
-      async ({ transaction }) =>
-        selectCountries(
-          {
-            id: (orgData.organization as Organization.Record)
-              .countryId,
-          },
-          transaction
+    const countries = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectCountries(
+            {
+              id: (orgData.organization as Organization.Record)
+                .countryId,
+            },
+            transaction
+          )
         )
-    )
+      })
+    ).unwrap()
     const organizationCountry = countries[0]!
 
     // Usage prices should now work without product lookup
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) =>
-        createAndFinalizeSubscriptionFeeCalculation(
-          {
-            organization: {
-              ...(orgData.organization as Organization.Record),
-              feePercentage: '2.0',
-              stripeConnectContractType:
-                StripeConnectContractType.Platform,
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createAndFinalizeSubscriptionFeeCalculation(
+            {
+              organization: {
+                ...(orgData.organization as Organization.Record),
+                feePercentage: '2.0',
+                stripeConnectContractType:
+                  StripeConnectContractType.Platform,
+              },
+              billingPeriod,
+              billingPeriodItems: [],
+              paymentMethod,
+              organizationCountry,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              usageOverages: [],
             },
-            billingPeriod,
-            billingPeriodItems: [],
-            paymentMethod,
-            organizationCountry,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            usageOverages: [],
-          },
-          transaction
+            transaction
+          )
         )
-    )
+      })
+    ).unwrap()
 
     // Verify fee calculation was created successfully
     expect(feeCalculation.id).toMatch(/^feec_/)

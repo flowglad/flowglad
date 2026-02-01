@@ -19,7 +19,7 @@ import {
   setupToggleFeature,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { createCapturingEffectsContext } from '@/test-utils/transactionCallbacks'
@@ -97,16 +97,20 @@ describe('unexpireProductFeatures', () => {
     })
 
     // - Call `unexpireProductFeatures` with the `productId`, `organizationId`, and an array of the two expired feature IDs.
-    const unexpired = await adminTransaction(async (ctx) => {
-      return unexpireProductFeatures(
-        {
-          featureIds: [featureA.id, featureB.id],
-          productId: product.id,
-          organizationId: organization.id,
-        },
-        ctx
-      )
-    })
+    const unexpired = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await unexpireProductFeatures(
+            {
+              featureIds: [featureA.id, featureB.id],
+              productId: product.id,
+              organizationId: organization.id,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
 
     // - The function should return an array containing two `ProductFeature.Record` objects.
     expect(unexpired).toHaveLength(2)
@@ -115,10 +119,16 @@ describe('unexpireProductFeatures', () => {
     expect(unexpired[1].expiredAt).toBeNull()
 
     // - A direct database query for the two targeted features should confirm their `expiredAt` value is now null.
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures({ productId: product.id }, transaction)
-    )
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     const featureAModel = allFeatures.find(
       (pf) => pf.featureId === featureA.id
     )
@@ -149,16 +159,20 @@ describe('unexpireProductFeatures', () => {
     })
 
     // - Call `unexpireProductFeatures` with `featureIds` corresponding to these active features.
-    const result = await adminTransaction(async (ctx) => {
-      return unexpireProductFeatures(
-        {
-          featureIds: [featureA.id, featureB.id],
-          productId: product.id,
-          organizationId: organization.id,
-        },
-        ctx
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await unexpireProductFeatures(
+            {
+              featureIds: [featureA.id, featureB.id],
+              productId: product.id,
+              organizationId: organization.id,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
     // - The function should return an empty array.
     expect(result).toHaveLength(0)
   })
@@ -178,24 +192,34 @@ describe('unexpireProductFeatures', () => {
       expiredAt: Date.now(),
     })
     // - Call `unexpireProductFeatures` with a list containing only the ID for Feature A and a non-existent Feature C.
-    const result = await adminTransaction(async (ctx) => {
-      return unexpireProductFeatures(
-        {
-          featureIds: [featureA.id, featureC.id],
-          productId: product.id,
-          organizationId: organization.id,
-        },
-        ctx
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await unexpireProductFeatures(
+            {
+              featureIds: [featureA.id, featureC.id],
+              productId: product.id,
+              organizationId: organization.id,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
     // - The function should return an array containing only the record for the un-expired Feature A.
     expect(result).toHaveLength(1)
     expect(result[0].featureId).toBe(featureA.id)
     // - Feature B should remain expired in the database.
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures({ productId: product.id }, transaction)
-    )
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     const featureBModel = allFeatures.find(
       (pf) => pf.featureId === featureB.id
     )
@@ -212,16 +236,20 @@ describe('unexpireProductFeatures', () => {
     })
 
     // - Call `unexpireProductFeatures` with an empty `featureIds` array.
-    const result = await adminTransaction(async (ctx) => {
-      return unexpireProductFeatures(
-        {
-          featureIds: [],
-          productId: product.id,
-          organizationId: organization.id,
-        },
-        ctx
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await unexpireProductFeatures(
+            {
+              featureIds: [],
+              productId: product.id,
+              organizationId: organization.id,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
 
     // - The function should return an empty array.
     expect(result).toHaveLength(0)
@@ -243,28 +271,35 @@ describe('unexpireProductFeatures', () => {
     })
 
     // - Call `unexpireProductFeatures` with the correct featureId but the `productId` of the second product.
-    const result = await adminTransaction(async (ctx) => {
-      return unexpireProductFeatures(
-        {
-          featureIds: [featureA.id],
-          productId: otherProduct.id,
-          organizationId: organization.id,
-        },
-        ctx
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await unexpireProductFeatures(
+            {
+              featureIds: [featureA.id],
+              productId: otherProduct.id,
+              organizationId: organization.id,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
 
     // - The function should return an empty array.
     expect(result).toHaveLength(0)
 
     // - The original product feature should remain expired in the database.
-    const [originalFeature] = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures(
-          { productId: product.id, featureId: featureA.id },
-          transaction
+    const [originalFeature] = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id, featureId: featureA.id },
+            transaction
+          )
         )
-    )
+      })
+    ).unwrap()
     expect(typeof originalFeature?.expiredAt).toBe('number')
   })
 })
@@ -314,13 +349,16 @@ describe('batchUnexpireProductFeatures', () => {
     expect(result.every((pf) => pf.expiredAt === null)).toBe(true)
 
     // Verify database state
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures(
-          { productId: [product.id, product2.id] },
-          transaction
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: [product.id, product2.id] },
+            transaction
+          )
         )
-    )
+      })
+    ).unwrap()
     expect(allFeatures.every((pf) => pf.expiredAt === null)).toBe(
       true
     )
@@ -517,16 +555,21 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Unexpire the product feature and capture effects
-    await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } =
-        createCapturingEffectsContext(transaction)
-      await batchUnexpireProductFeatures([expiredPf.id], ctx)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
+        await batchUnexpireProductFeatures([expiredPf.id], ctx)
 
-      // Verify cache invalidation was emitted for the subscription item
-      expect(effects.cacheInvalidations).toContainEqual(
-        CacheDependency.subscriptionItemFeatures(subscriptionItem.id)
-      )
-    })
+        // Verify cache invalidation was emitted for the subscription item
+        expect(effects.cacheInvalidations).toContainEqual(
+          CacheDependency.subscriptionItemFeatures(
+            subscriptionItem.id
+          )
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('invalidates caches for multiple subscription items across different products when unexpiring product features', async () => {
@@ -616,22 +659,29 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Unexpire both product features and capture effects
-    await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } =
-        createCapturingEffectsContext(transaction)
-      await batchUnexpireProductFeatures(
-        [expiredPf1.id, expiredPf2.id],
-        ctx
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
+        await batchUnexpireProductFeatures(
+          [expiredPf1.id, expiredPf2.id],
+          ctx
+        )
 
-      // Verify cache invalidations were emitted for both subscription items
-      expect(effects.cacheInvalidations).toContainEqual(
-        CacheDependency.subscriptionItemFeatures(subscriptionItem1.id)
-      )
-      expect(effects.cacheInvalidations).toContainEqual(
-        CacheDependency.subscriptionItemFeatures(subscriptionItem2.id)
-      )
-    })
+        // Verify cache invalidations were emitted for both subscription items
+        expect(effects.cacheInvalidations).toContainEqual(
+          CacheDependency.subscriptionItemFeatures(
+            subscriptionItem1.id
+          )
+        )
+        expect(effects.cacheInvalidations).toContainEqual(
+          CacheDependency.subscriptionItemFeatures(
+            subscriptionItem2.id
+          )
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('does not emit cache invalidations when no product features are actually unexpired', async () => {
@@ -644,19 +694,22 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Try to unexpire the already-active feature
-    await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } =
-        createCapturingEffectsContext(transaction)
-      const result = await batchUnexpireProductFeatures(
-        [activePf.id],
-        ctx
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
+        const result = await batchUnexpireProductFeatures(
+          [activePf.id],
+          ctx
+        )
 
-      // No features were actually unexpired
-      expect(result).toHaveLength(0)
-      // No cache invalidations should be emitted
-      expect(effects.cacheInvalidations).toHaveLength(0)
-    })
+        // No features were actually unexpired
+        expect(result).toHaveLength(0)
+        // No cache invalidations should be emitted
+        expect(effects.cacheInvalidations).toHaveLength(0)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('emits productFeaturesByPricingModel cache invalidation even when there are no subscription items', async () => {
@@ -669,26 +722,29 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Unexpire the product feature
-    await adminTransaction(async ({ transaction }) => {
-      const { ctx, effects } =
-        createCapturingEffectsContext(transaction)
-      const result = await batchUnexpireProductFeatures(
-        [expiredPf.id],
-        ctx
-      )
-
-      // Feature was unexpired
-      expect(result).toHaveLength(1)
-      // Cache invalidation for productFeaturesByPricingModel is emitted
-      // even without subscription items, because the product features
-      // set for the pricing model has changed
-      expect(effects.cacheInvalidations).toHaveLength(1)
-      expect(effects.cacheInvalidations[0]).toBe(
-        CacheDependency.productFeaturesByPricingModel(
-          expiredPf.pricingModelId
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
+        const result = await batchUnexpireProductFeatures(
+          [expiredPf.id],
+          ctx
         )
-      )
-    })
+
+        // Feature was unexpired
+        expect(result).toHaveLength(1)
+        // Cache invalidation for productFeaturesByPricingModel is emitted
+        // even without subscription items, because the product features
+        // set for the pricing model has changed
+        expect(effects.cacheInvalidations).toHaveLength(1)
+        expect(effects.cacheInvalidations[0]).toBe(
+          CacheDependency.productFeaturesByPricingModel(
+            expiredPf.pricingModelId
+          )
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -723,10 +779,16 @@ describe('syncProductFeatures', () => {
     ).toBe(true)
 
     // - A database query should confirm that two new, active product features now link the product to the desired features.
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures({ productId: product.id }, transaction)
-    )
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(allFeatures).toHaveLength(2)
     expect(allFeatures.every((pf) => !pf.expiredAt)).toBe(true)
     // Verify pricingModelId matches product for all features
@@ -766,10 +828,16 @@ describe('syncProductFeatures', () => {
     // - The function should return an empty array.
     expect(result).toHaveLength(0)
     // - All previously active product features for the product should now have a non-null `expiredAt` date in the database.
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures({ productId: product.id }, transaction)
-    )
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(allFeatures).toHaveLength(2)
     expect(allFeatures.every((pf) => pf.expiredAt)).toBe(true)
   })
@@ -807,10 +875,16 @@ describe('syncProductFeatures', () => {
     expect(result.every((pf) => !pf.expiredAt)).toBe(true)
 
     // - Both product features should now have `expiredAt: null` in the database.
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures({ productId: product.id }, transaction)
-    )
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(allFeatures).toHaveLength(2)
     expect(allFeatures.every((pf) => !pf.expiredAt)).toBe(true)
   })
@@ -862,10 +936,16 @@ describe('syncProductFeatures', () => {
     expect(resultFeatureIds.has(featureC.id)).toBe(true)
     expect(resultFeatureIds.has(featureD.id)).toBe(true)
 
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures({ productId: product.id }, transaction)
-    )
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     const featureStates = new Map(
       allFeatures.map((pf) => [pf.featureId, !!pf.expiredAt])
@@ -915,10 +995,16 @@ describe('syncProductFeatures', () => {
     expect(result).toHaveLength(0)
 
     // - A check on the database should show that Feature A is still active and Feature B is still expired.
-    const allFeatures = await adminTransaction(
-      async ({ transaction }) =>
-        selectProductFeatures({ productId: product.id }, transaction)
-    )
+    const allFeatures = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectProductFeatures(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     const featureAState = allFeatures.find(
       (pf) => pf.featureId === featureA.id
     )
@@ -954,13 +1040,17 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       expiredAt: Date.now() - 1000, // expired in the past
     })
 
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeaturesByProductFeatureWhere(
-        { productId: product.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Should only return active features (A and B)
     expect(result).toHaveLength(2)
@@ -997,13 +1087,17 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       expiredAt: Date.now() - 1000, // expired in the past
     })
 
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeaturesByProductFeatureWhere(
-        { productId: product.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Should return both the future-expiring feature and the never-expiring feature
     expect(result).toHaveLength(2)
@@ -1038,13 +1132,17 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       expiredAt: null,
     })
 
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeaturesByProductFeatureWhere(
-        { productId: product.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Should only return the active feature
     expect(result).toHaveLength(1)
@@ -1068,13 +1166,17 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       expiredAt: pastTime,
     })
 
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeaturesByProductFeatureWhere(
-        { productId: product.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Should return empty array
     expect(result).toHaveLength(0)
@@ -1116,13 +1218,17 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       expiredAt: futureTime + 1000,
     })
 
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeaturesByProductFeatureWhere(
-        { productId: product.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Should return A, B, and D (not C)
     expect(result).toHaveLength(3)
@@ -1149,13 +1255,17 @@ describe('selectFeaturesByProductFeatureWhere', () => {
     })
 
     // Query for specific feature
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return selectFeaturesByProductFeatureWhere(
-        { productId: product.id, featureId: featureA.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id, featureId: featureA.id },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Should return only the active feature A
     expect(result).toHaveLength(1)
@@ -1165,60 +1275,70 @@ describe('selectFeaturesByProductFeatureWhere', () => {
 
 describe('insertProductFeature', () => {
   it('should successfully insert product feature and derive pricingModelId from product', async () => {
-    await adminTransaction(async (ctx) => {
-      const productFeature = await insertProductFeature(
-        {
-          productId: product.id,
-          featureId: featureA.id,
-          organizationId: organization.id,
-          livemode: true,
-        },
-        ctx
-      )
-
-      // Verify pricingModelId is correctly derived from product
-      expect(productFeature.pricingModelId).toBe(
-        product.pricingModelId
-      )
-    })
-  })
-
-  it('should use provided pricingModelId without derivation', async () => {
-    const customPricingModelId = product.pricingModelId
-
-    await adminTransaction(async (ctx) => {
-      const productFeature = await insertProductFeature(
-        {
-          productId: product.id,
-          featureId: featureA.id,
-          organizationId: organization.id,
-          livemode: true,
-          pricingModelId: customPricingModelId, // Pre-provided
-        },
-        ctx
-      )
-
-      // Verify the provided pricingModelId is used
-      expect(productFeature.pricingModelId).toBe(customPricingModelId)
-    })
-  })
-
-  it('should throw an error when productId does not exist', async () => {
-    await adminTransaction(async (ctx) => {
-      const nonExistentProductId = `prod_${core.nanoid()}`
-
-      await expect(
-        insertProductFeature(
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const productFeature = await insertProductFeature(
           {
-            productId: nonExistentProductId,
+            productId: product.id,
             featureId: featureA.id,
             organizationId: organization.id,
             livemode: true,
           },
           ctx
         )
-      ).rejects.toThrow()
-    })
+
+        // Verify pricingModelId is correctly derived from product
+        expect(productFeature.pricingModelId).toBe(
+          product.pricingModelId
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+  })
+
+  it('should use provided pricingModelId without derivation', async () => {
+    const customPricingModelId = product.pricingModelId
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const productFeature = await insertProductFeature(
+          {
+            productId: product.id,
+            featureId: featureA.id,
+            organizationId: organization.id,
+            livemode: true,
+            pricingModelId: customPricingModelId, // Pre-provided
+          },
+          ctx
+        )
+
+        // Verify the provided pricingModelId is used
+        expect(productFeature.pricingModelId).toBe(
+          customPricingModelId
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+  })
+
+  it('should throw an error when productId does not exist', async () => {
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const nonExistentProductId = `prod_${core.nanoid()}`
+
+        await expect(
+          insertProductFeature(
+            {
+              productId: nonExistentProductId,
+              featureId: featureA.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+            ctx
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -1235,141 +1355,42 @@ describe('bulkInsertProductFeatures', () => {
   })
 
   it('should bulk insert product features and derive pricingModelId for each', async () => {
-    await adminTransaction(async (ctx) => {
-      const productFeatures = await bulkInsertProductFeatures(
-        [
-          {
-            productId: product.id,
-            featureId: featureA.id,
-            organizationId: organization.id,
-            livemode: true,
-          },
-          {
-            productId: product2.id,
-            featureId: featureB.id,
-            organizationId: organization.id,
-            livemode: true,
-          },
-        ],
-        ctx
-      )
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const productFeatures = await bulkInsertProductFeatures(
+          [
+            {
+              productId: product.id,
+              featureId: featureA.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+            {
+              productId: product2.id,
+              featureId: featureB.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+          ],
+          ctx
+        )
 
-      expect(productFeatures).toHaveLength(2)
-      expect(productFeatures[0]!.pricingModelId).toBe(
-        product.pricingModelId
-      )
-      expect(productFeatures[1]!.pricingModelId).toBe(
-        product2.pricingModelId
-      )
-    })
+        expect(productFeatures).toHaveLength(2)
+        expect(productFeatures[0]!.pricingModelId).toBe(
+          product.pricingModelId
+        )
+        expect(productFeatures[1]!.pricingModelId).toBe(
+          product2.pricingModelId
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should honor pre-provided pricingModelId in bulk insert', async () => {
-    await adminTransaction(async (ctx) => {
-      const productFeatures = await bulkInsertProductFeatures(
-        [
-          {
-            productId: product.id,
-            featureId: featureA.id,
-            organizationId: organization.id,
-            livemode: true,
-            pricingModelId: product.pricingModelId, // Pre-provided
-          },
-          {
-            productId: product2.id,
-            featureId: featureB.id,
-            organizationId: organization.id,
-            livemode: true,
-            // No pricingModelId - should derive
-          },
-        ],
-        ctx
-      )
-
-      expect(productFeatures).toHaveLength(2)
-      expect(productFeatures[0]!.pricingModelId).toBe(
-        product.pricingModelId
-      )
-      expect(productFeatures[1]!.pricingModelId).toBe(
-        product2.pricingModelId
-      )
-    })
-  })
-
-  it('should throw an error if a product does not exist for derivation', async () => {
-    await adminTransaction(async (ctx) => {
-      const nonExistentProductId = `prod_${core.nanoid()}`
-
-      await expect(
-        bulkInsertProductFeatures(
-          [
-            {
-              productId: nonExistentProductId,
-              featureId: featureA.id,
-              organizationId: organization.id,
-              livemode: true,
-            },
-          ],
-          ctx
-        )
-      ).rejects.toThrow()
-    })
-  })
-})
-
-describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
-  let product2: Product.Record
-
-  beforeEach(async () => {
-    product2 = await setupProduct({
-      organizationId: organization.id,
-      name: 'Test Product 2',
-      pricingModelId: product.pricingModelId,
-      livemode: true,
-    })
-  })
-
-  it('should bulk insert or do nothing for product features', async () => {
-    await adminTransaction(async (ctx) => {
-      // First insert
-      const firstResult =
-        await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
-          [
-            {
-              productId: product.id,
-              featureId: featureA.id,
-              organizationId: organization.id,
-              livemode: true,
-            },
-          ],
-          ctx
-        )
-      expect(firstResult).toHaveLength(1)
-      expect(firstResult[0]!.pricingModelId).toBe(
-        product.pricingModelId
-      )
-
-      // Second insert with same product-feature pair should do nothing
-      const secondResult =
-        await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
-          [
-            {
-              productId: product.id,
-              featureId: featureA.id,
-              organizationId: organization.id,
-              livemode: true,
-            },
-          ],
-          ctx
-        )
-      expect(secondResult).toHaveLength(0)
-    })
-  })
-
-  it('should honor pre-provided pricingModelId', async () => {
-    await adminTransaction(async (ctx) => {
-      const result =
-        await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const productFeatures = await bulkInsertProductFeatures(
           [
             {
               productId: product.id,
@@ -1389,9 +1410,125 @@ describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
           ctx
         )
 
-      expect(result).toHaveLength(2)
-      expect(result[0]!.pricingModelId).toBe(product.pricingModelId)
-      expect(result[1]!.pricingModelId).toBe(product2.pricingModelId)
+        expect(productFeatures).toHaveLength(2)
+        expect(productFeatures[0]!.pricingModelId).toBe(
+          product.pricingModelId
+        )
+        expect(productFeatures[1]!.pricingModelId).toBe(
+          product2.pricingModelId
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+  })
+
+  it('should throw an error if a product does not exist for derivation', async () => {
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const nonExistentProductId = `prod_${core.nanoid()}`
+
+        await expect(
+          bulkInsertProductFeatures(
+            [
+              {
+                productId: nonExistentProductId,
+                featureId: featureA.id,
+                organizationId: organization.id,
+                livemode: true,
+              },
+            ],
+            ctx
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+  })
+})
+
+describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
+  let product2: Product.Record
+
+  beforeEach(async () => {
+    product2 = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product 2',
+      pricingModelId: product.pricingModelId,
+      livemode: true,
     })
+  })
+
+  it('should bulk insert or do nothing for product features', async () => {
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        // First insert
+        const firstResult =
+          await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
+            [
+              {
+                productId: product.id,
+                featureId: featureA.id,
+                organizationId: organization.id,
+                livemode: true,
+              },
+            ],
+            ctx
+          )
+        expect(firstResult).toHaveLength(1)
+        expect(firstResult[0]!.pricingModelId).toBe(
+          product.pricingModelId
+        )
+
+        // Second insert with same product-feature pair should do nothing
+        const secondResult =
+          await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
+            [
+              {
+                productId: product.id,
+                featureId: featureA.id,
+                organizationId: organization.id,
+                livemode: true,
+              },
+            ],
+            ctx
+          )
+        expect(secondResult).toHaveLength(0)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+  })
+
+  it('should honor pre-provided pricingModelId', async () => {
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const result =
+          await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
+            [
+              {
+                productId: product.id,
+                featureId: featureA.id,
+                organizationId: organization.id,
+                livemode: true,
+                pricingModelId: product.pricingModelId, // Pre-provided
+              },
+              {
+                productId: product2.id,
+                featureId: featureB.id,
+                organizationId: organization.id,
+                livemode: true,
+                // No pricingModelId - should derive
+              },
+            ],
+            ctx
+          )
+
+        expect(result).toHaveLength(2)
+        expect(result[0]!.pricingModelId).toBe(product.pricingModelId)
+        expect(result[1]!.pricingModelId).toBe(
+          product2.pricingModelId
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
