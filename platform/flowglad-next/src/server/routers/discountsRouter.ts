@@ -8,6 +8,7 @@ import {
   discountWithRedemptionsSchema,
   editDiscountInputSchema,
 } from '@db-core/schema/discounts'
+
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -17,7 +18,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   deleteDiscount as deleteDiscountMethod,
@@ -34,6 +35,7 @@ import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { protectedProcedure } from '@/server/trpc'
 import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { router } from '../trpc'
 
 const { openApiMetas } = generateOpenApiMetas({
@@ -47,7 +49,7 @@ export const createDiscount = protectedProcedure
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const discount = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction, userId, livemode }) => {
           const [{ organization }] =
             await selectMembershipAndOrganizations(
@@ -102,8 +104,8 @@ const listDiscountsProcedure = protectedProcedure
   .input(discountsPaginatedSelectSchema)
   .output(discountsPaginatedListWithRedemptionsSchema)
   .query(async ({ input, ctx }) => {
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const result = await selectDiscountsPaginated(
             input,
@@ -122,7 +124,7 @@ const listDiscountsProcedure = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -155,7 +157,7 @@ export const updateDiscount = protectedProcedure
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const discount = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const updatedDiscount = await updateDiscountDB(
             {
@@ -179,7 +181,7 @@ export const deleteDiscount = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const { id } = input
     ;(
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           await deleteDiscountMethod(id, transaction)
           return Result.ok(undefined)
@@ -197,8 +199,8 @@ export const getDiscount = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ discount: discountWithRedemptionsSchema }))
   .query(async ({ input, ctx }) => {
-    const discount = (
-      await authenticatedTransaction(
+    const discount = unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const discountRecord = (
             await selectDiscountById(input.id, transaction)
@@ -212,7 +214,7 @@ export const getDiscount = protectedProcedure
         },
         { apiKey: ctx.apiKey }
       )
-    ).unwrap()
+    )
     return { discount }
   })
 

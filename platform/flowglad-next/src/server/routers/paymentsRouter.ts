@@ -15,7 +15,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   selectPaymentById,
@@ -30,6 +30,7 @@ import {
   type RouteConfig,
 } from '@/utils/openapi'
 import { retryPaymentTransaction } from '@/utils/paymentHelpers'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Payment',
@@ -52,7 +53,7 @@ const listPaymentsProcedure = protectedProcedure
   .output(paymentsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectPaymentsPaginated(input, transaction)
@@ -71,7 +72,7 @@ const getPaymentProcedure = protectedProcedure
   .output(z.object({ payment: paymentsClientSelectSchema }))
   .query(async ({ ctx, input }) => {
     const payment = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             (await selectPaymentById(input.id, transaction)).unwrap()
@@ -122,7 +123,7 @@ const getCountsByStatusProcedure = protectedProcedure
   )
   .query(async ({ ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectPaymentCountsByStatus(transaction)
@@ -139,7 +140,7 @@ export const retryPayment = protectedProcedure
   .input(z.object({ id: z.string() }))
   .mutation(async ({ ctx, input }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await retryPaymentTransaction(input, transaction)

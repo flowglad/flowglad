@@ -121,7 +121,7 @@ export async function adminTransactionUnwrap<T>(
   fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
   options?: AdminTransactionOptions
 ): Promise<T> {
-  const result = await adminTransaction(async (params) => {
+  const result = await adminTransactionWithResult(async (params) => {
     const ctx: TransactionEffectsContext = {
       transaction: params.transaction,
       cacheRecomputationContext: params.cacheRecomputationContext,
@@ -131,7 +131,43 @@ export async function adminTransactionUnwrap<T>(
     }
     return fn(ctx)
   }, options)
-  return result.unwrap()
+  // Throw the original error directly to preserve TRPCError type
+  // (using .unwrap() would wrap it in a Panic error)
+  if (result.status === 'error') {
+    throw result.error
+  }
+  return result.value
+}
+
+/**
+ * Executes a function within an admin database transaction.
+ * The callback receives full transaction parameters.
+ *
+ * This function throws on errors - use `adminTransactionWithResult` for explicit Result handling.
+ *
+ * @param fn - Function that receives admin transaction parameters and returns a value
+ * @param options - Transaction options including livemode flag
+ * @returns The value returned by the callback, throws on error
+ *
+ * @example
+ * ```ts
+ * const data = await adminTransaction(async ({ transaction }) => {
+ *   return selectCustomerById(customerId, transaction)
+ * })
+ * ```
+ */
+export async function adminTransaction<T>(
+  fn: (params: AdminTransactionParams) => Promise<T>,
+  options: AdminTransactionOptions = {}
+): Promise<T> {
+  const result = await adminTransactionWithResult(async (params) => {
+    const value = await fn(params)
+    return Result.ok(value)
+  }, options)
+  if (result.status === 'error') {
+    throw result.error
+  }
+  return result.value
 }
 
 /**
@@ -150,7 +186,7 @@ export async function adminTransactionUnwrap<T>(
  *
  * @example
  * ```ts
- * const result = await adminTransaction(async ({ transaction, emitEvent }) => {
+ * const result = await adminTransactionWithResult(async ({ transaction, emitEvent }) => {
  *   // ... perform operations ...
  *   emitEvent(event1)
  *   return Result.ok(someValue)
@@ -165,7 +201,7 @@ export async function adminTransactionUnwrap<T>(
  * }
  * ```
  */
-export async function adminTransaction<T>(
+export async function adminTransactionWithResult<T>(
   fn: (params: AdminTransactionParams) => Promise<Result<T, Error>>,
   options: AdminTransactionOptions = {}
 ): Promise<Result<T, Error>> {

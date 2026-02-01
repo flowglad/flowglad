@@ -6,7 +6,7 @@ import type { User } from '@db-core/schema/users'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { OrganizationPaymentFailedNotificationEmail } from '@/email-templates/organization/organization-payment-failed'
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
@@ -54,7 +54,7 @@ export const runSendOrganizationPaymentFailedNotification = async (
   >
   try {
     const data = (
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         return Result.ok(
           await buildNotificationContext(
             {

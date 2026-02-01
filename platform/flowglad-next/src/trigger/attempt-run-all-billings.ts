@@ -1,6 +1,6 @@
 import { idempotencyKeys, logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectBillingRunsDueForExecution } from '@/db/tableMethods/billingRunMethods'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { attemptBillingRunTask } from './attempt-billing-run'
@@ -12,7 +12,7 @@ export const attemptBillingRunsTask = task({
       livemodeBillingRunsToAttempt,
       testmodeBillingRunsToAttempt,
     } = (
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         const livemodeBillingRunsToAttempt =
           await selectBillingRunsDueForExecution(
             { livemode: true },

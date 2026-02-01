@@ -4,6 +4,7 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+
 import { Customer } from '@db-core/schema/customers'
 import { Organization } from '@db-core/schema/organizations'
 import {
@@ -36,6 +37,7 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -88,6 +90,7 @@ import {
 } from '@/subscriptions/schemas'
 import { SubscriptionAdjustmentTiming } from '@/types'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'
 
@@ -322,8 +325,8 @@ const previewAdjustSubscriptionProcedure = protectedProcedure
       })
     }
 
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({
           transaction,
         }): Promise<
@@ -418,7 +421,7 @@ const previewAdjustSubscriptionProcedure = protectedProcedure
         },
         { apiKey: ctx.apiKey }
       )
-    ).unwrap()
+    )
   })
 
 const adjustSubscriptionProcedure = protectedProcedure
@@ -447,20 +450,22 @@ const adjustSubscriptionProcedure = protectedProcedure
     // This triggers the billing run but doesn't wait for it
     // Cache invalidations are handled automatically by the comprehensive transaction
     // Domain errors are automatically converted to TRPCErrors by domainErrorMiddleware
-    const adjustmentResult = (
-      await authenticatedTransaction(
+    const adjustmentResult = unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async (transactionCtx) => {
-          return adjustSubscription(
+          const result = await adjustSubscription(
             input,
             ctx.organization!,
             transactionCtx
           )
+          // Unwrap the inner Result - errors will propagate through the transaction wrapper
+          return Result.ok(result.unwrap())
         },
         {
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
 
     const {
       subscription,
@@ -511,8 +516,8 @@ const adjustSubscriptionProcedure = protectedProcedure
       // Step 3: After billing run completes, fetch fresh subscription data
       // The subscription items are now updated by processOutcomeForBillingRun
       // Pass apiKey to maintain authentication context after async wait
-      const freshData = (
-        await authenticatedTransaction(
+      const freshData = unwrapOrThrow(
+        await authenticatedTransactionWithResult(
           async ({ transaction }) => {
             const freshSubscription = (
               await selectSubscriptionById(
@@ -533,7 +538,7 @@ const adjustSubscriptionProcedure = protectedProcedure
           },
           { apiKey: ctx.apiKey }
         )
-      ).unwrap()
+      )
 
       return {
         subscription: {
@@ -635,8 +640,8 @@ const listSubscriptionsProcedure = protectedProcedure
   .input(subscriptionsPaginatedSelectSchema)
   .output(subscriptionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const result = await selectSubscriptionsPaginated(
             input,
@@ -657,7 +662,7 @@ const listSubscriptionsProcedure = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
   })
 
 const getSubscriptionProcedure = protectedProcedure
@@ -666,7 +671,7 @@ const getSubscriptionProcedure = protectedProcedure
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const subscription = (
             await selectSubscriptionById(input.id, transaction)
@@ -926,7 +931,7 @@ const getCountsByStatusProcedure = protectedProcedure
   )
   .query(async ({ ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptionCountsByStatus(transaction)
@@ -1029,87 +1034,85 @@ const retryBillingRunProcedure = protectedProcedure
   .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
   .mutation(async ({ input, ctx }) => {
-    const result = (
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          const billingPeriod = (
-            await selectBillingPeriodById(
-              input.billingPeriodId,
-              transaction
-            )
-          ).unwrap()
-          if (
-            billingPeriod.status === BillingPeriodStatus.Completed
-          ) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'Billing period is already completed',
-            })
-          }
-          if (billingPeriod.status === BillingPeriodStatus.Canceled) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'Billing period is already canceled',
-            })
-          }
-          if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'Billing period is already upcoming',
-            })
-          }
-          const subscription = (
-            await selectSubscriptionById(
-              billingPeriod.subscriptionId,
-              transaction
-            )
-          ).unwrap()
-
-          if (subscription.doNotCharge) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message:
-                'Cannot retry billing for doNotCharge subscriptions',
-            })
-          }
-
-          const paymentMethod = subscription.defaultPaymentMethodId
-            ? (
-                await selectPaymentMethodById(
-                  subscription.defaultPaymentMethodId,
-                  transaction
-                )
-              ).unwrap()
-            : (
-                await selectPaymentMethods(
-                  {
-                    customerId: subscription.customerId,
-                    default: true,
-                  },
-                  transaction
-                )
-              )[0]
-
-          if (!paymentMethod) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'No payment method found for subscription',
-            })
-          }
-
-          const billingRunResult = await createBillingRun(
-            {
-              billingPeriod,
-              scheduledFor: new Date(),
-              paymentMethod,
-            },
+    // Use authenticatedTransaction (throwing version) since callback doesn't need Result return
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const billingPeriod = (
+          await selectBillingPeriodById(
+            input.billingPeriodId,
             transaction
           )
-          return billingRunResult
-        },
-        { apiKey: ctx.apiKey }
-      )
-    ).unwrap()
+        ).unwrap()
+        if (billingPeriod.status === BillingPeriodStatus.Completed) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already completed',
+          })
+        }
+        if (billingPeriod.status === BillingPeriodStatus.Canceled) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already canceled',
+          })
+        }
+        if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already upcoming',
+          })
+        }
+        const subscription = (
+          await selectSubscriptionById(
+            billingPeriod.subscriptionId,
+            transaction
+          )
+        ).unwrap()
+
+        if (subscription.doNotCharge) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Cannot retry billing for doNotCharge subscriptions',
+          })
+        }
+
+        const paymentMethod = subscription.defaultPaymentMethodId
+          ? (
+              await selectPaymentMethodById(
+                subscription.defaultPaymentMethodId,
+                transaction
+              )
+            ).unwrap()
+          : (
+              await selectPaymentMethods(
+                {
+                  customerId: subscription.customerId,
+                  default: true,
+                },
+                transaction
+              )
+            )[0]
+
+        if (!paymentMethod) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'No payment method found for subscription',
+          })
+        }
+
+        const billingRunResult = await createBillingRun(
+          {
+            billingPeriod,
+            scheduledFor: new Date(),
+            paymentMethod,
+          },
+          transaction
+        )
+        // Unwrap the Result from createBillingRun
+        return billingRunResult.unwrap()
+      },
+      { apiKey: ctx.apiKey }
+    )
     const billingRun = await executeBillingRun(result.id)
     if (!billingRun) {
       throw new TRPCError({
@@ -1138,7 +1141,7 @@ const listDistinctSubscriptionProductNamesProcedure =
     .output(z.array(z.string()))
     .query(async ({ ctx }) => {
       return (
-        await authenticatedTransaction(
+        await authenticatedTransactionWithResult(
           async ({ transaction, organizationId }) => {
             return Result.ok(
               await selectDistinctSubscriptionProductNames(

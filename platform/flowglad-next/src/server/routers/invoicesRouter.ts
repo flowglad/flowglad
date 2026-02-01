@@ -20,7 +20,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
@@ -46,6 +46,7 @@ import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
 } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',
@@ -60,7 +61,7 @@ const listInvoicesProcedure = protectedProcedure
   .output(invoicesPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectInvoicesPaginated(input, transaction)
@@ -79,7 +80,7 @@ const getInvoiceProcedure = protectedProcedure
   .output(invoiceWithLineItemsClientSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const [invoiceAndLineItems] =
             await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
@@ -105,7 +106,7 @@ const updateInvoiceProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const { invoice, invoiceLineItems } = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await updateInvoiceTransaction(
@@ -135,7 +136,7 @@ const getCountsByStatusProcedure = protectedProcedure
   )
   .query(async ({ ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectInvoiceCountsByStatus(transaction)

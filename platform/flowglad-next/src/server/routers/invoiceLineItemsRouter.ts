@@ -3,15 +3,17 @@ import {
   invoiceLineItemsPaginatedListSchema,
   invoiceLineItemsPaginatedSelectSchema,
 } from '@db-core/schema/invoiceLineItems'
+
 import { idInputSchema } from '@db-core/tableUtils'
 import { Result } from 'better-result'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
 import {
   selectInvoiceLineItemById,
   selectInvoiceLineItemsPaginated,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'invoiceLineItem',
@@ -26,7 +28,7 @@ const listInvoiceLineItemsProcedure = protectedProcedure
   .output(invoiceLineItemsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectInvoiceLineItemsPaginated(input, transaction)
@@ -45,7 +47,7 @@ const getInvoiceLineItemProcedure = protectedProcedure
   .output(invoiceLineItemsClientSelectSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             (

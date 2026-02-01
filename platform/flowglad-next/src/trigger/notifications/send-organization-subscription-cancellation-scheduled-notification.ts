@@ -8,7 +8,7 @@ import type { User } from '@db-core/schema/users'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { OrganizationSubscriptionCancellationScheduledNotificationEmail } from '@/email-templates/organization-subscription-notifications'
@@ -55,7 +55,7 @@ export const runSendOrganizationSubscriptionCancellationScheduledNotification =
     >
     try {
       const data = (
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransactionWithResult(async ({ transaction }) => {
           const context = await buildNotificationContext(
             {
               organizationId: subscription.organizationId,

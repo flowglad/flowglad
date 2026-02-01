@@ -4,6 +4,7 @@ import {
   productsTableRowDataSchema,
   productWithPricesSchema,
 } from '@db-core/schema/prices'
+
 import {
   productsClientSelectSchema,
   productsPaginatedListSchema,
@@ -20,7 +21,7 @@ import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
@@ -35,6 +36,7 @@ import {
   createProductTransaction,
   editProductTransaction as editProductPricingModel,
 } from '@/utils/pricingModel'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { protectedProcedure, router } from '../trpc'
 import { errorHandlers } from '../trpcErrorHandler'
 
@@ -164,7 +166,7 @@ export const listProducts = protectedProcedure
   .output(productsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectProductsPaginated(input, transaction)
@@ -184,7 +186,7 @@ export const getProduct = protectedProcedure
   .query(async ({ input, ctx }) => {
     try {
       return (
-        await authenticatedTransaction(
+        await authenticatedTransactionWithResult(
           async ({ transaction }) => {
             const result =
               await selectProductPriceAndFeaturesByProductId(
@@ -266,7 +268,7 @@ export const getCountsByStatus = protectedProcedure
   )
   .query(async ({ ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction, userId }) => {
           // Get the user's organization
           const [membership] = await selectMembershipAndOrganizations(

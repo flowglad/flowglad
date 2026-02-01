@@ -6,13 +6,14 @@ import {
   usageEventsPaginatedTableRowInputSchema,
   usageEventsPaginatedTableRowOutputSchema,
 } from '@db-core/schema/usageEvents'
+
 import { idInputSchema } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   selectUsageEventById,
@@ -24,6 +25,7 @@ import {
   generateOpenApiMetas,
   type RouteConfig,
 } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { bulkInsertUsageEventsTransaction } from '@/utils/usage/bulkInsertUsageEventsTransaction'
 import {
   createUsageEventWithSlugSchema,
@@ -90,8 +92,8 @@ export const getUsageEvent = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    const usageEvent = (
-      await authenticatedTransaction(
+    const usageEvent = unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             (
@@ -101,7 +103,7 @@ export const getUsageEvent = protectedProcedure
         },
         { apiKey: ctx.apiKey }
       )
-    ).unwrap()
+    )
     return { usageEvent }
   })
 
@@ -141,7 +143,7 @@ const listUsageEventsProcedure = protectedProcedure
   .output(usageEventPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const result = await selectUsageEventsPaginated(
             input,

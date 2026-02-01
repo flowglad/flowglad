@@ -24,7 +24,7 @@ import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import type { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
@@ -785,7 +785,7 @@ export const executeBillingRun = async (
     adjustmentDate: Date | number
   }
 ) => {
-  const billingRunResult = await adminTransaction(
+  const billingRunResult = await adminTransactionWithResult(
     async ({ transaction }) =>
       selectBillingRunById(billingRunId, transaction)
   )
@@ -805,7 +805,7 @@ export const executeBillingRun = async (
     }
 
     const billingRunStepsResult =
-      await adminTransaction<ExecuteBillingRunStepsResult>(
+      await adminTransactionWithResult<ExecuteBillingRunStepsResult>(
         async ({ transaction }) => {
           const resultFromSteps =
             await executeBillingRunCalculationAndBookkeepingSteps(
@@ -994,7 +994,7 @@ export const executeBillingRun = async (
 
     // Update payment record with charge ID
     if (payment) {
-      const updateResult = await adminTransaction(
+      const updateResult = await adminTransactionWithResult(
         async ({ transaction }) => {
           await updatePayment(
             {
@@ -1023,7 +1023,7 @@ export const executeBillingRun = async (
       confirmationResult.status === 'succeeded' ||
       confirmationResult.status === 'requires_payment_method'
     ) {
-      const processResult = await adminTransaction(
+      const processResult = await adminTransactionWithResult(
         async (params) => {
           const effectsCtx: TransactionEffectsContext = {
             transaction: params.transaction,
@@ -1066,7 +1066,7 @@ export const executeBillingRun = async (
       billingRunId,
       error,
     })
-    const updateResult = await adminTransaction(
+    const updateResult = await adminTransactionWithResult(
       async ({ transaction }) => {
         const isError = error instanceof Error
         const updatedBillingRun = await updateBillingRun(

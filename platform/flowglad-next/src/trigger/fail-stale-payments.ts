@@ -1,7 +1,7 @@
 import { PaymentStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectStalePayments,
   updatePayment,
@@ -17,7 +17,7 @@ export const failStalePaymentsTask = task({
     )
 
     return (
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         // Find all payments that are in Processing, RequiresConfirmation, or RequiresAction status
         // and were last updated more than 6 hours ago
         const stalePayments = await selectStalePayments(

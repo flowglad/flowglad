@@ -7,6 +7,7 @@ import {
   editCustomerInputSchema,
   editCustomerOutputSchema,
 } from '@db-core/schema/customers'
+
 import { invoiceWithLineItemsClientSchema } from '@db-core/schema/invoiceLineItems'
 import { paymentMethodClientSelectSchema } from '@db-core/schema/paymentMethods'
 import { pricingModelWithProductsAndUsageMetersSchema } from '@db-core/schema/prices'
@@ -25,7 +26,7 @@ import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   selectCustomerByExternalIdAndOrganizationId,
@@ -66,6 +67,7 @@ import {
   type RouteConfig,
   trpcToRest,
 } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { tracedTrigger } from '@/utils/triggerTracing'
 import { router } from '../trpc'
 import { errorHandlers } from '../trpcErrorHandler'
@@ -327,21 +329,21 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customer = (
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return Result.ok(
-            await selectCustomerByExternalIdAndOrganizationId(
-              { externalId: input.externalId, organizationId },
-              transaction
-            )
+    const customerResult = await authenticatedTransactionWithResult(
+      async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomerByExternalIdAndOrganizationId(
+            { externalId: input.externalId, organizationId },
+            transaction
           )
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
-    ).unwrap()
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+
+    const customer = unwrapOrThrow(customerResult)
 
     if (!customer) {
       throw new TRPCError({
@@ -403,8 +405,8 @@ export const getCustomerBilling = protectedProcedure
       currentSubscription,
       purchases,
       subscriptions,
-    } = (
-      await authenticatedTransaction(
+    } = unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction, cacheRecomputationContext }) => {
           return Result.ok(
             await customerBillingTransaction(
@@ -421,7 +423,7 @@ export const getCustomerBilling = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
     return {
       customer,
       invoices,
@@ -485,8 +487,8 @@ export const getCustomerUsageBalances = protectedProcedure
       })
     }
 
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           // Resolve customer by externalId and organizationId
           const customer =
@@ -558,7 +560,7 @@ export const getCustomerUsageBalances = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
   })
 
 const listCustomersProcedure = protectedProcedure

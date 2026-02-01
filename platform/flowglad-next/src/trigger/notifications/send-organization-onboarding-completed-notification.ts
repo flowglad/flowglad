@@ -5,7 +5,7 @@ import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import axios from 'axios'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import core, { isNil } from '@/utils/core'
@@ -76,7 +76,7 @@ export const runSendOrganizationOnboardingCompletedNotification =
     >
     try {
       const data = (
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransactionWithResult(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {

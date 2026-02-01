@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectInvoiceById,
   updateInvoice,
@@ -17,9 +17,11 @@ export const generateInvoicePdfTask = task({
       'generateInvoicePdf',
       async () => {
         const invoice = (
-          await adminTransaction(async ({ transaction }) => {
-            return selectInvoiceById(invoiceId, transaction)
-          })
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return selectInvoiceById(invoiceId, transaction)
+            }
+          )
         ).unwrap()
         /**
          * In dev mode, trigger will not load localhost:3000 correctly,
@@ -44,20 +46,22 @@ export const generateInvoicePdfTask = task({
         )
         logger.log('Invoice PDF URL', { invoicePdfUrl })
         const oldInvoicePdfUrl = (
-          await adminTransaction(async ({ transaction }) => {
-            const latestInvoice = (
-              await selectInvoiceById(invoice.id, transaction)
-            ).unwrap()
-            const oldInvoicePdfUrl = latestInvoice.pdfURL
-            await updateInvoice(
-              {
-                ...latestInvoice,
-                pdfURL: invoicePdfUrl,
-              },
-              transaction
-            )
-            return Result.ok(oldInvoicePdfUrl)
-          })
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const latestInvoice = (
+                await selectInvoiceById(invoice.id, transaction)
+              ).unwrap()
+              const oldInvoicePdfUrl = latestInvoice.pdfURL
+              await updateInvoice(
+                {
+                  ...latestInvoice,
+                  pdfURL: invoicePdfUrl,
+                },
+                transaction
+              )
+              return Result.ok(oldInvoicePdfUrl)
+            }
+          )
         ).unwrap()
         /**
          * Delete the old invoice PDF from Cloudflare if it exists

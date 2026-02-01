@@ -3,6 +3,7 @@ import {
   editFeatureSchema,
   featuresClientSelectSchema,
 } from '@db-core/schema/features'
+
 import {
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -15,7 +16,7 @@ import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   featuresTableRowOutputSchema,
@@ -29,6 +30,7 @@ import {
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -75,7 +77,7 @@ const listFeaturesProcedure = protectedProcedure
   .output(featuresPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectFeaturesPaginated(input, transaction)

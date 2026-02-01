@@ -1,7 +1,7 @@
 import type { CurrencyCode } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -39,7 +39,7 @@ const sendOrganizationPaymentSucceededNotificationTask = task({
     )
 
     const { organization, customer, usersAndMemberships } = (
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         const organization = (
           await selectOrganizationById(
             paymentData.organizationId,

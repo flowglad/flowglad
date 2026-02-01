@@ -1,6 +1,6 @@
 import { task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectInvoiceById,
   updateInvoice,
@@ -21,20 +21,22 @@ export const generatePaymentReceiptPdfTask = task({
       'generateReceiptPdf',
       async () => {
         const { payment, invoice } = (
-          await adminTransaction(async ({ transaction }) => {
-            const payment = (
-              await selectPaymentById(paymentId, transaction)
-            ).unwrap()
-            const invoice = payment.invoiceId
-              ? (
-                  await selectInvoiceById(
-                    payment.invoiceId,
-                    transaction
-                  )
-                ).unwrap()
-              : null
-            return Result.ok({ payment, invoice })
-          })
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const payment = (
+                await selectPaymentById(paymentId, transaction)
+              ).unwrap()
+              const invoice = payment.invoiceId
+                ? (
+                    await selectInvoiceById(
+                      payment.invoiceId,
+                      transaction
+                    )
+                  ).unwrap()
+                : null
+              return Result.ok({ payment, invoice })
+            }
+          )
         ).unwrap()
         if (!invoice) {
           return {
@@ -61,26 +63,28 @@ export const generatePaymentReceiptPdfTask = task({
           cloudflareMethods.BUCKET_PUBLIC_URL
         )
         ;(
-          await adminTransaction(async ({ transaction }) => {
-            if (invoice) {
-              await updateInvoice(
-                {
-                  ...invoice,
-                  receiptPdfURL: receiptURL,
-                },
-                transaction
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              if (invoice) {
+                await updateInvoice(
+                  {
+                    ...invoice,
+                    receiptPdfURL: receiptURL,
+                  },
+                  transaction
+                )
+              }
+              return Result.ok(
+                await updatePayment(
+                  {
+                    id: payment.id,
+                    receiptURL,
+                  },
+                  transaction
+                )
               )
             }
-            return Result.ok(
-              await updatePayment(
-                {
-                  id: payment.id,
-                  receiptURL,
-                },
-                transaction
-              )
-            )
-          })
+          )
         ).unwrap()
 
         return {

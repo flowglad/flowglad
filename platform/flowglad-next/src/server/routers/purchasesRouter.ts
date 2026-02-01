@@ -12,7 +12,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   selectPurchaseById,
@@ -20,6 +20,7 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Purchase',
@@ -34,7 +35,7 @@ const getPurchaseProcedure = protectedProcedure
   .output(z.object({ purchase: purchaseClientSelectSchema }))
   .query(async ({ ctx, input }) => {
     const purchase = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             (await selectPurchaseById(input.id, transaction)).unwrap()

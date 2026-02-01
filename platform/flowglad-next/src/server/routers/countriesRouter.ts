@@ -1,5 +1,4 @@
 import { countriesSelectSchema } from '@db-core/schema/countries'
-import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
@@ -12,11 +11,11 @@ const listCountries = protectedProcedure
     })
   )
   .query(async () => {
-    const countries = (
-      await adminTransaction(async ({ transaction }) => {
-        return Result.ok(await selectCountries({}, transaction))
-      })
-    ).unwrap()
+    const countries = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCountries({}, transaction)
+      }
+    )
     return {
       countries,
     }

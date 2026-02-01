@@ -20,7 +20,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   ensureUsageMeterHasDefaultPrice,
@@ -34,6 +34,7 @@ import { protectedProcedure, router } from '@/server/trpc'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createPriceTransaction } from '@/utils/pricingModel'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { isNoChargePrice } from '@/utils/usage/noChargePriceHelpers'
 import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 
@@ -49,8 +50,8 @@ export const listPrices = protectedProcedure
   .input(pricesPaginatedSelectSchema)
   .output(pricesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectPricesPaginated(input, transaction)
@@ -60,7 +61,7 @@ export const listPrices = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
   })
 
 const singlePriceOutputSchema = z.object({
@@ -72,8 +73,8 @@ export const createPrice = protectedProcedure
   .input(createPriceSchema)
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async (transactionCtx) => {
           const { price } = input
 
@@ -101,7 +102,7 @@ export const createPrice = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
   })
 
 export const updatePrice = protectedProcedure
@@ -109,8 +110,8 @@ export const updatePrice = protectedProcedure
   .input(editPriceSchema)
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async (transactionCtx) => {
           const { transaction } = transactionCtx
           const { price } = input
@@ -265,7 +266,7 @@ export const updatePrice = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
   })
 
 export const getPrice = protectedProcedure
@@ -273,8 +274,8 @@ export const getPrice = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ price: pricesClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    const price = (
-      await authenticatedTransaction(
+    const price = unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const result = await selectPriceById(input.id, transaction)
           if (Result.isError(result)) {
@@ -287,7 +288,7 @@ export const getPrice = protectedProcedure
         },
         { apiKey: ctx.apiKey }
       )
-    ).unwrap()
+    )
     return { price }
   })
 
@@ -419,8 +420,8 @@ export const replaceUsagePrice = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async (transactionCtx) => {
           const { transaction } = transactionCtx
           // Verify the old price exists and is a usage price
@@ -486,7 +487,7 @@ export const replaceUsagePrice = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
   })
 
 export const pricesRouter = router({

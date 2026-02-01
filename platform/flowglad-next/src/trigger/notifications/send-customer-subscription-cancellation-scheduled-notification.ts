@@ -6,7 +6,7 @@ import type { Subscription } from '@db-core/schema/subscriptions'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
@@ -51,7 +51,7 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
     >
     try {
       const data = (
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransactionWithResult(async ({ transaction }) => {
           // First fetch subscription to get organizationId and customerId
           const subscription = (
             await selectSubscriptionById(subscriptionId, transaction)

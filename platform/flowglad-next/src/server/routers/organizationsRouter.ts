@@ -2,6 +2,7 @@ import {
   RevenueChartIntervalUnit,
   UsageMeterAggregationType,
 } from '@db-core/enums'
+
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   membershipsClientSelectSchema,
@@ -26,7 +27,7 @@ import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   getMembershipNotificationPreferences,
@@ -61,6 +62,7 @@ import {
   getUsageMetersWithEvents,
 } from '@/utils/billing-dashboard/usageCalculationHelpers'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import {
   getOrganizationCodebaseMarkdown,
   saveOrganizationCodebaseMarkdown,
@@ -90,16 +92,14 @@ const getMembers = protectedProcedure
       throw new Error('organizationId is required')
     }
 
-    const members = (
-      await adminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await selectMembershipsAndUsersByMembershipWhere(
-            { organizationId: ctx.organizationId },
-            transaction
-          )
+    const members = await adminTransaction(
+      async ({ transaction }) => {
+        return selectMembershipsAndUsersByMembershipWhere(
+          { organizationId: ctx.organizationId },
+          transaction
         )
-      })
-    ).unwrap()
+      }
+    )
 
     // Sort members by date of creation, newest first
     const sortedMembers = members.sort((a, b) => {
@@ -539,16 +539,14 @@ const updateFocusedMembershipSchema = z.object({
 const updateFocusedMembership = protectedProcedure
   .input(updateFocusedMembershipSchema)
   .mutation(async ({ input, ctx }) => {
-    const memberships = (
-      await adminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await selectMembershipsAndOrganizationsByMembershipWhere(
-            { userId: ctx.user!.id },
-            transaction
-          )
+    const memberships = await adminTransaction(
+      async ({ transaction }) => {
+        return selectMembershipsAndOrganizationsByMembershipWhere(
+          { userId: ctx.user!.id },
+          transaction
         )
-      })
-    ).unwrap()
+      }
+    )
     const membershipToFocus = memberships.find(
       (m) => m.membership.organizationId === input.organizationId
     )
@@ -635,7 +633,7 @@ const getMembersTableRowData = protectedProcedure
   )
   .query(async (args) => {
     const focusedMembership = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction, userId }) => {
           return Result.ok(
             await selectFocusedMembershipAndOrganization(
@@ -652,23 +650,19 @@ const getMembersTableRowData = protectedProcedure
      * we can't do this in the authenticated transaction as memberships
      * is the "root" basis of most of our RLS policies.
      */
-    return (
-      await adminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await selectMembershipsTableRowData({
-            input: {
-              ...args.input,
-              filters: {
-                ...args.input.filters,
-                organizationId: focusedMembership.organization.id,
-                deactivatedAt: null,
-              },
-            },
-            transaction,
-          })
-        )
+    return adminTransaction(async ({ transaction }) => {
+      return selectMembershipsTableRowData({
+        input: {
+          ...args.input,
+          filters: {
+            ...args.input.filters,
+            organizationId: focusedMembership.organization.id,
+            deactivatedAt: null,
+          },
+        },
+        transaction,
       })
-    ).unwrap()
+    })
   })
 
 /**

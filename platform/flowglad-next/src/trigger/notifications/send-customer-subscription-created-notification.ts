@@ -8,7 +8,7 @@ import type { Subscription } from '@db-core/schema/subscriptions'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import {
   CustomerSubscriptionCreatedEmail,
@@ -51,7 +51,7 @@ export const runSendCustomerSubscriptionCreatedNotification =
     >
     try {
       const data = (
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransactionWithResult(async ({ transaction }) => {
           const context = await buildNotificationContext(
             {
               organizationId: params.organizationId,

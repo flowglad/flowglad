@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectBillingPeriodsDueForTransition } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptBillingPeriodTransitionTask } from './attempt-billing-period-transition'
 
@@ -19,7 +19,7 @@ export const attemptTransitionBillingPeriodsTask = task({
     })
 
     const billingPeriodsToTransition = (
-      await adminTransaction(({ transaction }) =>
+      await adminTransactionWithResult(({ transaction }) =>
         selectBillingPeriodsDueForTransition(
           {
             rangeStart: payload.lastTimestamp,

@@ -2,6 +2,7 @@ import {
   checkoutSessionClientSelectSchema,
   customerBillingCreatePricedCheckoutSessionInputSchema,
 } from '@db-core/schema/checkoutSessions'
+
 import { customerClientSelectSchema } from '@db-core/schema/customers'
 import { invoiceWithLineItemsClientSchema } from '@db-core/schema/invoiceLineItems'
 import { paymentMethodClientSelectSchema } from '@db-core/schema/paymentMethods'
@@ -13,7 +14,7 @@ import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
   selectCustomerById,
@@ -54,6 +55,7 @@ import {
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
 import { maskEmail } from '@/utils/email'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import {
   customerProtectedProcedure,
   protectedProcedure,
@@ -131,7 +133,7 @@ const getBillingProcedure = customerProtectedProcedure
       purchases,
       subscriptions,
     } = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction, cacheRecomputationContext }) => {
           return Result.ok(
             await customerBillingTransaction(
@@ -217,8 +219,8 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     const { customer, livemode } = ctx
 
     // First transaction: Validate cancellation is allowed (customer-scoped RLS)
-    ;(
-      await authenticatedTransaction(
+    unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           // Verify the subscription belongs to the customer
           const subscription = (
@@ -277,44 +279,42 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           customerId: customer.id,
         }
       )
-    ).unwrap()
+    )
 
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
-    return (
-      await adminTransaction(
-        async ({
+    return adminTransaction(
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const ctx = {
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        }) => {
-          const ctx = {
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }
-          const subscriptionResult =
-            await scheduleSubscriptionCancellation(input, ctx)
-          const subscription = subscriptionResult.unwrap()
-          return Result.ok({
-            subscription: {
-              ...subscription,
-              current: isSubscriptionCurrent(
-                subscription.status,
-                subscription.cancellationReason
-              ),
-            },
-          })
-        },
-        {
-          livemode,
         }
-      )
-    ).unwrap()
+        const subscriptionResult =
+          await scheduleSubscriptionCancellation(input, ctx)
+        const subscription = subscriptionResult.unwrap()
+        return {
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
+          },
+        }
+      },
+      {
+        livemode,
+      }
+    )
   })
 
 // uncancelSubscription procedure
@@ -335,7 +335,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
 
     // First transaction: Validate uncancel is allowed (customer-scoped RLS)
     ;(
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           // Verify the subscription belongs to the customer
           const subscription = (
@@ -602,7 +602,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { paymentMethodId } = input
 
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({
           transaction,
           cacheRecomputationContext,
@@ -684,18 +684,20 @@ const getCustomersForUserAndOrganizationProcedure = protectedProcedure
     // Note: Intentionally includes archived customers - they should still be able
     // to access the billing portal to view historical invoices and billing data
     const customers = (
-      await authenticatedTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await selectCustomers(
-            {
-              userId,
-              organizationId,
-              livemode: true,
-            },
-            transaction
+      await authenticatedTransactionWithResult(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectCustomers(
+              {
+                userId,
+                organizationId,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        )
-      })
+        }
+      )
     ).unwrap()
     return { customers }
   })

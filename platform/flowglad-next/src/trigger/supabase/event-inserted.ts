@@ -6,7 +6,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type { z } from 'zod'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { supabaseInsertPayloadSchema } from '@/db/supabase'
 import {
   selectEventById,
@@ -103,7 +103,7 @@ export const eventInsertedTask = task({
       organization,
       event: mostUpToDateEvent,
     } = (
-      await adminTransaction(
+      await adminTransactionWithResult(
         async ({
           transaction,
         }): Promise<Result<EventProcessingResult, Error>> => {

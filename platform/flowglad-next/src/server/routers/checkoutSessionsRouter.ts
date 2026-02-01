@@ -3,6 +3,7 @@ import {
   CheckoutSessionType,
   PaymentMethodType,
 } from '@db-core/enums'
+
 import {
   type CheckoutSession,
   checkoutSessionsPaginatedListSchema,
@@ -20,7 +21,7 @@ import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   selectCheckoutSessionById,
@@ -44,6 +45,7 @@ import { editCheckoutSessionBillingAddress } from '@/utils/bookkeeping/checkoutS
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import core from '@/utils/core'
 import { generateOpenApiMetas } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
@@ -93,8 +95,8 @@ export const updateCheckoutSession = protectedProcedure
   .input(editCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    return (
-      await authenticatedTransaction(
+    return unwrapOrThrow(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const organizationId = ctx.organizationId
           if (!organizationId) {
@@ -141,7 +143,7 @@ export const updateCheckoutSession = protectedProcedure
         },
         { apiKey: ctx.apiKey }
       )
-    ).unwrap()
+    )
   })
 
 const getCheckoutSessionProcedure = protectedProcedure
@@ -150,7 +152,7 @@ const getCheckoutSessionProcedure = protectedProcedure
   .output(singleCheckoutSessionOutputSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           const checkoutSession = (
             await selectCheckoutSessionById(input.id, transaction)
@@ -173,7 +175,7 @@ const listCheckoutSessionsProcedure = protectedProcedure
   .output(checkoutSessionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectCheckoutSessionsPaginated(input, transaction)
@@ -269,16 +271,14 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return (
-        await adminTransaction(async ({ transaction }) => {
-          const result =
-            await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
-              input,
-              transaction
-            )
-          return Result.ok({ checkoutSession: result.unwrap() })
-        })
-      ).unwrap()
+      return adminTransaction(async ({ transaction }) => {
+        const result =
+          await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
+            input,
+            transaction
+          )
+        return { checkoutSession: result.unwrap() }
+      })
     })
 
 export const checkoutSessionsRouter = router({

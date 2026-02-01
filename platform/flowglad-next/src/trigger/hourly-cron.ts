@@ -1,6 +1,6 @@
 import { schedules } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
 import { attemptCancelScheduledSubscriptionsTask } from './attempt-cancel-scheduled-subscriptions'
 import { attemptBillingRunsTask } from './attempt-run-all-billings'
@@ -12,7 +12,7 @@ export const hourlyCron = schedules.task({
   cron: '0 * * * *',
   run: async ({ lastTimestamp, timestamp }) => {
     return (
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         await deleteExpiredCheckoutSessionsAndFeeCalculations(
           transaction
         )

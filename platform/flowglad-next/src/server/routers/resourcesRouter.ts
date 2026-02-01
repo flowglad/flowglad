@@ -3,6 +3,7 @@ import {
   editResourceSchema,
   resourcesClientSelectSchema,
 } from '@db-core/schema/resources'
+
 import {
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -15,7 +16,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransaction,
+  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import {
   insertResource,
@@ -28,6 +29,7 @@ import {
 } from '@/db/tableMethods/resourceMethods'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'resource',
@@ -136,7 +138,7 @@ const listPaginatedProcedure = protectedProcedure
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectResourcesPaginated(input, transaction)

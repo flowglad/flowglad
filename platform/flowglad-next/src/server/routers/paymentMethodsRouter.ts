@@ -3,16 +3,18 @@ import {
   paymentMethodsPaginatedListSchema,
   paymentMethodsPaginatedSelectSchema,
 } from '@db-core/schema/paymentMethods'
+
 import { idInputSchema } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { z } from 'zod'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
 import {
   selectPaymentMethodById,
   selectPaymentMethodsPaginated,
 } from '@/db/tableMethods/paymentMethodMethods'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'PaymentMethod',
@@ -27,7 +29,7 @@ const listPaymentMethodsProcedure = protectedProcedure
   .output(paymentMethodsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             await selectPaymentMethodsPaginated(input, transaction)
@@ -48,7 +50,7 @@ const getPaymentMethodProcedure = protectedProcedure
   )
   .query(async ({ ctx, input }) => {
     const paymentMethod = (
-      await authenticatedTransaction(
+      await authenticatedTransactionWithResult(
         async ({ transaction }) => {
           return Result.ok(
             (

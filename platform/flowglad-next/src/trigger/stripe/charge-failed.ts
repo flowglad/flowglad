@@ -2,7 +2,7 @@ import { PaymentStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   safelyUpdatePaymentStatus,
   selectPayments,
@@ -15,7 +15,7 @@ export const stripeChargeFailedTask = task({
   id: 'stripe-charge-failed',
   run: async (payload: Stripe.ChargeFailedEvent, { ctx }) => {
     const paymentRecord = (
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         const stripeCharge = await getStripeCharge(
           payload.data.object.id
         )

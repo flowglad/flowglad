@@ -2,7 +2,7 @@ import { PaymentStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectPayments,
   updatePayment,
@@ -19,7 +19,7 @@ export const stripePaymentIntentProcessingTask = task({
      *
      */
     ;(
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransactionWithResult(async ({ transaction }) => {
         const [payment] = await selectPayments(
           {
             stripePaymentIntentId: payload.data.object.id,
