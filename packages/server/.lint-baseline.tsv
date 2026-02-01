@@ -1,7 +1,2 @@
-src/better-auth/endpoints.authEndpoints.test.ts	no-explicit-any-in-tests	5
-src/better-auth/endpoints.externalIds.test.ts	no-explicit-any-in-tests	2
-src/better-auth/plugin.behavior.test.ts	no-explicit-any-in-tests	2
 src/FlowgladServer.getSessionFromParams.test.ts	no-explicit-any-in-tests	27
-src/requestHandler.test.ts	no-explicit-any-in-tests	1
-src/subrouteHandlers/usageEventHandlers.test.ts	no-explicit-any-in-tests	1
-src/supabase/supabaseEdgeHandler.test.ts	no-explicit-any-in-tests	11
+src/supabase/supabaseEdgeHandler.test.ts	no-explicit-any-in-tests	9
