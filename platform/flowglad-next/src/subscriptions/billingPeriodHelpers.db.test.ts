@@ -732,7 +732,7 @@ describe('Subscription Billing Period Transition', async () => {
               updatedBillingPeriod,
               createDiscardingEffectsContext(transaction)
             )
-          )).unwrap()
+          ).unwrap()
 
           // doNotCharge subscription should remain Active (not PastDue)
           expect(updatedSub.status).toBe(SubscriptionStatus.Active)
@@ -743,7 +743,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedSub.currentBillingPeriodStart
           ).toBeGreaterThan(billingPeriod.startDate)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -776,7 +776,7 @@ describe('Subscription Billing Period Transition', async () => {
               updatedBillingPeriod,
               createDiscardingEffectsContext(transaction)
             )
-          )).unwrap()
+          ).unwrap()
 
           // Should remain Active
           expect(updatedSub.status).toBe(SubscriptionStatus.Active)
@@ -787,7 +787,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedSub.currentBillingPeriodStart
           ).toBeGreaterThan(billingPeriod.startDate)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
   })
@@ -870,7 +870,7 @@ describe('Ledger Interactions', () => {
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount})
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // execution:
@@ -927,7 +927,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance).toBe(grantAmount)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -941,7 +941,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // execution:
@@ -969,7 +969,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -988,7 +988,7 @@ describe('Ledger Interactions', () => {
             status: BillingPeriodStatus.Upcoming,
             livemode: true})
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // execution:
@@ -1015,7 +1015,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1033,7 +1033,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // execution:
@@ -1043,7 +1043,7 @@ describe('Ledger Interactions', () => {
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        ).unwrap()
+        )).unwrap()
       canceledSub = updatedSub
 
       // expects:
@@ -1064,7 +1064,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1097,7 +1097,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1140,7 +1140,7 @@ describe('Ledger Interactions', () => {
             transaction
           )
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // execution:
@@ -1150,7 +1150,7 @@ describe('Ledger Interactions', () => {
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        ).unwrap()
+        )).unwrap()
       pastDueSub = updatedSub
 
       // expects:
@@ -1178,7 +1178,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance).toBe(grantAmount)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1233,7 +1233,7 @@ describe('Ledger Interactions', () => {
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount2})
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // execution:
@@ -1293,7 +1293,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance2).toBe(grantAmount2)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1325,7 +1325,7 @@ describe('Ledger Interactions', () => {
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount})
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // execution:
@@ -1374,7 +1374,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balance2).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1427,7 +1427,7 @@ describe('Ledger Interactions', () => {
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: everyGrantAmount})
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
@@ -1470,7 +1470,7 @@ describe('Ledger Interactions', () => {
             )
           expect(balanceForEveryMeter).toBe(everyGrantAmount)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
   })
@@ -1519,7 +1519,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      )).unwrap()
+      ).unwrap()
       const expiredLedgerEntry = expiredLedgerEntryResult.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1538,7 +1538,7 @@ describe('Ledger Interactions', () => {
             )
           expect(finalBalance).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1621,7 +1621,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      )).unwrap()
+      ).unwrap()
 
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
@@ -1640,7 +1640,7 @@ describe('Ledger Interactions', () => {
             )
           expect(finalBalance).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1723,7 +1723,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      )).unwrap()
+      ).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1741,7 +1741,7 @@ describe('Ledger Interactions', () => {
             )
           expect(finalBalance).toBe(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1789,7 +1789,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      )).unwrap()
+      ).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1807,7 +1807,7 @@ describe('Ledger Interactions', () => {
             )
           expect(finalBalance).toBe(700)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -1855,7 +1855,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      )).unwrap()
+      ).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1872,7 +1872,7 @@ describe('Ledger Interactions', () => {
             )
           expect(finalBalance).toBe(10000)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -2012,7 +2012,7 @@ describe('Ledger Interactions', () => {
             )
           expect(finalBalance).toBe(500)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -2123,7 +2123,7 @@ describe('Ledger Interactions', () => {
           // Initial: 150. Expired: -150. New Grant: +250. Final: 250.
           expect(finalBalance).toBe(grantAmount)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
 
@@ -2260,7 +2260,7 @@ describe('Ledger Interactions', () => {
           // Expired: -100. New Grant: +300. Final: 200 + 300 = 500.
           expect(finalBalance).toBe(evergreenAmount + grantAmount)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
   })
@@ -2379,7 +2379,7 @@ describe('Resource claim expiration during billing period transition', async () 
         billingPeriod,
         createProcessingEffectsContext(params)
       )
-    ).unwrap()
+    )).unwrap()
 
     // Verify claims after transition
     const claimsAfter = (

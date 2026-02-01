@@ -89,7 +89,7 @@ describe('processNonPaymentCheckoutSession', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       // Create fee calculation with the discount applied
       (await adminTransaction(async ({ transaction }) => {
@@ -98,7 +98,7 @@ describe('processNonPaymentCheckoutSession', () => {
           transaction
         )
         return Result.ok(result)
-      }).unwrap()
+      })).unwrap()
 
       // Process the non-payment checkout session
       const result = (await adminTransaction(
@@ -110,7 +110,7 @@ describe('processNonPaymentCheckoutSession', () => {
             )
           )
         }
-      ).unwrap()
+      )).unwrap()
 
       // Verify purchase status is Paid
       expect(result.purchase.status).toEqual(PurchaseStatus.Paid)
@@ -140,7 +140,7 @@ describe('processNonPaymentCheckoutSession', () => {
           transaction
         )
         return Result.ok(result)
-      }).unwrap()
+      })).unwrap()
 
       // Attempt to process non-payment checkout should fail
       await expect(

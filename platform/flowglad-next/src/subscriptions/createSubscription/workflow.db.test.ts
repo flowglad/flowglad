@@ -103,7 +103,7 @@ describe('createSubscriptionWorkflow', async () => {
           createDiscardingEffectsContext(transaction)
         )
       }
-    ).unwrap()
+    )).unwrap()
     subscription = workflowResult.subscription
     subscriptionItems = workflowResult.subscriptionItems
     if (!workflowResult.billingPeriod) {
@@ -1464,7 +1464,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
           createDiscardingEffectsContext(transaction)
         )
       }
-    ).unwrap()
+    )).unwrap()
 
     const {
       subscription,
@@ -1553,7 +1553,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
           createDiscardingEffectsContext(transaction)
         )
       }
-    ).unwrap()
+    )).unwrap()
 
     const { subscription, subscriptionItems } = result
 
@@ -1643,7 +1643,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             discountRedemption},
           createDiscardingEffectsContext(transaction)
         )
-      }).unwrap()
+      })).unwrap()
 
     expect(typeof subscription).toBe('object')
     expect(subscription.trialEnd).toBe(trialEnd.getTime())

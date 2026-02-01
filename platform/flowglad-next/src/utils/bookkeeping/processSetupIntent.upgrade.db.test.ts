@@ -180,7 +180,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
             createDiscardingEffectsContext(transaction)
           )
         }
-      ).unwrap()
+      )).unwrap()
 
       // Verify free subscription was canceled
       const updatedFreeSubscription = (
@@ -283,7 +283,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      }).unwrap()
+      })).unwrap()
 
       // Get the new subscription
       const allSubscriptions = (
@@ -377,7 +377,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      }).unwrap()
+      })).unwrap()
 
       // Verify new subscription was created
       const allSubscriptions = (
@@ -493,7 +493,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      }).unwrap()
+      })).unwrap()
 
       // Verify free subscription was canceled
       const updatedFreeSubscription = (
@@ -634,7 +634,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      }).unwrap()
+      })).unwrap()
 
       // Verify free subscription remains active
       const updatedFreeSubscription = (

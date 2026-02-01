@@ -104,7 +104,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         )
         return Result.ok(result)
       }
-    ).unwrap()
+    )).unwrap()
     // Reset mocks - clearAllMocks clears call counts on all mock functions
     mock.clearAllMocks()
   })
@@ -120,7 +120,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
@@ -139,7 +139,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
@@ -159,7 +159,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
@@ -204,7 +204,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             confirmResult: confirmResultResult.value,
             feeCalculations})
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.confirmResult.customer).toMatchObject({})
       // Verify that createFeeCalculationForCheckoutSession was not called
@@ -224,7 +224,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             transaction
           )
           return Result.ok(feeCalculations)
-        }).unwrap()
+        })).unwrap()
 
       expect(checkoutFeeCalculations.length).toBe(1)
     })
@@ -242,7 +242,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
@@ -259,7 +259,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       const result = (await adminTransaction(
         async (ctx) => {
@@ -271,7 +271,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
@@ -289,7 +289,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
         email: 'newcustomer@example.com',
@@ -306,7 +306,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       expect(result.customer?.email).toEqual(
@@ -339,7 +339,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
@@ -358,7 +358,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       const confirmResult = result
       // Verify customer was created with proper attributes
@@ -433,7 +433,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
@@ -452,7 +452,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       const confirmResult = result
       // Verify customer was created
@@ -534,7 +534,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
@@ -553,7 +553,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       const confirmResult = result
       // Verify customer was created with Stripe customer ID
@@ -597,7 +597,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
@@ -616,7 +616,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       const confirmResult = result
       // Verify customer was created with correct billing address
@@ -642,7 +642,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
@@ -676,7 +676,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return Result.ok({ confirmResult, updatedCustomer })
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.confirmResult.unwrap().customer).toMatchObject({})
       expect(
@@ -694,7 +694,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
@@ -712,7 +712,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       const confirmResult = result
       expect(confirmResult.customer).toMatchObject({})
@@ -731,7 +731,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       // Update checkout session to have no customerEmail
       (await adminTransaction(async ({ transaction }) => {
@@ -740,7 +740,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
@@ -777,7 +777,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       // Mock getSetupIntent to return a setup intent with no customer
       const mockSetupIntent = {
@@ -824,7 +824,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was called
@@ -848,7 +848,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       // Mock getSetupIntent to return a setup intent with a customer
       const mockSetupIntent = {
@@ -895,7 +895,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       // Verify that updateSetupIntent was not called
@@ -958,7 +958,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       // Mock calculateTotalFeeAmount and calculateTotalDueAmount
 
@@ -972,7 +972,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
@@ -1000,7 +1000,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       // Mock calculateTotalFeeAmount and calculateTotalDueAmount
       const mockFinalFeeAmount = 100
@@ -1016,7 +1016,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was called with the correct parameters
@@ -1047,7 +1047,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       const result = (await adminTransaction(
         async (ctx) => {
@@ -1059,7 +1059,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent was not called
@@ -1093,7 +1093,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       // Create fee calculation with the discount applied
       (await adminTransaction(async ({ transaction }) => {
@@ -1102,7 +1102,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           transaction
         )
         return Result.ok(result)
-      }).unwrap()
+      })).unwrap()
 
       const result = (await adminTransaction(
         async (ctx) => {
@@ -1114,7 +1114,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       // Verify the customer is returned correctly
       expect(result.customer.id).toEqual(customer.id)
@@ -1138,7 +1138,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             ).unwrap()
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
       expect(
         refetchedCheckoutSession.stripePaymentIntentId
       ).toBeNull()
@@ -1160,7 +1160,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       const result = (await adminTransaction(
         async (ctx) => {
@@ -1172,7 +1172,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       expect(result.customer?.id).toEqual(customer.id)
@@ -1192,7 +1192,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
             return Result.ok(result)
           }
-        ).unwrap()
+        )).unwrap()
 
       const result = (await adminTransaction(
         async (ctx) => {
@@ -1204,7 +1204,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer).toMatchObject({})
       // Verify that updatePaymentIntent and updateSetupIntent were not called
@@ -1225,7 +1225,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           return confirmResult
         }
-      ).unwrap()
+      )).unwrap()
 
       const confirmResult = result
       expect(confirmResult.customer).toMatchObject({})

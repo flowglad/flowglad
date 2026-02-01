@@ -1324,7 +1324,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
           createProcessingEffectsContext(params)
         )
       }
-    ).unwrap()
+    )).unwrap()
     const testSubscription = workflowResult.subscription
 
     // Get the billing run that was created
@@ -1399,7 +1399,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         )
       ).unwrap()
       return Result.ok(result)
-    }).unwrap()
+    })).unwrap()
 
     // Assertions
     ;(
@@ -1503,7 +1503,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
           createProcessingEffectsContext(params)
         )
       }
-    ).unwrap()
+    )).unwrap()
     const testSubscription = workflowResult.subscription
 
     // Get the billing run that was created
@@ -1577,7 +1577,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         )
       ).unwrap()
       return Result.ok(result)
-    }).unwrap()
+    })).unwrap()
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
     ;(
@@ -1677,7 +1677,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
           createProcessingEffectsContext(params)
         )
       }
-    ).unwrap()
+    )).unwrap()
     const testSubscription = workflowResult.subscription
 
     const billingRuns = (
@@ -1762,7 +1762,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         )
       ).unwrap()
       return Result.ok(result)
-    }).unwrap()
+    })).unwrap()
 
     // Verify credits were granted after first payment
     const creditsAfterFirst = (

@@ -542,7 +542,7 @@ describe('adjustSubscription priceSlug resolution', () => {
           )
         },
         { livemode }
-      ).unwrap()
+      )).unwrap()
 
     // Verify the subscription was adjusted to the price identified by slug
     expect(result.subscription.priceId).toBe(priceWithSlug.id)
@@ -617,7 +617,7 @@ describe('adjustSubscription manual items preservation', () => {
           )
         },
         { livemode }
-      ).unwrap()
+      )).unwrap()
 
     // Manual item should still exist after adjustment
     const preservedManualItem = result.subscriptionItems.find(

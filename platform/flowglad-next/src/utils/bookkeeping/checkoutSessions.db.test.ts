@@ -770,7 +770,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(result)
         }
-      ).unwrap()
+      )).unwrap()
 
       // Verify customer was created
       expect(typeof bookkeepingResult.customer).toBe('object')
@@ -855,7 +855,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(bookkeeping)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
@@ -872,7 +872,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(bookkeeping)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
@@ -917,7 +917,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(bookkeeping)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
@@ -948,7 +948,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(bookkeeping)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.customer.stripeCustomerId).toEqual(
         succeededCharge.customer! as string
@@ -981,7 +981,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(bookkeeping)
         }
-      ).unwrap()
+      )).unwrap()
       expect(typeof result.customer.stripeCustomerId).toBe('string')
     })
 
@@ -1011,7 +1011,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(bookkeeping)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(typeof newPurchaseResult.purchase.id).toBe('string')
     })
@@ -1043,7 +1043,7 @@ describe('Checkout Sessions', () => {
         expect(typeof discountRedemption).toBe('object')
         expect(discountRedemption.discountId).toEqual(discount.id)
         return Result.ok(discountRedemption)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should link fee calculation to purchase record', async () => {
@@ -1066,7 +1066,7 @@ describe('Checkout Sessions', () => {
           return Result.ok({
             latestFeeCalculation,
             bookkeepingResult})
-        }).unwrap()
+        })).unwrap()
 
       expect(latestFeeCalculation?.purchaseId).toEqual(
         bookkeepingResult.purchase.id
@@ -1146,7 +1146,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(chargeResult)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.purchase).toMatchObject({})
       expect(result.invoice).toMatchObject({})
@@ -1172,7 +1172,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(chargeResult)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.purchase).toBeNull()
       expect(result.invoice).toBeNull()
@@ -1199,7 +1199,7 @@ describe('Checkout Sessions', () => {
             )
           return Result.ok(chargeResult)
         }
-      ).unwrap()
+      )).unwrap()
 
       expect(result.checkoutSession.customerName).toEqual(
         succeededCharge.billing_details?.name

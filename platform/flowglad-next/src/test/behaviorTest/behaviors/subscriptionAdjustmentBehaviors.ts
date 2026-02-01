@@ -222,7 +222,7 @@ export const setupSubscriptionBehavior = defineBehavior({
         return Result.ok(result)
       },
       { livemode }
-    ).unwrap()
+    )).unwrap()
 
     // Create initial price with billing interval from dependency
     const initialPrice = await setupPrice({
@@ -432,7 +432,7 @@ export const setupTargetPriceBehavior = defineBehavior({
         return Result.ok(result)
       },
       { livemode }
-    ).unwrap()
+    )).unwrap()
 
     // Create target price
     const targetPrice = await setupPrice({
@@ -562,7 +562,7 @@ export const adjustSubscriptionBehavior = defineBehavior({
           )
         },
         { livemode }
-      ).unwrap()
+      )).unwrap()
 
     return {
       ...prev,

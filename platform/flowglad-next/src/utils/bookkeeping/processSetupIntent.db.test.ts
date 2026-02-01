@@ -963,7 +963,7 @@ describe('Process setup intent', async () => {
                 createDiscardingEffectsContext(transaction)
               )
             }
-          ).unwrap()
+          )).unwrap()
 
         // Verify the result type
         expect(firstActivationResult.type).toBe(
@@ -1017,7 +1017,7 @@ describe('Process setup intent', async () => {
                 createDiscardingEffectsContext(transaction)
               )
             }
-          ).unwrap()
+          )).unwrap()
 
         // Verify idempotent behavior
         expect(secondActivationResult.type).toBe(
@@ -1121,7 +1121,7 @@ describe('Process setup intent', async () => {
                 createDiscardingEffectsContext(transaction)
               )
             }
-          ).unwrap()
+          )).unwrap()
 
         // Verify first activation succeeded and set stripeSetupIntentId
         expect(firstActivationResult.type).toBe(
@@ -1170,7 +1170,7 @@ describe('Process setup intent', async () => {
                 createDiscardingEffectsContext(transaction)
               )
             }
-          ).unwrap()
+          )).unwrap()
 
         // Verify it short-circuited and returned the existing subscription
         expect(secondActivationResult.type).toBe(
@@ -1244,7 +1244,7 @@ describe('Process setup intent', async () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         expect(result.purchase?.status).toEqual(PurchaseStatus.Paid)
         expect(result.checkoutSession.status).toEqual(

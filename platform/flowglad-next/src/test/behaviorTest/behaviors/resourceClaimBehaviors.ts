@@ -239,7 +239,7 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
             return Result.ok(result.unwrap())
           },
           { livemode }
-        ).unwrap()
+        )).unwrap()
 
       // Get claims after cancellation
       let claimsAfterCancellation: ResourceClaim.Record[] = []
