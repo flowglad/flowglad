@@ -297,6 +297,8 @@ jobs:
 
   verify-api-contract:
     name: "flowglad-next: API Contract Verification"
+    # Only run in the merge queue as a final pre-merge check
+    if: github.event_name == 'merge_group'
     runs-on: ubuntu-latest
     defaults:
       run:
