@@ -575,7 +575,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
       expect(result.error.message).toContain(
-        'No subscriptions found with id'
+        'subscriptions not found'
       )
     }
 
