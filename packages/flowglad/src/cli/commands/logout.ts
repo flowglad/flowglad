@@ -6,7 +6,7 @@ import { clearCredentials, loadCredentials } from '../auth/config'
  * Can be overridden with FLOWGLAD_API_URL environment variable (used for testing/development).
  */
 const getApiUrl = (): string => {
-  return process.env.FLOWGLAD_API_URL ?? 'https://flowglad.com'
+  return process.env.FLOWGLAD_API_URL ?? 'https://app.flowglad.com'
 }
 
 /**
