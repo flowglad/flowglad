@@ -248,11 +248,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
 
     const price = (
       await authenticatedTransaction(async ({ transaction }) => {
-        return Result.ok(
-          (
-            await selectPriceById(resolvedPriceId, transaction)
-          ).unwrap()
-        )
+        return selectPriceById(resolvedPriceId, transaction)
       })
     ).unwrap()
     if (!price) {
@@ -273,7 +269,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
 
   return (
     await adminTransaction(async ({ transaction }) => {
-      const result = await createCheckoutSessionTransaction(
+      return createCheckoutSessionTransaction(
         {
           checkoutSessionInput: {
             ...checkoutSessionInput,
@@ -285,10 +281,6 @@ export const customerBillingCreatePricedCheckoutSession = async ({
         },
         transaction
       )
-      if (result.status === 'error') {
-        throw result.error
-      }
-      return Result.ok(result.value)
     })
   ).unwrap()
 }
