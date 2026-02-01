@@ -127,12 +127,16 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toHaveLength(2)
+        expect(Result.isOk(result)).toBe(true)
+        const accounts = result.unwrap()
+        expect(accounts).toHaveLength(2)
         expect(
-          result.find((la) => la.usageMeterId === usageMeter1.id)?.id
+          accounts.find((la) => la.usageMeterId === usageMeter1.id)
+            ?.id
         ).toBe(ledgerAccountForUsageMeter1.id)
         expect(
-          result.find((la) => la.usageMeterId === usageMeter2.id)?.id
+          accounts.find((la) => la.usageMeterId === usageMeter2.id)
+            ?.id
         ).toBe(ledgerAccountForUsageMeter2.id)
 
         const finalLedgerAccounts = await selectLedgerAccounts(
@@ -181,7 +185,8 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toHaveLength(2)
+        expect(Result.isOk(result)).toBe(true)
+        expect(result.unwrap()).toHaveLength(2)
 
         const createdLedgerAccounts = await selectLedgerAccounts(
           {
@@ -258,16 +263,18 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toHaveLength(2)
-        expect(result[0].id).toBe(ledgerAccountForUsageMeter1.id)
-        expect(result[0].usageMeterId).toBe(usageMeter1.id)
+        expect(Result.isOk(result)).toBe(true)
+        const accounts = result.unwrap()
+        expect(accounts).toHaveLength(2)
+        expect(accounts[0].id).toBe(ledgerAccountForUsageMeter1.id)
+        expect(accounts[0].usageMeterId).toBe(usageMeter1.id)
         // Verify pricingModelId is correctly derived from usage meter
-        expect(result[0].pricingModelId).toBe(
+        expect(accounts[0].pricingModelId).toBe(
           usageMeter1.pricingModelId
         )
-        expect(result[1].usageMeterId).toBe(usageMeter2.id)
+        expect(accounts[1].usageMeterId).toBe(usageMeter2.id)
         // Verify pricingModelId is correctly derived from usage meter
-        expect(result[1].pricingModelId).toBe(
+        expect(accounts[1].pricingModelId).toBe(
           usageMeter2.pricingModelId
         )
 
@@ -327,7 +334,8 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toEqual([])
+        expect(Result.isOk(result)).toBe(true)
+        expect(result.unwrap()).toEqual([])
 
         const finalTotalLedgerAccountsForSub = (
           await selectLedgerAccounts(
