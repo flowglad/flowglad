@@ -157,26 +157,16 @@ const printPackageResult = (
 
   if (result.filesAtLimit.length > 0) {
     console.log(`\n  At baseline limit (warnings):`)
-    for (const file of result.filesAtLimit.slice(0, 5)) {
+    for (const file of result.filesAtLimit) {
       console.log(`    ⚠ ${file.path}: ${file.count} violations`)
-    }
-    if (result.filesAtLimit.length > 5) {
-      console.log(
-        `    ... and ${result.filesAtLimit.length - 5} more files at limit`
-      )
     }
   }
 
   if (result.filesImproved.length > 0) {
     console.log(`\n  Improved:`)
-    for (const file of result.filesImproved.slice(0, 5)) {
+    for (const file of result.filesImproved) {
       console.log(
         `    ↓ ${file.path}: ${file.baseline} → ${file.current}`
-      )
-    }
-    if (result.filesImproved.length > 5) {
-      console.log(
-        `    ... and ${result.filesImproved.length - 5} more files improved`
       )
     }
   }
