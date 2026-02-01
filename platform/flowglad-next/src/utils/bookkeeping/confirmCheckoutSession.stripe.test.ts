@@ -109,7 +109,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return Result.ok(result)
+        return result
       }
     )
     // Reset mocks - clearAllMocks clears call counts on all mock functions
@@ -127,7 +127,6 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
-        return Result.ok(null)
       })
 
       await expect(
@@ -136,7 +135,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return result
+          return result.unwrap()
         })
       ).rejects.toThrow('Checkout session is not open')
       await adminTransaction(async ({ transaction }) => {
@@ -147,7 +146,6 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
-        return Result.ok(null)
       })
 
       await expect(
@@ -156,7 +154,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return result
+          return result.unwrap()
         })
       ).rejects.toThrow('Checkout session is not open')
 
@@ -168,7 +166,6 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
-        return Result.ok(null)
       })
 
       await expect(
@@ -177,7 +174,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return result
+          return result.unwrap()
         })
       ).rejects.toThrow('Checkout session is not open')
     })
@@ -203,17 +200,15 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: addPaymentMethodCheckoutSession.id },
             ctx
           )
-        if (confirmResultResult.status === 'error') {
-          return Result.err(confirmResultResult.error)
-        }
+        const confirmResult = confirmResultResult.unwrap()
         const feeCalculations = await selectFeeCalculations(
           { checkoutSessionId: addPaymentMethodCheckoutSession.id },
           transaction
         )
-        return Result.ok({
-          confirmResult: confirmResultResult.value,
+        return {
+          confirmResult,
           feeCalculations,
-        })
+        }
       })
 
       expect(result.confirmResult.customer).toMatchObject({})
@@ -233,7 +228,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { checkoutSessionId: checkoutSession.id },
             transaction
           )
-          return Result.ok(feeCalculations)
+          return feeCalculations
         }
       )
 
@@ -244,12 +239,11 @@ describe('confirmCheckoutSessionTransaction', () => {
   describe('Customer Handling', () => {
     it('should retrieve customer via customerId when set on the session', async () => {
       const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
         const confirmResult = await confirmCheckoutSessionTransaction(
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -267,16 +261,14 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return Result.ok(null)
       })
 
       const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
         const confirmResult = await confirmCheckoutSessionTransaction(
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -295,7 +287,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
@@ -310,7 +302,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -346,7 +338,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -363,7 +355,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       // Verify customer was created with proper attributes
@@ -435,7 +427,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -452,7 +444,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       // Verify customer was created
@@ -528,7 +520,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -545,7 +537,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       // Verify customer was created with Stripe customer ID
@@ -590,7 +582,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -607,7 +599,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       // Verify customer was created with correct billing address
@@ -631,7 +623,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.ProductRecord,
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       await expect(
@@ -640,7 +632,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return result
+          return result.unwrap()
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
@@ -663,13 +655,16 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return Result.ok({ confirmResult, updatedCustomer })
+        return {
+          confirmResult: confirmResult.unwrap(),
+          updatedCustomer,
+        }
       })
 
-      expect(result.confirmResult.unwrap().customer).toMatchObject({})
-      expect(
-        result.confirmResult.unwrap().customer?.stripeCustomerId
-      ).toEqual(result.updatedCustomer.stripeCustomerId)
+      expect(result.confirmResult.customer).toMatchObject({})
+      expect(result.confirmResult.customer?.stripeCustomerId).toEqual(
+        result.updatedCustomer.stripeCustomerId
+      )
       // Verify that createStripeCustomer was not called
       expect(mockCreateStripeCustomer).not.toHaveBeenCalled()
     })
@@ -681,7 +676,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { ...customer, stripeCustomerId: null },
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -697,7 +692,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -715,7 +710,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { ...customer, stripeCustomerId: null },
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       // Update checkout session to have no customerEmail
@@ -724,7 +719,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { ...checkoutSession, customerEmail: null },
           transaction
         )
-        return Result.ok(null)
+        return undefined
       })
 
       await expect(
@@ -733,7 +728,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return result
+          return result.unwrap()
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
@@ -761,7 +756,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             },
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -809,7 +804,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: updatedCheckoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -832,7 +827,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             },
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -880,7 +875,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: updatedCheckoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -947,7 +942,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             } as CheckoutSession.Update,
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -959,7 +954,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: updatedCheckoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -987,7 +982,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             } as CheckoutSession.Update,
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -1001,7 +996,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: updatedCheckoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -1032,7 +1027,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             },
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -1042,7 +1037,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -1076,7 +1071,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             } as CheckoutSession.Update,
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -1086,7 +1081,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return Result.ok(result)
+        return result
       })
 
       const result = await adminTransaction(async (ctx) => {
@@ -1095,7 +1090,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: updatedCheckoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       // Verify the customer is returned correctly
@@ -1117,7 +1112,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               transaction
             )
           ).unwrap()
-          return Result.ok(result)
+          return result
         }
       )
       expect(
@@ -1139,7 +1134,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             } as CheckoutSession.Update,
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -1149,7 +1144,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: updatedCheckoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -1168,7 +1163,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             },
             transaction
           )
-          return Result.ok(result)
+          return result
         }
       )
 
@@ -1178,7 +1173,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: updatedCheckoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
@@ -1196,7 +1191,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { id: checkoutSession.id },
           ctx
         )
-        return confirmResult
+        return confirmResult.unwrap()
       })
 
       expect(result.customer).toMatchObject({})
