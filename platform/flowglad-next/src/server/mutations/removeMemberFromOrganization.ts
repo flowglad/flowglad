@@ -151,24 +151,18 @@ export const removeMemberFromOrganization = protectedProcedure
 
     // Perform the removal in an admin transaction
     // (we need admin because the target membership may not be the requester's)
-    const result = (
+    const membership = (
       await adminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await innerRemoveMemberFromOrganization(
-            input,
-            requesterMembership,
-            transaction
-          )
+        return innerRemoveMemberFromOrganization(
+          input,
+          requesterMembership,
+          transaction
         )
       })
     ).unwrap()
 
-    if (Result.isError(result)) {
-      throw result.error
-    }
-
     return {
       success: true,
-      membership: result.value,
+      membership,
     }
   })
