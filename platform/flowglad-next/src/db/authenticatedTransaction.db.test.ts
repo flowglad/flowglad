@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   EventNoun,
   FlowgladEventType,
-  MembershipRole} from '@db-core/enums'
+  MembershipRole,
+} from '@db-core/enums'
 import type { ApiKey } from '@db-core/schema/apiKeys'
 import type { Event } from '@db-core/schema/events'
 import type { Membership } from '@db-core/schema/memberships'
@@ -15,7 +16,8 @@ import { z } from 'zod'
 import {
   setupMemberships,
   setupOrg,
-  setupUserAndApiKey} from '@/../seedDatabase'
+  setupUserAndApiKey,
+} from '@/../seedDatabase'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
 import { adminTransaction } from './adminTransaction'
@@ -23,10 +25,12 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
-  authenticatedTransactionUnwrap} from './authenticatedTransaction'
+  authenticatedTransactionUnwrap,
+} from './authenticatedTransaction'
 import {
   insertMembership,
-  selectMemberships} from './tableMethods/membershipMethods'
+  selectMemberships,
+} from './tableMethods/membershipMethods'
 import { selectOrganizations } from './tableMethods/organizationMethods'
 import { insertUser } from './tableMethods/userMethods'
 import type { DbTransaction } from './types'
@@ -85,13 +89,15 @@ describe('authenticatedTransaction', () => {
     // Setup users and API keys for each organization
     const userApiKeyA = await setupUserAndApiKey({
       organizationId: testOrg1.id,
-      livemode: true})
+      livemode: true,
+    })
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
 
     const userApiKeyB = await setupUserAndApiKey({
       organizationId: testOrg2.id,
-      livemode: true})
+      livemode: true,
+    })
     userB = userApiKeyB.user
     apiKeyB = userApiKeyB.apiKey
 
@@ -119,7 +125,8 @@ describe('authenticatedTransaction', () => {
           focused: false,
           livemode: true,
           role: MembershipRole.Member,
-          focusedPricingModelId: pricingModel2.id},
+          focusedPricingModelId: pricingModel2.id,
+        },
         transaction
       )
     })
@@ -202,7 +209,8 @@ describe('authenticatedTransaction', () => {
       // - livemode should be false in transaction params
       const testModeApiKey = await setupUserAndApiKey({
         organizationId: testOrg1.id,
-        livemode: false})
+        livemode: false,
+      })
 
       const result = await authenticatedTransaction(
         async ({ livemode }) => {
@@ -262,7 +270,8 @@ describe('authenticatedTransaction', () => {
             id: userId,
             email,
             name: 'Webapp User',
-            betterAuthId},
+            betterAuthId,
+          },
           transaction
         )
         await insertMembership(
@@ -272,7 +281,8 @@ describe('authenticatedTransaction', () => {
             focused: true,
             livemode: true,
             role: MembershipRole.Member,
-            focusedPricingModelId: pricingModel1.id},
+            focusedPricingModelId: pricingModel1.id,
+          },
           transaction
         )
         await insertMembership(
@@ -282,7 +292,8 @@ describe('authenticatedTransaction', () => {
             focused: false,
             livemode: true,
             role: MembershipRole.Member,
-            focusedPricingModelId: pricingModel2.id},
+            focusedPricingModelId: pricingModel2.id,
+          },
           transaction
         )
       })
@@ -290,7 +301,9 @@ describe('authenticatedTransaction', () => {
       globalThis.__mockedAuthSession = {
         user: {
           id: betterAuthId,
-          email}}
+          email,
+        },
+      }
 
       const result = await authenticatedTransaction(async (ctx) => {
         const { transaction, organizationId } = ctx
@@ -305,7 +318,7 @@ describe('authenticatedTransaction', () => {
   })
 })
 
-describe('comprehensiveAuthenticatedTransaction', () => {
+describe('authenticatedTransaction (with Result callbacks)', () => {
   // Reuse the same global test state
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
@@ -324,7 +337,8 @@ describe('comprehensiveAuthenticatedTransaction', () => {
 
     const userApiKeyA = await setupUserAndApiKey({
       organizationId: testOrg1.id,
-      livemode: true})
+      livemode: true,
+    })
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
   })
@@ -332,14 +346,14 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   describe('JWT Claims Validation', () => {
     it('should throw error when invalid API key is provided', async () => {
       // setup:
-      // - call comprehensiveAuthenticatedTransaction with invalid API key
+      // - call authenticatedTransaction with invalid API key
       // - provide transaction function that should not execute
 
       // expects:
       // - function should throw authentication error
       // - no database transaction should be started
       await expect(
-        comprehensiveAuthenticatedTransaction(
+        authenticatedTransaction(
           async () => Result.ok('should not reach here'),
           { apiKey: 'invalid_key_that_does_not_exist' }
         )
@@ -354,14 +368,16 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - function should execute successfully
       // - organizationId should be available in transaction params
-      const result = (await authenticatedTransaction(
-        async ({ organizationId, userId }) => {
-          expect(organizationId).toBe(testOrg1.id)
-          expect(userId).toBe(userA.id)
-          return Result.ok('comprehensive_success')
-        },
-        { apiKey: apiKeyA.token }
-      )).unwrap()
+      const result = (
+        await authenticatedTransaction(
+          async ({ organizationId, userId }) => {
+            expect(organizationId).toBe(testOrg1.id)
+            expect(userId).toBe(userA.id)
+            return Result.ok('comprehensive_success')
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('comprehensive_success')
     })
   })
@@ -384,22 +400,27 @@ describe('comprehensiveAuthenticatedTransaction', () => {
           id: 'test_event_1',
           customer: {
             id: 'test_customer_id',
-            externalId: 'test_external_id'}},
+            externalId: 'test_external_id',
+          },
+        },
         organizationId: testOrg1.id,
         metadata: {},
         hash: hashData(testOrg1.id),
         occurredAt: Date.now(),
         submittedAt: Date.now(),
         processedAt: null,
-        pricingModelId: pricingModel1.id}
+        pricingModelId: pricingModel1.id,
+      }
 
-      const result = (await authenticatedTransaction(
-        async ({ emitEvent }) => {
-          emitEvent(mockEvent)
-          return Result.ok('events_processed')
-        },
-        { apiKey: apiKeyA.token }
-      )).unwrap()
+      const result = (
+        await authenticatedTransaction(
+          async ({ emitEvent }) => {
+            emitEvent(mockEvent)
+            return Result.ok('events_processed')
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('events_processed')
     })
 
@@ -411,10 +432,12 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - transaction should complete successfully
       // - result should be returned from output.result
-      const result = (await authenticatedTransaction(
-        async () => Result.ok('simple_result'),
-        { apiKey: apiKeyA.token }
-      )).unwrap()
+      const result = (
+        await authenticatedTransaction(
+          async () => Result.ok('simple_result'),
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('simple_result')
     })
   })
@@ -431,7 +454,8 @@ describe('Authentication Method Tests', () => {
 
     const userApiKeyA = await setupUserAndApiKey({
       organizationId: testOrg1.id,
-      livemode: true})
+      livemode: true,
+    })
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
   })
@@ -498,7 +522,8 @@ describe('Error Handling Tests', () => {
 
     const userApiKeyA = await setupUserAndApiKey({
       organizationId: testOrg1.id,
-      livemode: true})
+      livemode: true,
+    })
     apiKeyA = userApiKeyA.apiKey
   })
 
@@ -509,7 +534,8 @@ describe('Error Handling Tests', () => {
       Object.defineProperty(core, 'IS_TEST', {
         value: false,
         writable: true,
-        configurable: true})
+        configurable: true,
+      })
 
       try {
         await expect(
@@ -521,9 +547,9 @@ describe('Error Handling Tests', () => {
           'Attempted to use test organization id in a non-test environment'
         )
 
-        // Also verify comprehensiveAuthenticatedTransaction has the same check
+        // Also verify authenticatedTransaction with Result callback has the same check
         await expect(
-          comprehensiveAuthenticatedTransaction(
+          authenticatedTransaction(
             async () => Result.ok('should not reach here'),
             { __testOnlyOrganizationId: testOrg1.id }
           )
@@ -535,7 +561,8 @@ describe('Error Handling Tests', () => {
         Object.defineProperty(core, 'IS_TEST', {
           value: originalIsTest,
           writable: true,
-          configurable: true})
+          configurable: true,
+        })
       }
     })
 
@@ -549,7 +576,8 @@ describe('Error Handling Tests', () => {
 
       try {
         await authenticatedTransaction(async () => 'result', {
-          __testOnlyOrganizationId: testOrg1.id})
+          __testOnlyOrganizationId: testOrg1.id,
+        })
         // If we reach here, transaction succeeded - that's fine too
       } catch (error) {
         // We should NOT get the test-only validation error
@@ -612,7 +640,8 @@ describe('Procedure Wrapper Functions', () => {
 
     const userApiKeyA = await setupUserAndApiKey({
       organizationId: testOrg1.id,
-      livemode: true})
+      livemode: true,
+    })
     apiKeyA = userApiKeyA.apiKey
   })
 
@@ -648,7 +677,8 @@ describe('Procedure Wrapper Functions', () => {
 
       const result = await procedureHandler({
         input: testInput,
-        ctx: testContext})
+        ctx: testContext,
+      })
 
       expect(result).toBe('procedure_success')
     })
@@ -663,7 +693,7 @@ describe('Procedure Wrapper Functions', () => {
       // expects:
       // - handler should be called with transaction params plus input and ctx
       // - result from output.result should be returned
-      // - apiKey from context should be passed to comprehensiveAuthenticatedTransaction
+      // - apiKey from context should be passed to authenticatedTransaction
       const testInput = { testValue: 'comprehensive_input_test' }
       const testContext = { apiKey: apiKeyA.token }
 
@@ -690,7 +720,8 @@ describe('Procedure Wrapper Functions', () => {
 
       const result = await procedureHandler({
         input: testInput,
-        ctx: testContext})
+        ctx: testContext,
+      })
 
       expect(result).toBe('comprehensive_procedure_success')
     })
@@ -707,7 +738,8 @@ describe('Edge Cases', () => {
 
     const userApiKeyA = await setupUserAndApiKey({
       organizationId: testOrg1.id,
-      livemode: true})
+      livemode: true,
+    })
     apiKeyA = userApiKeyA.apiKey
   })
 
@@ -737,11 +769,13 @@ describe('Edge Cases', () => {
             return {
               memberships: memberships.length,
               organizations: organizations.length,
-              success: true}
+              success: true,
+            }
           } catch (error: any) {
             return {
               error: error.message,
-              success: false}
+              success: false,
+            }
           }
         },
         { apiKey: apiKeyA.token }
@@ -750,7 +784,8 @@ describe('Edge Cases', () => {
       // Document the current behavior - may succeed or fail depending on RLS implementation
       expect(result).toEqual(
         expect.objectContaining({
-          success: expect.any(Boolean)})
+          success: expect.any(Boolean),
+        })
       )
       if (result.success) {
         expect(result.memberships).toBeGreaterThanOrEqual(0)
@@ -777,7 +812,8 @@ describe('authenticatedTransactionUnwrap', () => {
 
     const userApiKey = await setupUserAndApiKey({
       organizationId: testOrg.id,
-      livemode: true})
+      livemode: true,
+    })
     apiKey = userApiKey.apiKey
   })
 
@@ -865,7 +901,8 @@ describe('authenticatedTransaction', () => {
 
     const userApiKey = await setupUserAndApiKey({
       organizationId: testOrg.id,
-      livemode: true})
+      livemode: true,
+    })
     apiKey = userApiKey.apiKey
   })
 

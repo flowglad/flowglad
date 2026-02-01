@@ -6,7 +6,8 @@ import {
   PaymentMethodType,
   PriceType,
   SubscriptionStatus,
-  UsageCreditStatus} from '@db-core/enums'
+  UsageCreditStatus,
+} from '@db-core/enums'
 import type { CreateCheckoutSessionInput } from '@db-core/schema/checkoutSessions'
 import { Result } from 'better-result'
 import {
@@ -15,12 +16,13 @@ import {
   setupProduct,
   setupProductFeature,
   setupUsageCreditGrantFeature,
-  setupUsageMeter} from '@/../seedDatabase'
-import {
-  adminTransaction} from '@/db/adminTransaction'
+  setupUsageMeter,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   updateCheckoutSessionBillingAddress,
-  updateCheckoutSessionPaymentMethodType} from '@/db/tableMethods/checkoutSessionMethods'
+  updateCheckoutSessionPaymentMethodType,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
@@ -32,7 +34,8 @@ import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createChec
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import {
   type CoreStripePaymentIntent,
-  processPaymentIntentStatusUpdated} from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+  processPaymentIntentStatusUpdated,
+} from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import * as stripeUtils from '@/utils/stripe'
@@ -46,7 +49,8 @@ describe('Pay as You Go Workflow E2E', () => {
       organization,
       pricingModel,
       product: freeProduct,
-      price: freePrice} = await setupOrg()
+      price: freePrice,
+    } = await setupOrg()
     ;(
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -54,7 +58,8 @@ describe('Pay as You Go Workflow E2E', () => {
           {
             id: organization.id,
             stripeAccountId: 'acct_123' + core.nanoid(),
-            payoutsEnabled: true},
+            payoutsEnabled: true,
+          },
           transaction
         )
         return Result.ok(undefined)
@@ -63,7 +68,8 @@ describe('Pay as You Go Workflow E2E', () => {
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'API Calls',
-      pricingModelId: pricingModel.id})
+      pricingModelId: pricingModel.id,
+    })
     const freeOneTimeCreditGrant = await setupUsageCreditGrantFeature(
       {
         organizationId: organization.id,
@@ -72,7 +78,8 @@ describe('Pay as You Go Workflow E2E', () => {
         usageMeterId: usageMeter.id,
         amount: 100,
         renewalFrequency: FeatureUsageGrantFrequency.Once,
-        pricingModelId: pricingModel.id}
+        pricingModelId: pricingModel.id,
+      }
     )
 
     const paidOneTimeCreditGrant = await setupUsageCreditGrantFeature(
@@ -83,23 +90,27 @@ describe('Pay as You Go Workflow E2E', () => {
         usageMeterId: usageMeter.id,
         amount: 1000,
         renewalFrequency: FeatureUsageGrantFrequency.Once,
-        pricingModelId: pricingModel.id}
+        pricingModelId: pricingModel.id,
+      }
     )
 
     const paidProduct = await setupProduct({
       organizationId: organization.id,
       name: 'Paid API Product',
-      pricingModelId: pricingModel.id})
+      pricingModelId: pricingModel.id,
+    })
 
     await setupProductFeature({
       productId: freeProduct.id,
       featureId: freeOneTimeCreditGrant.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
 
     await setupProductFeature({
       productId: paidProduct.id,
       featureId: paidOneTimeCreditGrant.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
 
     const singlePaymentPrice = await setupPrice({
       productId: paidProduct.id,
@@ -107,7 +118,8 @@ describe('Pay as You Go Workflow E2E', () => {
       type: PriceType.SinglePayment,
       unitPrice: 10,
       livemode: true,
-      isDefault: true})
+      isDefault: true,
+    })
     const usagePrice = await setupPrice({
       name: 'Usage Price',
       type: PriceType.Usage,
@@ -116,7 +128,8 @@ describe('Pay as You Go Workflow E2E', () => {
       intervalCount: 1,
       livemode: pricingModel.livemode,
       isDefault: false,
-      usageMeterId: usageMeter.id})
+      usageMeterId: usageMeter.id,
+    })
 
     // Override unitPrice to 0 for the default/free price
     ;(
@@ -126,19 +139,21 @@ describe('Pay as You Go Workflow E2E', () => {
           {
             id: freePrice.id,
             type: freePrice.type,
-            unitPrice: 0},
+            unitPrice: 0,
+          },
           ctx
         )
         return Result.ok(undefined)
       })
     ).unwrap()
-    const { customer, subscription } =
-      (await adminTransaction(
+    const { customer, subscription } = (
+      await adminTransaction(
         async ({
           transaction,
           invalidateCache,
           emitEvent,
-          enqueueLedgerCommand}) => {
+          enqueueLedgerCommand,
+        }) => {
           const result = await createCustomerBookkeeping(
             {
               customer: {
@@ -146,18 +161,22 @@ describe('Pay as You Go Workflow E2E', () => {
                 pricingModelId: pricingModel.id,
                 name: 'Test Customer',
                 externalId: 'test-customer' + core.nanoid(),
-                email: 'test@test.com'}},
+                email: 'test@test.com',
+              },
+            },
             withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode: true,
               invalidateCache,
               emitEvent,
-              enqueueLedgerCommand})
+              enqueueLedgerCommand,
+            })
           )
           return Result.ok(result)
         }
-      )).unwrap()
+      )
+    ).unwrap()
 
     if (!subscription) {
       throw new Error('No subscription')
@@ -170,7 +189,8 @@ describe('Pay as You Go Workflow E2E', () => {
         const usageCredits = await selectUsageCredits(
           {
             subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id},
+            usageMeterId: usageMeter.id,
+          },
           transaction
         )
 
@@ -189,11 +209,13 @@ describe('Pay as You Go Workflow E2E', () => {
         // call @customerBillingTransaction and check state
         const cacheRecomputationContext: CacheRecomputationContext = {
           type: 'admin',
-          livemode}
+          livemode,
+        }
         const billingState1 = await customerBillingTransaction(
           {
             externalId: customer.externalId,
-            organizationId: organization.id},
+            organizationId: organization.id,
+          },
           transaction,
           cacheRecomputationContext
         )
@@ -210,22 +232,27 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 2. Create a usage event for the subscription
     const staticTransctionId = 'test-' + core.nanoid()
-    ;(await adminTransaction(async (ctx) => {
-      return ingestAndProcessUsageEvent(
-        {
-          input: {
-            usageEvent: {
-              subscriptionId: subscription.id,
-              priceId: usagePrice.id,
-              usageMeterId: usageMeter.id,
-              amount: 100,
-              transactionId: staticTransctionId,
-              properties: {},
-              usageDate: Date.now()}},
-          livemode: true},
-        ctx
-      )
-    })).unwrap()
+    ;(
+      await adminTransaction(async (ctx) => {
+        return ingestAndProcessUsageEvent(
+          {
+            input: {
+              usageEvent: {
+                subscriptionId: subscription.id,
+                priceId: usagePrice.id,
+                usageMeterId: usageMeter.id,
+                amount: 100,
+                transactionId: staticTransctionId,
+                properties: {},
+                usageDate: Date.now(),
+              },
+            },
+            livemode: true,
+          },
+          ctx
+        )
+      })
+    ).unwrap()
     // 3. Call @customerBillingTransaction again and assert final state
     // 3. Call @customerBillingTransaction again and assert final state
     ;(
@@ -233,11 +260,13 @@ describe('Pay as You Go Workflow E2E', () => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
           type: 'admin',
-          livemode}
+          livemode,
+        }
         const billingState2 = await customerBillingTransaction(
           {
             externalId: customer.externalId,
-            organizationId: organization.id},
+            organizationId: organization.id,
+          },
           transaction,
           cacheRecomputationContext
         )
@@ -250,36 +279,43 @@ describe('Pay as You Go Workflow E2E', () => {
         ).toBe(0) // 100 - 100 (usage)
         return Result.ok(undefined)
       })
-    ).unwrap()
-
-    // 4. Create a usage event for the subscription
-    (await adminTransaction(async (ctx) => {
-      return ingestAndProcessUsageEvent(
-        {
-          input: {
-            usageEvent: {
-              subscriptionId: subscription.id,
-              priceId: usagePrice.id,
-              usageMeterId: usageMeter.id,
-              amount: 100,
-              transactionId: staticTransctionId,
-              properties: {},
-              usageDate: Date.now()}},
-          livemode: true},
-        ctx
+    )
+      .unwrap()(
+        // 4. Create a usage event for the subscription
+        await adminTransaction(async (ctx) => {
+          return ingestAndProcessUsageEvent(
+            {
+              input: {
+                usageEvent: {
+                  subscriptionId: subscription.id,
+                  priceId: usagePrice.id,
+                  usageMeterId: usageMeter.id,
+                  amount: 100,
+                  transactionId: staticTransctionId,
+                  properties: {},
+                  usageDate: Date.now(),
+                },
+              },
+              livemode: true,
+            },
+            ctx
+          )
+        })
       )
-    })).unwrap()
+      .unwrap()
     // 5. Call @customerBillingTransaction again and assert final state
     ;(
       await adminTransaction(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
           type: 'admin',
-          livemode}
+          livemode,
+        }
         const billingState2Prime = await customerBillingTransaction(
           {
             externalId: customer.externalId,
-            organizationId: organization.id},
+            organizationId: organization.id,
+          },
           transaction,
           cacheRecomputationContext
         )
@@ -302,8 +338,8 @@ describe('Pay as You Go Workflow E2E', () => {
     ).unwrap()
 
     // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
-    const checkoutSession = (await adminTransaction(
-      async (ctx) => {
+    const checkoutSession = (
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
           {
@@ -311,13 +347,15 @@ describe('Pay as You Go Workflow E2E', () => {
             customerExternalId: customer.externalId,
             successUrl: 'https://test.com/success',
             cancelUrl: 'https://test.com/cancel',
-            priceId: singlePaymentPrice.id}
+            priceId: singlePaymentPrice.id,
+          }
         const { checkoutSession } = (
           await createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
               organizationId: organization.id,
-              livemode: true},
+              livemode: true,
+            },
             transaction
           )
         ).unwrap()
@@ -331,15 +369,19 @@ describe('Pay as You Go Workflow E2E', () => {
                 city: 'Anytown',
                 state: 'CA',
                 postal_code: '12345',
-                country: 'US'},
+                country: 'US',
+              },
               name: 'John Doe',
-              firstName: 'John'}},
+              firstName: 'John',
+            },
+          },
           transaction
         )
         await updateCheckoutSessionPaymentMethodType(
           {
             id: checkoutSession.id,
-            paymentMethodType: PaymentMethodType.Card},
+            paymentMethodType: PaymentMethodType.Card,
+          },
           transaction
         )
         // 3. Call @confirmCheckoutSession.ts to finalize it
@@ -355,8 +397,8 @@ describe('Pay as You Go Workflow E2E', () => {
         )
         expect(feeCalculations).toHaveLength(1)
         return Result.ok(checkoutSession)
-      }
-    )).unwrap()
+      })
+    ).unwrap()
 
     // Create IDs for the payment
     const paymentIntentId = 'pi_' + core.nanoid()
@@ -364,122 +406,145 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // Spy on getStripeCharge to return a properly structured charge
     // stripe-mock returns charges with payment_intent: null, but we need it set
-    const getStripeChargeSpy = spyOn(
-      stripeUtils,
-      'getStripeCharge'
-    ).mockResolvedValue({
-      id: chargeId,
-      amount: 1000,
-      status: 'succeeded',
-      created: Math.floor(Date.now() / 1000),
-      payment_intent: paymentIntentId,
-      billing_details: {
-        address: { country: 'US' }},
-      payment_method_details: {
-        type: 'card',
-        card: {
-          brand: 'visa',
-          last4: '4242'}}} as any)
-
-    (await adminTransaction(async (ctx) => {
-      // 4. Call @processPaymentIntentStatusUpdated with a stubbed paymentIntent
-      const paymentIntent: CoreStripePaymentIntent = {
-        id: paymentIntentId,
+    const getStripeChargeSpy = spyOn(stripeUtils, 'getStripeCharge')
+      .mockResolvedValue({
+        id: chargeId,
+        amount: 1000,
         status: 'succeeded',
-        latest_charge: chargeId,
-        metadata: {
-          type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: checkoutSession.id}}
+        created: Math.floor(Date.now() / 1000),
+        payment_intent: paymentIntentId,
+        billing_details: {
+          address: { country: 'US' },
+        },
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        },
+      } as any)(
+        await adminTransaction(async (ctx) => {
+          // 4. Call @processPaymentIntentStatusUpdated with a stubbed paymentIntent
+          const paymentIntent: CoreStripePaymentIntent = {
+            id: paymentIntentId,
+            status: 'succeeded',
+            latest_charge: chargeId,
+            metadata: {
+              type: IntentMetadataType.CheckoutSession,
+              checkoutSessionId: checkoutSession.id,
+            },
+          }
 
-      const result = await processPaymentIntentStatusUpdated(
-        paymentIntent,
-        ctx
+          const result = await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            ctx
+          )
+          // Check that payment processing succeeded
+          if (result.status === 'error') {
+            console.error('Payment processing error:', result.error)
+          }
+          expect(result.status).toBe('ok')
+          const payment = result.unwrap().payment
+          expect(payment.customerId).toBe(customer.id)
+          return Result.ok(result)
+        })
       )
-      // Check that payment processing succeeded
-      if (result.status === 'error') {
-        console.error('Payment processing error:', result.error)
-      }
-      expect(result.status).toBe('ok')
-      const payment = result.unwrap().payment
-      expect(payment.customerId).toBe(customer.id)
-      return Result.ok(result)
-    })).unwrap()
+      .unwrap()
 
     // Restore the spy
-    getStripeChargeSpy.mockRestore()
+    getStripeChargeSpy
+      .mockRestore()(
+        await adminTransaction(async (ctx) => {
+          const { transaction, livemode } = ctx
+          // 5. Call @customerBillingTransaction again and assert final state
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
+          const billingState3 = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
 
-    (await adminTransaction(async (ctx) => {
-      const { transaction, livemode } = ctx
-      // 5. Call @customerBillingTransaction again and assert final state
-      const cacheRecomputationContext: CacheRecomputationContext = {
-        type: 'admin',
-        livemode}
-      const billingState3 = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id},
-        transaction,
-        cacheRecomputationContext
-      )
+          const activatedSubscription =
+            billingState3.subscriptions.find(
+              (s) => s.id === subscription.id
+            )
 
-      const activatedSubscription = billingState3.subscriptions.find(
-        (s) => s.id === subscription.id
+          expect(activatedSubscription?.status).toBe(
+            SubscriptionStatus.Active
+          )
+          expect(
+            activatedSubscription?.experimental?.featureItems
+          ).toHaveLength(1)
+          expect(
+            activatedSubscription?.experimental
+              ?.usageMeterBalances?.[0].availableBalance
+          ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
+          return Result.ok(null)
+        })
       )
-
-      expect(activatedSubscription?.status).toBe(
-        SubscriptionStatus.Active
-      )
-      expect(
-        activatedSubscription?.experimental?.featureItems
-      ).toHaveLength(1)
-      expect(
-        activatedSubscription?.experimental?.usageMeterBalances?.[0]
-          .availableBalance
-      ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
-      return Result.ok(null)
-    })).unwrap()
+      .unwrap()
 
     // 6. Create a usage event after payment
-    const newTransactionId = 'test2-' + core.nanoid()
-    (await adminTransaction(async (ctx) => {
-      return ingestAndProcessUsageEvent(
-        {
-          input: {
-            usageEvent: {
-              subscriptionId: subscription.id,
-              priceId: usagePrice.id,
-              usageMeterId: usageMeter.id,
-              amount: 100,
-              transactionId: newTransactionId,
-              properties: {},
-              usageDate: Date.now()}},
-          livemode: true},
-        ctx
-      )
-    })).unwrap()
-
-    // 7. Call @customerBillingTransaction again and assert final state after new usage
-    (await adminTransaction(async (ctx) => {
-      const { transaction, livemode } = ctx
-      const cacheRecomputationContext: CacheRecomputationContext = {
-        type: 'admin',
-        livemode}
-      const billingState4 = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id},
-        transaction,
-        cacheRecomputationContext
-      )
-      const activatedSubscriptionAfterUsage =
-        billingState4.subscriptions.find(
-          (s) => s.id === subscription.id
+    const newTransactionId =
+      'test2-' +
+      core
+        .nanoid()(
+          await adminTransaction(async (ctx) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: {
+                  usageEvent: {
+                    subscriptionId: subscription.id,
+                    priceId: usagePrice.id,
+                    usageMeterId: usageMeter.id,
+                    amount: 100,
+                    transactionId: newTransactionId,
+                    properties: {},
+                    usageDate: Date.now(),
+                  },
+                },
+                livemode: true,
+              },
+              ctx
+            )
+          })
         )
-      expect(
-        activatedSubscriptionAfterUsage?.experimental
-          ?.usageMeterBalances?.[0].availableBalance
-      ).toBe(900) // 1000 - 100 (new usage) = 900
-      return Result.ok(null)
-    })).unwrap()
+        .unwrap()(
+          // 7. Call @customerBillingTransaction again and assert final state after new usage
+          await adminTransaction(async (ctx) => {
+            const { transaction, livemode } = ctx
+            const cacheRecomputationContext: CacheRecomputationContext =
+              {
+                type: 'admin',
+                livemode,
+              }
+            const billingState4 = await customerBillingTransaction(
+              {
+                externalId: customer.externalId,
+                organizationId: organization.id,
+              },
+              transaction,
+              cacheRecomputationContext
+            )
+            const activatedSubscriptionAfterUsage =
+              billingState4.subscriptions.find(
+                (s) => s.id === subscription.id
+              )
+            expect(
+              activatedSubscriptionAfterUsage?.experimental
+                ?.usageMeterBalances?.[0].availableBalance
+            ).toBe(900) // 1000 - 100 (new usage) = 900
+            return Result.ok(null)
+          })
+        )
+        .unwrap()
   }, 120000)
 })

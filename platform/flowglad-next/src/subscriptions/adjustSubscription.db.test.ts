@@ -244,7 +244,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(expiredResult.error._tag).toBe('TerminalStateError')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should throw error for non-renewing / credit trial subscriptions', async () => {
@@ -291,7 +291,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should throw error when attempting to adjust doNotCharge subscription', async () => {
@@ -327,7 +327,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should throw error when new subscription items have non-subscription price types', async () => {
@@ -396,7 +396,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should return NotFoundError when adjusting a non-existent subscription id', async () => {
@@ -416,7 +416,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.error._tag).toBe('NotFoundError')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -462,7 +462,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should return ValidationError when subscription items have negative quantity', async () => {
@@ -502,7 +502,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should return ValidationError when subscription items have negative unit price', async () => {
@@ -542,7 +542,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should allow subscription items with zero unit price (free tier)', async () => {
@@ -589,7 +589,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(bpItems.length).toBe(0)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -643,7 +643,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -719,7 +719,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should NOT trigger billing run when rawNetCharge is zero', async () => {
@@ -780,7 +780,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should add, remove, and update items immediately and NOT trigger billing run when rawNetCharge is zero', async () => {
@@ -866,7 +866,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(typeof item3Result).toBe('object')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should preserve subscription name when no active items exist after adjustment', async () => {
@@ -924,7 +924,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.value.subscriptionItems.length).toBe(0)
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -973,7 +973,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Trigger tasks are routed to mock server - we verify observable state instead
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should NOT update subscription items or sync subscription immediately when rawNetCharge is positive', async () => {
@@ -1027,7 +1027,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should create proration billing period items when netChargeAmount > 0', async () => {
@@ -1086,7 +1086,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(netChargeItems.length).toBe(1)
         expect(netChargeItems[0].unitPrice).toBeGreaterThan(0)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should trigger billing run with correct params when upgrading (adding items, increasing quantity)', async () => {
@@ -1133,7 +1133,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Trigger tasks are routed to mock server - we verify observable state instead
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should calculate proration correctly considering existing payments and cap at zero for downgrades', async () => {
@@ -1221,7 +1221,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.value.subscription.name).toBe('Basic Plan')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -1284,7 +1284,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(prorationItems.length).toBeGreaterThan(0)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should NOT create proration adjustments when prorateCurrentBillingPeriod is false and netChargeAmount > 0', async () => {
@@ -1341,7 +1341,7 @@ describe('adjustSubscription Integration Tests', async () => {
           bpItemsBefore.length
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -1431,7 +1431,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(typeof futureItem).toBe('object')
         expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should NOT sync subscription record with future-dated items (preserves current state)', async () => {
@@ -1508,7 +1508,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.value.subscription.priceId).toBe(price.id)
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should expire existing items and add new items at billing period end', async () => {
@@ -1612,7 +1612,7 @@ describe('adjustSubscription Integration Tests', async () => {
           toMs(currentBillingPeriod!.endDate)!
         )
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -1662,7 +1662,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // The result may be null if the subscription was adjusted, or contain items
         // We just verify the operation completed without error
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should trigger billing run if net charge > 0, or sync immediately and preserve subscription name if net charge = 0 when all items are removed', async () => {
@@ -1704,7 +1704,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should return ValidationError when attempting adjustment with zero-duration billing period', async () => {
@@ -1754,7 +1754,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.error._tag).toBe('NotFoundError')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should return error when attempting adjustment with billing periods in the past or future', async () => {
@@ -1836,7 +1836,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(futureResult.error._tag).toBe('NotFoundError')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -1882,7 +1882,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(synced.name).toBe('Current Plan')
         expect(synced.priceId).toBe(currentItem.priceId!)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should handle multiple items becoming active and choose the most expensive as primary', async () => {
@@ -1928,7 +1928,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(synced.name).toBe('Premium Feature')
         expect(synced.priceId).toBe(premiumItem.priceId!)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should handle subscription becoming active but not primary (lower price than existing)', async () => {
@@ -1964,7 +1964,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(synced.name).toBe('Enterprise Plan')
         expect(synced.priceId).toBe(expensiveItem.priceId!)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should update primary when current primary item gets cancelled', async () => {
@@ -2024,7 +2024,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(syncedAfter.name).toBe('Standard Plan')
         expect(syncedAfter.priceId).toBe(secondaryItem.priceId!)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should handle multiple items becoming active and inactive simultaneously', async () => {
@@ -2077,7 +2077,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(synced.name).toBe('New Premium')
         expect(synced.priceId).toBe(newPremiumItem.priceId!)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should maintain subscription state when all items expire with no replacements', async () => {
@@ -2122,7 +2122,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(syncedAfterExpiry.priceId).toBe(price.id)
         expect(syncedAfterExpiry.id).toBe(subscription.id)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should handle quantity changes affecting total price calculations', async () => {
@@ -2158,7 +2158,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(synced.name).toBe('High Quantity')
         expect(synced.priceId).toBe(highQuantityItem.priceId!)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should use addedDate as tiebreaker when items have same total price', async () => {
@@ -2194,7 +2194,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(synced.name).toBe('Newer Item')
         expect(synced.priceId).toBe(newerItem.priceId!)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -2300,7 +2300,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.error._tag).toBe('NotFoundError')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -2367,7 +2367,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Notifications are routed to mock server - we verify the operation completed
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should NOT send notifications when rawNetCharge is positive (upgrade requires payment)', async () => {
@@ -2411,7 +2411,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Triggers are routed to mock server - we verify the operation completed
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -2486,7 +2486,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Billing run is routed to mock server - we verify observable state only
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should apply downgrade at end of period when timing is auto', async () => {
@@ -2569,7 +2569,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Billing run is routed to mock server - we verify observable state only
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should return correct isUpgrade value for lateral moves', async () => {
@@ -2639,7 +2639,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -2697,7 +2697,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Billing run is routed to mock server - we verify the operation completed
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should throw error when priceSlug not found in pricing model', async () => {
@@ -2742,7 +2742,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should expand terse subscription item with priceId to full item', async () => {
@@ -2795,7 +2795,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Billing run is routed to mock server - we verify the operation completed
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should handle mixed item types (priceSlug + priceId) in the same request', async () => {
@@ -2876,7 +2876,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Billing run is routed to mock server - we verify the operation completed
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should resolve UUID passed as priceSlug (SDK convenience)', async () => {
@@ -3640,7 +3640,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
 
     it('should send upgrade notification when prorateCurrentBillingPeriod is false and isUpgrade is true', async () => {
@@ -3696,7 +3696,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -3758,7 +3758,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.error.message.toLowerCase()).toContain('free')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -4064,7 +4064,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.value.subscription.name).toBe('Basic Plan')
         }
         return Result.ok(null)
-      }).unwrap()
+      })).unwrap()
     })
   })
 
@@ -6165,7 +6165,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageWithThirdClaim.available).toBe(0)
 
           return Result.ok(null)
-        })
+        })).unwrap()
 
         // Step 5: Simulate time passing - transition to new billing period
         // Use anchorDate parameter to simulate checking capacity after period end
@@ -6214,7 +6214,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
           return Result.ok(null)
         })).unwrap()
-      }).unwrap()(await adminTransaction(async (ctx) => {
+      })).unwrap()(await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -6271,7 +6271,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeClaims.length).toBe(8)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
     })
 
@@ -6427,7 +6427,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(7)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
 
       it('preserves existing claims after downgrade when new capacity >= active claims', async () => {
@@ -6580,7 +6580,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(2)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
 
       it('rejects downgrade when new capacity would be less than active claims', async () => {
@@ -6741,7 +6741,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeItems[0].name).toBe('Premium Plan')
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
     })
 
@@ -6894,7 +6894,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeClaims.length).toBe(5)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
 
       it('preserves claims when scheduling valid end-of-period downgrade', async () => {
@@ -7050,7 +7050,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(7)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
     })
 
@@ -7219,7 +7219,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeClaims.length).toBe(4)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
 
       it('allows adjustment when aggregated capacity is sufficient', async () => {
@@ -7382,7 +7382,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(1)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
     })
 
@@ -7549,7 +7549,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(1)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
 
       it('allows releasing claims after adjustment', async () => {
@@ -7698,7 +7698,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(3)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
     })
 
@@ -7874,7 +7874,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(claimsAfterFailedClaim.length).toBe(2)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
       })
 
       it('during end-of-period downgrade interim, excess claims are temporary and expire at transition', async () => {
@@ -8063,7 +8063,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageWithThirdClaim.available).toBe(0)
 
           return Result.ok(null)
-        }).unwrap()
+        })).unwrap()
 
         // Step 5: Simulate time passing - transition to new billing period
         // Use anchorDate parameter to simulate checking capacity after period end

@@ -131,49 +131,51 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel({
         name: 'Old Name'})
 
-      const updateResult = (await adminTransaction(
-        async (params) => {
-          const result = (
-            await updatePricingModelTransaction(
-              {
-                pricingModelId: setupResult.pricingModel.id,
-                proposedInput: {
-                  name: 'New Name',
-                  isDefault: false,
-                  usageMeters: [],
-                  features: [
-                    {
-                      type: FeatureType.Toggle,
-                      slug: 'feature-a',
-                      name: 'Feature A',
-                      description: 'A toggle feature',
-                      active: true},
-                  ],
-                  products: [
-                    {
-                      product: {
-                        name: 'Starter Plan',
-                        slug: 'starter',
-                        default: false,
+      const updateResult = (
+        await adminTransaction(
+          async (params) => {
+            const result = (
+              await updatePricingModelTransaction(
+                {
+                  pricingModelId: setupResult.pricingModel.id,
+                  proposedInput: {
+                    name: 'New Name',
+                    isDefault: false,
+                    usageMeters: [],
+                    features: [
+                      {
+                        type: FeatureType.Toggle,
+                        slug: 'feature-a',
+                        name: 'Feature A',
+                        description: 'A toggle feature',
                         active: true},
-                      price: {
-                        type: PriceType.Subscription,
-                        slug: 'starter-monthly',
-                        unitPrice: 1999,
-                        isDefault: true,
-                        active: true,
-                        intervalCount: 1,
-                        intervalUnit: IntervalUnit.Month,
-                        usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
-              params
-            )
-          ).unwrap()
-          return Result.ok(result)
-        },
-        { livemode: false }
+                    ],
+                    products: [
+                      {
+                        product: {
+                          name: 'Starter Plan',
+                          slug: 'starter',
+                          default: false,
+                          active: true},
+                        price: {
+                          type: PriceType.Subscription,
+                          slug: 'starter-monthly',
+                          unitPrice: 1999,
+                          isDefault: true,
+                          active: true,
+                          intervalCount: 1,
+                          intervalUnit: IntervalUnit.Month,
+                          usageMeterId: null,
+                          usageEventsPerUnit: null},
+                        features: ['feature-a']},
+                    ]}},
+                params
+              )
+            ).unwrap()
+            return Result.ok(result)
+          },
+          { livemode: false }
+        )
       ).unwrap()
 
       expect(updateResult.pricingModel.name).toBe('New Name')
@@ -472,7 +474,7 @@ describe('updatePricingModelTransaction', () => {
         ]})
 
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -532,7 +534,7 @@ describe('updatePricingModelTransaction', () => {
             return Result.ok(result)
           },
           { livemode: false }
-        )
+        ).then((r) => r.unwrap())
       ).rejects.toThrow('Usage meters cannot be removed')
     })
   })
@@ -1271,7 +1273,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Try to add a Resource feature referencing a non-existent resource
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -1324,7 +1326,7 @@ describe('updatePricingModelTransaction', () => {
             return Result.ok(result)
           },
           { livemode: false }
-        )
+        ).then((r) => r.unwrap())
       ).rejects.toThrow('Resource not found: non-existent-resource')
     })
 
@@ -1782,7 +1784,7 @@ describe('updatePricingModelTransaction', () => {
         ]})
 
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -1846,7 +1848,7 @@ describe('updatePricingModelTransaction', () => {
             return Result.ok(result)
           },
           { livemode: false }
-        )
+        ).then((r) => r.unwrap())
       ).rejects.toThrow('Feature type cannot be changed')
     })
   })

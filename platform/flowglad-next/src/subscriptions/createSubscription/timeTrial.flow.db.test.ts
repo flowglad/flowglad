@@ -4,14 +4,16 @@ import {
   expect,
   it,
   mock,
-  spyOn} from 'bun:test'
+  spyOn,
+} from 'bun:test'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   IntervalUnit,
   PaymentMethodType,
   PriceType,
-  SubscriptionStatus} from '@db-core/enums'
+  SubscriptionStatus,
+} from '@db-core/enums'
 import type { CreateCheckoutSessionInput } from '@db-core/schema/checkoutSessions'
 import type { Customer } from '@db-core/schema/customers'
 import type { Feature } from '@db-core/schema/features'
@@ -23,27 +25,32 @@ import {
   setupOrg,
   setupProductFeature,
   setupToggleFeature,
-  setupUserAndApiKey} from '@/../seedDatabase'
-import {  } from '@/db/adminTransaction'
+  setupUserAndApiKey,
+} from '@/../seedDatabase'
+import {} from '@/db/adminTransaction'
 import {
   selectCheckoutSessionById,
   updateCheckoutSessionBillingAddress,
-  updateCheckoutSessionPaymentMethodType} from '@/db/tableMethods/checkoutSessionMethods'
+  updateCheckoutSessionPaymentMethodType,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import {
   createDiscardingEffectsContext,
   noopEmitEvent,
-  noopInvalidateCache} from '@/test-utils/transactionCallbacks'
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import {
   type CoreSripeSetupIntent,
-  processSetupIntentSucceeded} from '@/utils/bookkeeping/processSetupIntent'
+  processSetupIntentSucceeded,
+} from '@/utils/bookkeeping/processSetupIntent'
 import type { CacheRecomputationContext } from '@/utils/cache'
 import {
   checkoutInfoForCheckoutSession,
-  checkoutInfoForPriceWhere} from '@/utils/checkoutHelpers'
+  checkoutInfoForPriceWhere,
+} from '@/utils/checkoutHelpers'
 import core from '@/utils/core'
 import { createProductTransaction } from '@/utils/pricingModel'
 import { IntentMetadataType } from '@/utils/stripe'
@@ -52,7 +59,9 @@ mock.module('next/headers', () => ({
   cookies: () => ({
     get: () => undefined,
     set: () => {},
-    delete: () => {}})}))
+    delete: () => {},
+  }),
+}))
 
 describe('Subscription Activation Workflow E2E - Time Trial', () => {
   let trialPeriodDays: number
@@ -71,24 +80,27 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
 
     // Setup customer
     customer = await setupCustomer({
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
 
     // Setup toggle feature and attach to product
     toggleFeature = await setupToggleFeature({
       organizationId: organization.id,
       name: 'Test Toggle Feature',
       livemode: true,
-      pricingModelId: pricingModel.id})
+      pricingModelId: pricingModel.id,
+    })
   })
 
   it('should handle activating a time trial subscription', async () => {
     // 0. Create a user/membership to drive product creation
     const { user } = await setupUserAndApiKey({
       organizationId: organization.id,
-      livemode: true})
+      livemode: true,
+    })
     // 1. Create product and price via createProductTransaction
-    const { product: createdProduct, prices } =
-      (await adminTransaction(
+    const { product: createdProduct, prices } = (
+      await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           const result = await createProductTransaction(
             {
@@ -101,7 +113,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
                 pluralQuantityLabel: 'units',
                 pricingModelId: pricingModel.id,
                 default: false,
-                slug: `flowglad-test-product-price+${core.nanoid()}`},
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
+              },
               prices: [
                 {
                   name: 'Time Trial Price',
@@ -114,34 +127,41 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
                   trialPeriodDays,
                   usageMeterId: null,
                   usageEventsPerUnit: null,
-                  slug: `flowglad-test-product-price+${core.nanoid()}`},
-              ]},
+                  slug: `flowglad-test-product-price+${core.nanoid()}`,
+                },
+              ],
+            },
             {
               transaction,
               cacheRecomputationContext: {
                 type: 'admin',
-                livemode: true},
+                livemode: true,
+              },
               livemode: true,
               organizationId: organization.id,
               invalidateCache,
               emitEvent: () => {},
-              enqueueLedgerCommand: () => {}}
+              enqueueLedgerCommand: () => {},
+            }
           )
           return Result.ok(result)
         }
-      )).unwrap()
+      )
+    ).unwrap()
     // 2. Associate the toggle feature with the created product
     await setupProductFeature({
       organizationId: organization.id,
       productId: createdProduct.id,
-      featureId: toggleFeature.id})
+      featureId: toggleFeature.id,
+    })
     // Override product and price for the rest of the test
     const product = createdProduct
     const price = prices[0]
     // Intermediary: check checkout info by product ID
     const infoByProduct = await checkoutInfoForPriceWhere({
       productId: product.id,
-      isDefault: true})
+      isDefault: true,
+    })
     expect(infoByProduct.success).toBe(true)
     if (!infoByProduct.success)
       throw new Error(
@@ -154,7 +174,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
 
     // Intermediary: check checkout info by price ID
     const infoByPrice = await checkoutInfoForPriceWhere({
-      id: price.id})
+      id: price.id,
+    })
     expect(infoByPrice.success).toBe(true)
     if (!infoByPrice.success)
       throw new Error(
@@ -164,8 +185,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     expect(ci2.product.id).toBe(product.id)
     expect(ci2.price.id).toBe(price.id)
 
-    const checkoutSession = (await adminTransaction(
-      async (ctx) => {
+    const checkoutSession = (
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // 1. Create checkout session
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
@@ -175,13 +196,15 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             priceId: price.id,
             quantity: 1,
             successUrl: 'https://test.com/success',
-            cancelUrl: 'https://test.com/cancel'}
+            cancelUrl: 'https://test.com/cancel',
+          }
         const { checkoutSession } = (
           await createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
               organizationId: organization.id,
-              livemode: true},
+              livemode: true,
+            },
             transaction
           )
         ).unwrap()
@@ -196,15 +219,19 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
                 city: 'Anytown',
                 state: 'CA',
                 postal_code: '12345',
-                country: 'US'},
+                country: 'US',
+              },
               name: 'John Doe',
-              firstName: 'John'}},
+              firstName: 'John',
+            },
+          },
           transaction
         )
         await updateCheckoutSessionPaymentMethodType(
           {
             id: checkoutSession.id,
-            paymentMethodType: PaymentMethodType.Card},
+            paymentMethodType: PaymentMethodType.Card,
+          },
           transaction
         )
         // 3. Confirm checkout session
@@ -219,76 +246,86 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         )
         expect(feeCalculations).toHaveLength(1)
         return Result.ok(checkoutSession)
-      }
-    )).unwrap()
-
-    // Intermediary: check checkout info by checkout session ID
-    (await adminTransaction(async ({ transaction }) => {
-      const sessionInfo = await checkoutInfoForCheckoutSession(
-        checkoutSession.id,
-        transaction
-      )
-      expect(sessionInfo.checkoutSession.id).toBe(checkoutSession.id)
-      expect(sessionInfo.product.id).toBe(product.id)
-      expect(sessionInfo.price.id).toBe(price.id)
-      expect(typeof sessionInfo.feeCalculation).toBe('object')
-      return Result.ok(null)
-    })).unwrap()
-
-    (await adminTransaction(
-      async ({ transaction, livemode }) => {
-        // 5. Process setup intent
-        const setupIntent: CoreSripeSetupIntent = {
-          id: `si_${core.nanoid()}`,
-          status: 'succeeded',
-          customer: customer.stripeCustomerId,
-          payment_method: `pm_${core.nanoid()}`,
-          metadata: {
-            type: IntentMetadataType.CheckoutSession,
-            checkoutSessionId: checkoutSession.id}}
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-        // 6. Final billing state
-        const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
-          livemode}
-        const billingState = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id},
-          transaction,
-          cacheRecomputationContext
-        )
-        const sub = billingState.subscriptions[0]
-        expect(sub.status).toBe(SubscriptionStatus.Trialing)
-        expect(typeof sub.trialEnd).toBe('number')
-        const diff = sub.trialEnd! - Date.now()
-        expect(diff).toBeGreaterThanOrEqual(
-          trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
-        )
-        expect(diff).toBeLessThanOrEqual(
-          trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
-        )
-        expect(
-          sub.experimental?.featureItems.some(
-            (fi) => fi.featureId === toggleFeature.id
+      })
+    )
+      .unwrap()(
+        // Intermediary: check checkout info by checkout session ID
+        await adminTransaction(async ({ transaction }) => {
+          const sessionInfo = await checkoutInfoForCheckoutSession(
+            checkoutSession.id,
+            transaction
           )
-        ).toBe(true)
-        expect(typeof sub.defaultPaymentMethodId).toBe('string')
-        expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
+          expect(sessionInfo.checkoutSession.id).toBe(
+            checkoutSession.id
+          )
+          expect(sessionInfo.product.id).toBe(product.id)
+          expect(sessionInfo.price.id).toBe(price.id)
+          expect(typeof sessionInfo.feeCalculation).toBe('object')
+          return Result.ok(null)
+        })
+      )
+      .unwrap()(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // 5. Process setup intent
+          const setupIntent: CoreSripeSetupIntent = {
+            id: `si_${core.nanoid()}`,
+            status: 'succeeded',
+            customer: customer.stripeCustomerId,
+            payment_method: `pm_${core.nanoid()}`,
+            metadata: {
+              type: IntentMetadataType.CheckoutSession,
+              checkoutSessionId: checkoutSession.id,
+            },
+          }
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+          // 6. Final billing state
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
+          const billingState = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
+          const sub = billingState.subscriptions[0]
+          expect(sub.status).toBe(SubscriptionStatus.Trialing)
+          expect(typeof sub.trialEnd).toBe('number')
+          const diff = sub.trialEnd! - Date.now()
+          expect(diff).toBeGreaterThanOrEqual(
+            trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
+          )
+          expect(diff).toBeLessThanOrEqual(
+            trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
+          )
+          expect(
+            sub.experimental?.featureItems.some(
+              (fi) => fi.featureId === toggleFeature.id
+            )
+          ).toBe(true)
+          expect(typeof sub.defaultPaymentMethodId).toBe('string')
+          expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(
+            0
+          )
 
-        // After processing setup intent, verify checkoutSession status
-        const finalSessionResult = await selectCheckoutSessionById(
-          checkoutSession.id,
-          transaction
-        )
-        expect(finalSessionResult.unwrap().status).toBe(
-          CheckoutSessionStatus.Succeeded
-        )
-        return Result.ok(null)
-      }
-    )).unwrap()
+          // After processing setup intent, verify checkoutSession status
+          const finalSessionResult = await selectCheckoutSessionById(
+            checkoutSession.id,
+            transaction
+          )
+          expect(finalSessionResult.unwrap().status).toBe(
+            CheckoutSessionStatus.Succeeded
+          )
+          return Result.ok(null)
+        })
+      )
+      .unwrap()
   })
 })

@@ -144,7 +144,7 @@ export function createCapturingEffectsContext(
  * Creates a TransactionEffectsContext that processes effects through the
  * comprehensive transaction infrastructure.
  * Use this when calling functions that expect TransactionEffectsContext from within
- * comprehensiveAdminTransaction callbacks, to ensure effects are properly processed.
+ * adminTransaction callbacks, to ensure effects are properly processed.
  *
  * @example
  * ```typescript

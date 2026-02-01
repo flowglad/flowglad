@@ -7,13 +7,15 @@ import {
   FlowgladEventType,
   PaymentMethodType,
   PurchaseStatus,
-  StripeConnectContractType} from '@db-core/enums'
+  StripeConnectContractType,
+} from '@db-core/enums'
 import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import type { Customer } from '@db-core/schema/customers'
 import type { Discount } from '@db-core/schema/discounts'
 import {
   type FeeCalculation,
-  feeCalculations} from '@db-core/schema/feeCalculations'
+  feeCalculations,
+} from '@db-core/schema/feeCalculations'
 import { type BillingAddress } from '@db-core/schema/organizations'
 import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
@@ -26,26 +28,29 @@ import {
   setupFeeCalculation,
   setupOrg,
   setupPaymentMethod,
-  setupPurchase} from '@/../seedDatabase'
-import {
-  adminTransaction} from '@/db/adminTransaction'
+  setupPurchase,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import {
   selectPurchaseById,
-  updatePurchase} from '@/db/tableMethods/purchaseMethods'
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
 import type { DbTransaction } from '@/db/types'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
 import {
   createDiscardingEffectsContext,
-  createProcessingEffectsContext} from '@/test-utils/transactionCallbacks'
+  createProcessingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   checkoutSessionStatusFromStripeCharge,
   editCheckoutSession,
   editCheckoutSessionBillingAddress,
   processPurchaseBookkeepingForCheckoutSession,
-  processStripeChargeForCheckoutSession} from '@/utils/bookkeeping/checkoutSessions'
+  processStripeChargeForCheckoutSession,
+} from '@/utils/bookkeeping/checkoutSessions'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import core from '../core'
@@ -95,7 +100,8 @@ const mockSucceededCharge = (
       checks: {
         address_line1_check: 'pass',
         address_postal_code_check: 'pass',
-        cvc_check: 'pass'},
+        cvc_check: 'pass',
+      },
       country: 'US',
       exp_month: 1,
       exp_year: 2024,
@@ -104,7 +110,9 @@ const mockSucceededCharge = (
       mandate: null,
       network: 'visa',
       three_d_secure: null,
-      wallet: null}},
+      wallet: null,
+    },
+  },
   billing_details: {
     name: 'Test Customer',
     email: 'test@example.com',
@@ -114,15 +122,19 @@ const mockSucceededCharge = (
       city: 'Test City',
       state: 'Test State',
       postal_code: '12345',
-      country: 'US'},
-    phone: '+1234567890'},
+      country: 'US',
+    },
+    phone: '+1234567890',
+  },
   livemode: false,
   metadata: {
-    checkoutSessionId: checkoutSessionId},
+    checkoutSessionId: checkoutSessionId,
+  },
   description: 'Test Charge',
   receipt_url: 'https://example.com/receipt',
   balance_transaction: `txn_${core.nanoid()}`,
-  invoice: `in_${core.nanoid()}`})
+  invoice: `in_${core.nanoid()}`,
+})
 
 const mockPendingCharge = (
   checkoutSessionId: string,
@@ -131,7 +143,8 @@ const mockPendingCharge = (
 ): TestCharge => ({
   ...mockSucceededCharge(checkoutSessionId, stripeCustomerId, amount),
   id: `ch_${core.nanoid()}`,
-  status: 'pending'})
+  status: 'pending',
+})
 
 const mockFailedCharge = (
   checkoutSessionId: string,
@@ -140,7 +153,8 @@ const mockFailedCharge = (
 ): TestCharge => ({
   ...mockSucceededCharge(checkoutSessionId, stripeCustomerId, amount),
   id: `ch_${core.nanoid()}`,
-  status: 'failed'})
+  status: 'failed',
+})
 
 describe('Checkout Sessions', () => {
   // Common variables for all tests - organization/price/pricingModel set in beforeAll
@@ -170,13 +184,15 @@ describe('Checkout Sessions', () => {
     // Set up common test data
     customer = await setupCustomer({
       organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`})
+      stripeCustomerId: `cus_${core.nanoid()}`,
+    })
 
     await setupPaymentMethod({
       organizationId: organization.id,
       customerId: customer.id,
       stripePaymentMethodId: `pm_${core.nanoid()}`,
-      type: PaymentMethodType.Card})
+      type: PaymentMethodType.Card,
+    })
 
     checkoutSession = await setupCheckoutSession({
       organizationId: organization.id,
@@ -185,14 +201,16 @@ describe('Checkout Sessions', () => {
       status: CheckoutSessionStatus.Open,
       type: CheckoutSessionType.Product,
       quantity: 1,
-      livemode: true})
+      livemode: true,
+    })
 
     purchase = await setupPurchase({
       customerId: customer.id,
       organizationId: organization.id,
       priceId: price.id,
       status: PurchaseStatus.Pending,
-      livemode: true})
+      livemode: true,
+    })
 
     discount = await setupDiscount({
       organizationId: organization.id,
@@ -201,13 +219,15 @@ describe('Checkout Sessions', () => {
       code: `${Date.now()}`,
       amount: 10,
       amountType: DiscountAmountType.Fixed,
-      livemode: true})
+      livemode: true,
+    })
 
     feeCalculation = await setupFeeCalculation({
       checkoutSessionId: checkoutSession.id,
       organizationId: organization.id,
       priceId: price.id,
-      livemode: true})
+      livemode: true,
+    })
 
     // Generate a new charge for each test
     succeededCharge = mockSucceededCharge(
@@ -225,7 +245,8 @@ describe('Checkout Sessions', () => {
             await updateCheckoutSession(
               {
                 ...checkoutSession,
-                discountId: discount.id} as CheckoutSession.Update,
+                discountId: discount.id,
+              } as CheckoutSession.Update,
               transaction
             )
           )
@@ -309,7 +330,8 @@ describe('Checkout Sessions', () => {
           await updateCheckoutSession(
             {
               ...checkoutSession,
-              status: CheckoutSessionStatus.Succeeded} as CheckoutSession.Update,
+              status: CheckoutSessionStatus.Succeeded,
+            } as CheckoutSession.Update,
             transaction
           )
           return Result.ok(undefined)
@@ -325,7 +347,9 @@ describe('Checkout Sessions', () => {
                 type: CheckoutSessionType.Purchase,
                 priceId: price.id,
                 targetSubscriptionId: null,
-                automaticallyUpdateSubscriptions: null}},
+                automaticallyUpdateSubscriptions: null,
+              },
+            },
             createDiscardingEffectsContext(transaction)
           )
         })
@@ -339,7 +363,8 @@ describe('Checkout Sessions', () => {
         city: 'New City',
         state: 'New State',
         postal_code: '54321',
-        country: 'US'}
+        country: 'US',
+      }
 
       const result = (
         await adminTransaction(async ({ transaction }) => {
@@ -349,13 +374,16 @@ describe('Checkout Sessions', () => {
                 checkoutSession: {
                   ...checkoutSession,
                   billingAddress: {
-                    address: newBillingAddress},
+                    address: newBillingAddress,
+                  },
                   invoiceId: null,
                   priceId: price.id,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
                   preserveBillingCycleAnchor: false,
-                  type: CheckoutSessionType.Product}},
+                  type: CheckoutSessionType.Product,
+                },
+              },
               createDiscardingEffectsContext(transaction)
             )
           )
@@ -378,7 +406,8 @@ describe('Checkout Sessions', () => {
               {
                 ...checkoutSession,
                 priceId: price.id,
-                billingAddress: null} as CheckoutSession.Update,
+                billingAddress: null,
+              } as CheckoutSession.Update,
               transaction
             )
           )
@@ -389,13 +418,15 @@ describe('Checkout Sessions', () => {
         await adminTransaction(async ({ transaction }) => {
           await editCheckoutSession(
             {
-              checkoutSession: updatedCheckoutSession},
+              checkoutSession: updatedCheckoutSession,
+            },
             createDiscardingEffectsContext(transaction)
           )
           return Result.ok(
             await selectLatestFeeCalculation(
               {
-                checkoutSessionId: checkoutSession.id},
+                checkoutSessionId: checkoutSession.id,
+              },
               transaction
             )
           )
@@ -412,13 +443,15 @@ describe('Checkout Sessions', () => {
         city: 'New City',
         state: 'New State',
         postal_code: '54321',
-        country: 'US'}
+        country: 'US',
+      }
       let priorFeeCalculation: FeeCalculation.Record | null = null
       const latestFeeCalculation = (
         await adminTransaction(async ({ transaction }) => {
           priorFeeCalculation = await selectLatestFeeCalculation(
             {
-              checkoutSessionId: checkoutSession.id},
+              checkoutSessionId: checkoutSession.id,
+            },
             transaction
           )
           await editCheckoutSession(
@@ -429,19 +462,23 @@ describe('Checkout Sessions', () => {
                 targetSubscriptionId: null,
                 automaticallyUpdateSubscriptions: null,
                 billingAddress: {
-                  address: newBillingAddress},
+                  address: newBillingAddress,
+                },
                 /**
                  * FIXME: review why we have preserveBillingCycleAnchor required
                  */
                 preserveBillingCycleAnchor: false,
                 type: CheckoutSessionType.Product,
-                priceId: price.id}},
+                priceId: price.id,
+              },
+            },
             createDiscardingEffectsContext(transaction)
           )
           return Result.ok(
             await selectLatestFeeCalculation(
               {
-                checkoutSessionId: checkoutSession.id},
+                checkoutSessionId: checkoutSession.id,
+              },
               transaction
             )
           )
@@ -460,7 +497,8 @@ describe('Checkout Sessions', () => {
         await adminTransaction(async ({ transaction }) => {
           priorFeeCalculation = await selectLatestFeeCalculation(
             {
-              checkoutSessionId: checkoutSession.id},
+              checkoutSessionId: checkoutSession.id,
+            },
             transaction
           )
           await editCheckoutSession(
@@ -468,13 +506,16 @@ describe('Checkout Sessions', () => {
               checkoutSession: {
                 id: checkoutSession.id,
                 priceId: price.id,
-                type: CheckoutSessionType.Product}},
+                type: CheckoutSessionType.Product,
+              },
+            },
             createDiscardingEffectsContext(transaction)
           )
           return Result.ok(
             await selectLatestFeeCalculation(
               {
-                checkoutSessionId: checkoutSession.id},
+                checkoutSessionId: checkoutSession.id,
+              },
               transaction
             )
           )
@@ -495,7 +536,8 @@ describe('Checkout Sessions', () => {
             {
               id: purchase.id,
               priceType: purchase.priceType,
-              status: PurchaseStatus.Paid},
+              status: PurchaseStatus.Paid,
+            },
             transaction
           )
           return Result.ok(undefined)
@@ -511,8 +553,10 @@ describe('Checkout Sessions', () => {
                 type: CheckoutSessionType.Product,
                 priceId: price.id,
                 targetSubscriptionId: null,
-                automaticallyUpdateSubscriptions: null},
-              purchaseId: purchase.id},
+                automaticallyUpdateSubscriptions: null,
+              },
+              purchaseId: purchase.id,
+            },
             createDiscardingEffectsContext(transaction)
           )
         })
@@ -526,7 +570,8 @@ describe('Checkout Sessions', () => {
         city: 'New City',
         state: 'New State',
         postal_code: '54321',
-        country: 'US'}
+        country: 'US',
+      }
       ;(
         await adminTransaction(async ({ transaction }) => {
           return Result.ok(
@@ -536,13 +581,16 @@ describe('Checkout Sessions', () => {
                   ...checkoutSession,
                   priceId: price.id,
                   billingAddress: {
-                    address: newBillingAddress},
+                    address: newBillingAddress,
+                  },
                   type: CheckoutSessionType.Product,
                   invoiceId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  preserveBillingCycleAnchor: false},
-                purchaseId: purchase.id},
+                  preserveBillingCycleAnchor: false,
+                },
+                purchaseId: purchase.id,
+              },
               createDiscardingEffectsContext(transaction)
             )
           )
@@ -578,7 +626,8 @@ describe('Checkout Sessions', () => {
           await updateCheckoutSession(
             {
               ...checkoutSession,
-              stripePaymentIntentId: `pi_${core.nanoid()}`} as CheckoutSession.Update,
+              stripePaymentIntentId: `pi_${core.nanoid()}`,
+            } as CheckoutSession.Update,
             transaction
           )
           return Result.ok(undefined)
@@ -595,13 +644,16 @@ describe('Checkout Sessions', () => {
                 invoiceId: null,
                 priceId: price.id,
                 targetSubscriptionId: null,
-                automaticallyUpdateSubscriptions: null}},
+                automaticallyUpdateSubscriptions: null,
+              },
+            },
             createDiscardingEffectsContext(transaction)
           )
           return Result.ok(
             await selectLatestFeeCalculation(
               {
-                checkoutSessionId: checkoutSession.id},
+                checkoutSessionId: checkoutSession.id,
+              },
               transaction
             )
           )
@@ -620,7 +672,8 @@ describe('Checkout Sessions', () => {
         code: core.nanoid().slice(0, 10), // Short unique code
         amount: 10000, // $100.00 in cents - full price coverage
         amountType: DiscountAmountType.Fixed,
-        livemode: true})
+        livemode: true,
+      })
 
       // Update checkout session to include the full discount
       const updatedCheckoutSession = (
@@ -629,7 +682,8 @@ describe('Checkout Sessions', () => {
             await updateCheckoutSession(
               {
                 ...checkoutSession,
-                discountId: fullDiscount.id} as CheckoutSession.Update,
+                discountId: fullDiscount.id,
+              } as CheckoutSession.Update,
               transaction
             )
           )
@@ -671,7 +725,8 @@ describe('Checkout Sessions', () => {
         code: core.nanoid().slice(0, 10), // Short unique code
         amount: 10000, // $100.00 in cents - full price coverage
         amountType: DiscountAmountType.Fixed,
-        livemode: true})
+        livemode: true,
+      })
 
       // First, set up a checkout session with a payment intent
       const checkoutSessionWithPI = (
@@ -680,7 +735,8 @@ describe('Checkout Sessions', () => {
             await updateCheckoutSession(
               {
                 ...checkoutSession,
-                stripePaymentIntentId: `pi_${core.nanoid()}`} as CheckoutSession.Update,
+                stripePaymentIntentId: `pi_${core.nanoid()}`,
+              } as CheckoutSession.Update,
               transaction
             )
           )
@@ -706,7 +762,9 @@ describe('Checkout Sessions', () => {
               {
                 checkoutSession: {
                   ...checkoutSessionWithPI,
-                  discountId: fullDiscount.id}},
+                  discountId: fullDiscount.id,
+                },
+              },
               createDiscardingEffectsContext(transaction)
             )
           )
@@ -724,7 +782,8 @@ describe('Checkout Sessions', () => {
           return Result.ok(
             await selectLatestFeeCalculation(
               {
-                checkoutSessionId: checkoutSession.id},
+                checkoutSessionId: checkoutSession.id,
+              },
               transaction
             )
           )
@@ -752,25 +811,27 @@ describe('Checkout Sessions', () => {
                 ...checkoutSession,
                 customerId: null,
                 customerEmail: 'anonymous@example.com',
-                customerName: 'Anonymous Customer'} as CheckoutSession.Update,
+                customerName: 'Anonymous Customer',
+              } as CheckoutSession.Update,
               transaction
             )
           )
         })
       ).unwrap()
 
-      const bookkeepingResult = (await adminTransaction(
-        async (params) => {
+      const bookkeepingResult = (
+        await adminTransaction(async (params) => {
           const result =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession: updatedCheckoutSession,
-                stripeCustomerId: `cus_${core.nanoid()}`},
+                stripeCustomerId: `cus_${core.nanoid()}`,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(result)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       // Verify customer was created
       expect(typeof bookkeepingResult.customer).toBe('object')
@@ -837,42 +898,45 @@ describe('Checkout Sessions', () => {
               ...checkoutSession,
               preserveBillingCycleAnchor: false,
               type: CheckoutSessionType.Purchase,
-              purchaseId: purchase.id} as CheckoutSession.Update,
+              purchaseId: purchase.id,
+            } as CheckoutSession.Update,
             transaction
           )
           return Result.ok(undefined)
         })
       ).unwrap()
 
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string},
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
 
     it('should use existing customer when linked to checkout session', async () => {
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string},
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
@@ -884,7 +948,8 @@ describe('Checkout Sessions', () => {
           await updateCheckoutSession(
             {
               ...checkoutSession,
-              purchaseId: purchase.id} as CheckoutSession.Update,
+              purchaseId: purchase.id,
+            } as CheckoutSession.Update,
             transaction
           )
           return Result.ok(undefined)
@@ -892,12 +957,13 @@ describe('Checkout Sessions', () => {
       ).unwrap()
 
       await expect(
-        comprehensiveAdminTransaction(async (params) => {
+        adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: 'different-stripe-id'},
+                stripeCustomerId: 'different-stripe-id',
+              },
               createProcessingEffectsContext(params)
             )
           return bookkeeping
@@ -906,18 +972,19 @@ describe('Checkout Sessions', () => {
     })
 
     it('should find customer by Stripe customer ID when provided', async () => {
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: customer.stripeCustomerId!},
+                stripeCustomerId: customer.stripeCustomerId!,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
@@ -930,25 +997,27 @@ describe('Checkout Sessions', () => {
             await updateCheckoutSession(
               {
                 ...checkoutSession,
-                customerId: null} as CheckoutSession.Update,
+                customerId: null,
+              } as CheckoutSession.Update,
               transaction
             )
           )
         })
       ).unwrap()
 
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession: updatedCheckoutSession,
-                stripeCustomerId: succeededCharge.customer! as string},
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(result.customer.stripeCustomerId).toEqual(
         succeededCharge.customer! as string
@@ -964,24 +1033,26 @@ describe('Checkout Sessions', () => {
               ...checkoutSession,
               stripePaymentIntentId:
                 succeededCharge.payment_intent! as string,
-              customerId: null} as CheckoutSession.Update,
+              customerId: null,
+            } as CheckoutSession.Update,
             transaction
           )
           return Result.ok(undefined)
         })
       ).unwrap()
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string},
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
       expect(typeof result.customer.stripeCustomerId).toBe('string')
     })
 
@@ -993,80 +1064,92 @@ describe('Checkout Sessions', () => {
             {
               ...checkoutSession,
               type: CheckoutSessionType.Product,
-              purchaseId: null} as CheckoutSession.Update,
+              purchaseId: null,
+            } as CheckoutSession.Update,
             transaction
           )
           return Result.ok(undefined)
         })
       ).unwrap()
 
-      const newPurchaseResult = (await adminTransaction(
-        async (params) => {
+      const newPurchaseResult = (
+        await adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string},
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(typeof newPurchaseResult.purchase.id).toBe('string')
     })
 
     it('should apply discount when fee calculation has a discount ID', async () => {
       // Update fee calculation to have a discount ID
-      (await adminTransaction(async (params) => {
-        const { transaction } = params
-        const updatedCheckoutSession = await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            stripePaymentIntentId:
-              succeededCharge.payment_intent! as string,
-            discountId: discount.id},
-          transaction
-        )
-        const result =
-          await processPurchaseBookkeepingForCheckoutSession(
+      ;(
+        await adminTransaction(async (params) => {
+          const { transaction } = params
+          const updatedCheckoutSession = await updateCheckoutSession(
             {
-              checkoutSession: updatedCheckoutSession,
-              stripeCustomerId: succeededCharge.customer! as string},
-            createProcessingEffectsContext(params)
+              ...checkoutSession,
+              stripePaymentIntentId:
+                succeededCharge.payment_intent! as string,
+              discountId: discount.id,
+            },
+            transaction
           )
-        const [discountRedemption] = await selectDiscountRedemptions(
-          {
-            purchaseId: result.purchase.id},
-          transaction
-        )
-        expect(typeof discountRedemption).toBe('object')
-        expect(discountRedemption.discountId).toEqual(discount.id)
-        return Result.ok(discountRedemption)
-      })).unwrap()
+          const result =
+            await processPurchaseBookkeepingForCheckoutSession(
+              {
+                checkoutSession: updatedCheckoutSession,
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
+              createProcessingEffectsContext(params)
+            )
+          const [discountRedemption] =
+            await selectDiscountRedemptions(
+              {
+                purchaseId: result.purchase.id,
+              },
+              transaction
+            )
+          expect(typeof discountRedemption).toBe('object')
+          expect(discountRedemption.discountId).toEqual(discount.id)
+          return Result.ok(discountRedemption)
+        })
+      ).unwrap()
     })
 
     it('should link fee calculation to purchase record', async () => {
-      const { latestFeeCalculation, bookkeepingResult } =
-        (await adminTransaction(async (params) => {
+      const { latestFeeCalculation, bookkeepingResult } = (
+        await adminTransaction(async (params) => {
           const { transaction } = params
           const bookkeepingResult =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string},
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
               createProcessingEffectsContext(params)
             )
           const latestFeeCalculation =
             await selectLatestFeeCalculation(
               {
-                checkoutSessionId: checkoutSession.id},
+                checkoutSessionId: checkoutSession.id,
+              },
               transaction
             )
           return Result.ok({
             latestFeeCalculation,
-            bookkeepingResult})
-        })).unwrap()
+            bookkeepingResult,
+          })
+        })
+      ).unwrap()
 
       expect(latestFeeCalculation?.purchaseId).toEqual(
         bookkeepingResult.purchase.id
@@ -1083,12 +1166,13 @@ describe('Checkout Sessions', () => {
       ).unwrap()
 
       await expect(
-        comprehensiveAdminTransaction(async (params) => {
+        adminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
                 checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string},
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
               createProcessingEffectsContext(params)
             )
           return bookkeeping
@@ -1127,26 +1211,28 @@ describe('Checkout Sessions', () => {
 
   describe('processStripeChargeForCheckoutSession', () => {
     it('should process purchase bookkeeping and create invoice for non-invoice sessions with status Pending or Succeeded', async () => {
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const { transaction } = params
           await updateCheckoutSession(
             {
               ...checkoutSession,
               stripePaymentIntentId:
-                succeededCharge.payment_intent! as string},
+                succeededCharge.payment_intent! as string,
+            },
             transaction
           )
           const chargeResult =
             await processStripeChargeForCheckoutSession(
               {
                 checkoutSessionId: checkoutSession.id,
-                charge: succeededCharge},
+                charge: succeededCharge,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(chargeResult)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(result.purchase).toMatchObject({})
       expect(result.invoice).toMatchObject({})
@@ -1161,32 +1247,34 @@ describe('Checkout Sessions', () => {
         customer.stripeCustomerId!
       )
 
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const chargeResult =
             await processStripeChargeForCheckoutSession(
               {
                 checkoutSessionId: checkoutSession.id,
-                charge: failedCharge},
+                charge: failedCharge,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(chargeResult)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(result.purchase).toBeNull()
       expect(result.invoice).toBeNull()
     })
 
     it('should update checkout session with customer information from charge', async () => {
-      const result = (await adminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           const { transaction } = params
           await updateCheckoutSession(
             {
               ...checkoutSession,
               stripePaymentIntentId:
-                succeededCharge.payment_intent! as string},
+                succeededCharge.payment_intent! as string,
+            },
             transaction
           )
 
@@ -1194,12 +1282,13 @@ describe('Checkout Sessions', () => {
             await processStripeChargeForCheckoutSession(
               {
                 checkoutSessionId: checkoutSession.id,
-                charge: succeededCharge},
+                charge: succeededCharge,
+              },
               createProcessingEffectsContext(params)
             )
           return Result.ok(chargeResult)
-        }
-      )).unwrap()
+        })
+      ).unwrap()
 
       expect(result.checkoutSession.customerName).toEqual(
         succeededCharge.billing_details?.name
@@ -1216,9 +1305,11 @@ describe('editCheckoutSessionBillingAddress', async () => {
   const { organization: morOrganization, price: morPrice } =
     await setupOrg({
       stripeConnectContractType:
-        StripeConnectContractType.MerchantOfRecord})
+        StripeConnectContractType.MerchantOfRecord,
+    })
   const morCustomer = await setupCustomer({
-    organizationId: morOrganization.id})
+    organizationId: morOrganization.id,
+  })
 
   describe('for MOR organizations', () => {
     let morCheckoutSession: CheckoutSession.Record
@@ -1232,7 +1323,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         status: CheckoutSessionStatus.Open,
         type: CheckoutSessionType.Product,
         quantity: 1,
-        livemode: false})
+        livemode: false,
+      })
       // Update to remove billing address for testing
       morCheckoutSession = (
         await adminTransaction(async ({ transaction }) => {
@@ -1240,7 +1332,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             await updateCheckoutSession(
               {
                 ...session,
-                billingAddress: null} as CheckoutSession.Update,
+                billingAddress: null,
+              } as CheckoutSession.Update,
               transaction
             )
           )
@@ -1255,7 +1348,9 @@ describe('editCheckoutSessionBillingAddress', async () => {
           city: 'San Francisco',
           state: 'CA',
           postal_code: '94103',
-          country: 'US'}}
+          country: 'US',
+        },
+      }
 
       const result = (
         await adminTransaction(async ({ transaction }) => {
@@ -1263,7 +1358,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             await editCheckoutSessionBillingAddress(
               {
                 checkoutSessionId: morCheckoutSession.id,
-                billingAddress},
+                billingAddress,
+              },
               transaction
             )
           )
@@ -1290,7 +1386,9 @@ describe('editCheckoutSessionBillingAddress', async () => {
           city: 'San Francisco',
           state: 'CA',
           postal_code: '94103',
-          country: 'US'}}
+          country: 'US',
+        },
+      }
 
       // First set CA address
       const firstResult = (
@@ -1299,7 +1397,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             await editCheckoutSessionBillingAddress(
               {
                 checkoutSessionId: morCheckoutSession.id,
-                billingAddress: caAddress},
+                billingAddress: caAddress,
+              },
               transaction
             )
           )
@@ -1315,7 +1414,9 @@ describe('editCheckoutSessionBillingAddress', async () => {
           city: 'Portland',
           state: 'OR',
           postal_code: '97201',
-          country: 'US'}}
+          country: 'US',
+        },
+      }
 
       const secondResult = (
         await adminTransaction(async ({ transaction }) => {
@@ -1323,7 +1424,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             await editCheckoutSessionBillingAddress(
               {
                 checkoutSessionId: morCheckoutSession.id,
-                billingAddress: orAddress},
+                billingAddress: orAddress,
+              },
               transaction
             )
           )
@@ -1349,7 +1451,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         status: CheckoutSessionStatus.Open,
         type: CheckoutSessionType.Product,
         quantity: 1,
-        livemode: false})
+        livemode: false,
+      })
       // Update to remove paymentMethodType and billingAddress for testing
       const notFeeReadySession = (
         await adminTransaction(async ({ transaction }) => {
@@ -1358,7 +1461,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
               {
                 ...session,
                 paymentMethodType: null,
-                billingAddress: null} as CheckoutSession.Update,
+                billingAddress: null,
+              } as CheckoutSession.Update,
               transaction
             )
           )
@@ -1371,7 +1475,9 @@ describe('editCheckoutSessionBillingAddress', async () => {
           city: 'San Francisco',
           state: 'CA',
           postal_code: '94103',
-          country: 'US'}}
+          country: 'US',
+        },
+      }
 
       const result = (
         await adminTransaction(async ({ transaction }) => {
@@ -1379,7 +1485,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             await editCheckoutSessionBillingAddress(
               {
                 checkoutSessionId: notFeeReadySession.id,
-                billingAddress},
+                billingAddress,
+              },
               transaction
             )
           )
@@ -1402,14 +1509,16 @@ describe('editCheckoutSessionBillingAddress', async () => {
 
     beforeAll(async () => {
       const platformOrgSetup = await setupOrg({
-        stripeConnectContractType: StripeConnectContractType.Platform})
+        stripeConnectContractType: StripeConnectContractType.Platform,
+      })
       platformOrganization = platformOrgSetup.organization
       platformPrice = platformOrgSetup.price
     })
 
     it('returns null feeCalculation for Platform organizations (no tax calculation)', async () => {
       const platformCustomer = await setupCustomer({
-        organizationId: platformOrganization.id})
+        organizationId: platformOrganization.id,
+      })
 
       const session = await setupCheckoutSession({
         organizationId: platformOrganization.id,
@@ -1418,14 +1527,16 @@ describe('editCheckoutSessionBillingAddress', async () => {
         status: CheckoutSessionStatus.Open,
         type: CheckoutSessionType.Product,
         quantity: 1,
-        livemode: false})
+        livemode: false,
+      })
       const platformCheckoutSession = (
         await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await updateCheckoutSession(
               {
                 ...session,
-                billingAddress: null} as CheckoutSession.Update,
+                billingAddress: null,
+              } as CheckoutSession.Update,
               transaction
             )
           )
@@ -1438,7 +1549,9 @@ describe('editCheckoutSessionBillingAddress', async () => {
           city: 'San Francisco',
           state: 'CA',
           postal_code: '94103',
-          country: 'US'}}
+          country: 'US',
+        },
+      }
 
       const result = (
         await adminTransaction(async ({ transaction }) => {
@@ -1446,7 +1559,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             await editCheckoutSessionBillingAddress(
               {
                 checkoutSessionId: platformCheckoutSession.id,
-                billingAddress},
+                billingAddress,
+              },
               transaction
             )
           )
@@ -1469,14 +1583,17 @@ describe('editCheckoutSessionBillingAddress', async () => {
           city: 'San Francisco',
           state: 'CA',
           postal_code: '94103',
-          country: 'US'}}
+          country: 'US',
+        },
+      }
 
       await expect(
         adminTransaction(async ({ transaction }) => {
           await editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: 'non-existent-id',
-              billingAddress},
+              billingAddress,
+            },
             transaction
           )
         })
@@ -1491,7 +1608,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         status: CheckoutSessionStatus.Succeeded,
         type: CheckoutSessionType.Product,
         quantity: 1,
-        livemode: false})
+        livemode: false,
+      })
 
       const billingAddress: BillingAddress = {
         address: {
@@ -1499,14 +1617,17 @@ describe('editCheckoutSessionBillingAddress', async () => {
           city: 'San Francisco',
           state: 'CA',
           postal_code: '94103',
-          country: 'US'}}
+          country: 'US',
+        },
+      }
 
       await expect(
         adminTransaction(async ({ transaction }) => {
           await editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: checkoutSession.id,
-              billingAddress},
+              billingAddress,
+            },
             transaction
           )
         })

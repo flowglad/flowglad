@@ -208,8 +208,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when priceSlug not found', async () => {
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -225,7 +225,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow(
         "Price not found: with slug non-existent-slug (not in customer's pricing model)"
       )
@@ -233,8 +234,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should throw error when usageMeterSlug not found', async () => {
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -250,7 +251,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow(
         'UsageMeter not found: slug "non-existent-slug"'
       )
@@ -544,8 +546,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       ).unwrap()
 
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -561,7 +563,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow('which is not a usage price')
     })
 
@@ -586,8 +589,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       ).unwrap()
 
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -603,7 +606,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow("not in customer's pricing model")
     })
 
@@ -632,8 +636,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Try to create a usage event using just usageMeterId (no explicit priceId)
       // This should fail because there's no default price to resolve to
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -649,7 +653,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow('generator body threw')
     })
 
@@ -679,8 +684,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Try to create a usage event using just usageMeterSlug (no explicit priceId)
       // This should fail because there's no default price to resolve to
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -696,7 +701,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow('generator body threw')
     })
 
@@ -740,8 +746,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Try to create a usage event for our customer's subscription using a priceId
       // from a different pricing model - this should throw an error
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -757,7 +763,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow("(not in customer's pricing model")
     })
 
@@ -831,8 +838,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       ).unwrap()
 
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -848,7 +855,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow('Invalid billingPeriod')
     })
 
@@ -940,8 +948,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Test with undefined properties
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -958,13 +966,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow('Invalid properties')
 
       // Test with empty object properties
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -981,7 +990,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow('Invalid properties')
     })
   })
@@ -2395,8 +2405,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Execute: Try to resolve subscription price slug - should fail (only usage prices are considered)
       const timestamp = Date.now()
       await expect(
-        comprehensiveAdminTransaction(async ({ transaction }) =>
-          bulkInsertUsageEventsTransaction(
+        adminTransaction(async ({ transaction }) => {
+          const res = await bulkInsertUsageEventsTransaction(
             {
               input: {
                 usageEvents: [
@@ -2412,7 +2422,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        )
+          return Result.ok(res.unwrap())
+        }).then((r) => r.unwrap())
       ).rejects.toThrow(
         "Price not found: with slug subscription-price-slug (not in customer's pricing model)"
       )

@@ -22,11 +22,11 @@ import type { ResourceClaim } from '@db-core/schema/resourceClaims'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import { setupResourceClaim } from '@/../seedDatabase'
-import {
-  adminTransaction} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   countActiveResourceClaims,
-  selectActiveResourceClaims} from '@/db/tableMethods/resourceClaimMethods'
+  selectActiveResourceClaims,
+} from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
@@ -100,7 +100,8 @@ async function findResourceSubscriptionItemFeature(
         if (resourceFeature) {
           return {
             subscriptionItem: item,
-            subscriptionItemFeature: resourceFeature}
+            subscriptionItemFeature: resourceFeature,
+          }
         }
       }
 
@@ -149,7 +150,8 @@ export const createResourceClaimsBehavior = defineBehavior({
         resourceClaims: [],
         capacity: 0,
         claimedCount: 0,
-        availableCapacity: 0}
+        availableCapacity: 0,
+      }
     }
 
     const resourceId = features.resource.id
@@ -187,7 +189,8 @@ export const createResourceClaimsBehavior = defineBehavior({
         resourceId,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
-        externalId: `test-claim-${i}`})
+        externalId: `test-claim-${i}`,
+      })
       resourceClaims.push(claim)
     }
 
@@ -196,8 +199,10 @@ export const createResourceClaimsBehavior = defineBehavior({
       resourceClaims,
       capacity,
       claimedCount: claimCount,
-      availableCapacity: capacity - claimCount}
-  }})
+      availableCapacity: capacity - claimCount,
+    }
+  },
+})
 
 /**
  * Cancel Subscription With Resources Behavior
@@ -226,20 +231,22 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
       const initialClaimCount = prev.claimedCount
 
       // Cancel the subscription
-      const cancelResult =
-        (await adminTransaction<Subscription.Record>(
+      const cancelResult = (
+        await adminTransaction<Subscription.Record>(
           async (ctx) => {
             const result = await cancelSubscriptionImmediately(
               {
                 subscription,
                 skipNotifications: true,
-                skipReassignDefaultSubscription: true},
+                skipReassignDefaultSubscription: true,
+              },
               ctx
             )
             return Result.ok(result.unwrap())
           },
           { livemode }
-        )).unwrap()
+        )
+      ).unwrap()
 
       // Get claims after cancellation
       let claimsAfterCancellation: ResourceClaim.Record[] = []
@@ -268,7 +275,8 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
             return countActiveResourceClaims(
               {
                 subscriptionId: subscription.id,
-                resourceId},
+                resourceId,
+              },
               transaction
             )
           },
@@ -280,6 +288,8 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
         ...prev,
         canceledSubscription: cancelResult,
         releasedClaimCount: initialClaimCount - activeClaimCount,
-        claimsAfterCancellation}
-    }}
+        claimsAfterCancellation,
+      }
+    },
+  }
 )

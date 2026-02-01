@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   IntervalUnit,
   PriceType,
-  SubscriptionItemType} from '@db-core/enums'
+  SubscriptionItemType,
+} from '@db-core/enums'
 import type { Feature } from '@db-core/schema/features'
 import type { Organization } from '@db-core/schema/organizations'
 import type { Product } from '@db-core/schema/products'
@@ -15,9 +16,9 @@ import {
   setupProductFeature,
   setupSubscription,
   setupSubscriptionItem,
-  setupToggleFeature} from '@/../seedDatabase'
-import {
-  adminTransaction} from '@/db/adminTransaction'
+  setupToggleFeature,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import { createCapturingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
@@ -29,7 +30,8 @@ import {
   selectFeaturesByProductFeatureWhere,
   selectProductFeatures,
   syncProductFeatures,
-  unexpireProductFeatures} from './productFeatureMethods'
+  unexpireProductFeatures,
+} from './productFeatureMethods'
 
 let organization: Organization.Record
 let product: Product.Record
@@ -46,22 +48,26 @@ beforeEach(async () => {
   featureA = await setupToggleFeature({
     organizationId: organization.id,
     name: 'Feature A',
-    livemode: true})
+    livemode: true,
+  })
 
   featureB = await setupToggleFeature({
     organizationId: organization.id,
     name: 'Feature B',
-    livemode: true})
+    livemode: true,
+  })
 
   featureC = await setupToggleFeature({
     organizationId: organization.id,
     name: 'Feature C',
-    livemode: true})
+    livemode: true,
+  })
 
   featureD = await setupToggleFeature({
     organizationId: organization.id,
     name: 'Feature D',
-    livemode: true})
+    livemode: true,
+  })
 })
 
 describe('unexpireProductFeatures', () => {
@@ -72,12 +78,14 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureC.id,
@@ -93,7 +101,8 @@ describe('unexpireProductFeatures', () => {
             {
               featureIds: [featureA.id, featureB.id],
               productId: product.id,
-              organizationId: organization.id},
+              organizationId: organization.id,
+            },
             ctx
           )
         )
@@ -138,11 +147,13 @@ describe('unexpireProductFeatures', () => {
     await setupProductFeature({
       productId: product.id,
       featureId: featureA.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
 
     // - Call `unexpireProductFeatures` with `featureIds` corresponding to these active features.
     const result = (
@@ -152,7 +163,8 @@ describe('unexpireProductFeatures', () => {
             {
               featureIds: [featureA.id, featureB.id],
               productId: product.id,
-              organizationId: organization.id},
+              organizationId: organization.id,
+            },
             ctx
           )
         )
@@ -168,12 +180,14 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
     // - Call `unexpireProductFeatures` with a list containing only the ID for Feature A and a non-existent Feature C.
     const result = (
       await adminTransaction(async (ctx) => {
@@ -182,7 +196,8 @@ describe('unexpireProductFeatures', () => {
             {
               featureIds: [featureA.id, featureC.id],
               productId: product.id,
-              organizationId: organization.id},
+              organizationId: organization.id,
+            },
             ctx
           )
         )
@@ -214,7 +229,8 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
 
     // - Call `unexpireProductFeatures` with an empty `featureIds` array.
     const result = (
@@ -224,7 +240,8 @@ describe('unexpireProductFeatures', () => {
             {
               featureIds: [],
               productId: product.id,
-              organizationId: organization.id},
+              organizationId: organization.id,
+            },
             ctx
           )
         )
@@ -241,12 +258,14 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
     // - Create a second, different product.
     const otherProduct = await setupProduct({
       organizationId: organization.id,
       name: 'Other Product',
-      pricingModelId: product.pricingModelId})
+      pricingModelId: product.pricingModelId,
+    })
 
     // - Call `unexpireProductFeatures` with the correct featureId but the `productId` of the second product.
     const result = (
@@ -256,7 +275,8 @@ describe('unexpireProductFeatures', () => {
             {
               featureIds: [featureA.id],
               productId: otherProduct.id,
-              organizationId: organization.id},
+              organizationId: organization.id,
+            },
             ctx
           )
         )
@@ -287,35 +307,41 @@ describe('batchUnexpireProductFeatures', () => {
     const product2 = await setupProduct({
       organizationId: organization.id,
       name: 'Product 2',
-      pricingModelId: product.pricingModelId})
+      pricingModelId: product.pricingModelId,
+    })
 
     // Create expired product features on different products
     const pf1 = await setupProductFeature({
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
     const pf2 = await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
     const pf3 = await setupProductFeature({
       productId: product2.id,
       featureId: featureC.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
 
     // Batch unexpire all three
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const unexpireResult = await batchUnexpireProductFeatures(
-          [pf1.id, pf2.id, pf3.id],
-          { transaction, invalidateCache }
-        )
-        return Result.ok(unexpireResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const unexpireResult = await batchUnexpireProductFeatures(
+            [pf1.id, pf2.id, pf3.id],
+            { transaction, invalidateCache }
+          )
+          return Result.ok(unexpireResult)
+        }
+      )
+    ).unwrap()
 
     // Should return all three unexpired records
     expect(result).toHaveLength(3)
@@ -338,15 +364,17 @@ describe('batchUnexpireProductFeatures', () => {
   })
 
   it('returns empty array when given empty productFeatureIds list', async () => {
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const unexpireResult = await batchUnexpireProductFeatures(
-          [],
-          { transaction, invalidateCache }
-        )
-        return Result.ok(unexpireResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const unexpireResult = await batchUnexpireProductFeatures(
+            [],
+            { transaction, invalidateCache }
+          )
+          return Result.ok(unexpireResult)
+        }
+      )
+    ).unwrap()
 
     expect(result).toEqual([])
   })
@@ -357,7 +385,8 @@ describe('batchUnexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
     const activePf = await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
@@ -366,15 +395,17 @@ describe('batchUnexpireProductFeatures', () => {
     })
 
     // Try to unexpire both
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const unexpireResult = await batchUnexpireProductFeatures(
-          [expiredPf.id, activePf.id],
-          { transaction, invalidateCache }
-        )
-        return Result.ok(unexpireResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const unexpireResult = await batchUnexpireProductFeatures(
+            [expiredPf.id, activePf.id],
+            { transaction, invalidateCache }
+          )
+          return Result.ok(unexpireResult)
+        }
+      )
+    ).unwrap()
 
     // Should only return the one that was actually expired
     expect(result).toHaveLength(1)
@@ -388,23 +419,27 @@ describe('batchUnexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: null})
+      expiredAt: null,
+    })
     const pf2 = await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: null})
+      expiredAt: null,
+    })
 
     // Try to unexpire active features
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const unexpireResult = await batchUnexpireProductFeatures(
-          [pf1.id, pf2.id],
-          { transaction, invalidateCache }
-        )
-        return Result.ok(unexpireResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const unexpireResult = await batchUnexpireProductFeatures(
+            [pf1.id, pf2.id],
+            { transaction, invalidateCache }
+          )
+          return Result.ok(unexpireResult)
+        }
+      )
+    ).unwrap()
 
     // Should return empty array since nothing was actually unexpired
     expect(result).toHaveLength(0)
@@ -416,20 +451,23 @@ describe('batchUnexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
 
     // Include a non-existent ID
     const fakeId = `product_feature_${core.nanoid()}`
 
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const unexpireResult = await batchUnexpireProductFeatures(
-          [realPf.id, fakeId],
-          { transaction, invalidateCache }
-        )
-        return Result.ok(unexpireResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const unexpireResult = await batchUnexpireProductFeatures(
+            [realPf.id, fakeId],
+            { transaction, invalidateCache }
+          )
+          return Result.ok(unexpireResult)
+        }
+      )
+    ).unwrap()
 
     // Should only return the real one that was unexpired
     expect(result).toHaveLength(1)
@@ -443,28 +481,33 @@ describe('batchUnexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
     const active1 = await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: null})
+      expiredAt: null,
+    })
     const expired2 = await setupProductFeature({
       productId: product.id,
       featureId: featureC.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 2000})
+      expiredAt: Date.now() - 2000,
+    })
 
     // Unexpire all three
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const unexpireResult = await batchUnexpireProductFeatures(
-          [expired1.id, active1.id, expired2.id],
-          { transaction, invalidateCache }
-        )
-        return Result.ok(unexpireResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const unexpireResult = await batchUnexpireProductFeatures(
+            [expired1.id, active1.id, expired2.id],
+            { transaction, invalidateCache }
+          )
+          return Result.ok(unexpireResult)
+        }
+      )
+    ).unwrap()
 
     // Should only return the two that were expired
     expect(result).toHaveLength(2)
@@ -481,7 +524,8 @@ describe('batchUnexpireProductFeatures', () => {
     // Set up a customer and subscription with a subscription item using the product's price
     const customer = await setupCustomer({
       organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`})
+      email: `test+${core.nanoid()}@test.com`,
+    })
 
     const price = await setupPrice({
       productId: product.id,
@@ -491,13 +535,15 @@ describe('batchUnexpireProductFeatures', () => {
       type: PriceType.Subscription,
       unitPrice: 1000,
       intervalUnit: IntervalUnit.Month,
-      intervalCount: 1})
+      intervalCount: 1,
+    })
 
     const subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       priceId: price.id,
-      livemode: true})
+      livemode: true,
+    })
 
     const subscriptionItem = await setupSubscriptionItem({
       subscriptionId: subscription.id,
@@ -506,14 +552,16 @@ describe('batchUnexpireProductFeatures', () => {
       unitPrice: 1000,
       priceId: price.id,
       addedDate: Date.now(),
-      type: SubscriptionItemType.Static})
+      type: SubscriptionItemType.Static,
+    })
 
     // Create an expired product feature
     const expiredPf = await setupProductFeature({
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
 
     // Unexpire the product feature and capture effects
     ;(
@@ -538,11 +586,13 @@ describe('batchUnexpireProductFeatures', () => {
     const product2 = await setupProduct({
       organizationId: organization.id,
       name: 'Product 2',
-      pricingModelId: product.pricingModelId})
+      pricingModelId: product.pricingModelId,
+    })
 
     const customer = await setupCustomer({
       organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`})
+      email: `test+${core.nanoid()}@test.com`,
+    })
 
     // Create prices for both products
     const price1 = await setupPrice({
@@ -553,7 +603,8 @@ describe('batchUnexpireProductFeatures', () => {
       type: PriceType.Subscription,
       unitPrice: 1000,
       intervalUnit: IntervalUnit.Month,
-      intervalCount: 1})
+      intervalCount: 1,
+    })
 
     const price2 = await setupPrice({
       productId: product2.id,
@@ -563,20 +614,23 @@ describe('batchUnexpireProductFeatures', () => {
       type: PriceType.Subscription,
       unitPrice: 2000,
       intervalUnit: IntervalUnit.Month,
-      intervalCount: 1})
+      intervalCount: 1,
+    })
 
     // Create subscriptions and subscription items for both products
     const subscription1 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       priceId: price1.id,
-      livemode: true})
+      livemode: true,
+    })
 
     const subscription2 = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       priceId: price2.id,
-      livemode: true})
+      livemode: true,
+    })
 
     const subscriptionItem1 = await setupSubscriptionItem({
       subscriptionId: subscription1.id,
@@ -585,7 +639,8 @@ describe('batchUnexpireProductFeatures', () => {
       unitPrice: 1000,
       priceId: price1.id,
       addedDate: Date.now(),
-      type: SubscriptionItemType.Static})
+      type: SubscriptionItemType.Static,
+    })
 
     const subscriptionItem2 = await setupSubscriptionItem({
       subscriptionId: subscription2.id,
@@ -594,20 +649,23 @@ describe('batchUnexpireProductFeatures', () => {
       unitPrice: 2000,
       priceId: price2.id,
       addedDate: Date.now(),
-      type: SubscriptionItemType.Static})
+      type: SubscriptionItemType.Static,
+    })
 
     // Create expired product features on both products
     const expiredPf1 = await setupProductFeature({
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
 
     const expiredPf2 = await setupProductFeature({
       productId: product2.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
 
     // Unexpire both product features and capture effects
     ;(
@@ -641,7 +699,8 @@ describe('batchUnexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: null})
+      expiredAt: null,
+    })
 
     // Try to unexpire the already-active feature
     ;(
@@ -668,7 +727,8 @@ describe('batchUnexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now() - 1000})
+      expiredAt: Date.now() - 1000,
+    })
 
     // Unexpire the product feature
     ;(
@@ -702,17 +762,20 @@ describe('syncProductFeatures', () => {
     const desiredFeatureIds = [featureA.id, featureB.id]
 
     // - Call `syncProductFeatures` with the product details and the list of desired feature IDs.
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const syncResult = await syncProductFeatures(
-          {
-            product,
-            desiredFeatureIds},
-          { transaction, invalidateCache }
-        )
-        return Result.ok(syncResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const syncResult = await syncProductFeatures(
+            {
+              product,
+              desiredFeatureIds,
+            },
+            { transaction, invalidateCache }
+          )
+          return Result.ok(syncResult)
+        }
+      )
+    ).unwrap()
 
     // - The function should return an array containing two newly created `ProductFeature.Record`s.
     expect(result).toHaveLength(2)
@@ -752,23 +815,28 @@ describe('syncProductFeatures', () => {
     await setupProductFeature({
       productId: product.id,
       featureId: featureA.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
     // - Call `syncProductFeatures` with an empty `desiredFeatureIds` array.
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const syncResult = await syncProductFeatures(
-          {
-            product,
-            desiredFeatureIds: []},
-          { transaction, invalidateCache }
-        )
-        return Result.ok(syncResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const syncResult = await syncProductFeatures(
+            {
+              product,
+              desiredFeatureIds: [],
+            },
+            { transaction, invalidateCache }
+          )
+          return Result.ok(syncResult)
+        }
+      )
+    ).unwrap()
 
     // - The function should return an empty array.
     expect(result).toHaveLength(0)
@@ -793,25 +861,30 @@ describe('syncProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` matching the two expired features.
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const syncResult = await syncProductFeatures(
-          {
-            product,
-            desiredFeatureIds: [featureA.id, featureB.id]},
-          { transaction, invalidateCache }
-        )
-        return Result.ok(syncResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const syncResult = await syncProductFeatures(
+            {
+              product,
+              desiredFeatureIds: [featureA.id, featureB.id],
+            },
+            { transaction, invalidateCache }
+          )
+          return Result.ok(syncResult)
+        }
+      )
+    ).unwrap()
     // - The function should return an array of the two now-active `ProductFeature.Record`s.
     expect(result).toHaveLength(2)
     expect(result.every((pf) => !pf.expiredAt)).toBe(true)
@@ -837,36 +910,42 @@ describe('syncProductFeatures', () => {
     await setupProductFeature({
       productId: product.id,
       featureId: featureA.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
     //   - Feature B: Active
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
     //   - Feature C: Expired
     await setupProductFeature({
       productId: product.id,
       featureId: featureC.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
     // - Feature D is a new feature that doesn't have a product feature record yet.
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` for Feature A, Feature C, and Feature D.
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const syncResult = await syncProductFeatures(
-          {
-            product,
-            desiredFeatureIds: [
-              featureA.id,
-              featureC.id,
-              featureD.id,
-            ]},
-          { transaction, invalidateCache }
-        )
-        return Result.ok(syncResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const syncResult = await syncProductFeatures(
+            {
+              product,
+              desiredFeatureIds: [
+                featureA.id,
+                featureC.id,
+                featureD.id,
+              ],
+            },
+            { transaction, invalidateCache }
+          )
+          return Result.ok(syncResult)
+        }
+      )
+    ).unwrap()
 
     // - The function's return value should contain the records for the created Feature D and the restored Feature C.
     expect(result).toHaveLength(2)
@@ -905,26 +984,31 @@ describe('syncProductFeatures', () => {
     await setupProductFeature({
       productId: product.id,
       featureId: featureA.id,
-      organizationId: organization.id})
+      organizationId: organization.id,
+    })
     //   - Feature B: Expired
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: Date.now()})
+      expiredAt: Date.now(),
+    })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` = `['feature_A_id']`.
-    const result = (await adminTransaction(
-      async ({ transaction, invalidateCache }) => {
-        const syncResult = await syncProductFeatures(
-          {
-            product,
-            desiredFeatureIds: [featureA.id]},
-          { transaction, invalidateCache }
-        )
-        return Result.ok(syncResult)
-      }
-    )).unwrap()
+    const result = (
+      await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const syncResult = await syncProductFeatures(
+            {
+              product,
+              desiredFeatureIds: [featureA.id],
+            },
+            { transaction, invalidateCache }
+          )
+          return Result.ok(syncResult)
+        }
+      )
+    ).unwrap()
 
     // - The function should return an empty array, as no new or un-expired records are produced.
     expect(result).toHaveLength(0)
@@ -1003,14 +1087,16 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: futureTime})
+      expiredAt: futureTime,
+    })
 
     // Create a feature that never expires
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: null})
+      expiredAt: null,
+    })
 
     // Create a feature that already expired
     await setupProductFeature({
@@ -1048,19 +1134,22 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: pastTime})
+      expiredAt: pastTime,
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: pastTime})
+      expiredAt: pastTime,
+    })
 
     // Create one active feature for comparison
     await setupProductFeature({
       productId: product.id,
       featureId: featureC.id,
       organizationId: organization.id,
-      expiredAt: null})
+      expiredAt: null,
+    })
 
     const result = (
       await adminTransaction(async (ctx) => {
@@ -1087,12 +1176,14 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: pastTime})
+      expiredAt: pastTime,
+    })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: pastTime})
+      expiredAt: pastTime,
+    })
 
     const result = (
       await adminTransaction(async (ctx) => {
@@ -1119,28 +1210,32 @@ describe('selectFeaturesByProductFeatureWhere', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: null})
+      expiredAt: null,
+    })
 
     // Feature B: Expires in the future
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: futureTime})
+      expiredAt: futureTime,
+    })
 
     // Feature C: Already expired
     await setupProductFeature({
       productId: product.id,
       featureId: featureC.id,
       organizationId: organization.id,
-      expiredAt: pastTime})
+      expiredAt: pastTime,
+    })
 
     // Feature D: Expires in the future (different time)
     await setupProductFeature({
       productId: product.id,
       featureId: featureD.id,
       organizationId: organization.id,
-      expiredAt: futureTime + 1000})
+      expiredAt: futureTime + 1000,
+    })
 
     const result = (
       await adminTransaction(async (ctx) => {
@@ -1206,7 +1301,8 @@ describe('insertProductFeature', () => {
             productId: product.id,
             featureId: featureA.id,
             organizationId: organization.id,
-            livemode: true},
+            livemode: true,
+          },
           ctx
         )
 
@@ -1254,7 +1350,8 @@ describe('insertProductFeature', () => {
               productId: nonExistentProductId,
               featureId: featureA.id,
               organizationId: organization.id,
-              livemode: true},
+              livemode: true,
+            },
             ctx
           )
         ).rejects.toThrow()
@@ -1272,7 +1369,8 @@ describe('bulkInsertProductFeatures', () => {
       organizationId: organization.id,
       name: 'Test Product 2',
       pricingModelId: product.pricingModelId,
-      livemode: true})
+      livemode: true,
+    })
   })
 
   it('should bulk insert product features and derive pricingModelId for each', async () => {
@@ -1284,12 +1382,14 @@ describe('bulkInsertProductFeatures', () => {
               productId: product.id,
               featureId: featureA.id,
               organizationId: organization.id,
-              livemode: true},
+              livemode: true,
+            },
             {
               productId: product2.id,
               featureId: featureB.id,
               organizationId: organization.id,
-              livemode: true},
+              livemode: true,
+            },
           ],
           ctx
         )
@@ -1353,7 +1453,8 @@ describe('bulkInsertProductFeatures', () => {
                 productId: nonExistentProductId,
                 featureId: featureA.id,
                 organizationId: organization.id,
-                livemode: true},
+                livemode: true,
+              },
             ],
             ctx
           )
@@ -1372,7 +1473,8 @@ describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
       organizationId: organization.id,
       name: 'Test Product 2',
       pricingModelId: product.pricingModelId,
-      livemode: true})
+      livemode: true,
+    })
   })
 
   it('should bulk insert or do nothing for product features', async () => {
@@ -1386,7 +1488,8 @@ describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
                 productId: product.id,
                 featureId: featureA.id,
                 organizationId: organization.id,
-                livemode: true},
+                livemode: true,
+              },
             ],
             ctx
           )
@@ -1403,7 +1506,8 @@ describe('bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId', () => {
                 productId: product.id,
                 featureId: featureA.id,
                 organizationId: organization.id,
-                livemode: true},
+                livemode: true,
+              },
             ],
             ctx
           )

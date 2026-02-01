@@ -90,14 +90,16 @@ const getMembers = protectedProcedure
       throw new Error('organizationId is required')
     }
 
-    const members = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMembershipsAndUsersByMembershipWhere(
-          { organizationId: ctx.organizationId },
-          transaction
+    const members = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectMembershipsAndUsersByMembershipWhere(
+            { organizationId: ctx.organizationId },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Sort members by date of creation, newest first
     const sortedMembers = members.sort((a, b) => {
@@ -424,21 +426,23 @@ const getUsageMetersWithEventsProcedure = protectedProcedure
   )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
-  return adminTransaction(async ({ transaction }) => {
-    // Get all memberships and organizations for the user
-    const membershipsAndOrganizations =
-      await selectMembershipsAndOrganizationsByMembershipWhere(
-        { userId: ctx.user!.id },
-        transaction
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      // Get all memberships and organizations for the user
+      const membershipsAndOrganizations =
+        await selectMembershipsAndOrganizationsByMembershipWhere(
+          { userId: ctx.user!.id },
+          transaction
+        )
+
+      // Extract just the organizations
+      const organizations = membershipsAndOrganizations.map(
+        ({ organization }) => organization
       )
 
-    // Extract just the organizations
-    const organizations = membershipsAndOrganizations.map(
-      ({ organization }) => organization
-    )
-
-    return organizations
-  }, {})
+      return Result.ok(organizations)
+    })
+  ).unwrap()
 })
 
 const createOrganization = protectedProcedure
@@ -535,14 +539,16 @@ const updateFocusedMembershipSchema = z.object({
 const updateFocusedMembership = protectedProcedure
   .input(updateFocusedMembershipSchema)
   .mutation(async ({ input, ctx }) => {
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMembershipsAndOrganizationsByMembershipWhere(
-          { userId: ctx.user!.id },
-          transaction
+    const memberships = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectMembershipsAndOrganizationsByMembershipWhere(
+            { userId: ctx.user!.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     const membershipToFocus = memberships.find(
       (m) => m.membership.organizationId === input.organizationId
     )
@@ -552,19 +558,23 @@ const updateFocusedMembership = protectedProcedure
         message: 'Membership not found',
       })
     }
-    return adminTransaction(async ({ transaction }) => {
-      await unfocusMembershipsForUser(
-        membershipToFocus.membership.userId,
-        transaction
-      )
-      return updateMembership(
-        {
-          id: membershipToFocus.membership.id,
-          focused: true,
-        },
-        transaction
-      )
-    })
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        await unfocusMembershipsForUser(
+          membershipToFocus.membership.userId,
+          transaction
+        )
+        return Result.ok(
+          await updateMembership(
+            {
+              id: membershipToFocus.membership.id,
+              focused: true,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
   })
 
 const updateFocusedPricingModelSchema = z.object({
@@ -624,33 +634,41 @@ const getMembersTableRowData = protectedProcedure
     createPaginatedTableRowOutputSchema(membershipsTableRowDataSchema)
   )
   .query(async (args) => {
-    const focusedMembership = await authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        return selectFocusedMembershipAndOrganization(
-          userId,
-          transaction
-        )
-      }
-    )
+    const focusedMembership = (
+      await authenticatedTransaction(
+        async ({ transaction, userId }) => {
+          return Result.ok(
+            await selectFocusedMembershipAndOrganization(
+              userId,
+              transaction
+            )
+          )
+        }
+      )
+    ).unwrap()
     /**
      * Force overwrite the organizationId because we need to do an admin transaction
      * to give the user visbility into their teammates. Due to limitations of RLS,
      * we can't do this in the authenticated transaction as memberships
      * is the "root" basis of most of our RLS policies.
      */
-    return adminTransaction(async ({ transaction }) => {
-      return selectMembershipsTableRowData({
-        input: {
-          ...args.input,
-          filters: {
-            ...args.input.filters,
-            organizationId: focusedMembership.organization.id,
-            deactivatedAt: null,
-          },
-        },
-        transaction,
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectMembershipsTableRowData({
+            input: {
+              ...args.input,
+              filters: {
+                ...args.input.filters,
+                organizationId: focusedMembership.organization.id,
+                deactivatedAt: null,
+              },
+            },
+            transaction,
+          })
+        )
       })
-    })
+    ).unwrap()
   })
 
 /**

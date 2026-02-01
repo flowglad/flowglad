@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   IntervalUnit,
   PriceType,
-  UsageMeterAggregationType} from '@db-core/enums'
+  UsageMeterAggregationType,
+} from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import { Result } from 'better-result'
@@ -11,9 +12,9 @@ import {
   setupPrice,
   setupProduct,
   setupUsageMeter,
-  setupUserAndApiKey} from '@/../seedDatabase'
-import {
-  adminTransaction} from '@/db/adminTransaction'
+  setupUserAndApiKey,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { createUsageMeterTransaction } from './usage'
@@ -31,33 +32,41 @@ describe('createUsageMeterTransaction', () => {
     // Create a user for the organization
     const userSetup = await setupUserAndApiKey({
       organizationId: organization.id,
-      livemode: false})
+      livemode: false,
+    })
     userId = userSetup.user.id
   })
 
   describe('Successful creation', () => {
     it('creates usage meter and no_charge price when no custom price values provided', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'API Calls',
-                slug: 'api-calls',
-                pricingModelId: pricingModel.id}},
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'API Calls',
+                    slug: 'api-calls',
+                    pricingModelId: pricingModel.id,
+                  },
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       // Verify usage meter properties
       expect(result.usageMeter.name).toBe('API Calls')
@@ -86,29 +95,36 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates usage meter with aggregationType', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Unique Users',
-                slug: 'unique-users',
-                pricingModelId: pricingModel.id,
-                aggregationType:
-                  UsageMeterAggregationType.CountDistinctProperties}},
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Unique Users',
+                    slug: 'unique-users',
+                    pricingModelId: pricingModel.id,
+                    aggregationType:
+                      UsageMeterAggregationType.CountDistinctProperties,
+                  },
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.usageMeter.aggregationType).toBe(
         UsageMeterAggregationType.CountDistinctProperties
@@ -128,32 +144,37 @@ describe('createUsageMeterTransaction', () => {
         name: 'Existing Usage Meter',
         slug,
         pricingModelId: pricingModel.id,
-        livemode: false})
+        livemode: false,
+      })
 
       // Attempt to create usage meter with the same slug
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async ({
             transaction,
             invalidateCache,
-            cacheRecomputationContext}) => {
+            cacheRecomputationContext,
+          }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
                 {
                   usageMeter: {
                     name: 'New Usage Meter',
                     slug,
-                    pricingModelId: pricingModel.id}},
+                    pricingModelId: pricingModel.id,
+                  },
+                },
                 {
                   transaction,
                   cacheRecomputationContext,
                   livemode: false,
                   organizationId: organization.id,
-                  invalidateCache}
+                  invalidateCache,
+                }
               )
-            return usageMeterResult
+            return Result.ok(usageMeterResult)
           }
-        )
+        ).then((r) => r.unwrap())
       ).rejects.toThrow()
 
       // Verify only the original usage meter exists (transaction rolled back)
@@ -182,7 +203,8 @@ describe('createUsageMeterTransaction', () => {
         name: 'Existing Product',
         slug: 'other-product',
         pricingModelId: pricingModel.id,
-        livemode: false})
+        livemode: false,
+      })
 
       await setupPrice({
         productId: existingProduct.id,
@@ -194,31 +216,39 @@ describe('createUsageMeterTransaction', () => {
         intervalCount: 1,
         active: true,
         isDefault: true,
-        livemode: false})
+        livemode: false,
+      })
 
       // Create usage meter with the same slug - should succeed since
       // usage meter prices and product prices are in separate namespaces
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'New Usage Meter',
-                slug,
-                pricingModelId: pricingModel.id}},
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'New Usage Meter',
+                    slug,
+                    pricingModelId: pricingModel.id,
+                  },
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       // Verify usage meter was created successfully
       expect(result.usageMeter.slug).toBe(slug)
@@ -251,7 +281,8 @@ describe('createUsageMeterTransaction', () => {
         name: 'Existing Product',
         slug: 'different-product-slug',
         pricingModelId: pricingModel.id,
-        livemode: false})
+        livemode: false,
+      })
 
       await setupPrice({
         productId: existingProduct.id,
@@ -263,30 +294,38 @@ describe('createUsageMeterTransaction', () => {
         intervalCount: 1,
         active: true,
         isDefault: true,
-        livemode: false})
+        livemode: false,
+      })
 
       // Should succeed because the slug is unique
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'New Usage Meter',
-                slug,
-                pricingModelId: pricingModel.id}},
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'New Usage Meter',
+                    slug,
+                    pricingModelId: pricingModel.id,
+                  },
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.usageMeter.slug).toBe(slug)
       // When no custom values, price is the no_charge price
@@ -306,7 +345,8 @@ describe('createUsageMeterTransaction', () => {
         name: 'Blocking Usage Meter',
         slug,
         pricingModelId: pricingModel.id,
-        livemode: false})
+        livemode: false,
+      })
 
       // Count records before the failed transaction
       const beforeCounts = (
@@ -322,35 +362,40 @@ describe('createUsageMeterTransaction', () => {
           return Result.ok(
             await {
               usageMeters: usageMeters.length,
-              prices: allPrices.length}
+              prices: allPrices.length,
+            }
           )
         })
       ).unwrap()
 
       // Attempt to create usage meter (should fail due to slug collision)
       await expect(
-        comprehensiveAdminTransaction(
+        adminTransaction(
           async ({
             transaction,
             invalidateCache,
-            cacheRecomputationContext}) => {
+            cacheRecomputationContext,
+          }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
                 {
                   usageMeter: {
                     name: 'Should Not Create',
                     slug,
-                    pricingModelId: pricingModel.id}},
+                    pricingModelId: pricingModel.id,
+                  },
+                },
                 {
                   transaction,
                   cacheRecomputationContext,
                   livemode: false,
                   organizationId: organization.id,
-                  invalidateCache}
+                  invalidateCache,
+                }
               )
-            return usageMeterResult
+            return Result.ok(usageMeterResult)
           }
-        )
+        ).then((r) => r.unwrap())
       ).rejects.toThrow()
 
       // Count records after the failed transaction
@@ -367,7 +412,8 @@ describe('createUsageMeterTransaction', () => {
           return Result.ok(
             await {
               usageMeters: usageMeters.length,
-              prices: allPrices.length}
+              prices: allPrices.length,
+            }
           )
         })
       ).unwrap()
@@ -380,30 +426,38 @@ describe('createUsageMeterTransaction', () => {
 
   describe('Custom price fields', () => {
     it('creates both custom price and no_charge price when custom values provided', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Custom Price API Calls',
-                slug: 'custom-price-api-calls',
-                pricingModelId: pricingModel.id},
-              price: {
-                unitPrice: 1000, // $10.00
-                usageEventsPerUnit: 100}},
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Custom Price API Calls',
+                    slug: 'custom-price-api-calls',
+                    pricingModelId: pricingModel.id,
+                  },
+                  price: {
+                    unitPrice: 1000, // $10.00
+                    usageEventsPerUnit: 100,
+                  },
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       // Verify custom price has user-specified values
       expect(result.price.unitPrice).toBe(1000)
@@ -424,29 +478,35 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates only no_charge price when no custom values provided', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Default Price API Calls',
-                slug: 'default-price-api-calls',
-                pricingModelId: pricingModel.id},
-              // No price field provided
-            },
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Default Price API Calls',
+                    slug: 'default-price-api-calls',
+                    pricingModelId: pricingModel.id,
+                  },
+                  // No price field provided
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       // Verify price and noChargePrice are the same object
       expect(result.price.id).toBe(result.noChargePrice.id)
@@ -463,30 +523,37 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates custom price when only unitPrice is provided', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Partial Custom Price',
-                slug: 'partial-custom-price',
-                pricingModelId: pricingModel.id},
-              price: {
-                unitPrice: 500, // $5.00
-              }},
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Partial Custom Price',
+                    slug: 'partial-custom-price',
+                    pricingModelId: pricingModel.id,
+                  },
+                  price: {
+                    unitPrice: 500, // $5.00
+                  },
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       // Custom price should exist with user's unitPrice and default usageEventsPerUnit
       expect(result.price.unitPrice).toBe(500)
@@ -504,29 +571,37 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates custom price when only usageEventsPerUnit is provided', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Events Per Unit Only',
-                slug: 'events-per-unit-only',
-                pricingModelId: pricingModel.id},
-              price: {
-                usageEventsPerUnit: 50}},
-            {
-              transaction,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache,
-              cacheRecomputationContext}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Events Per Unit Only',
+                    slug: 'events-per-unit-only',
+                    pricingModelId: pricingModel.id,
+                  },
+                  price: {
+                    usageEventsPerUnit: 50,
+                  },
+                },
+                {
+                  transaction,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                  cacheRecomputationContext,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       // Custom price should exist with default unitPrice and user's usageEventsPerUnit
       expect(result.price.unitPrice).toBe(0)
@@ -545,53 +620,67 @@ describe('createUsageMeterTransaction', () => {
 
   describe('No charge price auto-creation', () => {
     it('creates no_charge price with correct name derived from usage meter name', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Storage GB',
-                slug: 'storage-gb',
-                pricingModelId: pricingModel.id}},
-            {
-              transaction,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache,
-              cacheRecomputationContext}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Storage GB',
+                    slug: 'storage-gb',
+                    pricingModelId: pricingModel.id,
+                  },
+                },
+                {
+                  transaction,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                  cacheRecomputationContext,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.noChargePrice.name).toBe('Storage GB - No Charge')
     })
 
     it('creates no_charge price with correct pricingModelId and usageMeterId', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Bandwidth',
-                slug: 'bandwidth',
-                pricingModelId: pricingModel.id}},
-            {
-              transaction,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache,
-              cacheRecomputationContext}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Bandwidth',
+                    slug: 'bandwidth',
+                    pricingModelId: pricingModel.id,
+                  },
+                },
+                {
+                  transaction,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                  cacheRecomputationContext,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.noChargePrice.pricingModelId).toBe(
         pricingModel.id
@@ -602,27 +691,34 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates no_charge price with organization defaultCurrency', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Requests',
-                slug: 'requests',
-                pricingModelId: pricingModel.id}},
-            {
-              transaction,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache,
-              cacheRecomputationContext}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Requests',
+                    slug: 'requests',
+                    pricingModelId: pricingModel.id,
+                  },
+                },
+                {
+                  transaction,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                  cacheRecomputationContext,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.noChargePrice.currency).toBe(
         organization.defaultCurrency
@@ -630,27 +726,34 @@ describe('createUsageMeterTransaction', () => {
     })
 
     it('creates no_charge price as active by default', async () => {
-      const result = (await adminTransaction(
-        async ({
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext}) => {
-          const usageMeterResult = await createUsageMeterTransaction(
-            {
-              usageMeter: {
-                name: 'Compute Hours',
-                slug: 'compute-hours',
-                pricingModelId: pricingModel.id}},
-            {
-              transaction,
-              livemode: false,
-              organizationId: organization.id,
-              invalidateCache,
-              cacheRecomputationContext}
-          )
-          return Result.ok(usageMeterResult)
-        }
-      )).unwrap()
+      const result = (
+        await adminTransaction(
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
+            const usageMeterResult =
+              await createUsageMeterTransaction(
+                {
+                  usageMeter: {
+                    name: 'Compute Hours',
+                    slug: 'compute-hours',
+                    pricingModelId: pricingModel.id,
+                  },
+                },
+                {
+                  transaction,
+                  livemode: false,
+                  organizationId: organization.id,
+                  invalidateCache,
+                  cacheRecomputationContext,
+                }
+              )
+            return Result.ok(usageMeterResult)
+          }
+        )
+      ).unwrap()
 
       expect(result.noChargePrice.active).toBe(true)
     })
