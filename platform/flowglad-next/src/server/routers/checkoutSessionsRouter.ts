@@ -15,6 +15,7 @@ import {
 import { customerFacingFeeCalculationSelectSchema } from '@db-core/schema/feeCalculations'
 import { billingAddressSchema } from '@db-core/schema/organizations'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -75,7 +76,7 @@ export const createCheckoutSession = protectedProcedure
           })
         }
 
-        const result = await createCheckoutSessionTransaction(
+        return createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: ctx.organizationId!,
@@ -83,7 +84,6 @@ export const createCheckoutSession = protectedProcedure
           },
           transaction
         )
-        return result
       }
     )
   )
@@ -93,52 +93,55 @@ export const updateCheckoutSession = protectedProcedure
   .input(editCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const organizationId = ctx.organizationId
-        if (!organizationId) {
-          throw new Error('organizationId is required')
-        }
-        const [checkoutSession] = await selectCheckoutSessions(
-          {
-            id: input.checkoutSession.id,
-          },
-          transaction
-        )
-        if (!checkoutSession) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `Purchase session not found for id: ${input.checkoutSession.id}`,
-          })
-        }
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const organizationId = ctx.organizationId
+          if (!organizationId) {
+            throw new Error('organizationId is required')
+          }
+          const [checkoutSession] = await selectCheckoutSessions(
+            {
+              id: input.checkoutSession.id,
+            },
+            transaction
+          )
+          if (!checkoutSession) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Purchase session not found for id: ${input.checkoutSession.id}`,
+            })
+          }
 
-        if (checkoutSession.status !== CheckoutSessionStatus.Open) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Purchase session ${input.checkoutSession.id} is in status ${checkoutSession.status}. Purchase sessions can only be edited while in status ${CheckoutSessionStatus.Open}.`,
-          })
-        }
+          if (checkoutSession.status !== CheckoutSessionStatus.Open) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Purchase session ${input.checkoutSession.id} is in status ${checkoutSession.status}. Purchase sessions can only be edited while in status ${CheckoutSessionStatus.Open}.`,
+            })
+          }
 
-        const updatedCheckoutSession = await updateCheckoutSessionDb(
-          {
-            ...checkoutSession,
-            ...input.checkoutSession,
-          } as CheckoutSession.Update,
-          transaction
-        )
-        if (!updatedCheckoutSession) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: `Failed to update purchase session for id: ${input.checkoutSession.id}`,
+          const updatedCheckoutSession =
+            await updateCheckoutSessionDb(
+              {
+                ...checkoutSession,
+                ...input.checkoutSession,
+              } as CheckoutSession.Update,
+              transaction
+            )
+          if (!updatedCheckoutSession) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: `Failed to update purchase session for id: ${input.checkoutSession.id}`,
+            })
+          }
+          return Result.ok({
+            checkoutSession: updatedCheckoutSession,
+            url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
           })
-        }
-        return {
-          checkoutSession: updatedCheckoutSession,
-          url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
-        }
-      },
-      { apiKey: ctx.apiKey }
-    )
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
   })
 
 const getCheckoutSessionProcedure = protectedProcedure
@@ -146,20 +149,22 @@ const getCheckoutSessionProcedure = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(singleCheckoutSessionOutputSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const checkoutSession = (
-          await selectCheckoutSessionById(input.id, transaction)
-        ).unwrap()
-        return {
-          checkoutSession,
-          url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const checkoutSession = (
+            await selectCheckoutSessionById(input.id, transaction)
+          ).unwrap()
+          return Result.ok({
+            checkoutSession,
+            url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 const listCheckoutSessionsProcedure = protectedProcedure
@@ -167,14 +172,18 @@ const listCheckoutSessionsProcedure = protectedProcedure
   .input(checkoutSessionsPaginatedSelectSchema)
   .output(checkoutSessionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCheckoutSessionsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectCheckoutSessionsPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 /***
@@ -189,33 +198,37 @@ export const setPaymentMethodTypeProcedure = publicProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    return adminTransaction(async ({ transaction }) => {
-      const checkoutSession =
-        await updateCheckoutSessionPaymentMethodType(
-          {
-            id: input.id,
-            paymentMethodType: input.paymentMethodType,
-          },
-          transaction
-        )
-      return {
-        checkoutSession,
-      }
-    })
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        const checkoutSession =
+          await updateCheckoutSessionPaymentMethodType(
+            {
+              id: input.id,
+              paymentMethodType: input.paymentMethodType,
+            },
+            transaction
+          )
+        return Result.ok({
+          checkoutSession,
+        })
+      })
+    ).unwrap()
   })
 
 export const setCustomerEmailProcedure = publicProcedure
   .input(z.object({ id: z.string(), customerEmail: z.string() }))
   .mutation(async ({ input, ctx }) => {
-    return adminTransaction(async ({ transaction }) => {
-      const result = await updateCheckoutSessionCustomerEmail(
-        input,
-        transaction
-      )
-      return {
-        checkoutSession: result.unwrap(),
-      }
-    })
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        const result = await updateCheckoutSessionCustomerEmail(
+          input,
+          transaction
+        )
+        return Result.ok({
+          checkoutSession: result.unwrap(),
+        })
+      })
+    ).unwrap()
   })
 
 export const setBillingAddressProcedure = publicProcedure
@@ -230,19 +243,21 @@ export const setBillingAddressProcedure = publicProcedure
     })
   )
   .mutation(async ({ input }) => {
-    return adminTransaction(async ({ transaction }) => {
-      const result = await editCheckoutSessionBillingAddress(
-        {
-          checkoutSessionId: input.id,
-          billingAddress: input.billingAddress,
-        },
-        transaction
-      )
-      return {
-        checkoutSession: result.checkoutSession,
-        feeCalculation: result.feeCalculation,
-      }
-    })
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        const result = await editCheckoutSessionBillingAddress(
+          {
+            checkoutSessionId: input.id,
+            billingAddress: input.billingAddress,
+          },
+          transaction
+        )
+        return Result.ok({
+          checkoutSession: result.checkoutSession,
+          feeCalculation: result.feeCalculation,
+        })
+      })
+    ).unwrap()
   })
 
 export const setAutomaticallyUpdateSubscriptionsProcedure =
@@ -254,14 +269,16 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return adminTransaction(async ({ transaction }) => {
-        const result =
-          await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
-            input,
-            transaction
-          )
-        return { checkoutSession: result.unwrap() }
-      })
+      return (
+        await adminTransaction(async ({ transaction }) => {
+          const result =
+            await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
+              input,
+              transaction
+            )
+          return Result.ok({ checkoutSession: result.unwrap() })
+        })
+      ).unwrap()
     })
 
 export const checkoutSessionsRouter = router({

@@ -4,6 +4,7 @@ import {
   invoiceLineItemsPaginatedSelectSchema,
 } from '@db-core/schema/invoiceLineItems'
 import { idInputSchema } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectInvoiceLineItemById,
@@ -24,14 +25,18 @@ const listInvoiceLineItemsProcedure = protectedProcedure
   .input(invoiceLineItemsPaginatedSelectSchema)
   .output(invoiceLineItemsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectInvoiceLineItemsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectInvoiceLineItemsPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getInvoiceLineItemProcedure = protectedProcedure
@@ -39,16 +44,20 @@ const getInvoiceLineItemProcedure = protectedProcedure
   .input(idInputSchema)
   .output(invoiceLineItemsClientSelectSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectInvoiceLineItemById(input.id, transaction)
-        ).unwrap()
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectInvoiceLineItemById(input.id, transaction)
+            ).unwrap()
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 export const invoiceLineItemsRouter = router({

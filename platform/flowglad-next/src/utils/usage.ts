@@ -5,8 +5,8 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import {
-  type AuthenticatedTransactionParams,
   noopTransactionCallbacks,
+  type TransactionEffectsContext,
 } from '@/db/types'
 import { CacheDependency } from '@/utils/cache'
 import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
@@ -42,8 +42,10 @@ export const createUsageMeterTransaction = async (
     cacheRecomputationContext,
     emitEvent,
     enqueueLedgerCommand,
-  }: Omit<AuthenticatedTransactionParams, 'userId'> &
-    Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
+  }: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ): Promise<{
   usageMeter: UsageMeter.Record
   price: Price.Record

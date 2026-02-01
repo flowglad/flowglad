@@ -327,17 +327,21 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customer = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCustomerByExternalIdAndOrganizationId(
-          { externalId: input.externalId, organizationId },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const customer = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectCustomerByExternalIdAndOrganizationId(
+              { externalId: input.externalId, organizationId },
+              transaction
+            )
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
 
     if (!customer) {
       throw new TRPCError({
@@ -399,21 +403,25 @@ export const getCustomerBilling = protectedProcedure
       currentSubscription,
       purchases,
       subscriptions,
-    } = await authenticatedTransaction(
-      async ({ transaction, cacheRecomputationContext }) => {
-        return customerBillingTransaction(
-          {
-            externalId: input.externalId,
-            organizationId,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    } = (
+      await authenticatedTransaction(
+        async ({ transaction, cacheRecomputationContext }) => {
+          return Result.ok(
+            await customerBillingTransaction(
+              {
+                externalId: input.externalId,
+                organizationId,
+              },
+              transaction,
+              cacheRecomputationContext
+            )
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return {
       customer,
       invoices,
@@ -477,78 +485,80 @@ export const getCustomerUsageBalances = protectedProcedure
       })
     }
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        // Resolve customer by externalId and organizationId
-        const customer =
-          await selectCustomerByExternalIdAndOrganizationId(
-            {
-              externalId: input.externalId,
-              organizationId,
-            },
-            transaction
-          )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          // Resolve customer by externalId and organizationId
+          const customer =
+            await selectCustomerByExternalIdAndOrganizationId(
+              {
+                externalId: input.externalId,
+                organizationId,
+              },
+              transaction
+            )
 
-        if (!customer) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `Customer with externalId ${input.externalId} not found`,
-          })
-        }
-
-        // Get all subscriptions for this customer
-        const subscriptions = await selectSubscriptionsByCustomerId(
-          customer.id,
-          customer.livemode,
-          transaction
-        )
-
-        let subscriptionIds: string[]
-
-        if (input.subscriptionId) {
-          // Validate that the subscription belongs to this customer
-          const subscription = subscriptions.find(
-            (s) => s.id === input.subscriptionId
-          )
-
-          if (!subscription) {
+          if (!customer) {
             throw new TRPCError({
               code: 'NOT_FOUND',
-              message: `Subscription with id ${input.subscriptionId} not found for customer ${input.externalId}`,
+              message: `Customer with externalId ${input.externalId} not found`,
             })
           }
 
-          subscriptionIds = [input.subscriptionId]
-        } else {
-          // Filter to current subscriptions only (aligning with billing's currentSubscriptions)
-          const currentSubscriptions = subscriptions.filter((s) =>
-            isSubscriptionCurrent(s.status, s.cancellationReason)
-          )
-
-          subscriptionIds = currentSubscriptions.map((s) => s.id)
-        }
-
-        if (subscriptionIds.length === 0) {
-          return { usageMeterBalances: [] }
-        }
-
-        // Fetch usage meter balances for the subscriptions
-        const balances =
-          await selectUsageMeterBalancesForSubscriptions(
-            { subscriptionId: subscriptionIds },
+          // Get all subscriptions for this customer
+          const subscriptions = await selectSubscriptionsByCustomerId(
+            customer.id,
+            customer.livemode,
             transaction
           )
 
-        return {
-          usageMeterBalances: balances.map(
-            (b) => b.usageMeterBalance
-          ),
+          let subscriptionIds: string[]
+
+          if (input.subscriptionId) {
+            // Validate that the subscription belongs to this customer
+            const subscription = subscriptions.find(
+              (s) => s.id === input.subscriptionId
+            )
+
+            if (!subscription) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `Subscription with id ${input.subscriptionId} not found for customer ${input.externalId}`,
+              })
+            }
+
+            subscriptionIds = [input.subscriptionId]
+          } else {
+            // Filter to current subscriptions only (aligning with billing's currentSubscriptions)
+            const currentSubscriptions = subscriptions.filter((s) =>
+              isSubscriptionCurrent(s.status, s.cancellationReason)
+            )
+
+            subscriptionIds = currentSubscriptions.map((s) => s.id)
+          }
+
+          if (subscriptionIds.length === 0) {
+            return Result.ok({ usageMeterBalances: [] })
+          }
+
+          // Fetch usage meter balances for the subscriptions
+          const balances =
+            await selectUsageMeterBalancesForSubscriptions(
+              { subscriptionId: subscriptionIds },
+              transaction
+            )
+
+          return Result.ok({
+            usageMeterBalances: balances.map(
+              (b) => b.usageMeterBalance
+            ),
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 const listCustomersProcedure = protectedProcedure

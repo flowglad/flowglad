@@ -130,22 +130,26 @@ const getBillingProcedure = customerProtectedProcedure
       currentSubscription,
       purchases,
       subscriptions,
-    } = await authenticatedTransaction(
-      async ({ transaction, cacheRecomputationContext }) => {
-        return customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-        customerId: customer.id,
-      }
-    )
+    } = (
+      await authenticatedTransaction(
+        async ({ transaction, cacheRecomputationContext }) => {
+          return Result.ok(
+            await customerBillingTransaction(
+              {
+                externalId: customer.externalId,
+                organizationId,
+              },
+              transaction,
+              cacheRecomputationContext
+            )
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+          customerId: customer.id,
+        }
+      )
+    ).unwrap()
 
     // Apply pagination to invoices if requested
     let paginatedInvoices = invoices
@@ -213,63 +217,67 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     const { customer, livemode } = ctx
 
     // First transaction: Validate cancellation is allowed (customer-scoped RLS)
-    await authenticatedTransaction(
-      async ({ transaction }) => {
-        // Verify the subscription belongs to the customer
-        const subscription = (
-          await selectSubscriptionById(input.id, transaction)
-        ).unwrap()
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          // Verify the subscription belongs to the customer
+          const subscription = (
+            await selectSubscriptionById(input.id, transaction)
+          ).unwrap()
 
-        if (subscription.customerId !== customer.id) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message:
-              'You do not have permission to cancel this subscription',
-          })
-        }
+          if (subscription.customerId !== customer.id) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message:
+                'You do not have permission to cancel this subscription',
+            })
+          }
 
-        // Check subscription is not in terminal state
-        if (isSubscriptionInTerminalState(subscription.status)) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Subscription is already in a terminal state and cannot be cancelled',
-          })
-        }
+          // Check subscription is not in terminal state
+          if (isSubscriptionInTerminalState(subscription.status)) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Subscription is already in a terminal state and cannot be cancelled',
+            })
+          }
 
-        // Check subscription renews (non-renewing subscriptions can't be cancelled)
-        if (!subscription.renews) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Non-renewing subscriptions cannot be cancelled',
-          })
-        }
+          // Check subscription renews (non-renewing subscriptions can't be cancelled)
+          if (!subscription.renews) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Non-renewing subscriptions cannot be cancelled',
+            })
+          }
 
-        if (subscription.cancelScheduledAt) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Cancellation already scheduled for this subscription',
-          })
-        }
+          if (subscription.cancelScheduledAt) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Cancellation already scheduled for this subscription',
+            })
+          }
 
-        // Customers can only cancel at end of billing period
-        if (
-          input.cancellation.timing ===
-          SubscriptionCancellationArrangement.Immediately
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Immediate cancellation is not available through the customer billing portal',
-          })
+          // Customers can only cancel at end of billing period
+          if (
+            input.cancellation.timing ===
+            SubscriptionCancellationArrangement.Immediately
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Immediate cancellation is not available through the customer billing portal',
+            })
+          }
+          return Result.ok(undefined)
+        },
+        {
+          apiKey: ctx.apiKey,
+          customerId: customer.id,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-        customerId: customer.id,
-      }
-    )
+      )
+    ).unwrap()
 
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
@@ -326,44 +334,47 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     const { customer, livemode } = ctx
 
     // First transaction: Validate uncancel is allowed (customer-scoped RLS)
-    await authenticatedTransaction(
-      async ({ transaction }) => {
-        // Verify the subscription belongs to the customer
-        const subscription = (
-          await selectSubscriptionById(input.id, transaction)
-        ).unwrap()
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          // Verify the subscription belongs to the customer
+          const subscription = (
+            await selectSubscriptionById(input.id, transaction)
+          ).unwrap()
 
-        if (subscription.customerId !== customer.id) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message:
-              'You do not have permission to uncancel this subscription',
-          })
-        }
+          if (subscription.customerId !== customer.id) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message:
+                'You do not have permission to uncancel this subscription',
+            })
+          }
 
-        // Check subscription is in cancellation_scheduled status
-        if (subscription.status !== 'cancellation_scheduled') {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Subscription must be in cancellation_scheduled status to uncancel',
-          })
-        }
+          // Check subscription is in cancellation_scheduled status
+          if (subscription.status !== 'cancellation_scheduled') {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Subscription must be in cancellation_scheduled status to uncancel',
+            })
+          }
 
-        // Check that cancellation is actually scheduled
-        if (!subscription.cancelScheduledAt) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'No cancellation scheduled for this subscription',
-          })
+          // Check that cancellation is actually scheduled
+          if (!subscription.cancelScheduledAt) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'No cancellation scheduled for this subscription',
+            })
+          }
+          return Result.ok(undefined)
+        },
+        {
+          apiKey: ctx.apiKey,
+          customerId: customer.id,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-        customerId: customer.id,
-      }
-    )
+      )
+    ).unwrap()
 
     // Second transaction: Actually perform the uncancel (admin-scoped, bypasses RLS)
     return (
@@ -425,11 +436,13 @@ const requestMagicLinkProcedure = publicProcedure
 
     try {
       // Verify organization exists
-      const organizationResult = await adminTransaction(
-        async ({ transaction }) => {
-          return selectOrganizationById(organizationId, transaction)
-        }
-      )
+      const organizationResult = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectOrganizationById(organizationId, transaction)
+          )
+        })
+      ).unwrap()
 
       if (Result.isError(organizationResult)) {
         throw new TRPCError({
@@ -443,68 +456,70 @@ const requestMagicLinkProcedure = publicProcedure
       await setCustomerBillingPortalOrganizationId(organizationId)
 
       // Check if customers exist and handle user creation/linking in single transaction
-      await adminTransaction(async ({ transaction }) => {
-        // Find livemode customers by email and organizationId
-        // Note: Intentionally includes archived customers - they should still be able
-        // to access the billing portal to view historical invoices and billing data
-        const customers = await selectCustomers(
-          {
-            email,
-            organizationId,
-            livemode: true,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Find livemode customers by email and organizationId
+          // Note: Intentionally includes archived customers - they should still be able
+          // to access the billing portal to view historical invoices and billing data
+          const customers = await selectCustomers(
+            {
+              email,
+              organizationId,
+              livemode: true,
+            },
+            transaction
+          )
 
-        if (customers.length > 0) {
-          // Customer found - proceed with user account handling
-          const [user] = await selectUsers({ email }, transaction)
+          if (customers.length > 0) {
+            // Customer found - proceed with user account handling
+            const [user] = await selectUsers({ email }, transaction)
 
-          let userId: string
+            let userId: string
 
-          if (!user || !user.betterAuthId) {
-            // Create new user account for the customer
-            const result = await auth.api.createUser({
-              body: {
-                email,
-                password: core.nanoid(),
-                name: customers
-                  .map((customer) => customer.name)
-                  .join(' '),
-              },
-            })
-            const safelyCreatedUser =
-              await betterAuthUserToApplicationUser(result.user)
-            userId = safelyCreatedUser.id
+            if (!user || !user.betterAuthId) {
+              // Create new user account for the customer
+              const result = await auth.api.createUser({
+                body: {
+                  email,
+                  password: core.nanoid(),
+                  name: customers
+                    .map((customer) => customer.name)
+                    .join(' '),
+                },
+              })
+              const safelyCreatedUser =
+                await betterAuthUserToApplicationUser(result.user)
+              userId = safelyCreatedUser.id
 
-            // Link customers to the new user
-            await setUserIdForCustomerRecords(
-              { customerEmail: email, userId },
-              transaction
-            )
-          } else {
-            userId = user.id
-
-            // If some customers have no user id, set the user id for the customers
-            if (
-              customers.some((customer) => customer.userId === null)
-            ) {
+              // Link customers to the new user
               await setUserIdForCustomerRecords(
                 { customerEmail: email, userId },
                 transaction
               )
-            }
-          }
+            } else {
+              userId = user.id
 
-          // Get better auth user for email verification status
-          await selectBetterAuthUserById(
-            user.betterAuthId!,
-            transaction
-          )
-        }
-        // Always return success (even if no customer found) for security
-        return { success: true }
-      })
+              // If some customers have no user id, set the user id for the customers
+              if (
+                customers.some((customer) => customer.userId === null)
+              ) {
+                await setUserIdForCustomerRecords(
+                  { customerEmail: email, userId },
+                  transaction
+                )
+              }
+            }
+
+            // Get better auth user for email verification status
+            await selectBetterAuthUserById(
+              user.betterAuthId!,
+              transaction
+            )
+          }
+          // Always return success (even if no customer found) for security
+          return Result.ok({ success: true })
+        })
+      ).unwrap()
 
       await auth.api.signInMagicLink({
         body: {
@@ -668,18 +683,20 @@ const getCustomersForUserAndOrganizationProcedure = protectedProcedure
 
     // Note: Intentionally includes archived customers - they should still be able
     // to access the billing portal to view historical invoices and billing data
-    const customers = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            userId,
-            organizationId,
-            livemode: true,
-          },
-          transaction
+    const customers = (
+      await authenticatedTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              userId,
+              organizationId,
+              livemode: true,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     return { customers }
   })
 
@@ -757,8 +774,8 @@ const sendOTPToCustomerProcedure = publicProcedure
 
     try {
       // 1. Fetch customer and organization, verify they match in a single transaction
-      const { customer, organization } = await adminTransaction(
-        async ({ transaction }) => {
+      const { customer, organization } = (
+        await adminTransaction(async ({ transaction }) => {
           const customerResult = await selectCustomerById(
             customerId,
             transaction
@@ -800,83 +817,85 @@ const sendOTPToCustomerProcedure = publicProcedure
             })
           }
 
-          return {
+          return Result.ok({
             customer,
             organization: organizationResult.unwrap(),
-          }
-        }
-      )
+          })
+        })
+      ).unwrap()
 
       // 2. Set organization ID for billing portal session
       await setCustomerBillingPortalOrganizationId(organizationId)
 
       // 3. Create/link user account if needed
-      await adminTransaction(async ({ transaction }) => {
-        const email = customer.email!
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const email = customer.email!
 
-        // Find livemode customers by email and organizationId
-        // Note: Intentionally includes archived customers - they should still be able
-        // to access the billing portal to view historical invoices and billing data
-        const customers = await selectCustomers(
-          {
-            email,
-            organizationId,
-            livemode: true,
-          },
-          transaction
-        )
+          // Find livemode customers by email and organizationId
+          // Note: Intentionally includes archived customers - they should still be able
+          // to access the billing portal to view historical invoices and billing data
+          const customers = await selectCustomers(
+            {
+              email,
+              organizationId,
+              livemode: true,
+            },
+            transaction
+          )
 
-        if (customers.length > 0) {
-          // Customer found - proceed with user account handling
-          const [user] = await selectUsers({ email }, transaction)
+          if (customers.length > 0) {
+            // Customer found - proceed with user account handling
+            const [user] = await selectUsers({ email }, transaction)
 
-          let userId: string
+            let userId: string
 
-          if (!user || !user.betterAuthId) {
-            // Create new user account for the customer
-            const result = await auth.api.createUser({
-              body: {
-                email,
-                password: core.nanoid(),
-                name: customers
-                  .map((customer) => customer.name)
-                  .join(' '),
-              },
-            })
-            const safelyCreatedUser =
-              await betterAuthUserToApplicationUser(result.user)
-            userId = safelyCreatedUser.id
+            if (!user || !user.betterAuthId) {
+              // Create new user account for the customer
+              const result = await auth.api.createUser({
+                body: {
+                  email,
+                  password: core.nanoid(),
+                  name: customers
+                    .map((customer) => customer.name)
+                    .join(' '),
+                },
+              })
+              const safelyCreatedUser =
+                await betterAuthUserToApplicationUser(result.user)
+              userId = safelyCreatedUser.id
 
-            // Link customers to the new user
-            await setUserIdForCustomerRecords(
-              { customerEmail: email, userId },
-              transaction
-            )
-          } else {
-            userId = user.id
-
-            // If some customers have no user id, set the user id for the customers
-            if (
-              customers.some((customer) => customer.userId === null)
-            ) {
+              // Link customers to the new user
               await setUserIdForCustomerRecords(
                 { customerEmail: email, userId },
                 transaction
               )
+            } else {
+              userId = user.id
+
+              // If some customers have no user id, set the user id for the customers
+              if (
+                customers.some((customer) => customer.userId === null)
+              ) {
+                await setUserIdForCustomerRecords(
+                  { customerEmail: email, userId },
+                  transaction
+                )
+              }
+            }
+
+            // Get better auth user for email verification status
+            if (user?.betterAuthId) {
+              await selectBetterAuthUserById(
+                user.betterAuthId,
+                transaction
+              )
             }
           }
-
-          // Get better auth user for email verification status
-          if (user?.betterAuthId) {
-            await selectBetterAuthUserById(
-              user.betterAuthId,
-              transaction
-            )
-          }
-        }
-        // Always return success (even if no customer found) for security
-        return { success: true }
-      })
+          // Always return success (even if no customer found) for security
+          return Result.ok({ success: true })
+        })
+      ).unwrap()
 
       // 4. Store email in secure cookie for server-side OTP verification
       // This prevents exposing actual email to client

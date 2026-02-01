@@ -11,6 +11,7 @@ import {
   idInputSchema,
 } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -134,14 +135,18 @@ const listPaginatedProcedure = protectedProcedure
   .input(resourcesPaginatedSelectSchema)
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectResourcesPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectResourcesPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getTableRowsProcedure = protectedProcedure

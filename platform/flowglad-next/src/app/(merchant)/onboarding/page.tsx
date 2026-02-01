@@ -122,6 +122,10 @@ const OnboardingPage = async () => {
         async ({
           transaction,
           cacheRecomputationContext,
+          effects,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
         }): Promise<Result<ApiKey.Record, Error>> => {
           const [user] = await selectUsers(
             {
@@ -150,6 +154,10 @@ const OnboardingPage = async () => {
               userId: user.id,
               organizationId: organization.id,
               cacheRecomputationContext,
+              effects,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
             }
           )
           return Result.ok(apiKey)

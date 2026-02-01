@@ -294,6 +294,10 @@ export const validateAndResolveCustomerForSubscription =
 
 const BILLING_RUN_TIMEOUT_MS = 60_000 // 60 seconds max wait for billing run
 
+type PreviewAdjustSubscriptionOutput = z.infer<
+  typeof previewAdjustSubscriptionOutputSchema
+>
+
 const previewAdjustSubscriptionProcedure = protectedProcedure
   .meta({
     openapi: {
@@ -318,95 +322,103 @@ const previewAdjustSubscriptionProcedure = protectedProcedure
       })
     }
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const previewResult = await calculateAdjustmentPreview(
-          input,
-          transaction
-        )
-
-        if (!previewResult.canAdjust) {
-          // Return the failure result directly
-          return {
-            canAdjust: false as const,
-            previewGeneratedAt: previewResult.previewGeneratedAt,
-            reason: previewResult.reason,
-          }
-        }
-
-        // Fetch payment method details if available
-        let paymentMethodDetails:
-          | {
-              id: string
-              type: string
-              last4?: string
-              brand?: string
-            }
-          | undefined
-
-        if (previewResult.paymentMethodId) {
-          const paymentMethodResult = await selectPaymentMethodById(
-            previewResult.paymentMethodId,
+    return (
+      await authenticatedTransaction(
+        async ({
+          transaction,
+        }): Promise<
+          Result<PreviewAdjustSubscriptionOutput, Error>
+        > => {
+          const previewResult = await calculateAdjustmentPreview(
+            input,
             transaction
           )
-          if (Result.isOk(paymentMethodResult)) {
-            const pm = paymentMethodResult.value
-            // Extract last4 and brand from paymentMethodData if available (for card payments)
-            const pmData = pm.paymentMethodData as Record<
-              string,
-              unknown
-            >
-            paymentMethodDetails = {
-              id: pm.id,
-              type: pm.type,
-              last4:
-                typeof pmData?.last4 === 'string'
-                  ? pmData.last4
-                  : undefined,
-              brand:
-                typeof pmData?.brand === 'string'
-                  ? pmData.brand
-                  : undefined,
+
+          if (!previewResult.canAdjust) {
+            // Return the failure result directly
+            return Result.ok({
+              canAdjust: false,
+              previewGeneratedAt: previewResult.previewGeneratedAt,
+              reason: previewResult.reason,
+            })
+          }
+
+          // Fetch payment method details if available
+          let paymentMethodDetails:
+            | {
+                id: string
+                type: string
+                last4?: string
+                brand?: string
+              }
+            | undefined
+
+          if (previewResult.paymentMethodId) {
+            const paymentMethodResult = await selectPaymentMethodById(
+              previewResult.paymentMethodId,
+              transaction
+            )
+            if (Result.isOk(paymentMethodResult)) {
+              const pm = paymentMethodResult.value
+              // Extract last4 and brand from paymentMethodData if available (for card payments)
+              const pmData = pm.paymentMethodData as Record<
+                string,
+                unknown
+              >
+              paymentMethodDetails = {
+                id: pm.id,
+                type: pm.type,
+                last4:
+                  typeof pmData?.last4 === 'string'
+                    ? pmData.last4
+                    : undefined,
+                brand:
+                  typeof pmData?.brand === 'string'
+                    ? pmData.brand
+                    : undefined,
+              }
             }
           }
-        }
 
-        // Transform subscription items to preview format
-        const currentSubscriptionItems =
-          previewResult.currentSubscriptionItems.map((item) => ({
-            name: item.name ?? '',
-            unitPrice: item.unitPrice,
-            quantity: item.quantity,
-            priceId: item.priceId ?? '',
-          }))
+          // Transform subscription items to preview format
+          const currentSubscriptionItems =
+            previewResult.currentSubscriptionItems.map((item) => ({
+              name: item.name ?? '',
+              unitPrice: item.unitPrice,
+              quantity: item.quantity,
+              priceId: item.priceId ?? '',
+            }))
 
-        const newSubscriptionItems =
-          previewResult.resolvedNewSubscriptionItems.map((item) => ({
-            name: item.name ?? '',
-            unitPrice: item.unitPrice,
-            quantity: item.quantity,
-            priceId: item.priceId ?? '',
-          }))
+          const newSubscriptionItems =
+            previewResult.resolvedNewSubscriptionItems.map(
+              (item) => ({
+                name: item.name ?? '',
+                unitPrice: item.unitPrice,
+                quantity: item.quantity,
+                priceId: item.priceId ?? '',
+              })
+            )
 
-        return {
-          canAdjust: true as const,
-          previewGeneratedAt: previewResult.previewGeneratedAt,
-          prorationAmount: previewResult.prorationAmount,
-          currentPlanTotal: previewResult.currentPlanTotal,
-          newPlanTotal: previewResult.newPlanTotal,
-          resolvedTiming: previewResult.resolvedTiming,
-          effectiveDate: previewResult.effectiveDate,
-          isUpgrade: previewResult.isUpgrade,
-          percentThroughBillingPeriod:
-            previewResult.percentThroughBillingPeriod,
-          billingPeriodEnd: previewResult.billingPeriodEnd,
-          paymentMethod: paymentMethodDetails,
-          currentSubscriptionItems,
-          newSubscriptionItems,
-        }
-      },
-      { apiKey: ctx.apiKey }
-    )
+          return Result.ok({
+            canAdjust: true,
+            previewGeneratedAt: previewResult.previewGeneratedAt,
+            prorationAmount: previewResult.prorationAmount,
+            currentPlanTotal: previewResult.currentPlanTotal,
+            newPlanTotal: previewResult.newPlanTotal,
+            resolvedTiming: previewResult.resolvedTiming,
+            effectiveDate: previewResult.effectiveDate,
+            isUpgrade: previewResult.isUpgrade,
+            percentThroughBillingPeriod:
+              previewResult.percentThroughBillingPeriod,
+            billingPeriodEnd: previewResult.billingPeriodEnd,
+            paymentMethod: paymentMethodDetails,
+            currentSubscriptionItems,
+            newSubscriptionItems,
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
   })
 
 const adjustSubscriptionProcedure = protectedProcedure
@@ -499,21 +511,29 @@ const adjustSubscriptionProcedure = protectedProcedure
       // Step 3: After billing run completes, fetch fresh subscription data
       // The subscription items are now updated by processOutcomeForBillingRun
       // Pass apiKey to maintain authentication context after async wait
-      const freshData = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const freshSubscription = (
-            await selectSubscriptionById(subscription.id, transaction)
-          ).unwrap()
-          const freshSubscriptionItems =
-            await selectCurrentlyActiveSubscriptionItems(
-              { subscriptionId: subscription.id },
-              new Date(),
-              transaction
-            )
-          return { freshSubscription, freshSubscriptionItems }
-        },
-        { apiKey: ctx.apiKey }
-      )
+      const freshData = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const freshSubscription = (
+              await selectSubscriptionById(
+                subscription.id,
+                transaction
+              )
+            ).unwrap()
+            const freshSubscriptionItems =
+              await selectCurrentlyActiveSubscriptionItems(
+                { subscriptionId: subscription.id },
+                new Date(),
+                transaction
+              )
+            return Result.ok({
+              freshSubscription,
+              freshSubscriptionItems,
+            })
+          },
+          { apiKey: ctx.apiKey }
+        )
+      ).unwrap()
 
       return {
         subscription: {
@@ -615,27 +635,29 @@ const listSubscriptionsProcedure = protectedProcedure
   .input(subscriptionsPaginatedSelectSchema)
   .output(subscriptionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const result = await selectSubscriptionsPaginated(
-          input,
-          transaction
-        )
-        return {
-          ...result,
-          data: result.data.map((subscription) => ({
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
-          })),
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const result = await selectSubscriptionsPaginated(
+            input,
+            transaction
+          )
+          return Result.ok({
+            ...result,
+            data: result.data.map((subscription) => ({
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            })),
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 const getSubscriptionProcedure = protectedProcedure
@@ -643,25 +665,27 @@ const getSubscriptionProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const subscription = (
-          await selectSubscriptionById(input.id, transaction)
-        ).unwrap()
-        return {
-          subscription: {
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
-          },
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const subscription = (
+            await selectSubscriptionById(input.id, transaction)
+          ).unwrap()
+          return Result.ok({
+            subscription: {
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            },
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 export const createSubscriptionInputSchema = z
@@ -885,10 +909,7 @@ const createSubscriptionProcedure = protectedProcedure
           },
         }
 
-        return Result.ok({
-          ...outputValue,
-          ...finalResult,
-        })
+        return Result.ok(finalResult)
       }
     )
   )
@@ -904,14 +925,18 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectSubscriptionCountsByStatus(transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectSubscriptionCountsByStatus(transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getTableRows = protectedProcedure
@@ -935,7 +960,10 @@ const getTableRows = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        return selectSubscriptionsTableRowData({ input, transaction })
+        return selectSubscriptionsTableRowData({
+          input,
+          transaction,
+        })
       }
     )
   )
@@ -1001,83 +1029,87 @@ const retryBillingRunProcedure = protectedProcedure
   .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
   .mutation(async ({ input, ctx }) => {
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const billingPeriod = (
-          await selectBillingPeriodById(
-            input.billingPeriodId,
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const billingPeriod = (
+            await selectBillingPeriodById(
+              input.billingPeriodId,
+              transaction
+            )
+          ).unwrap()
+          if (
+            billingPeriod.status === BillingPeriodStatus.Completed
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already completed',
+            })
+          }
+          if (billingPeriod.status === BillingPeriodStatus.Canceled) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already canceled',
+            })
+          }
+          if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already upcoming',
+            })
+          }
+          const subscription = (
+            await selectSubscriptionById(
+              billingPeriod.subscriptionId,
+              transaction
+            )
+          ).unwrap()
+
+          if (subscription.doNotCharge) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Cannot retry billing for doNotCharge subscriptions',
+            })
+          }
+
+          const paymentMethod = subscription.defaultPaymentMethodId
+            ? (
+                await selectPaymentMethodById(
+                  subscription.defaultPaymentMethodId,
+                  transaction
+                )
+              ).unwrap()
+            : (
+                await selectPaymentMethods(
+                  {
+                    customerId: subscription.customerId,
+                    default: true,
+                  },
+                  transaction
+                )
+              )[0]
+
+          if (!paymentMethod) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'No payment method found for subscription',
+            })
+          }
+
+          const billingRunResult = await createBillingRun(
+            {
+              billingPeriod,
+              scheduledFor: new Date(),
+              paymentMethod,
+            },
             transaction
           )
-        ).unwrap()
-        if (billingPeriod.status === BillingPeriodStatus.Completed) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already completed',
-          })
-        }
-        if (billingPeriod.status === BillingPeriodStatus.Canceled) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already canceled',
-          })
-        }
-        if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already upcoming',
-          })
-        }
-        const subscription = (
-          await selectSubscriptionById(
-            billingPeriod.subscriptionId,
-            transaction
-          )
-        ).unwrap()
-
-        if (subscription.doNotCharge) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Cannot retry billing for doNotCharge subscriptions',
-          })
-        }
-
-        const paymentMethod = subscription.defaultPaymentMethodId
-          ? (
-              await selectPaymentMethodById(
-                subscription.defaultPaymentMethodId,
-                transaction
-              )
-            ).unwrap()
-          : (
-              await selectPaymentMethods(
-                {
-                  customerId: subscription.customerId,
-                  default: true,
-                },
-                transaction
-              )
-            )[0]
-
-        if (!paymentMethod) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'No payment method found for subscription',
-          })
-        }
-
-        const billingRunResult = await createBillingRun(
-          {
-            billingPeriod,
-            scheduledFor: new Date(),
-            paymentMethod,
-          },
-          transaction
-        )
-        return billingRunResult.unwrap()
-      },
-      { apiKey: ctx.apiKey }
-    )
+          return Result.ok(billingRunResult.unwrap())
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
     const billingRun = await executeBillingRun(result.id)
     if (!billingRun) {
       throw new TRPCError({
@@ -1105,17 +1137,21 @@ const listDistinctSubscriptionProductNamesProcedure =
     .input(z.object({}).optional())
     .output(z.array(z.string()))
     .query(async ({ ctx }) => {
-      return authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
-          return selectDistinctSubscriptionProductNames(
-            organizationId,
-            transaction
-          )
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
+      return (
+        await authenticatedTransaction(
+          async ({ transaction, organizationId }) => {
+            return Result.ok(
+              await selectDistinctSubscriptionProductNames(
+                organizationId,
+                transaction
+              )
+            )
+          },
+          {
+            apiKey: ctx.apiKey,
+          }
+        )
+      ).unwrap()
     })
 
 export const subscriptionsRouter = router({

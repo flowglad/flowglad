@@ -9,6 +9,7 @@ import { pricingModels } from '@db-core/schema/pricingModels'
 import { users, usersSelectSchema } from '@db-core/schema/users'
 import type { Session } from '@supabase/supabase-js'
 import type { User } from 'better-auth'
+import { Result } from 'better-result'
 import { and, desc, eq, isNull, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
 import { z } from 'zod'
@@ -94,28 +95,30 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     apiKeyType,
     apiKeyLivemode,
     pricingModelId,
-  } = await adminTransaction(async ({ transaction }) => {
-    const [apiKeyRecord] = await selectApiKeys(
-      {
-        token: key,
-      },
-      transaction
-    )
-    const [membershipAndUser] =
-      await selectMembershipsAndUsersByMembershipWhere(
+  } = (
+    await adminTransaction(async ({ transaction }) => {
+      const [apiKeyRecord] = await selectApiKeys(
         {
-          organizationId: apiKeyRecord.organizationId,
+          token: key,
         },
         transaction
       )
-    return {
-      membershipAndUser,
-      organizationId: apiKeyRecord.organizationId,
-      apiKeyType: apiKeyRecord.type,
-      apiKeyLivemode: apiKeyRecord.livemode,
-      pricingModelId: apiKeyRecord.pricingModelId,
-    }
-  })
+      const [membershipAndUser] =
+        await selectMembershipsAndUsersByMembershipWhere(
+          {
+            organizationId: apiKeyRecord.organizationId,
+          },
+          transaction
+        )
+      return Result.ok({
+        membershipAndUser,
+        organizationId: apiKeyRecord.organizationId,
+        apiKeyType: apiKeyRecord.type,
+        apiKeyLivemode: apiKeyRecord.livemode,
+        pricingModelId: apiKeyRecord.pricingModelId,
+      })
+    })
+  ).unwrap()
   return {
     keyType: apiKeyType,
     userId: membershipAndUser.user.id,

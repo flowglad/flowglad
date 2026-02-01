@@ -7,6 +7,7 @@ import {
   usageEventsPaginatedTableRowOutputSchema,
 } from '@db-core/schema/usageEvents'
 import { idInputSchema } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -89,14 +90,18 @@ export const getUsageEvent = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectUsageEventById(input.id, transaction)
-        ).unwrap()
-      },
-      { apiKey: ctx.apiKey }
-    )
+    const usageEvent = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectUsageEventById(input.id, transaction)
+            ).unwrap()
+          )
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
     return { usageEvent }
   })
 
@@ -135,24 +140,26 @@ const listUsageEventsProcedure = protectedProcedure
   .input(usageEventPaginatedSelectSchema)
   .output(usageEventPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const result = await selectUsageEventsPaginated(
-          input,
-          transaction
-        )
-        return {
-          data: result.data,
-          total: result.total,
-          hasMore: result.hasMore,
-          currentCursor: result.currentCursor,
-          nextCursor: result.nextCursor,
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const result = await selectUsageEventsPaginated(
+            input,
+            transaction
+          )
+          return Result.ok({
+            data: result.data,
+            total: result.total,
+            hasMore: result.hasMore,
+            currentCursor: result.currentCursor,
+            nextCursor: result.nextCursor,
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 // Get table rows for usage events with joins

@@ -8,6 +8,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -32,16 +33,18 @@ const getPurchaseProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ purchase: purchaseClientSelectSchema }))
   .query(async ({ ctx, input }) => {
-    const purchase = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectPurchaseById(input.id, transaction)
-        ).unwrap()
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const purchase = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            (await selectPurchaseById(input.id, transaction)).unwrap()
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { purchase }
   })
 

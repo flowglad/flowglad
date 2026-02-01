@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai'
 import { generateText } from 'ai'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { protectedProcedure } from '@/server/trpc'
@@ -13,8 +14,8 @@ export const generateDescription = protectedProcedure
   .input(generateDescriptionSchema)
   .output(z.object({ description: z.string() }))
   .mutation(async ({ input }) => {
-    const description = await authenticatedTransaction(
-      async ({ transaction }) => {
+    const description = (
+      await authenticatedTransaction(async ({ transaction }) => {
         // Assuming there's a function to generate description based on input
         const generatedDescription = await generateText({
           model: openai('gpt-4o-mini'),
@@ -29,9 +30,9 @@ export const generateDescription = protectedProcedure
             },
           ],
         })
-        return generatedDescription
-      }
-    )
+        return Result.ok(generatedDescription)
+      })
+    ).unwrap()
 
     return {
       description: description.text,

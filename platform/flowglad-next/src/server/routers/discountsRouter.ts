@@ -13,6 +13,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -45,41 +46,44 @@ export const createDiscount = protectedProcedure
   .input(createDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    const discount = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
+    const discount = (
+      await authenticatedTransaction(
+        async ({ transaction, userId, livemode }) => {
+          const [{ organization }] =
+            await selectMembershipAndOrganizations(
+              {
+                userId,
+                focused: true,
+              },
+              transaction
+            )
+
+          // Validate and resolve pricingModelId (uses default if not provided)
+          const pricingModelId =
+            await validateAndResolvePricingModelId({
+              pricingModelId: input.discount.pricingModelId,
+              organizationId: organization.id,
+              livemode,
+              transaction,
+            })
+
+          return Result.ok(
+            await insertDiscount(
+              {
+                ...input.discount,
+                pricingModelId,
+                organizationId: organization.id,
+                livemode,
+              },
+              transaction
+            )
           )
-
-        // Validate and resolve pricingModelId (uses default if not provided)
-        const pricingModelId = await validateAndResolvePricingModelId(
-          {
-            pricingModelId: input.discount.pricingModelId,
-            organizationId: organization.id,
-            livemode,
-            transaction,
-          }
-        )
-
-        return insertDiscount(
-          {
-            ...input.discount,
-            pricingModelId,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { discount }
   })
 
@@ -98,25 +102,27 @@ const listDiscountsProcedure = protectedProcedure
   .input(discountsPaginatedSelectSchema)
   .output(discountsPaginatedListWithRedemptionsSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const result = await selectDiscountsPaginated(
-          input,
-          transaction
-        )
-        const enriched = await enrichDiscountsWithRedemptionCounts(
-          result.data,
-          transaction
-        )
-        return {
-          ...result,
-          data: enriched,
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const result = await selectDiscountsPaginated(
+            input,
+            transaction
+          )
+          const enriched = await enrichDiscountsWithRedemptionCounts(
+            result.data,
+            transaction
+          )
+          return Result.ok({
+            ...result,
+            data: enriched,
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -135,7 +141,10 @@ const getTableRowsProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        return selectDiscountsTableRowData({ input, transaction })
+        return await selectDiscountsTableRowData({
+          input,
+          transaction,
+        })
       }
     )
   )
@@ -145,21 +154,23 @@ export const updateDiscount = protectedProcedure
   .input(editDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    const discount = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const updatedDiscount = await updateDiscountDB(
-          {
-            ...input.discount,
-            id: input.id,
-          },
-          transaction
-        )
-        return updatedDiscount
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const discount = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const updatedDiscount = await updateDiscountDB(
+            {
+              ...input.discount,
+              id: input.id,
+            },
+            transaction
+          )
+          return Result.ok(updatedDiscount)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { discount }
   })
 
@@ -167,12 +178,17 @@ export const deleteDiscount = protectedProcedure
   .input(idInputSchema)
   .mutation(async ({ input, ctx }) => {
     const { id } = input
-    await authenticatedTransaction(
-      ({ transaction }) => deleteDiscountMethod(id, transaction),
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await deleteDiscountMethod(id, transaction)
+          return Result.ok(undefined)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { success: true }
   })
 
@@ -181,19 +197,22 @@ export const getDiscount = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ discount: discountWithRedemptionsSchema }))
   .query(async ({ input, ctx }) => {
-    const discount = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const discountRecord = (
-          await selectDiscountById(input.id, transaction)
-        ).unwrap()
-        const [enriched] = await enrichDiscountsWithRedemptionCounts(
-          [discountRecord],
-          transaction
-        )
-        return enriched
-      },
-      { apiKey: ctx.apiKey }
-    )
+    const discount = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const discountRecord = (
+            await selectDiscountById(input.id, transaction)
+          ).unwrap()
+          const [enriched] =
+            await enrichDiscountsWithRedemptionCounts(
+              [discountRecord],
+              transaction
+            )
+          return Result.ok(enriched)
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
     return { discount }
   })
 

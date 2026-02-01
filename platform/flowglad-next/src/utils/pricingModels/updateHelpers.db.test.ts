@@ -3,23 +3,25 @@ import {
   FeatureType,
   FeatureUsageGrantFrequency,
   IntervalUnit,
-  PriceType} from '@db-core/enums'
+  PriceType,
+} from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import {
-  adminTransaction} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectProductFeatures,
-  updateProductFeature} from '@/db/tableMethods/productFeatureMethods'
+  updateProductFeature,
+} from '@/db/tableMethods/productFeatureMethods'
 import { bulkInsertResources } from '@/db/tableMethods/resourceMethods'
 import type { SetupPricingModelInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import {
   generateSyntheticUsagePriceSlug,
   resolveExistingIds,
-  syncProductFeaturesForMultipleProducts} from './updateHelpers'
+  syncProductFeaturesForMultipleProducts,
+} from './updateHelpers'
 
 let organization: Organization.Record
 
@@ -45,7 +47,8 @@ describe('resolveExistingIds', () => {
         {
           usageMeter: {
             slug: 'api-calls',
-            name: 'API Calls'},
+            name: 'API Calls',
+          },
           prices: [
             {
               type: PriceType.Usage,
@@ -56,12 +59,15 @@ describe('resolveExistingIds', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageEventsPerUnit: 100,
-              trialPeriodDays: null},
-          ]},
+              trialPeriodDays: null,
+            },
+          ],
+        },
         {
           usageMeter: {
             slug: 'storage',
-            name: 'Storage'},
+            name: 'Storage',
+          },
           prices: [
             {
               type: PriceType.Usage,
@@ -72,8 +78,10 @@ describe('resolveExistingIds', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageEventsPerUnit: 50,
-              trialPeriodDays: null},
-          ]},
+              trialPeriodDays: null,
+            },
+          ],
+        },
       ],
       features: [
         {
@@ -81,7 +89,8 @@ describe('resolveExistingIds', () => {
           slug: 'feature-a',
           name: 'Feature A',
           description: 'A toggle feature',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.UsageCreditGrant,
           slug: 'api-credits',
@@ -91,7 +100,8 @@ describe('resolveExistingIds', () => {
           amount: 1000,
           renewalFrequency:
             FeatureUsageGrantFrequency.EveryBillingPeriod,
-          active: true},
+          active: true,
+        },
       ],
       products: [
         {
@@ -99,7 +109,8 @@ describe('resolveExistingIds', () => {
             name: 'Starter Plan',
             slug: 'starter',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.Subscription,
             slug: 'starter-monthly',
@@ -109,14 +120,17 @@ describe('resolveExistingIds', () => {
             intervalCount: 1,
             intervalUnit: IntervalUnit.Month,
             usageMeterId: null,
-            usageEventsPerUnit: null},
-          features: ['feature-a']},
+            usageEventsPerUnit: null,
+          },
+          features: ['feature-a'],
+        },
         {
           product: {
             name: 'Pro Plan',
             slug: 'pro',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.Subscription,
             slug: 'pro-monthly',
@@ -126,10 +140,13 @@ describe('resolveExistingIds', () => {
             intervalCount: 1,
             intervalUnit: IntervalUnit.Month,
             usageMeterId: null,
-            usageEventsPerUnit: null},
-          features: ['feature-a', 'api-credits']},
+            usageEventsPerUnit: null,
+          },
+          features: ['feature-a', 'api-credits'],
+        },
         // Removed usage price products - usage prices belong to usage meters
-      ]}
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -139,7 +156,8 @@ describe('resolveExistingIds', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -260,15 +278,19 @@ describe('resolveExistingIds', () => {
             name: 'Simple Product',
             slug: 'simple',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'simple-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
-          features: []},
-      ]}
+            active: true,
+          },
+          features: [],
+        },
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -278,7 +300,8 @@ describe('resolveExistingIds', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -321,15 +344,19 @@ describe('resolveExistingIds', () => {
             name: 'Basic Product',
             slug: 'basic',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'basic-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
-          features: []},
-      ]}
+            active: true,
+          },
+          features: [],
+        },
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -339,7 +366,8 @@ describe('resolveExistingIds', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -359,14 +387,16 @@ describe('resolveExistingIds', () => {
                 pricingModelId: setupResult.pricingModel.id,
                 organizationId: organization.id,
                 livemode: false,
-                active: true},
+                active: true,
+              },
               {
                 slug: 'resource-b',
                 name: 'Resource B',
                 pricingModelId: setupResult.pricingModel.id,
                 organizationId: organization.id,
                 livemode: false,
-                active: true},
+                active: true,
+              },
             ],
             ctx.transaction
           )
@@ -416,7 +446,8 @@ describe('resolveExistingIds', () => {
         {
           usageMeter: {
             slug: 'api-calls',
-            name: 'API Calls'},
+            name: 'API Calls',
+          },
           prices: [
             {
               type: PriceType.Usage,
@@ -427,12 +458,15 @@ describe('resolveExistingIds', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageEventsPerUnit: 100,
-              trialPeriodDays: null},
-          ]},
+              trialPeriodDays: null,
+            },
+          ],
+        },
         {
           usageMeter: {
             slug: 'storage',
-            name: 'Storage'},
+            name: 'Storage',
+          },
           prices: [
             {
               type: PriceType.Usage,
@@ -443,8 +477,10 @@ describe('resolveExistingIds', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageEventsPerUnit: 50,
-              trialPeriodDays: null},
-          ]},
+              trialPeriodDays: null,
+            },
+          ],
+        },
       ],
       features: [],
       products: [
@@ -453,7 +489,8 @@ describe('resolveExistingIds', () => {
             name: 'Basic Plan',
             slug: 'basic',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.Subscription,
             slug: 'basic-monthly',
@@ -463,9 +500,12 @@ describe('resolveExistingIds', () => {
             intervalCount: 1,
             intervalUnit: IntervalUnit.Month,
             usageMeterId: null,
-            usageEventsPerUnit: null},
-          features: []},
-      ]}
+            usageEventsPerUnit: null,
+          },
+          features: [],
+        },
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -475,7 +515,8 @@ describe('resolveExistingIds', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -548,15 +589,19 @@ describe('resolveExistingIds', () => {
             name: 'Simple Product',
             slug: 'simple',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'simple-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
-          features: []},
-      ]}
+            active: true,
+          },
+          features: [],
+        },
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -566,7 +611,8 @@ describe('resolveExistingIds', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -605,31 +651,36 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           slug: 'feature-a',
           name: 'Feature A',
           description: 'Toggle A',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-b',
           name: 'Feature B',
           description: 'Toggle B',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-c',
           name: 'Feature C',
           description: 'Toggle C',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-x',
           name: 'Feature X',
           description: 'Toggle X',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-y',
           name: 'Feature Y',
           description: 'Toggle Y',
-          active: true},
+          active: true,
+        },
       ],
       products: [
         {
@@ -637,13 +688,15 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product A',
             slug: 'product-a',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-a-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-a', 'feature-b'], // Start with a and b
         },
         {
@@ -651,16 +704,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product B',
             slug: 'product-b',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-b-price',
             unitPrice: 2000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-x'], // Start with x
         },
-      ]}
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -670,7 +726,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -692,8 +749,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: add feature-c to product A, add feature-y to product B
-    const syncResult = (await adminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -703,18 +760,21 @@ describe('syncProductFeaturesForMultipleProducts', () => {
                   'feature-a',
                   'feature-b',
                   'feature-c',
-                ]},
+                ],
+              },
               {
                 productId: productB.id,
-                desiredFeatureSlugs: ['feature-x', 'feature-y']},
+                desiredFeatureSlugs: ['feature-x', 'feature-y'],
+              },
             ],
             featureSlugToIdMap,
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Expect: creates productFeatures for c and y
@@ -745,31 +805,36 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           slug: 'feature-a',
           name: 'Feature A',
           description: 'Toggle A',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-b',
           name: 'Feature B',
           description: 'Toggle B',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-c',
           name: 'Feature C',
           description: 'Toggle C',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-x',
           name: 'Feature X',
           description: 'Toggle X',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-y',
           name: 'Feature Y',
           description: 'Toggle Y',
-          active: true},
+          active: true,
+        },
       ],
       products: [
         {
@@ -777,13 +842,15 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product A',
             slug: 'product-a',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-a-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-a', 'feature-b', 'feature-c'], // Start with a, b, c
         },
         {
@@ -791,16 +858,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product B',
             slug: 'product-b',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-b-price',
             unitPrice: 2000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-x', 'feature-y'], // Start with x, y
         },
-      ]}
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -810,7 +880,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -832,8 +903,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: remove feature-c from product A, remove feature-y from product B
-    const syncResult = (await adminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -848,11 +919,12 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             ],
             featureSlugToIdMap,
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Expect: expires productFeatures for c and y
@@ -888,43 +960,50 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           slug: 'feature-a',
           name: 'Feature A',
           description: 'Toggle A',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-b',
           name: 'Feature B',
           description: 'Toggle B',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-c',
           name: 'Feature C',
           description: 'Toggle C',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-d',
           name: 'Feature D',
           description: 'Toggle D',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-x',
           name: 'Feature X',
           description: 'Toggle X',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-y',
           name: 'Feature Y',
           description: 'Toggle Y',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-z',
           name: 'Feature Z',
           description: 'Toggle Z',
-          active: true},
+          active: true,
+        },
       ],
       products: [
         {
@@ -932,13 +1011,15 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product A',
             slug: 'product-a',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-a-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-a', 'feature-b'], // Start with a, b
         },
         {
@@ -946,16 +1027,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product B',
             slug: 'product-b',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-b-price',
             unitPrice: 2000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-x', 'feature-y'], // Start with x, y
         },
-      ]}
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -965,7 +1049,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -989,25 +1074,28 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Sync: completely replace features
     // Product A: [a, b] -> [c, d]
     // Product B: [x, y] -> [z]
-    const syncResult = (await adminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
                 productId: productA.id,
-                desiredFeatureSlugs: ['feature-c', 'feature-d']},
+                desiredFeatureSlugs: ['feature-c', 'feature-d'],
+              },
               {
                 productId: productB.id,
-                desiredFeatureSlugs: ['feature-z']},
+                desiredFeatureSlugs: ['feature-z'],
+              },
             ],
             featureSlugToIdMap,
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Expect: removes a, b, x, y and adds c, d, z
@@ -1058,37 +1146,43 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           slug: 'feature-a',
           name: 'Feature A',
           description: 'Toggle A',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-b',
           name: 'Feature B',
           description: 'Toggle B',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-x',
           name: 'Feature X',
           description: 'Toggle X',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-y',
           name: 'Feature Y',
           description: 'Toggle Y',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-p',
           name: 'Feature P',
           description: 'Toggle P',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-q',
           name: 'Feature Q',
           description: 'Toggle Q',
-          active: true},
+          active: true,
+        },
       ],
       products: [
         {
@@ -1096,13 +1190,15 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product A',
             slug: 'product-a',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-a-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-a', 'feature-b'], // No change
         },
         {
@@ -1110,13 +1206,15 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product B',
             slug: 'product-b',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-b-price',
             unitPrice: 2000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-x'], // Add y
         },
         {
@@ -1124,16 +1222,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product C',
             slug: 'product-c',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-c-price',
             unitPrice: 3000,
             isDefault: true,
-            active: true},
+            active: true,
+          },
           features: ['feature-p', 'feature-q'], // Remove q
         },
-      ]}
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -1143,7 +1244,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -1171,28 +1273,32 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Product A: [a, b] -> [a, b] (no change)
     // Product B: [x] -> [x, y] (add y)
     // Product C: [p, q] -> [p] (remove q)
-    const syncResult = (await adminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
                 productId: productA.id,
-                desiredFeatureSlugs: ['feature-a', 'feature-b']},
+                desiredFeatureSlugs: ['feature-a', 'feature-b'],
+              },
               {
                 productId: productB.id,
-                desiredFeatureSlugs: ['feature-x', 'feature-y']},
+                desiredFeatureSlugs: ['feature-x', 'feature-y'],
+              },
               {
                 productId: productC.id,
-                desiredFeatureSlugs: ['feature-p']},
+                desiredFeatureSlugs: ['feature-p'],
+              },
             ],
             featureSlugToIdMap,
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Expect: only y added and q removed
@@ -1218,18 +1324,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('returns empty added and removed arrays when given empty products list', async () => {
     // Test: call with empty productsWithFeatures array
-    const syncResult = (await adminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [],
             featureSlugToIdMap: new Map(),
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Expect: returns empty added and removed arrays, no errors
@@ -1249,13 +1356,15 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           slug: 'feature-a',
           name: 'Feature A',
           description: 'Toggle A',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-b',
           name: 'Feature B',
           description: 'Toggle B',
-          active: true},
+          active: true,
+        },
       ],
       products: [
         {
@@ -1263,15 +1372,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product A',
             slug: 'product-a',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-a-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
-          features: ['feature-a', 'feature-b']},
-      ]}
+            active: true,
+          },
+          features: ['feature-a', 'feature-b'],
+        },
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -1281,7 +1394,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -1300,8 +1414,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Step 1: Remove feature-b (this will expire it)
-    const removeResult = (await adminTransaction(
-      async (params) => {
+    const removeResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1312,11 +1426,12 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             ],
             featureSlugToIdMap,
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Verify feature-b was removed (expired)
@@ -1327,8 +1442,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(typeof removeResult.removed[0].expiredAt).toBe('number')
 
     // Step 2: Re-add feature-b (this should unexpire it)
-    const reAddResult = (await adminTransaction(
-      async (params) => {
+    const reAddResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1339,11 +1454,12 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             ],
             featureSlugToIdMap,
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Verify feature-b was added back (unexpired)
@@ -1394,13 +1510,15 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           slug: 'feature-a',
           name: 'Feature A',
           description: 'Toggle A',
-          active: true},
+          active: true,
+        },
         {
           type: FeatureType.Toggle,
           slug: 'feature-b',
           name: 'Feature B',
           description: 'Toggle B',
-          active: true},
+          active: true,
+        },
       ],
       products: [
         {
@@ -1408,15 +1526,19 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             name: 'Product A',
             slug: 'product-a',
             default: false,
-            active: true},
+            active: true,
+          },
           price: {
             type: PriceType.SinglePayment,
             slug: 'product-a-price',
             unitPrice: 1000,
             isDefault: true,
-            active: true},
-          features: ['feature-a', 'feature-b']},
-      ]}
+            active: true,
+          },
+          features: ['feature-a', 'feature-b'],
+        },
+      ],
+    }
 
     const setupResult = (
       await adminTransaction(async (ctx) => {
@@ -1426,7 +1548,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
               {
                 input,
                 organizationId: organization.id,
-                livemode: false},
+                livemode: false,
+              },
               ctx
             )
           ).unwrap()
@@ -1454,7 +1577,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           await updateProductFeature(
             {
               id: featureBProductFeature.id,
-              expiredAt: Date.now() - 1000},
+              expiredAt: Date.now() - 1000,
+            },
             ctx
           )
         }
@@ -1469,22 +1593,24 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Sync: request only feature-a (feature-b is already expired)
-    const syncResult = (await adminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
               {
                 productId: productA.id,
-                desiredFeatureSlugs: ['feature-a']},
+                desiredFeatureSlugs: ['feature-a'],
+              },
             ],
             featureSlugToIdMap,
             organizationId: organization.id,
-            livemode: false},
+            livemode: false,
+          },
           params
         )
         return Result.ok(result)
-      }
+      })
     ).unwrap()
 
     // Expect: no removals because feature-b was already expired

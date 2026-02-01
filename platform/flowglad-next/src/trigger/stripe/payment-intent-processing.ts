@@ -1,5 +1,6 @@
 import { PaymentStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -17,27 +18,30 @@ export const stripePaymentIntentProcessingTask = task({
     /**
      *
      */
-    await adminTransaction(async ({ transaction }) => {
-      const [payment] = await selectPayments(
-        {
-          stripePaymentIntentId: payload.data.object.id,
-        },
-        transaction
-      )
-      if (!payment) {
-        logger.error('Payment not found', {
-          paymentIntentId: payload.data.object.id,
-        })
-        return
-      }
-      await updatePayment(
-        {
-          id: payment.id,
-          status: PaymentStatus.Processing,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const [payment] = await selectPayments(
+          {
+            stripePaymentIntentId: payload.data.object.id,
+          },
+          transaction
+        )
+        if (!payment) {
+          logger.error('Payment not found', {
+            paymentIntentId: payload.data.object.id,
+          })
+          return Result.ok(undefined)
+        }
+        await updatePayment(
+          {
+            id: payment.id,
+            status: PaymentStatus.Processing,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
     return {
       message: 'Hello, world!',
     }

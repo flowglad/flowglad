@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectInvoiceById,
@@ -15,13 +16,15 @@ export const generateInvoicePdfTask = task({
     return tracedTaskRun(
       'generateInvoicePdf',
       async () => {
-        const invoice = await adminTransaction(
-          async ({ transaction }) => {
-            return (
-              await selectInvoiceById(invoiceId, transaction)
-            ).unwrap()
-          }
-        )
+        const invoice = (
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              (
+                await selectInvoiceById(invoiceId, transaction)
+              ).unwrap()
+            )
+          })
+        ).unwrap()
         /**
          * In dev mode, trigger will not load localhost:3000 correctly,
          * probably because it's running inside of a container.
@@ -44,8 +47,8 @@ export const generateInvoicePdfTask = task({
           cloudflareMethods.BUCKET_PUBLIC_URL
         )
         logger.log('Invoice PDF URL', { invoicePdfUrl })
-        const oldInvoicePdfUrl = await adminTransaction(
-          async ({ transaction }) => {
+        const oldInvoicePdfUrl = (
+          await adminTransaction(async ({ transaction }) => {
             const latestInvoice = (
               await selectInvoiceById(invoice.id, transaction)
             ).unwrap()
@@ -57,9 +60,9 @@ export const generateInvoicePdfTask = task({
               },
               transaction
             )
-            return oldInvoicePdfUrl
-          }
-        )
+            return Result.ok(oldInvoicePdfUrl)
+          })
+        ).unwrap()
         /**
          * Delete the old invoice PDF from Cloudflare if it exists
          */
