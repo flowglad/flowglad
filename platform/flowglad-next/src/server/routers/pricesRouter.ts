@@ -283,7 +283,7 @@ export const getPrice = protectedProcedure
               message: 'Price not found',
             })
           }
-          return Result.ok(result.unwrap())
+          return result
         },
         { apiKey: ctx.apiKey }
       )

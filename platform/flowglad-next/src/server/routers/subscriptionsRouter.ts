@@ -1105,7 +1105,7 @@ const retryBillingRunProcedure = protectedProcedure
             },
             transaction
           )
-          return Result.ok(billingRunResult.unwrap())
+          return billingRunResult
         },
         { apiKey: ctx.apiKey }
       )

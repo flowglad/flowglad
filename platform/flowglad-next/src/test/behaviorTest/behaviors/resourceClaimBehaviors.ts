@@ -20,7 +20,6 @@
 import { FeatureType } from '@db-core/enums'
 import type { ResourceClaim } from '@db-core/schema/resourceClaims'
 import type { Subscription } from '@db-core/schema/subscriptions'
-import { Result } from 'better-result'
 import { setupResourceClaim } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -242,7 +241,7 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
               },
               ctx
             )
-            return Result.ok(result.unwrap())
+            return result
           },
           { livemode }
         )
