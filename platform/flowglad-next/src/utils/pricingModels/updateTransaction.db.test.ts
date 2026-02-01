@@ -3,12 +3,12 @@ import {
   FeatureType,
   FeatureUsageGrantFrequency,
   IntervalUnit,
-  PriceType} from '@db-core/enums'
+  PriceType,
+} from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import {
-  adminTransaction} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
@@ -52,7 +52,8 @@ const createBasicPricingModel = async (
       return {
         usageMeter: {
           slug: meterData.slug,
-          name: meterData.name},
+          name: meterData.name,
+        },
         prices: [
           {
             type: PriceType.Usage as const,
@@ -63,8 +64,10 @@ const createBasicPricingModel = async (
             intervalCount: 1,
             intervalUnit: IntervalUnit.Month,
             usageEventsPerUnit: 100,
-            trialPeriodDays: null},
-        ]}
+            trialPeriodDays: null,
+          },
+        ],
+      }
     })
 
   const baseProducts: SetupPricingModelInput['products'] = [
@@ -73,7 +76,8 @@ const createBasicPricingModel = async (
         name: 'Starter Plan',
         slug: 'starter',
         default: false,
-        active: true},
+        active: true,
+      },
       price: {
         type: PriceType.Subscription,
         name: undefined,
@@ -85,8 +89,10 @@ const createBasicPricingModel = async (
         intervalUnit: IntervalUnit.Month,
         trialPeriodDays: undefined,
         usageMeterId: null,
-        usageEventsPerUnit: null},
-      features: ['feature-a']},
+        usageEventsPerUnit: null,
+      },
+      features: ['feature-a'],
+    },
   ]
 
   // Products only contain subscription/single payment prices
@@ -102,11 +108,13 @@ const createBasicPricingModel = async (
         slug: 'feature-a',
         name: 'Feature A',
         description: 'A toggle feature',
-        active: true},
+        active: true,
+      },
     ],
     ...overrides,
     usageMeters: processedUsageMeters,
-    products: finalProducts}
+    products: finalProducts,
+  }
 
   return (
     await adminTransaction(async (ctx) => {
@@ -116,7 +124,8 @@ const createBasicPricingModel = async (
             {
               input,
               organizationId: organization.id,
-              livemode: false},
+              livemode: false,
+            },
             ctx
           )
         ).unwrap()
@@ -129,54 +138,59 @@ describe('updatePricingModelTransaction', () => {
   describe('pricing model metadata updates', () => {
     it('updates the pricing model name without affecting child records', async () => {
       const setupResult = await createBasicPricingModel({
-        name: 'Old Name'})
+        name: 'Old Name',
+      })
 
-      const updateResult = (
-        await adminTransaction(
-          async (params) => {
-            const result = (
-              await updatePricingModelTransaction(
-                {
-                  pricingModelId: setupResult.pricingModel.id,
-                  proposedInput: {
-                    name: 'New Name',
-                    isDefault: false,
-                    usageMeters: [],
-                    features: [
-                      {
-                        type: FeatureType.Toggle,
-                        slug: 'feature-a',
-                        name: 'Feature A',
-                        description: 'A toggle feature',
-                        active: true},
-                    ],
-                    products: [
-                      {
-                        product: {
-                          name: 'Starter Plan',
-                          slug: 'starter',
-                          default: false,
-                          active: true},
-                        price: {
-                          type: PriceType.Subscription,
-                          slug: 'starter-monthly',
-                          unitPrice: 1999,
-                          isDefault: true,
-                          active: true,
-                          intervalCount: 1,
-                          intervalUnit: IntervalUnit.Month,
-                          usageMeterId: null,
-                          usageEventsPerUnit: null},
-                        features: ['feature-a']},
-                    ]}},
-                params
-              )
-            ).unwrap()
-            return Result.ok(result)
-          },
-          { livemode: false }
-        )
-      ).unwrap()
+      const updateResult = (await adminTransaction(
+        async (params) => {
+          const result = (
+            await updatePricingModelTransaction(
+              {
+                pricingModelId: setupResult.pricingModel.id,
+                proposedInput: {
+                  name: 'New Name',
+                  isDefault: false,
+                  usageMeters: [],
+                  features: [
+                    {
+                      type: FeatureType.Toggle,
+                      slug: 'feature-a',
+                      name: 'Feature A',
+                      description: 'A toggle feature',
+                      active: true,
+                    },
+                  ],
+                  products: [
+                    {
+                      product: {
+                        name: 'Starter Plan',
+                        slug: 'starter',
+                        default: false,
+                        active: true,
+                      },
+                      price: {
+                        type: PriceType.Subscription,
+                        slug: 'starter-monthly',
+                        unitPrice: 1999,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageMeterId: null,
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
+              params
+            )
+          ).unwrap()
+          return Result.ok(result)
+        },
+        { livemode: false }
+      )
 
       expect(updateResult.pricingModel.name).toBe('New Name')
       expect(updateResult.features.created).toHaveLength(0)
@@ -187,7 +201,8 @@ describe('updatePricingModelTransaction', () => {
 
     it('updates the isDefault flag', async () => {
       const setupResult = await createBasicPricingModel({
-        isDefault: false})
+        isDefault: false,
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -205,7 +220,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -213,7 +229,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -223,16 +240,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.pricingModel.isDefault).toBe(true)
     })
@@ -254,9 +275,12 @@ describe('updatePricingModelTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 usageEventsPerUnit: 100,
-                trialPeriodDays: null},
-            ]},
-        ]})
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -271,7 +295,8 @@ describe('updatePricingModelTransaction', () => {
                     {
                       usageMeter: {
                         slug: 'api-calls',
-                        name: 'API Calls'},
+                        name: 'API Calls',
+                      },
                       prices: [
                         {
                           type: PriceType.Usage,
@@ -282,12 +307,15 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageEventsPerUnit: 100,
-                          trialPeriodDays: null},
-                      ]},
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                     {
                       usageMeter: {
                         slug: 'storage',
-                        name: 'Storage'},
+                        name: 'Storage',
+                      },
                       prices: [
                         {
                           type: PriceType.Usage,
@@ -298,8 +326,10 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageEventsPerUnit: 1000,
-                          trialPeriodDays: null},
-                      ]},
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -307,7 +337,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   // Products only have subscription/single payment prices
                   products: [
@@ -316,7 +347,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -326,16 +358,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.usageMeters.created).toHaveLength(1)
       expect(updateResult.usageMeters.created[0].slug).toBe('storage')
@@ -368,9 +404,12 @@ describe('updatePricingModelTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 usageEventsPerUnit: 100,
-                trialPeriodDays: null},
-            ]},
-        ]})
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -385,7 +424,8 @@ describe('updatePricingModelTransaction', () => {
                     {
                       usageMeter: {
                         slug: 'api-calls',
-                        name: 'API Requests'},
+                        name: 'API Requests',
+                      },
                       prices: [
                         {
                           type: PriceType.Usage,
@@ -396,8 +436,10 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageEventsPerUnit: 100,
-                          trialPeriodDays: null},
-                      ]},
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -405,7 +447,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -413,7 +456,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -423,16 +467,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.usageMeters.updated).toHaveLength(1)
       expect(updateResult.usageMeters.updated[0].name).toBe(
@@ -455,8 +503,10 @@ describe('updatePricingModelTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 usageEventsPerUnit: 100,
-                trialPeriodDays: null},
-            ]},
+                trialPeriodDays: null,
+              },
+            ],
+          },
           {
             usageMeter: { slug: 'storage', name: 'Storage' },
             prices: [
@@ -469,12 +519,15 @@ describe('updatePricingModelTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 usageEventsPerUnit: 1,
-                trialPeriodDays: null},
-            ]},
-        ]})
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
+      })
 
       await expect(
-        adminTransaction(
+        comprehensiveAdminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -487,7 +540,8 @@ describe('updatePricingModelTransaction', () => {
                       {
                         usageMeter: {
                           slug: 'api-calls',
-                          name: 'API Calls'},
+                          name: 'API Calls',
+                        },
                         prices: [
                           {
                             type: PriceType.Usage,
@@ -498,8 +552,10 @@ describe('updatePricingModelTransaction', () => {
                             intervalCount: 1,
                             intervalUnit: IntervalUnit.Month,
                             usageEventsPerUnit: 100,
-                            trialPeriodDays: null},
-                        ]},
+                            trialPeriodDays: null,
+                          },
+                        ],
+                      },
                     ],
                     features: [
                       {
@@ -507,7 +563,8 @@ describe('updatePricingModelTransaction', () => {
                         slug: 'feature-a',
                         name: 'Feature A',
                         description: 'A toggle feature',
-                        active: true},
+                        active: true,
+                      },
                     ],
                     products: [
                       {
@@ -515,7 +572,8 @@ describe('updatePricingModelTransaction', () => {
                           name: 'Starter Plan',
                           slug: 'starter',
                           default: false,
-                          active: true},
+                          active: true,
+                        },
                         price: {
                           type: PriceType.Subscription,
                           slug: 'starter-monthly',
@@ -525,16 +583,20 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageMeterId: null,
-                          usageEventsPerUnit: null},
-                        features: ['feature-a']},
-                    ]}},
+                          usageEventsPerUnit: null,
+                        },
+                        features: ['feature-a'],
+                      },
+                    ],
+                  },
+                },
                 params
               )
             ).unwrap()
             return Result.ok(result)
           },
           { livemode: false }
-        ).then((r) => r.unwrap())
+        )
       ).rejects.toThrow('Usage meters cannot be removed')
     })
   })
@@ -564,7 +626,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -572,7 +635,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -582,16 +646,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.resources.created).toHaveLength(2)
       expect(
@@ -625,7 +693,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -633,7 +702,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         name: undefined,
@@ -645,16 +715,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalUnit: IntervalUnit.Month,
                         trialPeriodDays: undefined,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Now update the resource name
       const updateResult = (await adminTransaction(
@@ -674,7 +748,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -682,7 +757,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         name: undefined,
@@ -694,16 +770,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalUnit: IntervalUnit.Month,
                         trialPeriodDays: undefined,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.resources.updated).toHaveLength(1)
       expect(updateResult.resources.updated[0].slug).toBe('seats')
@@ -737,7 +817,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -745,7 +826,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -755,16 +837,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Now remove 'projects' resource
       const updateResult = (await adminTransaction(
@@ -784,7 +870,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -792,7 +879,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -802,16 +890,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.resources.deactivated).toHaveLength(1)
       expect(updateResult.resources.deactivated[0].slug).toBe(
@@ -859,7 +951,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -867,7 +960,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         name: undefined,
@@ -879,16 +973,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalUnit: IntervalUnit.Month,
                         trialPeriodDays: undefined,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Now update with same resources
       const updateResult = (await adminTransaction(
@@ -910,7 +1008,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -918,7 +1017,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         name: undefined,
@@ -930,16 +1030,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalUnit: IntervalUnit.Month,
                         trialPeriodDays: undefined,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.resources.created).toHaveLength(0)
       expect(updateResult.resources.updated).toHaveLength(0)
@@ -970,7 +1074,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -978,7 +1083,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -988,16 +1094,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Get the resource ID
       const resources = (
@@ -1030,7 +1140,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Resource,
                       slug: 'seat-grant',
@@ -1038,7 +1149,8 @@ describe('updatePricingModelTransaction', () => {
                       description: 'Grants seats to the subscription',
                       resourceSlug: 'seats',
                       amount: 5,
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1046,7 +1158,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1056,16 +1169,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'seat-grant']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'seat-grant'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.features.created).toHaveLength(1)
       const createdFeature = updateResult.features.created[0]
@@ -1102,7 +1219,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Resource,
                       slug: 'resource-grant',
@@ -1111,7 +1229,8 @@ describe('updatePricingModelTransaction', () => {
                         'Grants a resource to the subscription',
                       resourceSlug: 'seats',
                       amount: 5,
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1119,7 +1238,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1129,16 +1249,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'resource-grant']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'resource-grant'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Get the resource IDs
       const resources = (
@@ -1176,7 +1300,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Resource,
                       slug: 'resource-grant',
@@ -1184,7 +1309,8 @@ describe('updatePricingModelTransaction', () => {
                       description: 'Now grants projects instead',
                       resourceSlug: 'projects', // Changed from 'seats' to 'projects'
                       amount: 10, // Changed amount too
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1192,7 +1318,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1202,16 +1329,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'resource-grant']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'resource-grant'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.features.updated).toHaveLength(1)
       const updatedFeature = updateResult.features.updated[0]
@@ -1242,7 +1373,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1250,7 +1382,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1260,20 +1393,24 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Try to add a Resource feature referencing a non-existent resource
       await expect(
-        adminTransaction(
+        comprehensiveAdminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -1290,7 +1427,8 @@ describe('updatePricingModelTransaction', () => {
                         slug: 'feature-a',
                         name: 'Feature A',
                         description: 'A toggle feature',
-                        active: true},
+                        active: true,
+                      },
                       {
                         type: FeatureType.Resource,
                         slug: 'invalid-grant',
@@ -1299,7 +1437,8 @@ describe('updatePricingModelTransaction', () => {
                           'References a non-existent resource',
                         resourceSlug: 'non-existent-resource',
                         amount: 5,
-                        active: true},
+                        active: true,
+                      },
                     ],
                     products: [
                       {
@@ -1307,7 +1446,8 @@ describe('updatePricingModelTransaction', () => {
                           name: 'Starter Plan',
                           slug: 'starter',
                           default: false,
-                          active: true},
+                          active: true,
+                        },
                         price: {
                           type: PriceType.Subscription,
                           slug: 'starter-monthly',
@@ -1317,16 +1457,20 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageMeterId: null,
-                          usageEventsPerUnit: null},
-                        features: ['feature-a', 'invalid-grant']},
-                    ]}},
+                          usageEventsPerUnit: null,
+                        },
+                        features: ['feature-a', 'invalid-grant'],
+                      },
+                    ],
+                  },
+                },
                 params
               )
             ).unwrap()
             return Result.ok(result)
           },
           { livemode: false }
-        ).then((r) => r.unwrap())
+        )
       ).rejects.toThrow('Resource not found: non-existent-resource')
     })
 
@@ -1351,7 +1495,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Resource,
                       slug: 'seat-grant',
@@ -1359,7 +1504,8 @@ describe('updatePricingModelTransaction', () => {
                       description: 'Grants seats',
                       resourceSlug: 'seats',
                       amount: 5,
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1367,7 +1513,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1377,16 +1524,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'seat-grant']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'seat-grant'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Now remove the Resource feature
       const updateResult = (await adminTransaction(
@@ -1406,7 +1557,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     // seat-grant feature removed
                   ],
                   products: [
@@ -1415,7 +1567,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1425,16 +1578,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.features.deactivated).toHaveLength(1)
       const deactivatedFeature = updateResult.features.deactivated[0]
@@ -1483,7 +1640,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Resource,
                       slug: 'seat-grant',
@@ -1491,7 +1649,8 @@ describe('updatePricingModelTransaction', () => {
                       description: 'Grants seats',
                       resourceSlug: 'seats',
                       amount: 5,
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Resource,
                       slug: 'project-grant',
@@ -1499,7 +1658,8 @@ describe('updatePricingModelTransaction', () => {
                       description: 'Grants projects',
                       resourceSlug: 'projects',
                       amount: 3,
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1507,7 +1667,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1517,20 +1678,24 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
+                        usageEventsPerUnit: null,
+                      },
                       features: [
                         'feature-a',
                         'seat-grant',
                         'project-grant',
-                      ]},
-                  ]}},
+                      ],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Verify resources created
       expect(updateResult.resources.created).toHaveLength(2)
@@ -1583,13 +1748,15 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Toggle,
                       slug: 'feature-b',
                       name: 'Feature B',
                       description: 'Another toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1597,7 +1764,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1607,16 +1775,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.features.created).toHaveLength(1)
       expect(updateResult.features.created[0].slug).toBe('feature-b')
@@ -1641,7 +1813,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A Updated',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1649,7 +1822,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1659,16 +1833,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.features.updated).toHaveLength(1)
       expect(updateResult.features.updated[0].name).toBe(
@@ -1684,13 +1862,15 @@ describe('updatePricingModelTransaction', () => {
             slug: 'feature-a',
             name: 'Feature A',
             description: 'A toggle feature',
-            active: true},
+            active: true,
+          },
           {
             type: FeatureType.Toggle,
             slug: 'feature-b',
             name: 'Feature B',
             description: 'Another toggle feature',
-            active: true},
+            active: true,
+          },
         ],
         products: [
           {
@@ -1698,7 +1878,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Starter Plan',
               slug: 'starter',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'starter-monthly',
@@ -1708,9 +1889,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a', 'feature-b']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a', 'feature-b'],
+          },
+        ],
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -1728,7 +1912,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1736,7 +1921,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1746,16 +1932,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.features.deactivated).toHaveLength(1)
       expect(updateResult.features.deactivated[0].slug).toBe(
@@ -1779,12 +1969,15 @@ describe('updatePricingModelTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 usageEventsPerUnit: 100,
-                trialPeriodDays: null},
-            ]},
-        ]})
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
+      })
 
       await expect(
-        adminTransaction(
+        comprehensiveAdminTransaction(
           async (params) => {
             const result = (
               await updatePricingModelTransaction(
@@ -1797,7 +1990,8 @@ describe('updatePricingModelTransaction', () => {
                       {
                         usageMeter: {
                           slug: 'api-calls',
-                          name: 'API Calls'},
+                          name: 'API Calls',
+                        },
                         prices: [
                           {
                             type: PriceType.Usage,
@@ -1808,8 +2002,10 @@ describe('updatePricingModelTransaction', () => {
                             intervalCount: 1,
                             intervalUnit: IntervalUnit.Month,
                             usageEventsPerUnit: 100,
-                            trialPeriodDays: null},
-                        ]},
+                            trialPeriodDays: null,
+                          },
+                        ],
+                      },
                     ],
                     features: [
                       {
@@ -1821,7 +2017,8 @@ describe('updatePricingModelTransaction', () => {
                         amount: 100,
                         renewalFrequency:
                           FeatureUsageGrantFrequency.EveryBillingPeriod,
-                        active: true},
+                        active: true,
+                      },
                     ],
                     products: [
                       {
@@ -1829,7 +2026,8 @@ describe('updatePricingModelTransaction', () => {
                           name: 'Starter Plan',
                           slug: 'starter',
                           default: false,
-                          active: true},
+                          active: true,
+                        },
                         price: {
                           type: PriceType.Subscription,
                           slug: 'starter-monthly',
@@ -1839,16 +2037,20 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageMeterId: null,
-                          usageEventsPerUnit: null},
-                        features: ['feature-a']},
-                    ]}},
+                          usageEventsPerUnit: null,
+                        },
+                        features: ['feature-a'],
+                      },
+                    ],
+                  },
+                },
                 params
               )
             ).unwrap()
             return Result.ok(result)
           },
           { livemode: false }
-        ).then((r) => r.unwrap())
+        )
       ).rejects.toThrow('Feature type cannot be changed')
     })
   })
@@ -1873,7 +2075,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1881,7 +2084,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1891,14 +2095,17 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
                     {
                       product: {
                         name: 'Pro Plan',
                         slug: 'pro',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'pro-monthly',
@@ -1908,16 +2115,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.products.created).toHaveLength(1)
       expect(updateResult.products.created[0].slug).toBe('pro')
@@ -1950,7 +2161,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -1959,7 +2171,8 @@ describe('updatePricingModelTransaction', () => {
                         slug: 'starter',
                         default: false,
                         active: true,
-                        description: 'Now with a description!'},
+                        description: 'Now with a description!',
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -1969,16 +2182,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.products.updated).toHaveLength(1)
       expect(updateResult.products.updated[0].name).toBe(
@@ -2000,7 +2217,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Starter Plan',
               slug: 'starter',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'starter-monthly',
@@ -2010,14 +2228,17 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
           {
             product: {
               name: 'Pro Plan',
               slug: 'pro',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'pro-monthly',
@@ -2027,9 +2248,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -2047,7 +2271,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2055,7 +2280,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         // Match the existing price schema from getPricingModelSetupData
@@ -2068,16 +2294,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalUnit: IntervalUnit.Month,
                         trialPeriodDays: undefined,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // 1 product deactivated: 'pro' (explicitly removed)
       // Note: 'free' (auto-generated default) is protected and preserved by protectDefaultProduct
@@ -2116,7 +2346,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2124,7 +2355,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2134,16 +2366,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Price for starter changed (1999 -> 2999), plus free product deactivated
       expect(
@@ -2175,13 +2411,15 @@ describe('updatePricingModelTransaction', () => {
             slug: 'feature-a',
             name: 'Feature A',
             description: 'A toggle feature',
-            active: true},
+            active: true,
+          },
           {
             type: FeatureType.Toggle,
             slug: 'feature-b',
             name: 'Feature B',
             description: 'Another toggle feature',
-            active: true},
+            active: true,
+          },
         ],
         products: [
           {
@@ -2189,7 +2427,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Starter Plan',
               slug: 'starter',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'starter-monthly',
@@ -2199,9 +2438,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -2219,13 +2461,15 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Toggle,
                       slug: 'feature-b',
                       name: 'Feature B',
                       description: 'Another toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2233,7 +2477,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2243,16 +2488,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'feature-b']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'feature-b'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.productFeatures.added).toHaveLength(1)
       expect(updateResult.productFeatures.removed).toHaveLength(0)
@@ -2266,13 +2515,15 @@ describe('updatePricingModelTransaction', () => {
             slug: 'feature-a',
             name: 'Feature A',
             description: 'A toggle feature',
-            active: true},
+            active: true,
+          },
           {
             type: FeatureType.Toggle,
             slug: 'feature-b',
             name: 'Feature B',
             description: 'Another toggle feature',
-            active: true},
+            active: true,
+          },
         ],
         products: [
           {
@@ -2280,7 +2531,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Starter Plan',
               slug: 'starter',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'starter-monthly',
@@ -2290,9 +2542,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a', 'feature-b']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a', 'feature-b'],
+          },
+        ],
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -2310,13 +2565,15 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Toggle,
                       slug: 'feature-b',
                       name: 'Feature B',
                       description: 'Another toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2324,7 +2581,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2334,16 +2592,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.productFeatures.added).toHaveLength(0)
       expect(updateResult.productFeatures.removed).toHaveLength(1)
@@ -2368,7 +2630,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2376,7 +2639,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2386,16 +2650,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.productFeatures.added).toHaveLength(0)
       expect(updateResult.productFeatures.removed).toHaveLength(0)
@@ -2422,13 +2690,15 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Toggle,
                       slug: 'feature-new',
                       name: 'New Feature',
                       description: 'A newly added feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2436,7 +2706,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2446,14 +2717,17 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
                     {
                       product: {
                         name: 'New Product',
                         slug: 'new-product',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'new-product-monthly',
@@ -2463,16 +2737,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-new']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-new'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.features.created).toHaveLength(1)
       expect(updateResult.features.created[0].slug).toBe(
@@ -2509,7 +2787,8 @@ describe('updatePricingModelTransaction', () => {
                     {
                       usageMeter: {
                         slug: 'api-calls',
-                        name: 'API Calls'},
+                        name: 'API Calls',
+                      },
                       prices: [
                         {
                           type: PriceType.Usage,
@@ -2520,8 +2799,10 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageEventsPerUnit: 100,
-                          trialPeriodDays: null},
-                      ]},
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -2529,7 +2810,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.UsageCreditGrant,
                       slug: 'api-credits',
@@ -2539,7 +2821,8 @@ describe('updatePricingModelTransaction', () => {
                       amount: 1000,
                       renewalFrequency:
                         FeatureUsageGrantFrequency.EveryBillingPeriod,
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2547,7 +2830,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2557,16 +2841,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'api-credits']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'api-credits'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       expect(updateResult.usageMeters.created).toHaveLength(1)
       expect(updateResult.usageMeters.created[0].slug).toBe(
@@ -2595,13 +2883,15 @@ describe('updatePricingModelTransaction', () => {
             slug: 'feature-a',
             name: 'Feature A',
             description: 'A toggle feature',
-            active: true},
+            active: true,
+          },
           {
             type: FeatureType.Toggle,
             slug: 'feature-b',
             name: 'Feature B',
             description: 'Another toggle feature',
-            active: true},
+            active: true,
+          },
         ],
         products: [
           {
@@ -2609,7 +2899,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Starter Plan',
               slug: 'starter',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'starter-monthly',
@@ -2619,14 +2910,17 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a', 'feature-b']},
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a', 'feature-b'],
+          },
           {
             product: {
               name: 'Pro Plan',
               slug: 'pro',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'pro-monthly',
@@ -2636,9 +2930,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a', 'feature-b']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a', 'feature-b'],
+          },
+        ],
+      })
 
       const updateResult = (await adminTransaction(
         async (params) => {
@@ -2656,13 +2953,15 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A Renamed',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Toggle,
                       slug: 'feature-c',
                       name: 'Feature C',
                       description: 'A new feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2670,7 +2969,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan Updated',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2680,14 +2980,17 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'feature-c']},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'feature-c'],
+                    },
                     {
                       product: {
                         name: 'Enterprise Plan',
                         slug: 'enterprise',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'enterprise-monthly',
@@ -2697,16 +3000,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'feature-c']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'feature-c'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Pricing model renamed
       expect(updateResult.pricingModel.name).toBe('New Name')
@@ -2778,7 +3085,8 @@ describe('updatePricingModelTransaction', () => {
             slug: 'feature-a',
             name: 'Feature A',
             description: 'A toggle feature',
-            active: true},
+            active: true,
+          },
         ],
         products: [
           {
@@ -2786,7 +3094,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Starter Plan',
               slug: 'starter',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'starter-monthly',
@@ -2796,9 +3105,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
 
       (await adminTransaction(
         async (params) => {
@@ -2813,7 +3125,8 @@ describe('updatePricingModelTransaction', () => {
                     {
                       usageMeter: {
                         slug: 'api-calls',
-                        name: 'API Calls'},
+                        name: 'API Calls',
+                      },
                       prices: [
                         {
                           type: PriceType.Usage,
@@ -2824,8 +3137,10 @@ describe('updatePricingModelTransaction', () => {
                           intervalCount: 1,
                           intervalUnit: IntervalUnit.Month,
                           usageEventsPerUnit: 100,
-                          trialPeriodDays: null},
-                      ]},
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -2833,13 +3148,15 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A Updated',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Toggle,
                       slug: 'feature-b',
                       name: 'Feature B',
                       description: 'New feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -2847,7 +3164,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Starter Plan',
                         slug: 'starter',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'starter-monthly',
@@ -2857,16 +3175,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a', 'feature-b']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'feature-b'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Verify database state
       const [usageMeters, features, products, productFeatures] = (
@@ -2959,7 +3281,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Free Plan',
               slug: 'free',
               default: true,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'free-monthly',
@@ -2969,14 +3292,17 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
           {
             product: {
               name: 'Pro Plan',
               slug: 'pro',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'pro-monthly',
@@ -2986,9 +3312,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
 
       // Try to update without the default product - only include Pro
       const updateResult = (await adminTransaction(
@@ -3007,7 +3336,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     // Only Pro Plan - Free (default) is missing
@@ -3016,7 +3346,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Pro Plan',
                         slug: 'pro',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'pro-monthly',
@@ -3026,16 +3357,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Verify the default product was NOT deactivated (it was auto-added back)
       const freeDeactivated = updateResult.products.deactivated.find(
@@ -3072,7 +3407,8 @@ describe('updatePricingModelTransaction', () => {
               slug: 'free',
               default: true,
               active: true,
-              description: 'Original description'},
+              description: 'Original description',
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'free-monthly',
@@ -3082,9 +3418,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
 
       // Try to update with protected field changes on the default product
       const updateResult = (await adminTransaction(
@@ -3103,7 +3442,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -3123,16 +3463,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Verify database state
       const allProducts = (
@@ -3179,13 +3523,15 @@ describe('updatePricingModelTransaction', () => {
             slug: 'feature-a',
             name: 'Feature A',
             description: 'A toggle feature',
-            active: true},
+            active: true,
+          },
           {
             type: FeatureType.Toggle,
             slug: 'feature-b',
             name: 'Feature B',
             description: 'Another toggle feature',
-            active: true},
+            active: true,
+          },
         ],
         products: [
           {
@@ -3194,7 +3540,8 @@ describe('updatePricingModelTransaction', () => {
               slug: 'free',
               default: true,
               active: true,
-              description: 'Original description'},
+              description: 'Original description',
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'free-monthly',
@@ -3204,10 +3551,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
+              usageEventsPerUnit: null,
+            },
             features: ['feature-a'], // Original feature
           },
-        ]})
+        ],
+      })
 
       // Update only allowed fields on the default product
       const updateResult = (await adminTransaction(
@@ -3226,13 +3575,15 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                     {
                       type: FeatureType.Toggle,
                       slug: 'feature-b',
                       name: 'Feature B',
                       description: 'Another toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -3252,17 +3603,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
+                        usageEventsPerUnit: null,
+                      },
                       features: ['feature-a', 'feature-b'], // Allowed change - adding feature-b
                     },
-                  ]}},
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Verify database state
       const allProducts = (
@@ -3328,7 +3682,8 @@ describe('updatePricingModelTransaction', () => {
               name: 'Free Plan',
               slug: 'free',
               default: true,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'free-monthly',
@@ -3338,14 +3693,17 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
           {
             product: {
               name: 'Pro Plan',
               slug: 'pro',
               default: false,
-              active: true},
+              active: true,
+            },
             price: {
               type: PriceType.Subscription,
               slug: 'pro-monthly',
@@ -3355,9 +3713,12 @@ describe('updatePricingModelTransaction', () => {
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
               usageMeterId: null,
-              usageEventsPerUnit: null},
-            features: ['feature-a']},
-        ]})
+              usageEventsPerUnit: null,
+            },
+            features: ['feature-a'],
+          },
+        ],
+      })
 
       // Attempt to demote the default product by setting default: false
       const updateResult = (await adminTransaction(
@@ -3376,7 +3737,8 @@ describe('updatePricingModelTransaction', () => {
                       slug: 'feature-a',
                       name: 'Feature A',
                       description: 'A toggle feature',
-                      active: true},
+                      active: true,
+                    },
                   ],
                   products: [
                     {
@@ -3384,7 +3746,8 @@ describe('updatePricingModelTransaction', () => {
                         name: 'Demoted Free Plan', // Allowed change
                         slug: 'free', // Same slug as existing default
                         default: false, // Attempting to demote
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'free-monthly',
@@ -3394,14 +3757,17 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
                     {
                       product: {
                         name: 'Pro Plan',
                         slug: 'pro',
                         default: false,
-                        active: true},
+                        active: true,
+                      },
                       price: {
                         type: PriceType.Subscription,
                         slug: 'pro-monthly',
@@ -3411,16 +3777,20 @@ describe('updatePricingModelTransaction', () => {
                         intervalCount: 1,
                         intervalUnit: IntervalUnit.Month,
                         usageMeterId: null,
-                        usageEventsPerUnit: null},
-                      features: ['feature-a']},
-                  ]}},
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a'],
+                    },
+                  ],
+                },
+              },
               params
             )
           ).unwrap()
           return Result.ok(result)
         },
         { livemode: false }
-      ).unwrap()
+      )
 
       // Verify database state - should have exactly 2 active products (no duplicates)
       const allProducts = (

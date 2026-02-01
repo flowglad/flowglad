@@ -9,13 +9,15 @@ import type Stripe from 'stripe'
 import {
   setupCustomer,
   setupOrg,
-  setupPaymentMethod} from '@/../seedDatabase'
-import {  } from '@/db/adminTransaction'
+  setupPaymentMethod,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { core } from '@/utils/core'
 import {
   paymentMethodForStripePaymentMethodId,
-  paymentMethodInsertFromStripeCardPaymentMethod} from './paymentMethodHelpers'
+  paymentMethodInsertFromStripeCardPaymentMethod,
+} from './paymentMethodHelpers'
 
 describe('paymentMethodInsertFromStripeCardPaymentMethod', () => {
   it('should correctly transform Stripe payment method to insert', () => {
@@ -30,16 +32,19 @@ describe('paymentMethodInsertFromStripeCardPaymentMethod', () => {
           line1: '___ ____ ____',
           line2: null,
           postal_code: '00000',
-          state: 'NY'},
+          state: 'NY',
+        },
         email: 'test@example.com',
         name: 'Test User',
-        phone: null},
+        phone: null,
+      },
       card: {
         brand: 'visa',
         checks: {
           address_line1_check: 'pass',
           address_postal_code_check: 'pass',
-          cvc_check: 'pass'},
+          cvc_check: 'pass',
+        },
         country: 'US',
         display_brand: 'visa',
         exp_month: 2,
@@ -50,18 +55,23 @@ describe('paymentMethodInsertFromStripeCardPaymentMethod', () => {
         last4: '4242',
         networks: {
           available: ['visa'],
-          preferred: null},
+          preferred: null,
+        },
         three_d_secure_usage: {
-          supported: true},
-        wallet: null},
+          supported: true,
+        },
+        wallet: null,
+      },
       created: 1738766322,
       customer: 'cus_BLKJSLKJGB',
       livemode: false,
       metadata: {},
-      type: 'card'}
+      type: 'card',
+    }
     const params = {
       livemode: false,
-      customerId: 'cust_123'}
+      customerId: 'cust_123',
+    }
     const result = paymentMethodInsertFromStripeCardPaymentMethod(
       mockStripePaymentMethod,
       params
@@ -78,7 +88,9 @@ describe('paymentMethodInsertFromStripeCardPaymentMethod', () => {
         line1: '___ ____ ____',
         line2: null,
         postal_code: '00000',
-        state: 'NY'}})
+        state: 'NY',
+      },
+    })
     // should not have nested address
     expect(result.billingDetails.address.address).toBeUndefined()
   })
@@ -97,7 +109,8 @@ describe('paymentMethodForStripePaymentMethodId', () => {
     customer = await setupCustomer({
       organizationId: organization.id,
       email: `test+${core.nanoid()}@test.com`,
-      livemode: true})
+      livemode: true,
+    })
   })
 
   it('should create a new payment method when no existing payment method with the stripePaymentMethodId exists', async () => {
@@ -109,19 +122,22 @@ describe('paymentMethodForStripePaymentMethodId', () => {
         cacheRecomputationContext,
         invalidateCache,
         emitEvent,
-        enqueueLedgerCommand}) => {
+        enqueueLedgerCommand,
+      }) => {
         const paymentMethod =
           await paymentMethodForStripePaymentMethodId(
             {
               stripePaymentMethodId,
               livemode: true,
-              customerId: customer.id},
+              customerId: customer.id,
+            },
             {
               transaction,
               cacheRecomputationContext,
               invalidateCache,
               emitEvent,
-              enqueueLedgerCommand}
+              enqueueLedgerCommand,
+            }
           )
 
         // Verify the payment method was created with correct properties
@@ -136,7 +152,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
 
         return Result.ok(paymentMethod)
       }
-    )
+    )).unwrap()
 
     // Verify the payment method was persisted to the database
     (await adminTransaction(async ({ transaction }) => {
@@ -148,9 +164,10 @@ describe('paymentMethodForStripePaymentMethodId', () => {
       expect(persistedPaymentMethod).toMatchObject({
         id: result.id,
         customerId: customer.id,
-        stripePaymentMethodId})
+        stripePaymentMethodId,
+      })
       return Result.ok(null)
-    }).unwrap()
+    })).unwrap()
   })
 
   it('should return the existing payment method when one with the stripePaymentMethodId already exists', async () => {
@@ -162,7 +179,8 @@ describe('paymentMethodForStripePaymentMethodId', () => {
       customerId: customer.id,
       livemode: true,
       type: PaymentMethodType.Card,
-      stripePaymentMethodId})
+      stripePaymentMethodId,
+    })
 
     (await adminTransaction(
       async ({
@@ -170,19 +188,22 @@ describe('paymentMethodForStripePaymentMethodId', () => {
         cacheRecomputationContext,
         invalidateCache,
         emitEvent,
-        enqueueLedgerCommand}) => {
+        enqueueLedgerCommand,
+      }) => {
         const paymentMethod =
           await paymentMethodForStripePaymentMethodId(
             {
               stripePaymentMethodId,
               livemode: true,
-              customerId: customer.id},
+              customerId: customer.id,
+            },
             {
               transaction,
               cacheRecomputationContext,
               invalidateCache,
               emitEvent,
-              enqueueLedgerCommand}
+              enqueueLedgerCommand,
+            }
           )
 
         // Verify the function returned the existing payment method
@@ -197,7 +218,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
 
         return Result.ok(paymentMethod)
       }
-    ).unwrap()
+    )).unwrap()
 
     // Verify no duplicate payment methods were created
     (await adminTransaction(async ({ transaction }) => {
@@ -210,6 +231,6 @@ describe('paymentMethodForStripePaymentMethodId', () => {
         existingPaymentMethod.id
       )
       return Result.ok(null)
-    }).unwrap()
+    })).unwrap()
   })
 })
