@@ -145,7 +145,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
 
         // Expect that the subscription's current billing period dates are updated (i.e. a new period was created)
         expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -179,8 +179,8 @@ describe('Subscription Billing Period Transition', async () => {
           )
         }
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 3: When payment totals fully cover the billing period, mark it as Completed
@@ -209,7 +209,7 @@ describe('Subscription Billing Period Transition', async () => {
             billingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
 
         // Verify that the current (old) billing period is now Completed
         const allBPeriods = await selectBillingPeriods(
@@ -226,8 +226,8 @@ describe('Subscription Billing Period Transition', async () => {
           billingPeriod.startDate
         )
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 4: If the subscription is in a terminal state, no future billing period should be created.
@@ -247,13 +247,13 @@ describe('Subscription Billing Period Transition', async () => {
             billingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
 
         expect(newBillingRun).toBeNull()
         expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   //   // Test 5: If subscription.cancelScheduledAt is in the past, cancel the subscription.
@@ -282,15 +282,15 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
 
         expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
         expect(typeof updatedSub.canceledAt).toBe('number')
         expect(updatedSub.canceledAt).toBeGreaterThan(0)
         expect(newBillingRun).toBeNull()
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 6: Normal transition when subscription is active with a valid payment method.
@@ -312,7 +312,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
 
         // Verify that subscription billing period dates have been updated to new period values
         expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -330,8 +330,8 @@ describe('Subscription Billing Period Transition', async () => {
           updatedSub.currentBillingPeriodStart!
         )
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 7: Transition when no payment method is available.
@@ -365,7 +365,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
 
         // Expect no billing run is created and subscription status is updated to PastDue
         expect(newBillingRun).toBeNull()
@@ -374,8 +374,8 @@ describe('Subscription Billing Period Transition', async () => {
           billingPeriod.startDate
         )
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 8: No new future billing period should be created when subscription.cancelScheduledAt >= last billing period end.
@@ -408,7 +408,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
 
         // Since attemptToCreateFutureBillingPeriodForSubscription returns null,
         // billingRun remains null and subscription status is set to PastDue.
@@ -422,8 +422,8 @@ describe('Subscription Billing Period Transition', async () => {
           subscription.currentBillingPeriodEnd
         )
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 12: Edge-case when billing period payment totals exactly match billing item total.
@@ -459,7 +459,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
         const allBPeriods = await selectBillingPeriods(
           { subscriptionId: subscription.id },
           transaction
@@ -469,8 +469,8 @@ describe('Subscription Billing Period Transition', async () => {
         )
         expect(currentBp?.status).toBe(BillingPeriodStatus.Completed)
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 13: When required billing period data is missing (e.g. endDate), return an error Result.
@@ -488,8 +488,8 @@ describe('Subscription Billing Period Transition', async () => {
 
         expect(Result.isError(result)).toBe(true)
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   it('should create a new future billing period and billing run when current billing period is terminal and subscription is active', async () => {
@@ -510,7 +510,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        )).unwrap()
+        ).unwrap()
         // Expect that the subscription's current billing period dates are updated.
         expect(updatedSub.currentBillingPeriodStart).not.toEqual(
           updatedBillingPeriod.startDate
@@ -518,8 +518,8 @@ describe('Subscription Billing Period Transition', async () => {
         // And because a valid payment method exists, a billing run should be created.
         expect(typeof newBillingRun).toBe('object')
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   it('calls enqueueLedgerCommand with BillingPeriodTransitionLedgerCommand when transitioning to a new billing period', async () => {
@@ -555,8 +555,8 @@ describe('Subscription Billing Period Transition', async () => {
           organization.id
         )
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // New tests for handling trial period cases
@@ -611,11 +611,11 @@ describe('Subscription Billing Period Transition', async () => {
                 isInitialBillingPeriod: true},
               transaction
             )
-          )).unwrap()
+          ).unwrap()
           expect(billingPeriod.trialPeriod).toBe(true)
           expect(billingPeriodItems).toHaveLength(0)
           return Result.ok(undefined)
-        })
+        }
       )).unwrap()
     })
   })
@@ -654,8 +654,8 @@ describe('Subscription Billing Period Transition', async () => {
           )
         }
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   it('should exclude manual subscription items from billing period items', async () => {
@@ -698,8 +698,8 @@ describe('Subscription Billing Period Transition', async () => {
         expect(billingPeriodItemInserts[0].name).toBe('Regular Plan')
         expect(billingPeriodItemInserts[0].unitPrice).toBe(1000)
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   describe('doNotCharge subscriptions', () => {
@@ -1043,7 +1043,7 @@ describe('Ledger Interactions', () => {
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        )).unwrap()
+        ).unwrap()
       canceledSub = updatedSub
 
       // expects:
@@ -1150,7 +1150,7 @@ describe('Ledger Interactions', () => {
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        )).unwrap()
+        ).unwrap()
       pastDueSub = updatedSub
 
       // expects:
