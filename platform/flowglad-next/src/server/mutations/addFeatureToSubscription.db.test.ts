@@ -38,7 +38,7 @@ import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import type { ComprehensiveAdminTransactionParams } from '@/db/types'
+import type { AdminTransactionParams } from '@/db/types'
 import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   createCapturingEffectsContext,
@@ -496,42 +496,40 @@ describe('addFeatureToSubscription mutation', () => {
     })
 
     it('should throw error when feature is inactive', async () => {
-      await adminTransaction(
-        async (ctx: ComprehensiveAdminTransactionParams) => {
-          // Create an inactive feature directly
-          const inactiveFeature = await insertFeature(
-            {
-              organizationId: orgData.organization.id,
-              pricingModelId: orgData.pricingModel.id,
-              name: 'Inactive Feature',
-              slug: `inactive-feature-${core.nanoid(6)}`,
-              description: 'An inactive feature',
-              type: FeatureType.Toggle,
-              amount: null,
-              renewalFrequency: null,
-              usageMeterId: null,
-              livemode: true,
-              active: false,
-            },
-            ctx
-          )
+      await adminTransaction(async (ctx: AdminTransactionParams) => {
+        // Create an inactive feature directly
+        const inactiveFeature = await insertFeature(
+          {
+            organizationId: orgData.organization.id,
+            pricingModelId: orgData.pricingModel.id,
+            name: 'Inactive Feature',
+            slug: `inactive-feature-${core.nanoid(6)}`,
+            description: 'An inactive feature',
+            type: FeatureType.Toggle,
+            amount: null,
+            renewalFrequency: null,
+            usageMeterId: null,
+            livemode: true,
+            active: false,
+          },
+          ctx
+        )
 
-          const result = await addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: inactiveFeature.id,
-              grantCreditsImmediately: false,
-            },
-            createDiscardingEffectsContext(ctx.transaction)
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: inactiveFeature.id,
+            grantCreditsImmediately: false,
+          },
+          createDiscardingEffectsContext(ctx.transaction)
+        )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect((result.error as Error).message).toBe(
+            `Feature ${inactiveFeature.id} is inactive and cannot be added to subscriptions.`
           )
-          expect(Result.isError(result)).toBe(true)
-          if (Result.isError(result)) {
-            expect((result.error as Error).message).toBe(
-              `Feature ${inactiveFeature.id} is inactive and cannot be added to subscriptions.`
-            )
-          }
         }
-      )
+      })
     })
 
     it('should throw error when feature belongs to different organization', async () => {

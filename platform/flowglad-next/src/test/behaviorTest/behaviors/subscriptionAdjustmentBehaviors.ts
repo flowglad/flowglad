@@ -37,8 +37,7 @@ import {
   InvoiceStatus,
   PaymentStatus,
   PriceType,
-  SubscriptionStatus,
-} from '@db-core/enums'
+  SubscriptionStatus} from '@db-core/enums'
 import type { BillingPeriod } from '@db-core/schema/billingPeriods'
 import type { Customer } from '@db-core/schema/customers'
 import type { Feature } from '@db-core/schema/features'
@@ -63,20 +62,16 @@ import {
   setupResourceFeature,
   setupResourceSubscriptionItemFeature,
   setupSubscription,
-  setupSubscriptionItem,
-} from '@/../seedDatabase'
+  setupSubscriptionItem} from '@/../seedDatabase'
 import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+  adminTransaction} from '@/db/adminTransaction'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   type AdjustSubscriptionResult,
-  adjustSubscription,
-} from '@/subscriptions/adjustSubscription'
+  adjustSubscription} from '@/subscriptions/adjustSubscription'
 import { SubscriptionAdjustmentTiming } from '@/types'
 import core from '@/utils/core'
 import { AdjustmentTimingDep } from '../dependencies/adjustmentTimingDependencies'
@@ -185,8 +180,7 @@ export const setupSubscriptionBehavior = defineBehavior({
       subscriptionStatusDep,
       resourceFeatureDep,
       billingIntervalDep,
-      paymentSimulationDep,
-    },
+      paymentSimulationDep},
     prev: CompleteStripeOnboardingResult
   ): Promise<SetupSubscriptionResult> => {
     const { organization } = prev
@@ -213,7 +207,7 @@ export const setupSubscriptionBehavior = defineBehavior({
     )
 
     // Create product - use comprehensiveAdminTransaction to get full context
-    const product = await comprehensiveAdminTransaction(
+    const product = (await adminTransaction(
       async (ctx) => {
         const result = await insertProduct(
           {
@@ -222,14 +216,13 @@ export const setupSubscriptionBehavior = defineBehavior({
             livemode,
             pricingModelId: pricingModel.id,
             active: true,
-            slug: `test-product-${nanoid}`,
-          },
+            slug: `test-product-${nanoid}`},
           ctx
         )
         return Result.ok(result)
       },
       { livemode }
-    )
+    ).unwrap()
 
     // Create initial price with billing interval from dependency
     const initialPrice = await setupPrice({
@@ -240,15 +233,13 @@ export const setupSubscriptionBehavior = defineBehavior({
       livemode,
       isDefault: true,
       intervalUnit: billingIntervalDep.intervalUnit,
-      intervalCount: billingIntervalDep.intervalCount,
-    })
+      intervalCount: billingIntervalDep.intervalCount})
 
     // Create features based on dependencies
     const features: SubscriptionFeatures = {
       resourceFeature: null,
       resourceProductFeature: null,
-      resource: null,
-    }
+      resource: null}
 
     // Create resource feature if needed
     if (resourceFeatureDep.hasFeature) {
@@ -256,20 +247,17 @@ export const setupSubscriptionBehavior = defineBehavior({
       features.resource = await setupResource({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
-        name: `Resource ${nanoid}`,
-      })
+        name: `Resource ${nanoid}`})
       features.resourceFeature = await setupResourceFeature({
         organizationId: organization.id,
         name: `Resource Feature ${nanoid}`,
         resourceId: features.resource.id,
         livemode,
-        amount: 5,
-      })
+        amount: 5})
       features.resourceProductFeature = await setupProductFeature({
         productId: product.id,
         featureId: features.resourceFeature.id,
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
     }
 
     // Create customer
@@ -282,8 +270,7 @@ export const setupSubscriptionBehavior = defineBehavior({
             organizationId: organization.id,
             livemode,
             externalId: `external-${nanoid}`,
-            pricingModelId: pricingModel.id,
-          },
+            pricingModelId: pricingModel.id},
           transaction
         )
       },
@@ -294,8 +281,7 @@ export const setupSubscriptionBehavior = defineBehavior({
     const paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
       customerId: customer.id,
-      livemode,
-    })
+      livemode})
 
     // Calculate billing period dates (centered around now)
     const now = new Date()
@@ -318,8 +304,7 @@ export const setupSubscriptionBehavior = defineBehavior({
       trialEnd:
         subscriptionStatusDep.status === SubscriptionStatus.Trialing
           ? addDays(now, 7).getTime()
-          : undefined,
-    })) as Subscription.StandardRecord
+          : undefined})) as Subscription.StandardRecord
 
     // Create billing period
     const billingPeriod = await setupBillingPeriod({
@@ -327,8 +312,7 @@ export const setupSubscriptionBehavior = defineBehavior({
       startDate: periodStart,
       endDate: periodEnd,
       status: BillingPeriodStatus.Active,
-      livemode,
-    })
+      livemode})
 
     // Optionally create invoice and payment for the billing period
     // This simulates the initial subscription payment, which is needed for
@@ -340,8 +324,7 @@ export const setupSubscriptionBehavior = defineBehavior({
         organizationId: organization.id,
         status: InvoiceStatus.Paid,
         livemode,
-        priceId: initialPrice.id,
-      })
+        priceId: initialPrice.id})
 
       // Create a succeeded payment for the full subscription amount
       await setupPayment({
@@ -354,8 +337,7 @@ export const setupSubscriptionBehavior = defineBehavior({
         invoiceId: invoice.id,
         billingPeriodId: billingPeriod.id,
         subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-      })
+        paymentMethodId: paymentMethod.id})
     }
 
     // Create subscription item
@@ -364,8 +346,7 @@ export const setupSubscriptionBehavior = defineBehavior({
       name: initialPrice.name ?? `Test Price ${nanoid}`,
       quantity: 1,
       unitPrice: initialPrice.unitPrice,
-      priceId: initialPrice.id,
-    })
+      priceId: initialPrice.id})
 
     // Create subscription item features for resource features
     // This is needed for resource claims to work correctly
@@ -380,8 +361,7 @@ export const setupSubscriptionBehavior = defineBehavior({
         resourceId: features.resource.id,
         pricingModelId: pricingModel.id,
         productFeatureId: features.resourceProductFeature.id,
-        amount: features.resourceFeature.amount,
-      })
+        amount: features.resourceFeature.amount})
     }
 
     // Get subscription items
@@ -405,10 +385,8 @@ export const setupSubscriptionBehavior = defineBehavior({
       subscription,
       billingPeriod,
       subscriptionItems,
-      features,
-    }
-  },
-})
+      features}
+  }})
 
 /**
  * Setup Target Price Behavior
@@ -439,7 +417,7 @@ export const setupTargetPriceBehavior = defineBehavior({
     )
 
     // Create target product - use comprehensiveAdminTransaction to get full context
-    const targetProduct = await comprehensiveAdminTransaction(
+    const targetProduct = (await adminTransaction(
       async (ctx) => {
         const result = await insertProduct(
           {
@@ -448,14 +426,13 @@ export const setupTargetPriceBehavior = defineBehavior({
             livemode,
             pricingModelId: pricingModel.id,
             active: true,
-            slug: `target-product-${nanoid}`,
-          },
+            slug: `target-product-${nanoid}`},
           ctx
         )
         return Result.ok(result)
       },
       { livemode }
-    )
+    ).unwrap()
 
     // Create target price
     const targetPrice = await setupPrice({
@@ -466,15 +443,13 @@ export const setupTargetPriceBehavior = defineBehavior({
       livemode,
       isDefault: false,
       intervalUnit: initialPrice.intervalUnit ?? IntervalUnit.Month,
-      intervalCount: initialPrice.intervalCount ?? 1,
-    })
+      intervalCount: initialPrice.intervalCount ?? 1})
 
     // Create matching features for target product if they exist on source
     const targetFeatures: SubscriptionFeatures = {
       resourceFeature: null,
       resourceProductFeature: null,
-      resource: null,
-    }
+      resource: null}
 
     // Copy resource feature to target product
     if (features.resourceFeature) {
@@ -484,18 +459,15 @@ export const setupTargetPriceBehavior = defineBehavior({
         await setupProductFeature({
           productId: targetProduct.id,
           featureId: features.resourceFeature.id,
-          organizationId: organization.id,
-        })
+          organizationId: organization.id})
     }
 
     return {
       ...prev,
       targetPrice,
       targetProduct,
-      targetFeatures,
-    }
-  },
-})
+      targetFeatures}
+  }})
 
 /**
  * Adjust Subscription Behavior
@@ -554,8 +526,7 @@ export const adjustSubscriptionBehavior = defineBehavior({
           { priceId: targetPrice.id, quantity: 1 },
         ],
         prorateCurrentBillingPeriod:
-          prorationDep.prorateCurrentBillingPeriod,
-      }
+          prorationDep.prorateCurrentBillingPeriod}
     } else if (
       adjustmentTimingDep.timing ===
       SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
@@ -565,8 +536,7 @@ export const adjustSubscriptionBehavior = defineBehavior({
           SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
         newSubscriptionItems: [
           { priceId: targetPrice.id, quantity: 1 },
-        ],
-      }
+        ]}
     } else {
       adjustment = {
         timing: SubscriptionAdjustmentTiming.Auto,
@@ -574,31 +544,27 @@ export const adjustSubscriptionBehavior = defineBehavior({
           { priceId: targetPrice.id, quantity: 1 },
         ],
         prorateCurrentBillingPeriod:
-          prorationDep.prorateCurrentBillingPeriod,
-      }
+          prorationDep.prorateCurrentBillingPeriod}
     }
 
     // Call adjustSubscription within a transaction
     // adjustSubscription requires TransactionEffectsContext, which comprehensiveAdminTransaction provides
     // Note: adjustSubscription returns Result<AdjustSubscriptionResult, Error> so we return it directly
     const adjustmentResult =
-      await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
+      (await adminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
               id: subscription.id,
-              adjustment,
-            },
+              adjustment},
             organization,
             ctx
           )
         },
         { livemode }
-      )
+      ).unwrap()
 
     return {
       ...prev,
-      adjustmentResult,
-    }
-  },
-})
+      adjustmentResult}
+  }})

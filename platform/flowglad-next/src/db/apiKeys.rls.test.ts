@@ -20,7 +20,7 @@ import {
   setupProduct,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   deleteApiKey,
@@ -94,7 +94,7 @@ describe('API Key RLS', () => {
 
     // Get the membership that was created by setupUserAndApiKey
     membershipA_OrgA = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [membership] = await selectMemberships(
           { userId: userA.id, organizationId: orgA.id },
           transaction
@@ -112,7 +112,7 @@ describe('API Key RLS', () => {
 
     // Add userA to orgB with focused = true (simulating user switched to orgB)
     membershipA_OrgB = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertMembership(
             {
@@ -131,7 +131,7 @@ describe('API Key RLS', () => {
 
     // Update userA's membership in orgA to be unfocused
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateMembership(
           {
             ...membershipA_OrgA,
@@ -145,7 +145,7 @@ describe('API Key RLS', () => {
 
     // Refresh membershipA_OrgA after update
     membershipA_OrgA = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [membership] = await selectMemberships(
           { userId: userA.id, organizationId: orgA.id },
           transaction
@@ -445,7 +445,7 @@ describe('API Key RLS', () => {
       // Create a livemode API key for authentication in DELETE tests
       const livemodeToken = `live_sk_auth_${core.nanoid()}`
       livemodeApiKeyOrgA = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const key = await insertApiKey(
             {
               organizationId: orgA.id,
@@ -465,7 +465,7 @@ describe('API Key RLS', () => {
 
       // Create an additional livemode API key in orgA for testing deletion
       apiKeyToDelete = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertApiKey(
               {
@@ -497,7 +497,7 @@ describe('API Key RLS', () => {
 
       // Verify the key no longer exists
       const remainingKeys = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectApiKeys(
               { id: apiKeyToDelete.id },
@@ -512,7 +512,7 @@ describe('API Key RLS', () => {
     it('should DENY a user from deleting API keys from another organization due to RLS', async () => {
       // Create a livemode API key in orgB
       const orgBApiKeyToDelete = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertApiKey(
               {
@@ -542,7 +542,7 @@ describe('API Key RLS', () => {
 
       // Verify the key still exists - RLS prevented the delete
       const remainingKeys = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectApiKeys(
               { id: orgBApiKeyToDelete.id },
@@ -557,7 +557,7 @@ describe('API Key RLS', () => {
     it('should DENY deleting API keys in different livemode', async () => {
       // Create a testmode API key in orgA
       const testmodeApiKey = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertApiKey(
               {
@@ -587,7 +587,7 @@ describe('API Key RLS', () => {
 
       // Verify the key still exists - RLS livemode policy prevented the delete
       const remainingKeys = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectApiKeys(
               { id: testmodeApiKey.id },
@@ -625,7 +625,7 @@ describe('API Key RLS', () => {
 
       // Verify the key no longer exists
       const remainingKeys = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectApiKeys(
               { id: apiKeyToDelete.id },
@@ -640,7 +640,7 @@ describe('API Key RLS', () => {
     it('should DENY deleteSecretApiKeyTransaction for another organizations key', async () => {
       // Create an API key in orgB
       const orgBSecretKey = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertApiKey(
               {
@@ -687,7 +687,7 @@ describe('API Key RLS', () => {
 
       // Verify the key still exists
       const remainingKeys = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectApiKeys({ id: orgBSecretKey.id }, transaction)
           )

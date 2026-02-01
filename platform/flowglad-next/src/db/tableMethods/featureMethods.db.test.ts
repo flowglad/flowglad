@@ -3,8 +3,7 @@ import { FeatureType, SubscriptionItemType } from '@db-core/enums'
 import type { Feature } from '@db-core/schema/features'
 import {
   resourceFeatureInsertSchema,
-  resourceFeatureSelectSchema,
-} from '@db-core/schema/features'
+  resourceFeatureSelectSchema} from '@db-core/schema/features'
 import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Resource } from '@db-core/schema/resources'
@@ -19,29 +18,22 @@ import {
   setupResource,
   setupSubscription,
   setupSubscriptionItem,
-  setupToggleFeature,
-} from '@/../seedDatabase'
+  setupToggleFeature} from '@/../seedDatabase'
 import {
-  adminTransaction,
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+  adminTransaction} from '@/db/adminTransaction'
 import {
   createSubscriptionFeatureItems,
-  subscriptionItemFeatureInsertFromSubscriptionItemAndFeature,
-} from '@/subscriptions/subscriptionItemFeatureHelpers'
+  subscriptionItemFeatureInsertFromSubscriptionItemAndFeature} from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   insertFeature,
   selectFeatureById,
   selectFeatures,
   selectFeaturesTableRowData,
-  updateFeatureTransaction,
-} from './featureMethods'
+  updateFeatureTransaction} from './featureMethods'
 import { selectProductFeatures } from './productFeatureMethods'
 import {
   insertSubscriptionItemFeature,
-  selectSubscriptionItemFeatures,
-} from './subscriptionItemFeatureMethods'
+  selectSubscriptionItemFeatures} from './subscriptionItemFeatureMethods'
 
 describe('insertFeature uniqueness constraints', () => {
   let organization1: Organization.Record
@@ -75,12 +67,11 @@ describe('insertFeature uniqueness constraints', () => {
     active: true,
     amount: null,
     renewalFrequency: null,
-    usageMeterId: null,
-  })
+    usageMeterId: null})
 
   it('should not allow two features with the same slug, organizationId, and pricingModelId', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertFeature(
           createToggleFeatureInsert(
@@ -114,10 +105,9 @@ describe('insertFeature uniqueness constraints', () => {
   it('should allow two features with the same slug and organizationId but different pricingModelId', async () => {
     const newPricingModelForOrg1 = await setupPricingModel({
       organizationId: organization1.id,
-      name: 'Second PricingModel for Org 1',
-    })
+      name: 'Second PricingModel for Org 1'})
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertFeature(
           createToggleFeatureInsert(
@@ -142,14 +132,13 @@ describe('insertFeature uniqueness constraints', () => {
     ).unwrap()
 
     const features = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectFeatures(
             {
               organizationId: organization1.id,
-              slug: 'same-slug',
-            },
+              slug: 'same-slug'},
             transaction
           )
         )
@@ -160,7 +149,7 @@ describe('insertFeature uniqueness constraints', () => {
 
   it('should allow two features with the same slug but different organizationId', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertFeature(
           createToggleFeatureInsert(
@@ -185,28 +174,26 @@ describe('insertFeature uniqueness constraints', () => {
     ).unwrap()
 
     const featuresOrg1 = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectFeatures(
             {
               organizationId: organization1.id,
-              slug: 'same-slug',
-            },
+              slug: 'same-slug'},
             transaction
           )
         )
       })
     ).unwrap()
     const featuresOrg2 = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectFeatures(
             {
               organizationId: organization2.id,
-              slug: 'same-slug',
-            },
+              slug: 'same-slug'},
             transaction
           )
         )
@@ -218,7 +205,7 @@ describe('insertFeature uniqueness constraints', () => {
 
   it('should allow two features with different slugs for the same organization and pricingModel', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertFeature(
           createToggleFeatureInsert(
@@ -243,14 +230,13 @@ describe('insertFeature uniqueness constraints', () => {
     ).unwrap()
 
     const features = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectFeatures(
             {
               organizationId: organization1.id,
-              pricingModelId: pricingModel1.id,
-            },
+              pricingModelId: pricingModel1.id},
             transaction
           )
         )
@@ -285,51 +271,44 @@ describe('updateFeatureTransaction - active state synchronization', () => {
       organizationId: organization.id,
       name: 'Test Feature',
       livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+      pricingModelId: pricingModel.id})
 
     // Associate feature with product
     productFeature = await setupProductFeature({
       productId: product.id,
       featureId: feature.id,
-      organizationId: organization.id,
-    })
+      organizationId: organization.id})
 
     // Setup customer and subscription
     customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+      organizationId: organization.id})
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerId: customer.id,
-    })
+      customerId: customer.id})
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
-      priceId: price.id,
-    })
+      priceId: price.id})
     subscriptionItem = await setupSubscriptionItem({
       subscriptionId: subscription.id,
       priceId: price.id,
       name: 'Test Item',
       quantity: 1,
       unitPrice: price.unitPrice,
-      type: SubscriptionItemType.Static,
-    })
+      type: SubscriptionItemType.Static})
   })
 
   describe('when feature is deactivated (active: true → false)', () => {
     it('should expire all associated productFeatures', async () => {
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Deactivate the feature
           await updateFeatureTransaction(
             {
               id: feature.id,
               type: FeatureType.Toggle,
-              active: false,
-            },
+              active: false},
             { transaction, invalidateCache }
           )
 
@@ -347,11 +326,11 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
     })
 
     it('should detach existing subscriptionItemFeatures but preserve them', async () => {
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // First create a subscriptionItemFeature
           const subscriptionItemFeatureInsert =
@@ -359,8 +338,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
               {
                 subscriptionItem,
                 feature,
-                productFeature,
-              }
+                productFeature}
             )
           const subscriptionItemFeature =
             await insertSubscriptionItemFeature(
@@ -377,8 +355,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             {
               id: feature.id,
               type: FeatureType.Toggle,
-              active: false,
-            },
+              active: false},
             { transaction, invalidateCache }
           )
 
@@ -401,19 +378,18 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
     })
 
     it('should prevent new subscriptions from getting the feature', async () => {
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Deactivate the feature
           await updateFeatureTransaction(
             {
               id: feature.id,
               type: FeatureType.Toggle,
-              active: false,
-            },
+              active: false},
             { transaction, invalidateCache }
           )
 
@@ -424,8 +400,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             name: 'New Item',
             quantity: 1,
             unitPrice: price.unitPrice,
-            type: SubscriptionItemType.Static,
-          })
+            type: SubscriptionItemType.Static})
 
           const createdFeatures = (
             await createSubscriptionFeatureItems(
@@ -439,30 +414,29 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
     })
   })
 
   describe('when feature is reactivated (active: false → true)', () => {
     beforeEach(async () => {
       // First deactivate the feature
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           await updateFeatureTransaction(
             {
               id: feature.id,
               type: FeatureType.Toggle,
-              active: false,
-            },
+              active: false},
             { transaction, invalidateCache }
           )
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
     })
 
     it('should unexpire all associated productFeatures', async () => {
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Verify it's expired first
           const expiredFeatures = await selectProductFeatures(
@@ -476,8 +450,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             {
               id: feature.id,
               type: FeatureType.Toggle,
-              active: true,
-            },
+              active: true},
             { transaction, invalidateCache }
           )
 
@@ -493,19 +466,18 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
     })
 
     it('should allow new subscriptions to get the feature again', async () => {
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Reactivate the feature
           await updateFeatureTransaction(
             {
               id: feature.id,
               type: FeatureType.Toggle,
-              active: true,
-            },
+              active: true},
             { transaction, invalidateCache }
           )
 
@@ -516,8 +488,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             name: 'New Item After Reactivation',
             quantity: 1,
             unitPrice: price.unitPrice,
-            type: SubscriptionItemType.Static,
-          })
+            type: SubscriptionItemType.Static})
 
           const createdFeatures = (
             await createSubscriptionFeatureItems(
@@ -532,11 +503,11 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
     })
 
     it('should NOT automatically grant feature to subscriptions created while inactive', async () => {
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Create a subscription item while feature is inactive
           const itemWhileInactive = await setupSubscriptionItem({
@@ -545,8 +516,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             name: 'Item Created While Inactive',
             quantity: 1,
             unitPrice: price.unitPrice,
-            type: SubscriptionItemType.Static,
-          })
+            type: SubscriptionItemType.Static})
 
           const featuresWhileInactive = (
             await createSubscriptionFeatureItems(
@@ -563,8 +533,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             {
               id: feature.id,
               type: FeatureType.Toggle,
-              active: true,
-            },
+              active: true},
             { transaction, invalidateCache }
           )
 
@@ -580,13 +549,94 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
+
+      ;(await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          // Reactivate the feature
+          await updateFeatureTransaction(
+            {
+              id: feature.id,
+              type: FeatureType.Toggle,
+              active: true},
+            { transaction, invalidateCache }
+          )
+
+          // Create subscription features for a new subscription item
+          const newSubscriptionItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'New Item After Reactivation',
+            quantity: 1,
+            unitPrice: price.unitPrice,
+            type: SubscriptionItemType.Static})
+
+          const createdFeatures = (
+            await createSubscriptionFeatureItems(
+              [newSubscriptionItem],
+              transaction
+            )
+          ).unwrap()
+
+          // Should create the feature because productFeature is unexpired
+          expect(createdFeatures.length).toBeGreaterThan(0)
+          expect(createdFeatures[0].featureId).toBe(feature.id)
+
+          return Result.ok(undefined)
+        }
+      )).unwrap()
+    })
+
+    it('should NOT automatically grant feature to subscriptions created while inactive', async () => {
+      (await adminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          // Create a subscription item while feature is inactive
+          const itemWhileInactive = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Item Created While Inactive',
+            quantity: 1,
+            unitPrice: price.unitPrice,
+            type: SubscriptionItemType.Static})
+
+          const featuresWhileInactive = (
+            await createSubscriptionFeatureItems(
+              [itemWhileInactive],
+              transaction
+            )
+          ).unwrap()
+
+          // Should not have the feature
+          expect(featuresWhileInactive.length).toBe(0)
+
+          // Reactivate the feature
+          await updateFeatureTransaction(
+            {
+              id: feature.id,
+              type: FeatureType.Toggle,
+              active: true},
+            { transaction, invalidateCache }
+          )
+
+          // Verify the old subscription item still doesn't have it
+          const existingFeatures =
+            await selectSubscriptionItemFeatures(
+              { subscriptionItemId: itemWhileInactive.id },
+              transaction
+            )
+
+          // Still no features for this subscription item
+          expect(existingFeatures.length).toBe(0)
+
+          return Result.ok(undefined)
+        }
+      )).unwrap()
     })
   })
 
   describe('when active field is not changed', () => {
     it('should not trigger productFeature sync when updating other fields', async () => {
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ transaction, invalidateCache }) => {
           // Get initial state
           const initialProductFeatures = await selectProductFeatures(
@@ -601,8 +651,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
               id: feature.id,
               type: FeatureType.Toggle,
               name: 'Updated Name',
-              description: 'Updated description',
-            },
+              description: 'Updated description'},
             { transaction, invalidateCache }
           )
 
@@ -616,7 +665,7 @@ describe('updateFeatureTransaction - active state synchronization', () => {
 
           return Result.ok(undefined)
         }
-      )
+      )).unwrap()
     })
   })
 })
@@ -630,20 +679,17 @@ describe('selectFeaturesTableRowData search', () => {
       pricingModelId: pricingModel.id,
       name: 'Premium Feature',
       slug: 'premium-feature-slug',
-      livemode: true,
-    })
+      livemode: true})
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Search by name (case-insensitive)
         const byName = await selectFeaturesTableRowData({
           input: {
             pageSize: 10,
             searchQuery: 'PREMIUM',
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
+            filters: { organizationId: organization.id }},
+          transaction})
         expect(
           byName.items.some((i) => i.feature.id === feature.id)
         ).toBe(true)
@@ -653,10 +699,8 @@ describe('selectFeaturesTableRowData search', () => {
           input: {
             pageSize: 10,
             searchQuery: 'premium-feature',
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
+            filters: { organizationId: organization.id }},
+          transaction})
         expect(
           bySlug.items.some((i) => i.feature.id === feature.id)
         ).toBe(true)
@@ -666,10 +710,8 @@ describe('selectFeaturesTableRowData search', () => {
           input: {
             pageSize: 10,
             searchQuery: `  ${feature.id}  `,
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
+            filters: { organizationId: organization.id }},
+          transaction})
         expect(byId.items.length).toBe(1)
         expect(byId.items[0].feature.id).toBe(feature.id)
         return Result.ok(undefined)
@@ -684,28 +726,23 @@ describe('selectFeaturesTableRowData search', () => {
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       name: 'Test Feature',
-      livemode: true,
-    })
+      livemode: true})
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const resultEmpty = await selectFeaturesTableRowData({
           input: {
             pageSize: 10,
             searchQuery: '',
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
+            filters: { organizationId: organization.id }},
+          transaction})
 
         const resultUndefined = await selectFeaturesTableRowData({
           input: {
             pageSize: 10,
             searchQuery: undefined,
-            filters: { organizationId: organization.id },
-          },
-          transaction,
-        })
+            filters: { organizationId: organization.id }},
+          transaction})
 
         expect(resultEmpty.items.length).toBeGreaterThanOrEqual(1)
         expect(resultEmpty.total).toBe(resultUndefined.total)
@@ -729,8 +766,7 @@ describe('Resource Feature schema and methods', () => {
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       slug: 'seats',
-      name: 'Seats',
-    })
+      name: 'Seats'})
   })
 
   const createResourceFeatureInsert = (params?: {
@@ -749,19 +785,17 @@ describe('Resource Feature schema and methods', () => {
     usageMeterId: null,
     renewalFrequency: null,
     livemode: true,
-    active: true,
-  })
+    active: true})
 
   describe('insertFeature for Resource type', () => {
     it('should insert a resource feature with required fields: type=Resource, resourceId, and positive amount', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const inserted = await insertFeature(
             createResourceFeatureInsert({
               resourceId: resource.id,
-              amount: 10,
-            }),
+              amount: 10}),
             ctx
           )
 
@@ -780,7 +814,7 @@ describe('Resource Feature schema and methods', () => {
 
     it('should select a resource feature by id and return the complete record', async () => {
       const inserted = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           return Result.ok(
             await insertFeature(createResourceFeatureInsert(), ctx)
@@ -788,7 +822,7 @@ describe('Resource Feature schema and methods', () => {
         })
       ).unwrap()
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const selected = (
             await selectFeatureById(inserted.id, transaction)
@@ -818,8 +852,7 @@ describe('Resource Feature schema and methods', () => {
         usageMeterId: null,
         renewalFrequency: null,
         livemode: true,
-        active: true,
-      }
+        active: true}
 
       const result =
         resourceFeatureInsertSchema.safeParse(invalidFeature)
@@ -839,8 +872,7 @@ describe('Resource Feature schema and methods', () => {
         usageMeterId: 'some-usage-meter-id', // Invalid: must be null for Resource type
         renewalFrequency: null,
         livemode: true,
-        active: true,
-      }
+        active: true}
 
       const result =
         resourceFeatureInsertSchema.safeParse(invalidFeature)
@@ -860,8 +892,7 @@ describe('Resource Feature schema and methods', () => {
         usageMeterId: null,
         renewalFrequency: 'EveryBillingPeriod', // Invalid: must be null for Resource type
         livemode: true,
-        active: true,
-      }
+        active: true}
 
       const result =
         resourceFeatureInsertSchema.safeParse(invalidFeature)
@@ -881,8 +912,7 @@ describe('Resource Feature schema and methods', () => {
         usageMeterId: null,
         renewalFrequency: null,
         livemode: true,
-        active: true,
-      }
+        active: true}
 
       const result = resourceFeatureInsertSchema.safeParse(
         featureWithZeroAmount
@@ -903,8 +933,7 @@ describe('Resource Feature schema and methods', () => {
         usageMeterId: null,
         renewalFrequency: null,
         livemode: true,
-        active: true,
-      }
+        active: true}
 
       const result =
         resourceFeatureInsertSchema.safeParse(validFeature)
@@ -915,7 +944,7 @@ describe('Resource Feature schema and methods', () => {
   describe('resourceFeatureSelectSchema validation', () => {
     it('should validate a selected resource feature record with type=Resource', async () => {
       const inserted = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           return Result.ok(
             await insertFeature(createResourceFeatureInsert(), ctx)

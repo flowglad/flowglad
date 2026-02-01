@@ -26,7 +26,7 @@ import {
   setupPrice,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   derivePricingModelIdForFeeCalculation,
@@ -94,7 +94,7 @@ describe('Fee Calculation Methods', () => {
   describe('derivePricingModelIdForFeeCalculation', () => {
     it('should derive pricingModelId from billingPeriod when billingPeriodId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const derivedPricingModelId =
             await derivePricingModelIdForFeeCalculation(
               {
@@ -115,7 +115,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should derive pricingModelId from checkoutSession when only checkoutSessionId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const derivedPricingModelId =
             await derivePricingModelIdForFeeCalculation(
               {
@@ -136,7 +136,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should prioritize billingPeriod over checkoutSession when both are provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const derivedPricingModelId =
             await derivePricingModelIdForFeeCalculation(
               {
@@ -157,7 +157,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should throw error when neither billingPeriodId nor checkoutSessionId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await expect(
             derivePricingModelIdForFeeCalculation(
               {
@@ -176,7 +176,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should throw error when billingPeriodId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentBillingPeriodId = `billing_period_${core.nanoid()}`
 
           await expect(
@@ -195,7 +195,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should throw error when checkoutSessionId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentCheckoutSessionId = `chckt_session_${core.nanoid()}`
 
           await expect(
@@ -240,7 +240,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should insert subscription fee calculation and derive pricingModelId from billingPeriod', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const feeCalculation = await insertFeeCalculation(
             {
               ...baseFeeCalculationData,
@@ -269,7 +269,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should insert checkout session fee calculation and derive pricingModelId from checkoutSession', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const feeCalculation = await insertFeeCalculation(
             {
               ...baseFeeCalculationData,
@@ -298,7 +298,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should use provided pricingModelId without derivation when explicitly provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const feeCalculation = await insertFeeCalculation(
             {
               ...baseFeeCalculationData,
@@ -322,7 +322,7 @@ describe('Fee Calculation Methods', () => {
 
     it('should throw error when neither billingPeriodId nor checkoutSessionId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await expect(
             insertFeeCalculation(
               {

@@ -10,10 +10,7 @@ import {
   setupInvoice,
   setupOrg,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { updateInvoiceTransaction } from './invoiceHelpers'
 
@@ -75,7 +72,7 @@ describe('updateInvoiceTransaction', () => {
         priceId: price.id,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await updateInvoiceTransaction(
             {
               id: invoice.id,
@@ -123,7 +120,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -231,7 +228,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -273,7 +270,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -317,7 +314,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -368,7 +365,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -400,7 +397,7 @@ describe('updateInvoiceTransaction', () => {
         priceId: price.id,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // First update to set up multiple line items
           const { invoiceLineItems: updatedInvoiceLineItems } =
             await updateInvoiceTransaction(
@@ -553,7 +550,7 @@ describe('updateInvoiceTransaction', () => {
   //       ).rejects.toThrow()
 
   //       // Verify the invoice wasn't changed
-  //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+  //       ;(await adminTransaction(async ({ transaction }) => {
   //         const result = await updateInvoiceTransaction(
   //           {
   //             invoice: {
@@ -596,7 +593,7 @@ describe('updateInvoiceTransaction', () => {
   //         livemode: false,
   //       })
 
-  //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+  //       ;(await adminTransaction(async ({ transaction }) => {
   //         const result = await updateInvoiceTransaction(
   //           {
   //             invoice: {

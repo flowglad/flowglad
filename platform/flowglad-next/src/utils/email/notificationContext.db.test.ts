@@ -7,10 +7,7 @@ import {
   setupPaymentMethod,
   setupSubscription,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { buildNotificationContext } from './notificationContext'
 
 describe('buildNotificationContext', () => {
@@ -19,7 +16,7 @@ describe('buildNotificationContext', () => {
       const { organization } = await setupOrg()
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               { organizationId: organization.id },
@@ -57,7 +54,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -116,7 +113,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -167,7 +164,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -211,7 +208,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -249,7 +246,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -295,7 +292,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -382,7 +379,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -423,7 +420,7 @@ describe('buildNotificationContext', () => {
       // Note: setupOrg doesn't create memberships by default
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {

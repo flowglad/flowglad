@@ -48,7 +48,7 @@ import {
   setupUsageEvent,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { LedgerTransactionInitiatingSourceType } from '@/types'
 import { core } from '@/utils/core'
 import {
@@ -233,17 +233,15 @@ describe('Ledger Management System', async () => {
           secondUsageEvent.amount // omit thirdUsageEvent, which is pending
 
         const result = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
         expect(result).toBe(expectedBalance)
       })
@@ -341,17 +339,15 @@ describe('Ledger Management System', async () => {
         // omit thirdUsageEvent, which is DISCARDED
 
         const result = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
         expect(result).toBe(expectedBalance)
       })
@@ -429,18 +425,16 @@ describe('Ledger Management System', async () => {
         }
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const postedResult =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
-              expect(postedResult).toBe(expectedPostedBalance)
-              return Result.ok(undefined)
-            }
-          )
+          await adminTransaction(async ({ transaction }) => {
+            const postedResult =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            expect(postedResult).toBe(expectedPostedBalance)
+            return Result.ok(undefined)
+          })
         ).unwrap()
 
         // await adminTransaction(async ({ transaction: adminDb }) => {
@@ -878,255 +872,235 @@ describe('Ledger Management System', async () => {
       describe('4.2. Idempotent Command Processing', () => {
         it('should return the same transaction and entries when processing the same usage event command multiple times', async () => {
           ;(
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const usageEvent = await setupUsageEvent({
-                  organizationId: organization.id,
-                  subscriptionId: subscription.id,
-                  usageMeterId: usageMeter.id,
-                  amount: 100,
-                  priceId: price.id,
-                  billingPeriodId: billingPeriod.id,
-                  transactionId: core.nanoid(),
-                  customerId: customer.id,
-                  livemode: subscription.livemode,
-                })
+            await adminTransaction(async ({ transaction }) => {
+              const usageEvent = await setupUsageEvent({
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+                amount: 100,
+                priceId: price.id,
+                billingPeriodId: billingPeriod.id,
+                transactionId: core.nanoid(),
+                customerId: customer.id,
+                livemode: subscription.livemode,
+              })
 
-                const command: UsageEventProcessedLedgerCommand = {
-                  type: LedgerTransactionType.UsageEventProcessed,
-                  organizationId: organization.id,
-                  subscriptionId: subscription.id,
-                  livemode: subscription.livemode,
-                  payload: {
-                    usageEvent,
-                  },
-                }
-
-                // First processing
-                const firstResult = (
-                  await processLedgerCommand(command, transaction)
-                ).unwrap()
-
-                expect(firstResult.ledgerTransaction.type).toBe(
-                  LedgerTransactionType.UsageEventProcessed
-                )
-                expect(
-                  firstResult.ledgerTransaction.initiatingSourceType
-                ).toBe(
-                  LedgerTransactionInitiatingSourceType.UsageEvent
-                )
-                expect(
-                  firstResult.ledgerTransaction.initiatingSourceId
-                ).toBe(usageEvent.id)
-                expect(
-                  firstResult.ledgerEntries.length
-                ).toBeGreaterThan(0)
-
-                // Second processing with the same command
-                const secondResult = (
-                  await processLedgerCommand(command, transaction)
-                ).unwrap()
-
-                // Should return the same transaction
-                expect(secondResult.ledgerTransaction.id).toBe(
-                  firstResult.ledgerTransaction.id
-                )
-                expect(secondResult.ledgerTransaction.type).toBe(
-                  LedgerTransactionType.UsageEventProcessed
-                )
-
-                // Should return the same entries (no duplicates created)
-                expect(secondResult.ledgerEntries.length).toBe(
-                  firstResult.ledgerEntries.length
-                )
-                expect(
-                  secondResult.ledgerEntries
-                    .map((e: LedgerEntry.Record) => e.id)
-                    .sort()
-                ).toEqual(
-                  firstResult.ledgerEntries
-                    .map((e: LedgerEntry.Record) => e.id)
-                    .sort()
-                )
-                return Result.ok(undefined)
+              const command: UsageEventProcessedLedgerCommand = {
+                type: LedgerTransactionType.UsageEventProcessed,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                livemode: subscription.livemode,
+                payload: {
+                  usageEvent,
+                },
               }
-            )
+
+              // First processing
+              const firstResult = (
+                await processLedgerCommand(command, transaction)
+              ).unwrap()
+
+              expect(firstResult.ledgerTransaction.type).toBe(
+                LedgerTransactionType.UsageEventProcessed
+              )
+              expect(
+                firstResult.ledgerTransaction.initiatingSourceType
+              ).toBe(LedgerTransactionInitiatingSourceType.UsageEvent)
+              expect(
+                firstResult.ledgerTransaction.initiatingSourceId
+              ).toBe(usageEvent.id)
+              expect(
+                firstResult.ledgerEntries.length
+              ).toBeGreaterThan(0)
+
+              // Second processing with the same command
+              const secondResult = (
+                await processLedgerCommand(command, transaction)
+              ).unwrap()
+
+              // Should return the same transaction
+              expect(secondResult.ledgerTransaction.id).toBe(
+                firstResult.ledgerTransaction.id
+              )
+              expect(secondResult.ledgerTransaction.type).toBe(
+                LedgerTransactionType.UsageEventProcessed
+              )
+
+              // Should return the same entries (no duplicates created)
+              expect(secondResult.ledgerEntries.length).toBe(
+                firstResult.ledgerEntries.length
+              )
+              expect(
+                secondResult.ledgerEntries
+                  .map((e: LedgerEntry.Record) => e.id)
+                  .sort()
+              ).toEqual(
+                firstResult.ledgerEntries
+                  .map((e: LedgerEntry.Record) => e.id)
+                  .sort()
+              )
+              return Result.ok(undefined)
+            })
           ).unwrap()
         })
 
         it('should return the same transaction and entries when processing the same billing period transition command multiple times', async () => {
           ;(
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const previousBillingPeriod =
-                  await setupBillingPeriod({
-                    subscriptionId: subscription.id,
-                    startDate:
-                      subscription.currentBillingPeriodStart! -
-                      30 * 24 * 60 * 60 * 1000,
-                    endDate:
-                      subscription.currentBillingPeriodStart! - 1,
-                    livemode: subscription.livemode,
-                  })
+            await adminTransaction(async ({ transaction }) => {
+              const previousBillingPeriod = await setupBillingPeriod({
+                subscriptionId: subscription.id,
+                startDate:
+                  subscription.currentBillingPeriodStart! -
+                  30 * 24 * 60 * 60 * 1000,
+                endDate: subscription.currentBillingPeriodStart! - 1,
+                livemode: subscription.livemode,
+              })
 
-                const newBillingPeriod = await setupBillingPeriod({
-                  subscriptionId: subscription.id,
-                  startDate: subscription.currentBillingPeriodStart!,
-                  endDate: subscription.currentBillingPeriodEnd!,
-                  livemode: subscription.livemode,
-                })
+              const newBillingPeriod = await setupBillingPeriod({
+                subscriptionId: subscription.id,
+                startDate: subscription.currentBillingPeriodStart!,
+                endDate: subscription.currentBillingPeriodEnd!,
+                livemode: subscription.livemode,
+              })
 
-                const command: BillingPeriodTransitionLedgerCommand =
-                  {
-                    type: LedgerTransactionType.BillingPeriodTransition,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id,
-                    livemode: subscription.livemode,
-                    payload: {
-                      type: 'standard',
-                      subscription,
-                      previousBillingPeriod,
-                      newBillingPeriod,
-                      subscriptionFeatureItems: [], // Empty for simplicity
-                    },
-                  }
-
-                // First processing
-                const firstResult = (
-                  await processLedgerCommand(command, transaction)
-                ).unwrap()
-
-                expect(firstResult.ledgerTransaction.type).toBe(
-                  LedgerTransactionType.BillingPeriodTransition
-                )
-                expect(
-                  firstResult.ledgerTransaction.initiatingSourceId
-                ).toBe(newBillingPeriod.id)
-
-                // Second processing with the same command
-                const secondResult = (
-                  await processLedgerCommand(command, transaction)
-                ).unwrap()
-
-                // Should return the same transaction
-                expect(secondResult.ledgerTransaction.id).toBe(
-                  firstResult.ledgerTransaction.id
-                )
-                expect(secondResult.ledgerTransaction.type).toBe(
-                  LedgerTransactionType.BillingPeriodTransition
-                )
-
-                // Should return the same entries (no duplicates created)
-                expect(secondResult.ledgerEntries.length).toBe(
-                  firstResult.ledgerEntries.length
-                )
-                expect(
-                  secondResult.ledgerEntries
-                    .map((e: LedgerEntry.Record) => e.id)
-                    .sort()
-                ).toEqual(
-                  firstResult.ledgerEntries
-                    .map((e: LedgerEntry.Record) => e.id)
-                    .sort()
-                )
-                return Result.ok(undefined)
+              const command: BillingPeriodTransitionLedgerCommand = {
+                type: LedgerTransactionType.BillingPeriodTransition,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                livemode: subscription.livemode,
+                payload: {
+                  type: 'standard',
+                  subscription,
+                  previousBillingPeriod,
+                  newBillingPeriod,
+                  subscriptionFeatureItems: [], // Empty for simplicity
+                },
               }
-            )
+
+              // First processing
+              const firstResult = (
+                await processLedgerCommand(command, transaction)
+              ).unwrap()
+
+              expect(firstResult.ledgerTransaction.type).toBe(
+                LedgerTransactionType.BillingPeriodTransition
+              )
+              expect(
+                firstResult.ledgerTransaction.initiatingSourceId
+              ).toBe(newBillingPeriod.id)
+
+              // Second processing with the same command
+              const secondResult = (
+                await processLedgerCommand(command, transaction)
+              ).unwrap()
+
+              // Should return the same transaction
+              expect(secondResult.ledgerTransaction.id).toBe(
+                firstResult.ledgerTransaction.id
+              )
+              expect(secondResult.ledgerTransaction.type).toBe(
+                LedgerTransactionType.BillingPeriodTransition
+              )
+
+              // Should return the same entries (no duplicates created)
+              expect(secondResult.ledgerEntries.length).toBe(
+                firstResult.ledgerEntries.length
+              )
+              expect(
+                secondResult.ledgerEntries
+                  .map((e: LedgerEntry.Record) => e.id)
+                  .sort()
+              ).toEqual(
+                firstResult.ledgerEntries
+                  .map((e: LedgerEntry.Record) => e.id)
+                  .sort()
+              )
+              return Result.ok(undefined)
+            })
           ).unwrap()
         })
 
         it('should allow processing different billing periods for the same subscription', async () => {
           ;(
-            await adminTransactionWithResult(
-              async ({ transaction }) => {
-                const previousBillingPeriod =
-                  await setupBillingPeriod({
-                    subscriptionId: subscription.id,
-                    startDate:
-                      subscription.currentBillingPeriodStart! -
-                      30 * 24 * 60 * 60 * 1000,
-                    endDate:
-                      subscription.currentBillingPeriodStart! - 1,
-                    livemode: subscription.livemode,
-                  })
+            await adminTransaction(async ({ transaction }) => {
+              const previousBillingPeriod = await setupBillingPeriod({
+                subscriptionId: subscription.id,
+                startDate:
+                  subscription.currentBillingPeriodStart! -
+                  30 * 24 * 60 * 60 * 1000,
+                endDate: subscription.currentBillingPeriodStart! - 1,
+                livemode: subscription.livemode,
+              })
 
-                const newBillingPeriod = await setupBillingPeriod({
+              const newBillingPeriod = await setupBillingPeriod({
+                subscriptionId: subscription.id,
+                startDate: subscription.currentBillingPeriodStart!,
+                endDate: subscription.currentBillingPeriodEnd!,
+                livemode: subscription.livemode,
+              })
+
+              const firstCommand: BillingPeriodTransitionLedgerCommand =
+                {
+                  type: LedgerTransactionType.BillingPeriodTransition,
+                  organizationId: organization.id,
                   subscriptionId: subscription.id,
-                  startDate: subscription.currentBillingPeriodStart!,
-                  endDate: subscription.currentBillingPeriodEnd!,
                   livemode: subscription.livemode,
-                })
+                  payload: {
+                    type: 'standard',
+                    subscription,
+                    previousBillingPeriod,
+                    newBillingPeriod,
+                    subscriptionFeatureItems: [],
+                  },
+                }
 
-                const firstCommand: BillingPeriodTransitionLedgerCommand =
-                  {
-                    type: LedgerTransactionType.BillingPeriodTransition,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id,
-                    livemode: subscription.livemode,
-                    payload: {
-                      type: 'standard',
-                      subscription,
-                      previousBillingPeriod,
-                      newBillingPeriod,
-                      subscriptionFeatureItems: [],
-                    },
-                  }
+              // First processing
+              const firstResult = (
+                await processLedgerCommand(firstCommand, transaction)
+              ).unwrap()
 
-                // First processing
-                const firstResult = (
-                  await processLedgerCommand(
-                    firstCommand,
-                    transaction
-                  )
-                ).unwrap()
+              expect(
+                firstResult.ledgerTransaction.initiatingSourceId
+              ).toBe(newBillingPeriod.id)
 
-                expect(
-                  firstResult.ledgerTransaction.initiatingSourceId
-                ).toBe(newBillingPeriod.id)
+              // Create a different billing period
+              const secondBillingPeriod = await setupBillingPeriod({
+                subscriptionId: subscription.id,
+                startDate: newBillingPeriod.endDate + 1,
+                endDate:
+                  newBillingPeriod.endDate + 30 * 24 * 60 * 60 * 1000,
+                livemode: subscription.livemode,
+              })
 
-                // Create a different billing period
-                const secondBillingPeriod = await setupBillingPeriod({
+              const secondCommand: BillingPeriodTransitionLedgerCommand =
+                {
+                  type: LedgerTransactionType.BillingPeriodTransition,
+                  organizationId: organization.id,
                   subscriptionId: subscription.id,
-                  startDate: newBillingPeriod.endDate + 1,
-                  endDate:
-                    newBillingPeriod.endDate +
-                    30 * 24 * 60 * 60 * 1000,
                   livemode: subscription.livemode,
-                })
+                  payload: {
+                    type: 'standard',
+                    subscription,
+                    previousBillingPeriod: newBillingPeriod,
+                    newBillingPeriod: secondBillingPeriod,
+                    subscriptionFeatureItems: [],
+                  },
+                }
 
-                const secondCommand: BillingPeriodTransitionLedgerCommand =
-                  {
-                    type: LedgerTransactionType.BillingPeriodTransition,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id,
-                    livemode: subscription.livemode,
-                    payload: {
-                      type: 'standard',
-                      subscription,
-                      previousBillingPeriod: newBillingPeriod,
-                      newBillingPeriod: secondBillingPeriod,
-                      subscriptionFeatureItems: [],
-                    },
-                  }
+              // Second processing with different billing period
+              const secondResult = (
+                await processLedgerCommand(secondCommand, transaction)
+              ).unwrap()
 
-                // Second processing with different billing period
-                const secondResult = (
-                  await processLedgerCommand(
-                    secondCommand,
-                    transaction
-                  )
-                ).unwrap()
-
-                // Should create a new transaction (different billing period)
-                expect(
-                  secondResult.ledgerTransaction.initiatingSourceId
-                ).toBe(secondBillingPeriod.id)
-                expect(secondResult.ledgerTransaction.id).not.toBe(
-                  firstResult.ledgerTransaction.id
-                )
-                return Result.ok(undefined)
-              }
-            )
+              // Should create a new transaction (different billing period)
+              expect(
+                secondResult.ledgerTransaction.initiatingSourceId
+              ).toBe(secondBillingPeriod.id)
+              expect(secondResult.ledgerTransaction.id).not.toBe(
+                firstResult.ledgerTransaction.id
+              )
+              return Result.ok(undefined)
+            })
           ).unwrap()
         })
       })

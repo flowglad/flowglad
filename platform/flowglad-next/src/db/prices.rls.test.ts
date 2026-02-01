@@ -18,7 +18,7 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import db from '@/db/client'
 import {
@@ -368,7 +368,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
 
       // Verify the price exists via admin transaction
       const adminPrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           return Result.ok(
             await selectPrices(
@@ -421,7 +421,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
 
       // Verify the price exists via admin transaction
       const adminPrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           return Result.ok(
             await selectPrices(
@@ -628,7 +628,7 @@ describe('prices RLS - customer read access', () => {
 
     // Create a user for the customer
     customerUser = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await insertUser(

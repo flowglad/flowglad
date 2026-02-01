@@ -31,7 +31,7 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   NotFoundError,
   TerminalStateError,
@@ -89,7 +89,7 @@ describe('paymentMethods.ts', () => {
   describe('safelyUpdatePaymentForRefund', () => {
     it('successfully updates a payment for refund', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult =
             await safelyUpdatePaymentForRefund(
               {
@@ -112,7 +112,7 @@ describe('paymentMethods.ts', () => {
     })
     it('fails if refund status is not explicitly set', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await safelyUpdatePaymentForRefund(
             { id: payment.id, refunded: true },
             transaction
@@ -131,7 +131,7 @@ describe('paymentMethods.ts', () => {
 
     it('fails if refund is for more than the payment amount', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const refundAmount = 1001
           const result = await safelyUpdatePaymentForRefund(
             {
@@ -157,7 +157,7 @@ describe('paymentMethods.ts', () => {
 
     it('updates payment for partial refund and keeps payment amount unchanged', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const partialRefundAmount = 500 // 50% refund
           const refundedAt = Date.now()
           const updatedPaymentResult =
@@ -192,7 +192,7 @@ describe('paymentMethods.ts', () => {
 
     it('fails if refunded amount is not positive', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           for (const refundedAmount of [0, -1]) {
             const result = await safelyUpdatePaymentForRefund(
               {
@@ -219,7 +219,7 @@ describe('paymentMethods.ts', () => {
 
     it('returns error when payment is not found', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentPaymentId = nanoid()
 
           const result = await safelyUpdatePaymentForRefund(
@@ -245,7 +245,7 @@ describe('paymentMethods.ts', () => {
 
     it('returns error when payment is not in a valid state for refund', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a payment in a non-refundable state
           const nonRefundablePayment = await setupPayment({
             stripeChargeId: `ch_${nanoid()}`,
@@ -281,7 +281,7 @@ describe('paymentMethods.ts', () => {
 
     it('allows updating an already refunded payment', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // First refund the payment
           const firstRefundResult =
             await safelyUpdatePaymentForRefund(
@@ -331,7 +331,7 @@ describe('paymentMethods.ts', () => {
         paymentMethod: PaymentMethodType.Card,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult =
             await safelyUpdatePaymentStatus(
               processingPayment,
@@ -354,7 +354,7 @@ describe('paymentMethods.ts', () => {
 
     it('returns existing payment when updating terminal state to same status', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a payment in a terminal state
           const terminalPayment = await setupPayment({
             stripeChargeId: `ch_${nanoid()}`,
@@ -383,7 +383,7 @@ describe('paymentMethods.ts', () => {
 
     it('returns error when payment is updated to different terminal state', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a payment in a terminal state
           const terminalPayment = await setupPayment({
             stripeChargeId: `ch_${nanoid()}`,
@@ -415,7 +415,7 @@ describe('paymentMethods.ts', () => {
 
     it('allows updating from pending to processing', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a payment in pending state
           const pendingPayment = await setupPayment({
             stripeChargeId: `ch_${nanoid()}`,
@@ -444,7 +444,7 @@ describe('paymentMethods.ts', () => {
 
     it('allows updating from processing to succeeded', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a payment in processing state
           const processingPayment = await setupPayment({
             stripeChargeId: `ch_${nanoid()}`,
@@ -495,7 +495,7 @@ describe('selectRevenueDataForOrganization', () => {
 
   it('Scenario 1: Basic operation with revenue data present', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const revenueChartIntervalUnit =
           RevenueChartIntervalUnit.Month
 
@@ -645,7 +645,7 @@ describe('selectRevenueDataForOrganization', () => {
 
   it('Scenario 2: Filtering by `productId` with matching revenue data', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const targetDate = new Date('2023-03-15T00:00:00.000Z')
         const fromDate = new Date(
           Date.UTC(
@@ -861,7 +861,7 @@ describe('selectRevenueDataForOrganization', () => {
 
   it('Scenario 3: Filtering by `productId` with no matching revenue data', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const targetDate = new Date('2023-04-10T00:00:00.000Z')
         const fromDate = new Date(
           Date.UTC(
@@ -987,7 +987,7 @@ describe('selectRevenueDataForOrganization', () => {
 
   it('Scenario 4: No payments for the organization in the specified date range', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const fromDate = new Date('2023-05-01T00:00:00.000Z')
         const toDate = new Date('2023-05-31T23:59:59.999Z')
         const revenueChartIntervalUnit =
@@ -1053,7 +1053,7 @@ describe('selectRevenueDataForOrganization', () => {
   describe('Scenario 5: Different `revenueChartIntervalUnit` values', () => {
     it("should correctly aggregate for 'day' interval", async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const fromDate = new Date('2023-01-01T00:00:00.000Z')
           const toDate = new Date('2023-01-05T23:59:59.999Z')
           const revenueChartIntervalUnit =
@@ -1153,7 +1153,7 @@ describe('selectRevenueDataForOrganization', () => {
 
     it("should correctly aggregate for 'week' interval", async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Jan 1, 2023 is a Sunday. date_trunc('week', timestamp) considers Monday as start of week.
           // We want to test for the week starting Jan 2nd and Jan 9th.
           const fromDate = new Date('2023-01-02T00:00:00.000Z') // Explicitly start from Monday, Jan 2nd
@@ -1261,7 +1261,7 @@ describe('selectRevenueDataForOrganization', () => {
 
     it("should correctly aggregate for 'month' interval", async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const fromDate = new Date('2023-01-01T00:00:00.000Z')
           const toDate = new Date('2023-03-01T23:59:59.999Z') // Covers Jan, Feb, and the first day of Mar
           const revenueChartIntervalUnit =
@@ -1360,7 +1360,7 @@ describe('selectRevenueDataForOrganization', () => {
 
     it("should correctly aggregate for 'year' interval", async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const fromDate = new Date('2023-01-01T00:00:00.000Z')
           const toDate = new Date('2024-03-01T23:59:59.999Z') // Covers 2023, and part of 2024
           const revenueChartIntervalUnit =
@@ -1461,7 +1461,7 @@ describe('selectRevenueDataForOrganization', () => {
   describe('Scenario 6: Edge cases for date ranges', () => {
     it('Sub-Scenario 6.1: `fromDate` and `toDate` are the same day', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const targetDayStr = '2023-07-15'
           const fromDate = new Date(`${targetDayStr}T00:00:00.000Z`)
           const toDate = new Date(`${targetDayStr}T23:59:59.999Z`)
@@ -1527,7 +1527,7 @@ describe('selectRevenueDataForOrganization', () => {
 
     it('Sub-Scenario 6.2: Date range spans exactly one interval unit (month)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const fromDate = new Date('2023-07-01T00:00:00.000Z')
           const toDate = new Date('2023-07-31T23:59:59.999Z') // Exactly July
           const revenueChartIntervalUnit =
@@ -1612,7 +1612,7 @@ describe('selectRevenueDataForOrganization', () => {
 
     it('Sub-Scenario 6.3: Date range covers a partial interval (month)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const fromDate = new Date('2023-07-01T00:00:00.000Z')
           const toDate = new Date('2023-07-05T23:59:59.999Z') // Only first 5 days of July
           const revenueChartIntervalUnit =
@@ -1682,7 +1682,7 @@ describe('selectRevenueDataForOrganization', () => {
 
   it('Scenario 7: Payments with various refund amounts', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const fromDate = new Date('2023-08-01T00:00:00.000Z')
         const toDate = new Date('2023-08-31T23:59:59.999Z')
         const revenueChartIntervalUnit =
@@ -1783,7 +1783,7 @@ describe('selectRevenueDataForOrganization', () => {
 
   it('Scenario 8: `fromDate` is after `toDate`', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const fromDate = new Date('2023-08-01T00:00:00.000Z')
         const toDate = new Date('2023-07-01T00:00:00.000Z') // toDate is before fromDate
         const revenueChartIntervalUnit = RevenueChartIntervalUnit.Day
@@ -1809,7 +1809,7 @@ describe('selectRevenueDataForOrganization', () => {
   describe('Scenario 9: Payment status filtering', () => {
     it('should only include Succeeded and Refunded payments in revenue calculations', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const fromDate = new Date('2023-09-01T00:00:00.000Z')
           const toDate = new Date('2023-09-30T23:59:59.999Z')
           const revenueChartIntervalUnit =
@@ -1917,7 +1917,7 @@ describe('selectRevenueDataForOrganization', () => {
 
     it('should include partial refunds correctly with Succeeded status', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const fromDate = new Date('2023-10-01T00:00:00.000Z')
           const toDate = new Date('2023-10-31T23:59:59.999Z')
           const revenueChartIntervalUnit =
@@ -2112,7 +2112,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
   describe('search functionality', () => {
     it('should search by payment ID or customer name (case-insensitive, trims whitespace)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test payment ID search
           const resultById =
             await selectPaymentsCursorPaginatedWithTableRowData({
@@ -2177,7 +2177,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should ignore empty or whitespace-only search queries', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultEmpty =
             await selectPaymentsCursorPaginatedWithTableRowData({
               input: {
@@ -2222,7 +2222,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should only return payments for the specified organization', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Search for "Alice" - should only return payment1, not paymentOtherOrg
           const result =
             await selectPaymentsCursorPaginatedWithTableRowData({
@@ -2247,7 +2247,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should work with status filters', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Search with status filter
           const result =
             await selectPaymentsCursorPaginatedWithTableRowData({
@@ -2292,7 +2292,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should work with customerId filters', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Search with customerId filter
           const result =
             await selectPaymentsCursorPaginatedWithTableRowData({
@@ -2337,7 +2337,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should return empty results when no payments match search query', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result =
             await selectPaymentsCursorPaginatedWithTableRowData({
               input: {
@@ -2357,7 +2357,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should return empty results when payment ID does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentId = `pay_${nanoid()}`
           const result =
             await selectPaymentsCursorPaginatedWithTableRowData({
@@ -2378,7 +2378,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should handle multiple payments with same customer name', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create another payment for customer1
           const payment1b = await setupPayment({
             stripeChargeId: `ch_${nanoid()}`,
@@ -2415,7 +2415,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should return correct total count when searching', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create additional payments for Alice
           await setupPayment({
             stripeChargeId: `ch_${nanoid()}`,
@@ -2447,7 +2447,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should maintain pagination when searching', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create multiple payments for Alice to test pagination
           const payments = []
           for (let i = 0; i < 5; i++) {
@@ -2485,7 +2485,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should return enriched data (payment + customer) when searching', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result =
             await selectPaymentsCursorPaginatedWithTableRowData({
               input: {
@@ -2507,7 +2507,7 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
 
     it('should find payments by customer name with special characters', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a customer with special characters in the name
           const specialCustomer = await setupCustomer({
             organizationId: organization.id,
@@ -2612,7 +2612,7 @@ describe('pricingModelId derivation', () => {
   describe('insertPayment', () => {
     it('should derive pricingModelId from subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const payment = (
             await insertPayment(
               {
@@ -2643,7 +2643,7 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from purchase', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const payment = (
             await insertPayment(
               {
@@ -2672,7 +2672,7 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from invoice', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const payment = (
             await insertPayment(
               {
@@ -2700,7 +2700,7 @@ describe('pricingModelId derivation', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const payment = (
             await insertPayment(
               {
@@ -2730,7 +2730,7 @@ describe('pricingModelId derivation', () => {
   describe('upsertPaymentByStripeChargeId', () => {
     it('should derive pricingModelId when upserting payment', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const stripeChargeId = `ch_${nanoid()}`
           const paymentResult = await upsertPaymentByStripeChargeId(
             {

@@ -6,10 +6,7 @@ import {
   setupPricingModel,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectPricingModelForCustomer } from './pricingModelMethods'
 import {
   insertUsageMeter,
@@ -49,7 +46,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = (
             await selectUsageMeterById(meter.id, transaction)
@@ -64,7 +61,7 @@ describe('usageMeterMethods', () => {
 
     it('should return an error for a non-existent ID', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeterById(
             'non-existent-id',
@@ -80,7 +77,7 @@ describe('usageMeterMethods', () => {
   describe('insertUsageMeter', () => {
     it('should insert a new usage meter and return it', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newMeter = await insertUsageMeter(
             {
@@ -111,7 +108,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const updated = await updateUsageMeter(
             { id: meter.id, name: 'New Name' },
@@ -158,7 +155,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeters(
             { organizationId },
@@ -188,7 +185,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeters(
             { slug: 'slug-a', organizationId },
@@ -212,7 +209,7 @@ describe('usageMeterMethods', () => {
         })
       }
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersPaginated(
             { limit: 2 },
@@ -236,7 +233,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersCursorPaginated({
             input: {
@@ -270,7 +267,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersCursorPaginated({
             input: { pageSize: 10, filters: { organizationId } },
@@ -320,7 +317,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeterBySlugAndCustomerId(
             { slug: 'test-meter', customerId: customer.id },
@@ -348,7 +345,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMeterBySlugAndCustomerId(
             { slug: 'non-existent-slug', customerId: customer.id },
@@ -415,7 +412,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Search by name (case-insensitive)
           const byName = await selectUsageMetersCursorPaginated({
@@ -467,7 +464,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const resultEmpty = await selectUsageMetersCursorPaginated({
             input: {
@@ -512,7 +509,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const pricingModelIdMap =
             await pricingModelIdsForUsageMeters(
@@ -534,7 +531,7 @@ describe('usageMeterMethods', () => {
 
     it('should return empty map when no usage meter IDs are provided', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const pricingModelIdMap =
             await pricingModelIdsForUsageMeters([], transaction)
@@ -553,7 +550,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const nonExistentUsageMeterId = `um_nonexistent`
           const pricingModelIdMap =
@@ -591,7 +588,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersByPricingModelId(
             pricingModelId,
@@ -620,7 +617,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersByPricingModelId(
             emptyPricingModel.id,
@@ -652,7 +649,7 @@ describe('usageMeterMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectUsageMetersByPricingModelId(
             pricingModelId,

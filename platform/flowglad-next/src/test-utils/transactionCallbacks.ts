@@ -1,9 +1,9 @@
 import type { Event } from '@db-core/schema/events'
 import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type {
+  AdminTransactionParams,
+  AuthenticatedTransactionParams,
   CacheRecomputationContext,
-  ComprehensiveAdminTransactionParams,
-  ComprehensiveAuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -148,19 +148,17 @@ export function createCapturingEffectsContext(
  *
  * @example
  * ```typescript
- * await comprehensiveAdminTransaction(async (params) => {
+ * (await adminTransaction(async (params) => {
  *   await attemptToTransitionSubscriptionBillingPeriod(
  *     billingPeriod,
  *     createProcessingEffectsContext(params)
  *   )
  *   return { result: null }
- * })
+ * }).unwrap()
  * ```
  */
 export function createProcessingEffectsContext(
-  params:
-    | ComprehensiveAdminTransactionParams
-    | ComprehensiveAuthenticatedTransactionParams
+  params: AdminTransactionParams | AuthenticatedTransactionParams
 ): TransactionEffectsContext {
   return {
     transaction: params.transaction,

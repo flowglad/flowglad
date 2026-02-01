@@ -23,7 +23,7 @@ import {
   setupUsageCredit,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   bulkInsertUsageCredits,
@@ -81,7 +81,7 @@ describe('Usage Credit Methods', () => {
   describe('insertUsageCredit', () => {
     it('should successfully insert usage credit and derive pricingModelId from usage meter', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredit = await insertUsageCredit(
             {
               organizationId: organization.id,
@@ -114,7 +114,7 @@ describe('Usage Credit Methods', () => {
 
     it('should throw an error when usageMeterId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
           await expect(
@@ -145,7 +145,7 @@ describe('Usage Credit Methods', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredit = await insertUsageCredit(
             {
               organizationId: organization.id,
@@ -187,7 +187,7 @@ describe('Usage Credit Methods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const pricingModelId =
             await derivePricingModelIdFromUsageCredit(
               usageCredit.id,
@@ -203,7 +203,7 @@ describe('Usage Credit Methods', () => {
 
     it('should throw an error when usage credit does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
           await expect(
@@ -239,7 +239,7 @@ describe('Usage Credit Methods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const pricingModelIdMap =
             await pricingModelIdsForUsageCredits(
               [usageCredit1.id, usageCredit2.id],
@@ -260,7 +260,7 @@ describe('Usage Credit Methods', () => {
 
     it('should return empty map when no usage credit IDs are provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const pricingModelIdMap =
             await pricingModelIdsForUsageCredits([], transaction)
 
@@ -281,7 +281,7 @@ describe('Usage Credit Methods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageCreditId = `uc_${core.nanoid()}`
           const pricingModelIdMap =
             await pricingModelIdsForUsageCredits(
@@ -305,7 +305,7 @@ describe('Usage Credit Methods', () => {
   describe('bulkInsertUsageCredits', () => {
     it('should bulk insert usage credits and derive pricingModelId for each', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredits = (
             await bulkInsertUsageCredits(
               [

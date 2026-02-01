@@ -10,7 +10,7 @@ import {
   setupOrg,
   setupPaymentMethod,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { createCapturingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
@@ -48,7 +48,7 @@ describe('selectPaymentMethodsByCustomerId', () => {
 
   it('should return payment method records for a customer', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const paymentMethods = await selectPaymentMethodsByCustomerId(
           customer.id,
           transaction,
@@ -78,7 +78,7 @@ describe('selectPaymentMethodsByCustomerId', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const paymentMethods = await selectPaymentMethodsByCustomerId(
           customerWithNoPaymentMethods.id,
           transaction,
@@ -106,7 +106,7 @@ describe('selectPaymentMethodsByCustomerId', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const paymentMethods = await selectPaymentMethodsByCustomerId(
           customer.id,
           transaction,
@@ -167,7 +167,7 @@ describe('safelyUpdatePaymentMethod', () => {
 
   it('clears existing default on new customer when moving a payment method to a different customer and setting it as default', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
 
@@ -233,7 +233,7 @@ describe('safelyUpdatePaymentMethod', () => {
 
   it('invalidates cache for both old and new customer when moving a payment method without changing default status', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
 

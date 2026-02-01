@@ -4,8 +4,7 @@ import {
   FeatureType,
   IntervalUnit,
   PriceType,
-  SubscriptionStatus,
-} from '@db-core/enums'
+  SubscriptionStatus} from '@db-core/enums'
 import { subscriptionItemFeatures } from '@db-core/schema/subscriptionItemFeatures'
 import { Result } from 'better-result'
 import { inArray } from 'drizzle-orm'
@@ -18,38 +17,31 @@ import {
   setupProduct,
   setupSubscription,
   setupSubscriptionItem,
-  setupTestFeaturesAndProductFeatures,
-} from '@/../seedDatabase'
+  setupTestFeaturesAndProductFeatures} from '@/../seedDatabase'
 import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+  adminTransaction} from '@/db/adminTransaction'
 import db from '@/db/client'
 import {
   insertSubscriptionItemFeature,
-  selectSubscriptionItemFeaturesWithFeatureSlug,
-} from '@/db/tableMethods/subscriptionItemFeatureMethods'
+  selectSubscriptionItemFeaturesWithFeatureSlug} from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
   describeIfRedisKey,
   generateTestKeyPrefix,
   getRedisTestClient,
-  waitForCacheInvalidation,
-} from '@/test/redisIntegrationHelpers'
+  waitForCacheInvalidation} from '@/test/redisIntegrationHelpers'
 import {
   CacheDependency,
   cached,
-  cachedBulkLookup,
-} from '@/utils/cache'
+  cachedBulkLookup} from '@/utils/cache'
 import { invalidateDependencies } from '@/utils/cache.internal'
 import { nanoid } from '@/utils/core'
 import {
   _setTestRedisClient,
   RedisKeyNamespace,
   removeFromLRU,
-  trackAndEvictLRU,
-} from '@/utils/redis'
+  trackAndEvictLRU} from '@/utils/redis'
 
 /**
  * Integration tests for the cache infrastructure.
@@ -99,10 +91,8 @@ describeIfRedisKey('Cache Integration Tests', () => {
           `${testKeyPrefix}_${customerId}`,
         schema: z.object({
           id: z.string(),
-          name: z.string(),
-        }),
-        dependenciesFn: (_result) => [],
-      },
+          name: z.string()}),
+        dependenciesFn: (_result) => []},
       mockFn
     )
 
@@ -110,8 +100,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
     const result1 = await cachedFn('customer_123')
     expect(result1).toEqual({
       id: 'customer_123',
-      name: 'Test Customer',
-    })
+      name: 'Test Customer'})
     expect(callCount).toBe(1)
 
     // Verify the value is stored in Redis
@@ -119,15 +108,13 @@ describeIfRedisKey('Cache Integration Tests', () => {
     const storedValue = await client.get(fullCacheKey)
     expect(storedValue).toEqual({
       id: 'customer_123',
-      name: 'Test Customer',
-    })
+      name: 'Test Customer'})
 
     // Second call - should return cached result without executing the function
     const result2 = await cachedFn('customer_123')
     expect(result2).toEqual({
       id: 'customer_123',
-      name: 'Test Customer',
-    })
+      name: 'Test Customer'})
     expect(callCount).toBe(1) // Function should not have been called again
   })
 
@@ -150,10 +137,8 @@ describeIfRedisKey('Cache Integration Tests', () => {
         keyFn: (subId: string) => `${testKeyPrefix}_${subId}`,
         schema: z.object({
           id: z.string(),
-          status: z.string(),
-        }),
-        dependenciesFn: (_result) => [dependencyKey],
-      },
+          status: z.string()}),
+        dependenciesFn: (_result) => [dependencyKey]},
       mockFn
     )
 
@@ -267,10 +252,8 @@ describeIfRedisKey('Cache Integration Tests', () => {
         keyFn: (id: string) => `${testKeyPrefix}_${id}`,
         schema: z.object({
           id: z.string(),
-          value: z.string(),
-        }),
-        dependenciesFn: (_result) => [],
-      },
+          value: z.string()}),
+        dependenciesFn: (_result) => []},
       mockFn
     )
 
@@ -278,8 +261,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
     const result1 = await cachedFn('ignore_cache_test')
     expect(result1).toEqual({
       id: 'ignore_cache_test',
-      value: 'initial',
-    })
+      value: 'initial'})
     expect(callCount).toBe(1)
 
     // Update the underlying data
@@ -289,18 +271,15 @@ describeIfRedisKey('Cache Integration Tests', () => {
     const result2 = await cachedFn('ignore_cache_test')
     expect(result2).toEqual({
       id: 'ignore_cache_test',
-      value: 'initial',
-    })
+      value: 'initial'})
     expect(callCount).toBe(1) // Function not called again
 
     // Third call with ignoreCache: true - should execute the function
     const result3 = await cachedFn('ignore_cache_test', {
-      ignoreCache: true,
-    })
+      ignoreCache: true})
     expect(result3).toEqual({
       id: 'ignore_cache_test',
-      value: 'updated',
-    })
+      value: 'updated'})
     expect(callCount).toBe(2) // Function called again
   })
 
@@ -321,10 +300,8 @@ describeIfRedisKey('Cache Integration Tests', () => {
         keyFn: (id: string) => `${testKeyPrefix}_${id}`,
         schema: z.object({
           id: z.string(),
-          value: z.string(),
-        }),
-        dependenciesFn: (_result) => [],
-      },
+          value: z.string()}),
+        dependenciesFn: (_result) => []},
       mockFn
     )
 
@@ -343,8 +320,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
 
     // Call with ignoreCache - should return 'second' but NOT update cache
     const result = await cachedFn('ignore_no_write', {
-      ignoreCache: true,
-    })
+      ignoreCache: true})
     expect(result.value).toBe('second')
 
     // Verify cache still has 'first' (Upstash auto-parses JSON)
@@ -374,10 +350,8 @@ describeIfRedisKey('Cache Integration Tests', () => {
         schema: z.object({
           id: z.string(),
           livemode: z.boolean(),
-          callNumber: z.number(),
-        }),
-        dependenciesFn: (_result) => [],
-      },
+          callNumber: z.number()}),
+        dependenciesFn: (_result) => []},
       mockFn
     )
 
@@ -386,8 +360,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(result1).toEqual({
       id: 'multi_arg',
       livemode: true,
-      callNumber: 1,
-    })
+      callNumber: 1})
     expect(callCount).toBe(1)
 
     // Second call without options - should return cached
@@ -397,8 +370,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
 
     // Third call with ignoreCache - should execute function
     const result3 = await cachedFn('multi_arg', true, {
-      ignoreCache: true,
-    })
+      ignoreCache: true})
     expect(result3.callNumber).toBe(2)
     expect(callCount).toBe(2)
   })
@@ -422,12 +394,10 @@ describeIfRedisKey('Cache Integration Tests', () => {
         keyFn: (id: string) => id,
         schema: z.object({
           id: z.string(),
-          version: z.number(),
-        }),
+          version: z.number()}),
         dependenciesFn: (_result, id: string) => [
           CacheDependency.customerSubscriptions(id),
-        ],
-      },
+        ]},
       mockFn
     )
 
@@ -496,8 +466,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
     const itemSchema = z.object({
       id: z.string(),
       name: z.string(),
-      groupKey: z.string(),
-    })
+      groupKey: z.string()})
 
     const results = await cachedBulkLookup(
       {
@@ -506,8 +475,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         schema: itemSchema.array(),
         dependenciesFn: (_items, key: string) => [
           `${testKeyPrefix}_dep_${key}`,
-        ],
-      },
+        ]},
       ['key1', 'key2', 'key3'],
       async (keys: string[]) => {
         fetchCallCount++
@@ -542,8 +510,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         namespace: TEST_NAMESPACE,
         keyFn: (key: string) => key,
         schema: z.string().array(),
-        dependenciesFn: (_items, _key: string) => [],
-      },
+        dependenciesFn: (_items, _key: string) => []},
       [],
       async () => [],
       (item) => item
@@ -571,8 +538,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
 
     const itemSchema = z.object({
       id: z.string(),
-      groupKey: z.string(),
-    })
+      groupKey: z.string()})
 
     await cachedBulkLookup(
       {
@@ -581,8 +547,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         schema: itemSchema.array(),
         dependenciesFn: (_items, key: string) => [
           `${testKeyPrefix}_dep_${key}`,
-        ],
-      },
+        ]},
       ['key1', 'key2'],
       async () => [
         { id: 'item1', groupKey: 'key1' },
@@ -614,8 +579,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
 
     const itemSchema = z.object({
       id: z.string(),
-      groupKey: z.string(),
-    })
+      groupKey: z.string()})
 
     const results = await cachedBulkLookup(
       {
@@ -624,8 +588,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         schema: itemSchema.array(),
         dependenciesFn: (_items, key: string) => [
           `${testKeyPrefix}_dep_${key}`,
-        ],
-      },
+        ]},
       ['empty_key1'],
       async (): Promise<TestItem[]> => [], // Fetch returns no items
       (item) => item.groupKey
@@ -654,8 +617,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
 
     const itemSchema = z.object({
       id: z.string(),
-      groupKey: z.string(),
-    })
+      groupKey: z.string()})
 
     const config = {
       namespace: TEST_NAMESPACE,
@@ -663,8 +625,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
       schema: itemSchema.array(),
       dependenciesFn: (_items: TestItem[], key: string) => [
         `${testKeyPrefix}_dep_${key}`,
-      ],
-    }
+      ]}
 
     // First call - populates cache with v1
     const results1 = await cachedBulkLookup(
@@ -722,17 +683,14 @@ describeIfRedisKey(
       // Setup test data
       const { organization, pricingModel } = await setupOrg()
       const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
-        customerId: customer.id,
-      })
+        customerId: customer.id})
       const product = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
-        name: 'Cache Test Product',
-      })
+        name: 'Cache Test Product'})
       const price = await setupPrice({
         productId: product.id,
         name: 'Cache Test Price',
@@ -741,15 +699,13 @@ describeIfRedisKey(
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         livemode: true,
-        isDefault: false,
-      })
+        isDefault: false})
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
-        status: SubscriptionStatus.Active,
-      })
+        status: SubscriptionStatus.Active})
 
       // Track the cache key for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
@@ -799,8 +755,7 @@ describeIfRedisKey(
       // Setup test data - customer with no subscriptions
       const { organization } = await setupOrg()
       const customerWithNoSubs = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
 
       // Track the cache key for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customerWithNoSubs.id}:true`
@@ -834,17 +789,14 @@ describeIfRedisKey(
       // Setup test data
       const { organization, pricingModel } = await setupOrg()
       const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
-        customerId: customer.id,
-      })
+        customerId: customer.id})
       const product = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
-        name: 'Invalidation Test Product',
-      })
+        name: 'Invalidation Test Product'})
       const price = await setupPrice({
         productId: product.id,
         name: 'Invalidation Test Price',
@@ -853,15 +805,13 @@ describeIfRedisKey(
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         livemode: true,
-        isDefault: false,
-      })
+        isDefault: false})
       await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
-        status: SubscriptionStatus.Active,
-      })
+        status: SubscriptionStatus.Active})
 
       // Track keys for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
@@ -915,8 +865,7 @@ describeIfRedisKey(
       // Setup test data
       const { organization } = await setupOrg()
       const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
 
       // Track keys for cleanup
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
@@ -938,14 +887,14 @@ describeIfRedisKey(
       expect(Array.isArray(beforeTransaction)).toBe(true)
 
       // Call comprehensiveAdminTransaction with a function that uses invalidateCache
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ invalidateCache }) => {
           // Simulate what a workflow function does - call invalidateCache with dependency key
           // Non-null assertion: comprehensiveAdminTransaction always provides invalidateCache
           invalidateCache(dependencyKey)
           return Result.ok('success')
         }
-      )
+      ).unwrap()
 
       // Poll until cache is invalidated
       await waitForCacheInvalidation(client, cacheKey)
@@ -961,11 +910,9 @@ describeIfRedisKey(
       // Setup test data - two customers
       const { organization } = await setupOrg()
       const customer1 = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
       const customer2 = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
 
       // Track keys for cleanup
       const cacheKey1 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer1.id}:true`
@@ -1002,13 +949,13 @@ describeIfRedisKey(
       expect(Array.isArray(await client.get(cacheKey2))).toBe(true)
 
       // Call comprehensiveAdminTransaction with multiple invalidateCache calls
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
           return Result.ok('success')
         }
-      )
+      ).unwrap()
 
       // Poll until both caches are invalidated
       await Promise.all([
@@ -1027,8 +974,7 @@ describeIfRedisKey(
       // Setup test data
       const { organization } = await setupOrg()
       const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
 
       // Track keys for cleanup
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
@@ -1046,7 +992,7 @@ describeIfRedisKey(
       await client.sadd(registryKey, cacheKey)
 
       // Call with duplicate invalidation keys (simulating nested function calls)
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ invalidateCache }) => {
           // Same key called multiple times - should be deduplicated
           invalidateCache(dependencyKey)
@@ -1054,7 +1000,7 @@ describeIfRedisKey(
           invalidateCache(dependencyKey)
           return Result.ok('success')
         }
-      )
+      ).unwrap()
 
       // Poll until cache is invalidated
       await waitForCacheInvalidation(client, cacheKey)
@@ -1069,11 +1015,9 @@ describeIfRedisKey(
       // Setup test data - two customers
       const { organization } = await setupOrg()
       const customer1 = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
       const customer2 = await setupCustomer({
-        organizationId: organization.id,
-      })
+        organizationId: organization.id})
 
       // Track keys for cleanup
       const cacheKey1 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer1.id}:true`
@@ -1106,13 +1050,13 @@ describeIfRedisKey(
       await client.sadd(registryKey2, cacheKey2)
 
       // Use callback for both keys
-      await comprehensiveAdminTransaction(
+      (await adminTransaction(
         async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
           return Result.ok('success')
         }
-      )
+      ).unwrap()
 
       // Poll until both caches are invalidated
       await Promise.all([
@@ -1174,28 +1118,24 @@ describeIfRedisKey(
         type: PriceType.Subscription,
         livemode: true,
         isDefault: false,
-        currency: CurrencyCode.USD,
-      })
+        currency: CurrencyCode.USD})
 
       const customer = await setupCustomer({
         organizationId: orgData.organization.id,
         email: 'cache-integration-test@test.com',
-        livemode: true,
-      })
+        livemode: true})
 
       const subscription = await setupSubscription({
         organizationId: orgData.organization.id,
         customerId: customer.id,
-        priceId: price.id,
-      })
+        priceId: price.id})
 
       const subscriptionItem = await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Test Subscription Item',
         quantity: 1,
         unitPrice: 1000,
-        priceId: price.id,
-      })
+        priceId: price.id})
 
       const featureData = await setupTestFeaturesAndProductFeatures({
         organizationId: orgData.organization.id,
@@ -1203,13 +1143,11 @@ describeIfRedisKey(
         livemode: true,
         featureSpecs: [
           { name: 'Toggle Feature', type: FeatureType.Toggle },
-        ],
-      })
+        ]})
       const [
         {
           feature: toggleFeature,
-          productFeature: toggleProductFeature,
-        },
+          productFeature: toggleProductFeature},
       ] = featureData
 
       // Track the subscription item and cache key for cleanup
@@ -1232,8 +1170,7 @@ describeIfRedisKey(
             usageMeterId: null,
             amount: null,
             renewalFrequency: null,
-            livemode: true,
-          },
+            livemode: true},
           transaction
         )
 
@@ -1288,28 +1225,24 @@ describeIfRedisKey(
         type: PriceType.Subscription,
         livemode: true,
         isDefault: false,
-        currency: CurrencyCode.USD,
-      })
+        currency: CurrencyCode.USD})
 
       const customer = await setupCustomer({
         organizationId: orgData.organization.id,
         email: 'invalidation-integration-test@test.com',
-        livemode: true,
-      })
+        livemode: true})
 
       const subscription = await setupSubscription({
         organizationId: orgData.organization.id,
         customerId: customer.id,
-        priceId: price.id,
-      })
+        priceId: price.id})
 
       const subscriptionItem = await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Test Subscription Item',
         quantity: 1,
         unitPrice: 1000,
-        priceId: price.id,
-      })
+        priceId: price.id})
 
       const featureData = await setupTestFeaturesAndProductFeatures({
         organizationId: orgData.organization.id,
@@ -1317,13 +1250,11 @@ describeIfRedisKey(
         livemode: true,
         featureSpecs: [
           { name: 'Toggle Feature', type: FeatureType.Toggle },
-        ],
-      })
+        ]})
       const [
         {
           feature: toggleFeature,
-          productFeature: toggleProductFeature,
-        },
+          productFeature: toggleProductFeature},
       ] = featureData
 
       // Track the subscription item and cache key for cleanup
@@ -1346,8 +1277,7 @@ describeIfRedisKey(
             usageMeterId: null,
             amount: null,
             renewalFrequency: null,
-            livemode: true,
-          },
+            livemode: true},
           transaction
         )
 
@@ -1471,8 +1401,7 @@ describeIfRedisKey('LRU Eviction Integration Tests', () => {
       // Add to sorted set with timestamp = i * 1000 (so entry 0 is oldest)
       await client.zadd(zsetKey, {
         score: i * 1000,
-        member: cacheKey,
-      })
+        member: cacheKey})
     }
 
     keysToCleanup.push(zsetKey, ...cacheKeys)
@@ -1557,8 +1486,7 @@ return 0
     // Add to sorted set
     await client.zadd(zsetKey, {
       score: Date.now(),
-      member: cacheKey,
-    })
+      member: cacheKey})
 
     // Verify it's in the set
     const scoreBefore = await client.zscore(zsetKey, cacheKey)
@@ -1597,8 +1525,7 @@ return 0
       // Add with recent timestamp (will survive)
       await client.zadd(zsetKey, {
         score: Date.now() + i * 1000,
-        member: key,
-      })
+        member: key})
     }
 
     keysToCleanup.push(zsetKey, ...evictableKeys, ...survivorKeys)
@@ -1717,8 +1644,7 @@ describeIfRedisKey(
         zcard: () => 1,
         zrange: () => [],
         zrem: () => 0,
-        del: () => 0,
-      }
+        del: () => 0}
 
       _setTestRedisClient(mockClient)
 
@@ -1744,8 +1670,7 @@ describeIfRedisKey(
         zcard: () => 1,
         zrange: () => [],
         zrem: () => 0,
-        del: () => 0,
-      }
+        del: () => 0}
 
       _setTestRedisClient(mockClient)
 
@@ -1757,8 +1682,7 @@ describeIfRedisKey(
         eval: () => {
           evalCalled = true
           return 0
-        },
-      }
+        }}
 
       _setTestRedisClient(mockClientWithTracking)
 
@@ -1790,8 +1714,7 @@ describeIfRedisKey(
         zcard: () => 1,
         zrange: () => [],
         zrem: () => 0,
-        del: () => 0,
-      }
+        del: () => 0}
 
       _setTestRedisClient(mockClient)
 

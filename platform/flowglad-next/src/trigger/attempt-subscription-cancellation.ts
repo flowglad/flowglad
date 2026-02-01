@@ -1,7 +1,7 @@
 import { SubscriptionStatus } from '@db-core/enums'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { logger, task } from '@trigger.dev/sdk'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { storeTelemetry } from '@/utils/redis'
 
@@ -27,7 +27,7 @@ export const attemptSubscriptionCancellationTask = task({
         message: 'Subscription already ended',
       }
     }
-    const result = await adminTransactionWithResult(async (ctx) => {
+    const result = await adminTransaction(async (ctx) => {
       return cancelSubscriptionImmediately({ subscription }, ctx)
     })
     const canceledSubscription = result.unwrap()

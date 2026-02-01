@@ -20,10 +20,7 @@ import { Result } from 'better-result'
 import { eq, inArray, or, sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { setupCustomer, setupOrg } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   selectCustomersCursorPaginatedWithTableRowData,
@@ -58,7 +55,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should return correct pagination metadata when there are more results', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -78,7 +75,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should return correct pagination metadata when there are no more results', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -101,7 +98,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should handle different page sizes correctly', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -120,7 +117,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should return empty result set when no records match filter', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -143,7 +140,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should maintain correct order by creation date (newest first)', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -170,7 +167,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should paginate to next page correctly', async () => {
     // Get first page
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -188,7 +185,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Get second page using cursor from first page
     const secondPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -221,7 +218,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should handle backward pagination correctly', async () => {
     // Get first page
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -239,7 +236,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Get second page
     const secondPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -258,7 +255,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Go back to first page using pageBefore
     const backToFirstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -282,7 +279,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should return correct total count for filtered and unfiltered results', async () => {
     // Test unfiltered total (should be all 15 customers)
     const unfilteredResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -301,7 +298,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Test filtered total (should be 8 customers with livemode true)
     const filteredResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -321,7 +318,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Test filtered total with no matches
     const noMatchesResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -342,7 +339,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should not return duplicate items when using pageAfter', async () => {
     // Get first page
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -360,7 +357,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Get second page using pageAfter
     const secondPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -395,7 +392,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should not return duplicate items when using pageBefore', async () => {
     // Get first page
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -413,7 +410,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Get second page using pageAfter
     const secondPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -432,7 +429,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Go back to first page using pageBefore
     const backToFirstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -466,7 +463,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should navigate to first page when goToFirst is true', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -493,7 +490,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should navigate to last page when goToLast is true', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -531,7 +528,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -558,7 +555,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should handle goToFirst from middle page correctly', async () => {
     // First get to middle page
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -575,7 +572,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     ).unwrap()
 
     const secondPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -594,7 +591,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Now go to first from second page
     const backToFirst = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -619,7 +616,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should handle goToLast from first page correctly', async () => {
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -636,7 +633,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     ).unwrap()
 
     const lastPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -662,7 +659,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should handle goToFirst and goToLast with filtered results', async () => {
     // Filter to only livemode customers (8 total)
     const firstPageFiltered = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -686,7 +683,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(firstPageFiltered.total).toBe(8)
 
     const lastPageFiltered = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -713,7 +710,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should handle goToFirst and goToLast with empty result set', async () => {
     const firstPageEmpty = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -739,7 +736,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(firstPageEmpty.endCursor).toBe(null)
 
     const lastPageEmpty = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -768,7 +765,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should handle goToLast with single page of results', async () => {
     // Test with page size larger than total results
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -793,7 +790,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should maintain correct order when using goToFirst and goToLast', async () => {
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -811,7 +808,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     ).unwrap()
 
     const lastPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -859,7 +856,7 @@ describe('createCursorPaginatedSelectFunction', () => {
   it('should ignore cursor parameters when goToFirst or goToLast are used', async () => {
     // Get a valid cursor first
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -877,7 +874,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Use goToFirst with cursor parameters - should ignore cursors
     const goToFirstWithCursor = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -897,7 +894,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Should be same as normal goToFirst
     const normalGoToFirst = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersCursorPaginatedWithTableRowData({
@@ -974,7 +971,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
         // Search for customer ID - should find via additional search clause
         const resultById = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await testSelectFunction({
@@ -995,7 +992,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
         // Search for name - should find via additional search clause
         const resultByName = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await testSelectFunction({
@@ -1016,7 +1013,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
         // Search for email - should find via base search
         const resultByEmail = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await testSelectFunction({
@@ -1072,7 +1069,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
         // Filter by nameContains - should only return matching customers
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await testSelectFunction({
@@ -1127,7 +1124,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
         // Pass filters with both known (organizationId) and unknown (nameContains) keys
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await testSelectFunction({
@@ -1189,7 +1186,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 
         // Search for 'Alice' (should match via additional search) AND filter by nameContains 'Smith'
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await testSelectFunction({
@@ -1705,7 +1702,7 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should return first page with default limit', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersPaginated(
@@ -1727,7 +1724,7 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should return correct page with custom limit', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersPaginated(
@@ -1747,7 +1744,7 @@ describe('createPaginatedSelectFunction', () => {
   it('paginates forward across pages with stable order, cursor continuity, and no overlap', async () => {
     // Page 1 from start (filtered by organization)
     const page1 = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const initialCursor = encodeCursor({
           parameters: { organizationId },
@@ -1777,7 +1774,7 @@ describe('createPaginatedSelectFunction', () => {
 
     // Page 2 using nextCursor
     const page2 = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersPaginated(
@@ -1827,7 +1824,7 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should return hasMore=false when on last page', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const initialCursor = encodeCursor({
           parameters: { organizationId }, // Required in tests (bypasses auth flow)
@@ -1854,7 +1851,7 @@ describe('createPaginatedSelectFunction', () => {
     // Since createPaginatedSelectFunction uses createdAt for cursor filtering,
     // not parameter filtering in the cursor, we'll test with a far future date
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Use a future date that won't match any records
         const cursor = encodeCursor({
@@ -1883,7 +1880,7 @@ describe('createPaginatedSelectFunction', () => {
   it('should paginate deterministically when many rows share identical createdAt', async () => {
     const fixed = new Date('2020-01-01T00:00:00Z')
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Force identical createdAt for at least 20 existing rows
         const page = await selectCustomersPaginated(
@@ -1933,7 +1930,7 @@ describe('createPaginatedSelectFunction', () => {
   it('should handle backward pagination boundary with identical createdAt deterministically', async () => {
     const fixed = new Date('2020-01-02T00:00:00Z')
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Force many rows to share the same timestamp for a robust boundary test
         const firstPage = await selectCustomersPaginated(
@@ -1989,7 +1986,7 @@ describe('createPaginatedSelectFunction', () => {
   it('accepts legacy cursor without id and continues pagination (createdAt-only fallback)', async () => {
     // Get a first page to establish an anchor
     const firstPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersPaginated(
@@ -2014,7 +2011,7 @@ describe('createPaginatedSelectFunction', () => {
     })
 
     const secondPage = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersPaginated(
@@ -2044,7 +2041,7 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should handle backward pagination direction', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Create cursor with backward direction
         const cursor = encodeCursor({
@@ -2079,7 +2076,7 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should return consistent results across multiple fetches without cursor', async () => {
     const firstFetch = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersPaginated(
@@ -2093,7 +2090,7 @@ describe('createPaginatedSelectFunction', () => {
     ).unwrap()
 
     const secondFetch = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectCustomersPaginated(
@@ -2115,7 +2112,7 @@ describe('createPaginatedSelectFunction', () => {
   it('should handle limit at exact boundary of available records', async () => {
     // Get total count first
     const totalResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const cursor = encodeCursor({
           parameters: { organizationId }, // Required in tests (bypasses auth flow)
@@ -2136,7 +2133,7 @@ describe('createPaginatedSelectFunction', () => {
 
     // Request exactly the number of records that exist
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const cursor = encodeCursor({
           parameters: { organizationId }, // Required in tests (bypasses auth flow)
@@ -2202,7 +2199,7 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
     // Collect names to assert full content (not necessarily in creation order)
     while (true) {
       const page = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCustomersPaginated(
               { cursor: currentCursor, limit: pageSize },
@@ -2259,7 +2256,7 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
       direction: 'forward',
     })
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomersPaginated(
             { cursor, limit: 3 },
@@ -2402,7 +2399,7 @@ describe('buildWhereClauses', () => {
 
   it('should return undefined when no filters or search provided', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const result = await buildWhereClauses(
           customers,
@@ -2422,7 +2419,7 @@ describe('buildWhereClauses', () => {
 
   it('should filter by base table columns and sanitize cross-table fields', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const filters = {
           organizationId,
@@ -2455,7 +2452,7 @@ describe('buildWhereClauses', () => {
 
   it('should search across searchable columns', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const { whereClauses } = await buildWhereClauses(
           customers,
@@ -2481,7 +2478,7 @@ describe('buildWhereClauses', () => {
 
   it('should combine base filters with additional filter clauses using AND', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const { whereClauses } = await buildWhereClauses(
           customers,
@@ -2507,7 +2504,7 @@ describe('buildWhereClauses', () => {
 
   it('should combine base search with additional search using OR', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const { whereClauses } = await buildWhereClauses(
           customers,
@@ -2533,7 +2530,7 @@ describe('buildWhereClauses', () => {
 
   it('should combine all clauses with AND logic', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const { whereClauses } = await buildWhereClauses(
           customers,

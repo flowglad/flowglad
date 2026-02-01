@@ -12,14 +12,8 @@ import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { z } from 'zod'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
-import {
-  authenticatedTransaction,
-  authenticatedTransactionWithResult,
-} from '@/db/authenticatedTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
   selectCustomerById,
@@ -280,7 +274,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
     return (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({
           transaction,
           cacheRecomputationContext,
@@ -373,7 +367,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
 
     // Second transaction: Actually perform the uncancel (admin-scoped, bypasses RLS)
     return (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({
           transaction,
           cacheRecomputationContext,
@@ -593,7 +587,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { paymentMethodId } = input
 
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({
           transaction,
           cacheRecomputationContext,

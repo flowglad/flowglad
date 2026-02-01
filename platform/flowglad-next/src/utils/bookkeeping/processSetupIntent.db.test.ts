@@ -4,15 +4,13 @@ import {
   describe,
   expect,
   it,
-  setSystemTime,
-} from 'bun:test'
+  setSystemTime} from 'bun:test'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentMethodType,
   PurchaseStatus,
-  SubscriptionStatus,
-} from '@db-core/enums'
+  SubscriptionStatus} from '@db-core/enums'
 import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import type { Customer } from '@db-core/schema/customers'
 import { Invoice } from '@db-core/schema/invoices'
@@ -32,33 +30,26 @@ import {
   setupPaymentMethod,
   setupPurchase,
   setupSubscription,
-  setupSubscriptionItem,
-} from '@/../seedDatabase'
+  setupSubscriptionItem} from '@/../seedDatabase'
 import {
-  adminTransaction,
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+  adminTransaction} from '@/db/adminTransaction'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyUpdateCheckoutSessionStatus,
-  selectCheckoutSessionById,
-} from '@/db/tableMethods/checkoutSessionMethods'
+  selectCheckoutSessionById} from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import {
   currentSubscriptionStatuses,
   safelyUpdateSubscriptionStatus,
   selectSubscriptionById,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
+  updateSubscription} from '@/db/tableMethods/subscriptionMethods'
 import { ValidationError } from '@/errors'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import {
   createDiscardingEffectsContext,
   noopEmitEvent,
-  noopInvalidateCache,
-} from '@/test-utils/transactionCallbacks'
+  noopInvalidateCache} from '@/test-utils/transactionCallbacks'
 import {
   type CoreSripeSetupIntent,
   calculateTrialEnd,
@@ -68,22 +59,19 @@ import {
   processAddPaymentMethodSetupIntentSucceeded,
   processSetupIntentSucceeded,
   processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded,
-  setupIntentStatusToCheckoutSessionStatus,
-} from '@/utils/bookkeeping/processSetupIntent'
+  setupIntentStatusToCheckoutSessionStatus} from '@/utils/bookkeeping/processSetupIntent'
 import core from '../core'
 import {
   IntentMetadataType,
   type StripeIntentMetadata,
-  stripeIdFromObjectOrId,
-} from '../stripe'
+  stripeIdFromObjectOrId} from '../stripe'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 
 // Helper functions to generate mock Stripe objects with random IDs
 const mockSucceededSetupIntent = ({
   checkoutSessionId,
   stripeCustomerId,
-  paymentMethodId,
-}: {
+  paymentMethodId}: {
   checkoutSessionId: string
   stripeCustomerId: string
   paymentMethodId?: string
@@ -94,9 +82,7 @@ const mockSucceededSetupIntent = ({
   payment_method: paymentMethodId ?? `pm_${core.nanoid()}`,
   metadata: {
     type: IntentMetadataType.CheckoutSession,
-    checkoutSessionId,
-  },
-})
+    checkoutSessionId}})
 
 const mockProcessingSetupIntent = (
   checkoutSessionId: string,
@@ -108,9 +94,7 @@ const mockProcessingSetupIntent = (
   payment_method: `pm_${core.nanoid()}`,
   metadata: {
     type: IntentMetadataType.CheckoutSession,
-    checkoutSessionId,
-  },
-})
+    checkoutSessionId}})
 
 const mockCanceledSetupIntent = (
   checkoutSessionId: string,
@@ -122,9 +106,7 @@ const mockCanceledSetupIntent = (
   payment_method: `pm_${core.nanoid()}`,
   metadata: {
     type: IntentMetadataType.CheckoutSession,
-    checkoutSessionId,
-  },
-})
+    checkoutSessionId}})
 
 const mockRequiresPaymentMethodSetupIntent = (
   checkoutSessionId: string,
@@ -136,9 +118,7 @@ const mockRequiresPaymentMethodSetupIntent = (
   payment_method: `pm_${core.nanoid()}`,
   metadata: {
     type: IntentMetadataType.CheckoutSession,
-    checkoutSessionId,
-  },
-})
+    checkoutSessionId}})
 
 describe('Process setup intent', async () => {
   // Common variables for all tests
@@ -154,15 +134,13 @@ describe('Process setup intent', async () => {
     // Set up common test data
     customer = await setupCustomer({
       organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-    })
+      stripeCustomerId: `cus_${core.nanoid()}`})
 
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
       customerId: customer.id,
       stripePaymentMethodId: `pm_${core.nanoid()}`,
-      type: PaymentMethodType.Card,
-    })
+      type: PaymentMethodType.Card})
 
     checkoutSession = await setupCheckoutSession({
       organizationId: organization.id,
@@ -171,36 +149,31 @@ describe('Process setup intent', async () => {
       status: CheckoutSessionStatus.Open,
       type: CheckoutSessionType.Product,
       quantity: 1,
-      livemode: true,
-    })
+      livemode: true})
     purchase = await setupPurchase({
       customerId: customer.id,
       organizationId: organization.id,
       priceId: price.id,
       status: PurchaseStatus.Pending,
-      livemode: true,
-    })
+      livemode: true})
 
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       paymentMethodId: paymentMethod.id,
       priceId: price.id,
-      livemode: true,
-    })
+      livemode: true})
 
     await setupBillingPeriod({
       subscriptionId: subscription.id,
       startDate: new Date(),
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      livemode: true,
-    })
+      livemode: true})
 
     // Generate a new setup intent for each test
     succeededSetupIntent = mockSucceededSetupIntent({
       checkoutSessionId: checkoutSession.id,
-      stripeCustomerId: customer.stripeCustomerId!,
-    })
+      stripeCustomerId: customer.stripeCustomerId!})
   })
 
   describe('setupIntentStatusToCheckoutSessionStatus', () => {
@@ -242,10 +215,8 @@ describe('Process setup intent', async () => {
       const invalidSetupIntent = {
         ...mockSucceededSetupIntent({
           checkoutSessionId: checkoutSession.id,
-          stripeCustomerId: customer.stripeCustomerId!,
-        }),
-        metadata: null,
-      } as CoreSripeSetupIntent
+          stripeCustomerId: customer.stripeCustomerId!}),
+        metadata: null} as CoreSripeSetupIntent
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -261,15 +232,12 @@ describe('Process setup intent', async () => {
       const metadata: StripeIntentMetadata = {
         type: IntentMetadataType.BillingRun,
         billingRunId: `br_${core.nanoid()}`,
-        billingPeriodId: `bp_${core.nanoid()}`,
-      }
+        billingPeriodId: `bp_${core.nanoid()}`}
       const invalidSetupIntent = {
         ...mockSucceededSetupIntent({
           checkoutSessionId: checkoutSession.id,
-          stripeCustomerId: customer.stripeCustomerId!,
-        }),
-        metadata,
-      }
+          stripeCustomerId: customer.stripeCustomerId!}),
+        metadata}
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -299,7 +267,7 @@ describe('Process setup intent', async () => {
 
     it('returns the checkout session when all conditions are met', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await checkoutSessionFromSetupIntent(
               succeededSetupIntent,
@@ -318,7 +286,7 @@ describe('Process setup intent', async () => {
     it('throws an error when checkout session is in terminal state', async () => {
       // Update checkout session to a terminal state
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await selectCheckoutSessionById(
             checkoutSession.id,
             transaction
@@ -356,14 +324,12 @@ describe('Process setup intent', async () => {
           status: CheckoutSessionStatus.Open,
           type: CheckoutSessionType.AddPaymentMethod,
           livemode: true,
-          quantity: 1,
-        })
+          quantity: 1})
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
               addPaymentMethodSetupIntent,
@@ -382,7 +348,7 @@ describe('Process setup intent', async () => {
 
     it('processes purchase bookkeeping for regular checkout sessions', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -411,7 +377,7 @@ describe('Process setup intent', async () => {
     it('returns early with organization and customer when checkout session is in terminal state', async () => {
       // Update checkout session to a terminal state
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await selectCheckoutSessionById(
             checkoutSession.id,
             transaction
@@ -428,7 +394,7 @@ describe('Process setup intent', async () => {
       ).unwrap()
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await processAddPaymentMethodSetupIntentSucceeded(
               succeededSetupIntent,
@@ -449,7 +415,7 @@ describe('Process setup intent', async () => {
 
     it('updates checkout session status based on setup intent status', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await processAddPaymentMethodSetupIntentSucceeded(
               succeededSetupIntent,
@@ -471,8 +437,7 @@ describe('Process setup intent', async () => {
         customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
-        livemode: true,
-      })
+        livemode: true})
 
       // Create a checkout session with targetSubscriptionId
       const addPaymentMethodCheckoutSession =
@@ -484,16 +449,14 @@ describe('Process setup intent', async () => {
           type: CheckoutSessionType.AddPaymentMethod,
           targetSubscriptionId: targetSubscription.id,
           livemode: true,
-          quantity: 1,
-        })
+          quantity: 1})
 
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await processAddPaymentMethodSetupIntentSucceeded(
             addPaymentMethodSetupIntent,
             createDiscardingEffectsContext(transaction)
@@ -504,7 +467,7 @@ describe('Process setup intent', async () => {
 
       // Verify the subscription was updated with the new payment method
       const updatedSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await selectSubscriptionById(
@@ -518,14 +481,13 @@ describe('Process setup intent', async () => {
 
       // Get the payment method from the setup intent
       const [newPaymentMethod] = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectPaymentMethods(
               {
                 stripePaymentMethodId: stripeIdFromObjectOrId(
                   addPaymentMethodSetupIntent.payment_method!
-                ),
-              },
+                )},
               transaction
             )
           )
@@ -547,17 +509,15 @@ describe('Process setup intent', async () => {
           status: CheckoutSessionStatus.Open,
           type: CheckoutSessionType.AddPaymentMethod,
           livemode: true,
-          quantity: 1,
-        })
+          quantity: 1})
 
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       // Get the original subscription
       const originalSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await selectSubscriptionById(
@@ -570,7 +530,7 @@ describe('Process setup intent', async () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await processAddPaymentMethodSetupIntentSucceeded(
             addPaymentMethodSetupIntent,
             createDiscardingEffectsContext(transaction)
@@ -581,7 +541,7 @@ describe('Process setup intent', async () => {
 
       // Verify the subscription was not updated
       const updatedSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await selectSubscriptionById(
@@ -605,8 +565,7 @@ describe('Process setup intent', async () => {
         customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
-        livemode: true,
-      })
+        livemode: true})
 
       // Create a checkout session with automaticallyUpdateSubscriptions: true
       const addPaymentMethodCheckoutSession =
@@ -618,16 +577,14 @@ describe('Process setup intent', async () => {
           automaticallyUpdateSubscriptions: true,
           livemode: true,
           priceId: price.id,
-          quantity: 1,
-        })
+          quantity: 1})
 
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
       // Execute the function
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await processAddPaymentMethodSetupIntentSucceeded(
             addPaymentMethodSetupIntent,
             createDiscardingEffectsContext(transaction)
@@ -638,7 +595,7 @@ describe('Process setup intent', async () => {
 
       // Verify subscriptions are updated
       const [updatedFirstSubscription, updatedSecondSubscription] = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const s1 = (
             await selectSubscriptionById(subscription.id, transaction)
           ).unwrap()
@@ -654,14 +611,13 @@ describe('Process setup intent', async () => {
 
       // Get the new payment method from the setup intent
       const [newPaymentMethod] = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectPaymentMethods(
               {
                 stripePaymentMethodId: stripeIdFromObjectOrId(
                   addPaymentMethodSetupIntent.payment_method!
-                ),
-              },
+                )},
               transaction
             )
           )
@@ -688,8 +644,7 @@ describe('Process setup intent', async () => {
         customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
-        livemode: true,
-      })
+        livemode: true})
 
       const addPaymentMethodCheckoutSession =
         await setupCheckoutSession({
@@ -700,16 +655,14 @@ describe('Process setup intent', async () => {
           automaticallyUpdateSubscriptions: false,
           livemode: true,
           priceId: price.id,
-          quantity: 1,
-        })
+          quantity: 1})
 
       const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: addPaymentMethodCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await processAddPaymentMethodSetupIntentSucceeded(
             addPaymentMethodSetupIntent,
             createDiscardingEffectsContext(transaction)
@@ -719,7 +672,7 @@ describe('Process setup intent', async () => {
       ).unwrap()
 
       const [updatedFirstSubscription, updatedSecondSubscription] = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const s1 = (
             await selectSubscriptionById(subscription.id, transaction)
           ).unwrap()
@@ -859,10 +812,8 @@ describe('Process setup intent', async () => {
       const invalidSetupIntent = {
         ...mockSucceededSetupIntent({
           checkoutSessionId: checkoutSession.id,
-          stripeCustomerId: customer.stripeCustomerId!,
-        }),
-        metadata: null,
-      } as CoreSripeSetupIntent
+          stripeCustomerId: customer.stripeCustomerId!}),
+        metadata: null} as CoreSripeSetupIntent
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -892,16 +843,13 @@ describe('Process setup intent', async () => {
       const invalidSetupIntent = {
         ...mockSucceededSetupIntent({
           checkoutSessionId: checkoutSession.id,
-          stripeCustomerId: customer.stripeCustomerId!,
-        }),
+          stripeCustomerId: customer.stripeCustomerId!}),
         metadata: {
           type: IntentMetadataType.BillingRun,
           billingRunId: `br_${core.nanoid()}`,
-          billingPeriodId: `bp_${core.nanoid()}`,
-        },
-      }
+          billingPeriodId: `bp_${core.nanoid()}`}}
 
-      const result = await adminTransactionWithResult(
+      const result = await adminTransaction(
         async ({ transaction }) => {
           return processSetupIntentSucceeded(
             invalidSetupIntent,
@@ -919,8 +867,7 @@ describe('Process setup intent', async () => {
     it('throws when the stripe customer from the setup intent does not match the customer stripe customer id', async () => {
       const newCustomer = await setupCustomer({
         organizationId: organization.id,
-        stripeCustomerId: `cus_${core.nanoid()}`,
-      })
+        stripeCustomerId: `cus_${core.nanoid()}`})
       const newCheckoutSession = await setupCheckoutSession({
         organizationId: organization.id,
         customerId: newCustomer.id,
@@ -928,12 +875,10 @@ describe('Process setup intent', async () => {
         livemode: true,
         quantity: 1,
         status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-      })
+        type: CheckoutSessionType.Product})
       const newSetupIntentSucceeded = mockSucceededSetupIntent({
         checkoutSessionId: newCheckoutSession.id,
-        stripeCustomerId: 'newcust_' + core.nanoid(),
-      })
+        stripeCustomerId: 'newcust_' + core.nanoid()})
       await expect(
         adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
@@ -975,8 +920,7 @@ describe('Process setup intent', async () => {
           organizationId: organization.id,
           customerId: customer.id,
           stripePaymentMethodId: `pm_${core.nanoid()}`,
-          type: PaymentMethodType.Card,
-        })
+          type: PaymentMethodType.Card})
 
         // Setup: Create an incomplete subscription that needs activation
         const incompleteSubscription = await setupSubscription({
@@ -984,8 +928,7 @@ describe('Process setup intent', async () => {
           customerId: customer.id,
           priceId: price.id,
           livemode: true,
-          status: SubscriptionStatus.Incomplete,
-        })
+          status: SubscriptionStatus.Incomplete})
 
         // Create subscription items for the incomplete subscription
         await setupSubscriptionItem({
@@ -993,8 +936,7 @@ describe('Process setup intent', async () => {
           name: 'Test Item',
           quantity: 1,
           unitPrice: 1000,
-          priceId: price.id,
-        })
+          priceId: price.id})
 
         // Create ActivateSubscription checkout session
         const activateCheckoutSession = await setupCheckoutSession({
@@ -1005,25 +947,23 @@ describe('Process setup intent', async () => {
           targetSubscriptionId: incompleteSubscription.id,
           livemode: true,
           priceId: price.id,
-          quantity: 1,
-        })
+          quantity: 1})
 
         const setupIntent = mockSucceededSetupIntent({
           checkoutSessionId: activateCheckoutSession.id,
           stripeCustomerId: customer.stripeCustomerId!,
-          paymentMethodId: testPaymentMethod.stripePaymentMethodId!,
-        })
+          paymentMethodId: testPaymentMethod.stripePaymentMethodId!})
 
         // First webhook delivery - should succeed
         const firstActivationResult =
-          await comprehensiveAdminTransaction(
+          (await adminTransaction(
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent,
                 createDiscardingEffectsContext(transaction)
               )
             }
-          )
+          ).unwrap()
 
         // Verify the result type
         expect(firstActivationResult.type).toBe(
@@ -1047,7 +987,7 @@ describe('Process setup intent', async () => {
 
         // Get billing periods after first delivery
         const firstBillingPeriods = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               return Result.ok(
                 await selectBillingPeriods(
@@ -1070,14 +1010,14 @@ describe('Process setup intent', async () => {
 
         // Second webhook delivery (replay) - should be idempotent
         const secondActivationResult =
-          await comprehensiveAdminTransaction(
+          (await adminTransaction(
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent,
                 createDiscardingEffectsContext(transaction)
               )
             }
-          )
+          ).unwrap()
 
         // Verify idempotent behavior
         expect(secondActivationResult.type).toBe(
@@ -1095,7 +1035,7 @@ describe('Process setup intent', async () => {
 
         // Get billing periods after replay
         const secondBillingPeriods = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               return Result.ok(
                 await selectBillingPeriods(
@@ -1138,8 +1078,7 @@ describe('Process setup intent', async () => {
           organizationId: organization.id,
           customerId: customer.id,
           stripePaymentMethodId: `pm_${core.nanoid()}`,
-          type: PaymentMethodType.Card,
-        })
+          type: PaymentMethodType.Card})
 
         // Setup: Create an incomplete subscription
         const incompleteSubscription = await setupSubscription({
@@ -1147,8 +1086,7 @@ describe('Process setup intent', async () => {
           customerId: customer.id,
           priceId: price.id,
           livemode: true,
-          status: SubscriptionStatus.Incomplete,
-        })
+          status: SubscriptionStatus.Incomplete})
 
         // Create subscription items for the incomplete subscription
         await setupSubscriptionItem({
@@ -1156,8 +1094,7 @@ describe('Process setup intent', async () => {
           name: 'Test Item',
           quantity: 1,
           unitPrice: 1000,
-          priceId: price.id,
-        })
+          priceId: price.id})
 
         // First activation with setup intent 1
         const activateCheckoutSession1 = await setupCheckoutSession({
@@ -1168,25 +1105,23 @@ describe('Process setup intent', async () => {
           targetSubscriptionId: incompleteSubscription.id,
           livemode: true,
           priceId: price.id,
-          quantity: 1,
-        })
+          quantity: 1})
 
         const setupIntent1 = mockSucceededSetupIntent({
           checkoutSessionId: activateCheckoutSession1.id,
           stripeCustomerId: customer.stripeCustomerId!,
-          paymentMethodId: testPaymentMethod.stripePaymentMethodId!,
-        })
+          paymentMethodId: testPaymentMethod.stripePaymentMethodId!})
 
         // Process first activation
         const firstActivationResult =
-          await comprehensiveAdminTransaction(
+          (await adminTransaction(
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent1,
                 createDiscardingEffectsContext(transaction)
               )
             }
-          )
+          ).unwrap()
 
         // Verify first activation succeeded and set stripeSetupIntentId
         expect(firstActivationResult.type).toBe(
@@ -1210,7 +1145,7 @@ describe('Process setup intent', async () => {
 
         // Get billing periods after first activation
         const firstBillingPeriods = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               return Result.ok(
                 await selectBillingPeriods(
@@ -1228,14 +1163,14 @@ describe('Process setup intent', async () => {
         // The idempotency check should find the subscription by its stripeSetupIntentId
         // and short-circuit, returning the existing subscription without reprocessing
         const secondActivationResult =
-          await comprehensiveAdminTransaction(
+          (await adminTransaction(
             async ({ transaction }) => {
               return processSetupIntentSucceeded(
                 setupIntent1, // Same setup intent as before
                 createDiscardingEffectsContext(transaction)
               )
             }
-          )
+          ).unwrap()
 
         // Verify it short-circuited and returned the existing subscription
         expect(secondActivationResult.type).toBe(
@@ -1262,7 +1197,7 @@ describe('Process setup intent', async () => {
 
         // Get billing periods after replay to verify no duplicates were created
         const secondBillingPeriods = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               return Result.ok(
                 await selectBillingPeriods(
@@ -1285,8 +1220,7 @@ describe('Process setup intent', async () => {
       it('completes a full setup intent flow from creation to success', async () => {
         const freshCustomer = await setupCustomer({
           organizationId: organization.id,
-          stripeCustomerId: `cus_${core.nanoid()}`,
-        })
+          stripeCustomerId: `cus_${core.nanoid()}`})
         const freshCheckoutSession = await setupCheckoutSession({
           organizationId: organization.id,
           customerId: freshCustomer.id,
@@ -1294,14 +1228,12 @@ describe('Process setup intent', async () => {
           livemode: true,
           quantity: 1,
           status: CheckoutSessionStatus.Open,
-          type: CheckoutSessionType.Product,
-        })
+          type: CheckoutSessionType.Product})
         const freshSetupIntentSucceeded = mockSucceededSetupIntent({
           checkoutSessionId: freshCheckoutSession.id,
-          stripeCustomerId: freshCustomer.stripeCustomerId!,
-        })
+          stripeCustomerId: freshCustomer.stripeCustomerId!})
 
-        const result = await comprehensiveAdminTransaction(
+        const result = (await adminTransaction(
           async ({ transaction }) => {
             await createFeeCalculationForCheckoutSession(
               freshCheckoutSession as CheckoutSession.FeeReadyRecord,
@@ -1312,7 +1244,7 @@ describe('Process setup intent', async () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        )
+        ).unwrap()
 
         expect(result.purchase?.status).toEqual(PurchaseStatus.Paid)
         expect(result.checkoutSession.status).toEqual(
@@ -1323,7 +1255,7 @@ describe('Process setup intent', async () => {
         }
         expect(result.billingRun).toMatchObject({})
         const subscription = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               return Result.ok(
                 await (
@@ -1345,16 +1277,14 @@ describe('Process setup intent', async () => {
         // Create a local customer for this test
         const localCustomer = await setupCustomer({
           organizationId: organization.id,
-          stripeCustomerId: `cus_${core.nanoid()}`,
-        })
+          stripeCustomerId: `cus_${core.nanoid()}`})
 
         // Create a local payment method for this test
         const localPaymentMethod = await setupPaymentMethod({
           organizationId: organization.id,
           customerId: localCustomer.id,
           stripePaymentMethodId: `pm_${core.nanoid()}`,
-          type: PaymentMethodType.Card,
-        })
+          type: PaymentMethodType.Card})
 
         // Create a local old subscription with trial period
         const localOldSubscription = await setupSubscription({
@@ -1363,8 +1293,7 @@ describe('Process setup intent', async () => {
           priceId: price.id,
           livemode: true,
           paymentMethodId: localPaymentMethod.id,
-          trialEnd: Date.now() + 14 * 24 * 60 * 60 * 1000,
-        })
+          trialEnd: Date.now() + 14 * 24 * 60 * 60 * 1000})
 
         // Create a local first checkout session
         const localFirstCheckoutSession = await setupCheckoutSession({
@@ -1374,25 +1303,22 @@ describe('Process setup intent', async () => {
           status: CheckoutSessionStatus.Open,
           type: CheckoutSessionType.Product,
           quantity: 1,
-          livemode: true,
-        })
+          livemode: true})
 
         // Create a local setup intent for the first checkout session
         const localFirstSetupIntent = mockSucceededSetupIntent({
           checkoutSessionId: localFirstCheckoutSession.id,
-          stripeCustomerId: localCustomer.stripeCustomerId!,
-        })
+          stripeCustomerId: localCustomer.stripeCustomerId!})
 
         // Process the first setup intent
         const firstResult = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               await updateSubscription(
                 {
                   id: localOldSubscription.id,
                   status: SubscriptionStatus.Canceled,
-                  renews: localOldSubscription.renews,
-                },
+                  renews: localOldSubscription.renews},
                 transaction
               )
               await createFeeCalculationForCheckoutSession(
@@ -1417,8 +1343,7 @@ describe('Process setup intent', async () => {
                       result.billingRun!.subscriptionId,
                       transaction
                     )
-                  ).unwrap(),
-                }
+                  ).unwrap()}
               )
             }
           )
@@ -1430,7 +1355,7 @@ describe('Process setup intent', async () => {
         )
         // Cancel the subscription so we can create a new one
         ;(
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               await safelyUpdateSubscriptionStatus(
                 firstResult.subscription,
@@ -1451,19 +1376,17 @@ describe('Process setup intent', async () => {
             status: CheckoutSessionStatus.Open,
             quantity: 1,
             livemode: true,
-            type: CheckoutSessionType.Product,
-          }
+            type: CheckoutSessionType.Product}
         )
 
         // Create a local setup intent for the second checkout session
         const localSecondSetupIntent = mockSucceededSetupIntent({
           checkoutSessionId: localSecondCheckoutSession.id,
-          stripeCustomerId: localCustomer.stripeCustomerId!,
-        })
+          stripeCustomerId: localCustomer.stripeCustomerId!})
 
         // Process the second setup intent
         const { subscription: secondSubscription } = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               await createFeeCalculationForCheckoutSession(
                 localSecondCheckoutSession as CheckoutSession.FeeReadyRecord,
@@ -1478,8 +1401,7 @@ describe('Process setup intent', async () => {
                 await createSubscriptionFromSetupIntentableCheckoutSession(
                   {
                     ...initialResult.unwrap(),
-                    setupIntent: localSecondSetupIntent,
-                  },
+                    setupIntent: localSecondSetupIntent},
                   createDiscardingEffectsContext(transaction)
                 )
               ).unwrap()
@@ -1491,8 +1413,7 @@ describe('Process setup intent', async () => {
                       result.billingRun!.subscriptionId,
                       transaction
                     )
-                  ).unwrap(),
-                }
+                  ).unwrap()}
               )
             }
           )
@@ -1504,8 +1425,7 @@ describe('Process setup intent', async () => {
         // Create a new customer with no trial history
         const newCustomer = await setupCustomer({
           organizationId: organization.id,
-          stripeCustomerId: `cus_${core.nanoid()}`,
-        })
+          stripeCustomerId: `cus_${core.nanoid()}`})
 
         // Create a new checkout session for the new customer
         const newCheckoutSession = await setupCheckoutSession({
@@ -1515,18 +1435,16 @@ describe('Process setup intent', async () => {
           status: CheckoutSessionStatus.Open,
           type: CheckoutSessionType.Product,
           quantity: 1,
-          livemode: true,
-        })
+          livemode: true})
 
         // Create a setup intent for the new customer
         const newSetupIntent = mockSucceededSetupIntent({
           checkoutSessionId: newCheckoutSession.id,
-          stripeCustomerId: newCustomer.stripeCustomerId!,
-        })
+          stripeCustomerId: newCustomer.stripeCustomerId!})
 
         // Process the setup intent for the new customer
         const newSubscription = (
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               await createFeeCalculationForCheckoutSession(
                 newCheckoutSession as CheckoutSession.FeeReadyRecord,
@@ -1563,7 +1481,7 @@ describe('Process setup intent', async () => {
       it('handles cases where customer ID is missing', async () => {
         // Update checkout session to have no customer ID
         ;(
-          await adminTransactionWithResult(
+          await adminTransaction(
             async ({ transaction }) => {
               await selectCheckoutSessionById(
                 checkoutSession.id,
@@ -1590,10 +1508,8 @@ describe('Process setup intent', async () => {
         const invalidSetupIntent = {
           ...mockSucceededSetupIntent({
             checkoutSessionId: checkoutSession.id,
-            stripeCustomerId: customer.stripeCustomerId!,
-          }),
-          payment_method: null,
-        } as CoreSripeSetupIntent
+            stripeCustomerId: customer.stripeCustomerId!}),
+          payment_method: null} as CoreSripeSetupIntent
 
         await expect(
           adminTransaction(async ({ transaction }) => {

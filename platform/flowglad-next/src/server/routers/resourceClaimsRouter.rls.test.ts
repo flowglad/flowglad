@@ -30,7 +30,7 @@ import {
   setupSubscriptionItem,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { resourceClaimsRouter } from '@/server/routers/resourceClaimsRouter'
 import type { TRPCApiContext } from '@/server/trpcContext'
@@ -128,7 +128,7 @@ describe('resourceClaimsRouter', () => {
 
     // Create Resource features (shared across tests)
     seatsFeature = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await insertFeature(
             {
@@ -152,7 +152,7 @@ describe('resourceClaimsRouter', () => {
     ).unwrap()
 
     projectsFeature = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await insertFeature(
             {

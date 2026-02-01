@@ -22,7 +22,7 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   derivePricingModelIdForInvoice,
@@ -173,7 +173,7 @@ describe('selectInvoicesTableRowData', () => {
 
   it('should return correct pagination metadata when there are more results', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -195,7 +195,7 @@ describe('selectInvoicesTableRowData', () => {
 
   it('should return correct pagination metadata when there are no more results', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -217,7 +217,7 @@ describe('selectInvoicesTableRowData', () => {
 
   it('should handle different page sizes correctly', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -238,7 +238,7 @@ describe('selectInvoicesTableRowData', () => {
 
   it('should maintain correct order by creation date (newest first)', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -264,7 +264,7 @@ describe('selectInvoicesTableRowData', () => {
   it('should paginate to next page correctly', async () => {
     // Get first page
     const firstPage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -281,7 +281,7 @@ describe('selectInvoicesTableRowData', () => {
 
     // Get second page using cursor from first page
     const secondPage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -313,7 +313,7 @@ describe('selectInvoicesTableRowData', () => {
   it('should handle backward pagination correctly', async () => {
     // Get first page
     const firstPage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -330,7 +330,7 @@ describe('selectInvoicesTableRowData', () => {
 
     // Get second page
     const secondPage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -348,7 +348,7 @@ describe('selectInvoicesTableRowData', () => {
 
     // Go back to first page using pageBefore
     const backToFirstPage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -370,7 +370,7 @@ describe('selectInvoicesTableRowData', () => {
 
   it('should correctly join and group line items', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -394,7 +394,7 @@ describe('selectInvoicesTableRowData', () => {
 
   it('should return correct customer data structure', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectInvoicesTableRowData({
             input: {
@@ -420,7 +420,7 @@ describe('selectInvoicesTableRowData', () => {
   describe('search functionality', () => {
     it('should search by invoice ID, invoice number, or customer name (case-insensitive, trims whitespace)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test invoice ID search
           const resultById = await selectInvoicesTableRowData({
             input: {
@@ -499,7 +499,7 @@ describe('selectInvoicesTableRowData', () => {
 
     it('should ignore empty or whitespace-only search queries', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultEmpty = await selectInvoicesTableRowData({
             input: {
               pageSize: 10,
@@ -541,7 +541,7 @@ describe('selectInvoicesTableRowData', () => {
 
     it('should only return invoices for the specified organization when searching', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Search for "Alice" - should only return invoice1 from org1, not invoice from org2
           const result = await selectInvoicesTableRowData({
             input: {
@@ -563,7 +563,7 @@ describe('selectInvoicesTableRowData', () => {
 
     it('should combine search with existing filters', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Search by customer name and filter by status
           const resultWithStatus = await selectInvoicesTableRowData({
             input: {
@@ -677,126 +677,114 @@ describe('selectInvoicesTableRowData', () => {
     describe('derivePricingModelIdForInvoice', () => {
       it('should derive pricingModelId from subscription when subscriptionId is provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const pricingModelId =
-                await derivePricingModelIdForInvoice(
-                  {
-                    subscriptionId: subscription.id,
-                    customerId: customer.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            const pricingModelId =
+              await derivePricingModelIdForInvoice(
+                {
+                  subscriptionId: subscription.id,
+                  customerId: customer.id,
+                },
+                transaction
+              )
 
-              expect(pricingModelId).toBe(subscription.pricingModelId)
-              expect(pricingModelId).toBe(pricingModel.id)
-              return Result.ok(undefined)
-            }
-          )
+            expect(pricingModelId).toBe(subscription.pricingModelId)
+            expect(pricingModelId).toBe(pricingModel.id)
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should derive pricingModelId from purchase when purchaseId is provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const pricingModelId =
-                await derivePricingModelIdForInvoice(
-                  {
-                    purchaseId: purchase.id,
-                    customerId: customer.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            const pricingModelId =
+              await derivePricingModelIdForInvoice(
+                {
+                  purchaseId: purchase.id,
+                  customerId: customer.id,
+                },
+                transaction
+              )
 
-              expect(pricingModelId).toBe(purchase.pricingModelId)
-              expect(pricingModelId).toBe(pricingModel.id)
-              return Result.ok(undefined)
-            }
-          )
+            expect(pricingModelId).toBe(purchase.pricingModelId)
+            expect(pricingModelId).toBe(pricingModel.id)
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should derive pricingModelId from customer when neither subscriptionId nor purchaseId is provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const pricingModelId =
-                await derivePricingModelIdForInvoice(
-                  {
-                    customerId: customer.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            const pricingModelId =
+              await derivePricingModelIdForInvoice(
+                {
+                  customerId: customer.id,
+                },
+                transaction
+              )
 
-              expect(pricingModelId).toBe(customer.pricingModelId)
-              expect(pricingModelId).toBe(pricingModel.id)
-              return Result.ok(undefined)
-            }
-          )
+            expect(pricingModelId).toBe(customer.pricingModelId)
+            expect(pricingModelId).toBe(pricingModel.id)
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should prioritize subscription over purchase when both are provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const pricingModelId =
-                await derivePricingModelIdForInvoice(
-                  {
-                    subscriptionId: subscription.id,
-                    purchaseId: purchase.id,
-                    customerId: customer.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            const pricingModelId =
+              await derivePricingModelIdForInvoice(
+                {
+                  subscriptionId: subscription.id,
+                  purchaseId: purchase.id,
+                  customerId: customer.id,
+                },
+                transaction
+              )
 
-              // Should use subscription's pricingModelId, not purchase's
-              expect(pricingModelId).toBe(subscription.pricingModelId)
-              return Result.ok(undefined)
-            }
-          )
+            // Should use subscription's pricingModelId, not purchase's
+            expect(pricingModelId).toBe(subscription.pricingModelId)
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should prioritize purchase over customer when both exist but no subscription', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const pricingModelId =
-                await derivePricingModelIdForInvoice(
-                  {
-                    purchaseId: purchase.id,
-                    customerId: customer.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            const pricingModelId =
+              await derivePricingModelIdForInvoice(
+                {
+                  purchaseId: purchase.id,
+                  customerId: customer.id,
+                },
+                transaction
+              )
 
-              // Should use purchase's pricingModelId, not customer's
-              expect(pricingModelId).toBe(purchase.pricingModelId)
-              return Result.ok(undefined)
-            }
-          )
+            // Should use purchase's pricingModelId, not customer's
+            expect(pricingModelId).toBe(purchase.pricingModelId)
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should throw error when customer does not exist', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const nonExistentCustomerId = `cust_${core.nanoid()}`
+          await adminTransaction(async ({ transaction }) => {
+            const nonExistentCustomerId = `cust_${core.nanoid()}`
 
-              await expect(
-                derivePricingModelIdForInvoice(
-                  {
-                    customerId: nonExistentCustomerId,
-                  },
-                  transaction
-                )
-              ).rejects.toThrow()
-              return Result.ok(undefined)
-            }
-          )
+            await expect(
+              derivePricingModelIdForInvoice(
+                {
+                  customerId: nonExistentCustomerId,
+                },
+                transaction
+              )
+            ).rejects.toThrow()
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })
@@ -804,79 +792,106 @@ describe('selectInvoicesTableRowData', () => {
     describe('insertInvoice', () => {
       it('should insert invoice and derive pricingModelId from subscription', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const now = Date.now()
-              const billingPeriod = await setupBillingPeriod({
+          await adminTransaction(async ({ transaction }) => {
+            const now = Date.now()
+            const billingPeriod = await setupBillingPeriod({
+              subscriptionId: subscription.id,
+              startDate: now,
+              endDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days later
+              livemode: true,
+            })
+
+            const invoice = await insertInvoice(
+              {
+                customerId: customer.id,
+                organizationId: subscription.organizationId,
                 subscriptionId: subscription.id,
-                startDate: now,
-                endDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days later
+                billingPeriodId: billingPeriod.id,
+                status: InvoiceStatus.Draft,
+                type: InvoiceType.Subscription,
                 livemode: true,
-              })
+                invoiceNumber: `TEST-${core.nanoid()}`,
+                currency: CurrencyCode.USD,
+                purchaseId: null,
+                invoiceDate: Date.now(),
+              },
+              transaction
+            )
 
-              const invoice = await insertInvoice(
-                {
-                  customerId: customer.id,
-                  organizationId: subscription.organizationId,
-                  subscriptionId: subscription.id,
-                  billingPeriodId: billingPeriod.id,
-                  status: InvoiceStatus.Draft,
-                  type: InvoiceType.Subscription,
-                  livemode: true,
-                  invoiceNumber: `TEST-${core.nanoid()}`,
-                  currency: CurrencyCode.USD,
-                  purchaseId: null,
-                  invoiceDate: Date.now(),
-                },
-                transaction
-              )
-
-              expect(invoice.pricingModelId).toBe(
-                subscription.pricingModelId
-              )
-              expect(invoice.pricingModelId).toBe(pricingModel.id)
-              return Result.ok(undefined)
-            }
-          )
+            expect(invoice.pricingModelId).toBe(
+              subscription.pricingModelId
+            )
+            expect(invoice.pricingModelId).toBe(pricingModel.id)
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should insert invoice and derive pricingModelId from purchase', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const invoice = await insertInvoice(
-                {
-                  customerId: customer.id,
-                  organizationId: purchase.organizationId,
-                  purchaseId: purchase.id,
-                  status: InvoiceStatus.Draft,
-                  type: InvoiceType.Purchase,
-                  livemode: true,
-                  invoiceNumber: `TEST-${core.nanoid()}`,
-                  currency: CurrencyCode.USD,
-                  invoiceDate: Date.now(),
-                },
-                transaction
-              )
+          await adminTransaction(async ({ transaction }) => {
+            const invoice = await insertInvoice(
+              {
+                customerId: customer.id,
+                organizationId: purchase.organizationId,
+                purchaseId: purchase.id,
+                status: InvoiceStatus.Draft,
+                type: InvoiceType.Purchase,
+                livemode: true,
+                invoiceNumber: `TEST-${core.nanoid()}`,
+                currency: CurrencyCode.USD,
+                invoiceDate: Date.now(),
+              },
+              transaction
+            )
 
-              expect(invoice.pricingModelId).toBe(
-                purchase.pricingModelId
-              )
-              expect(invoice.pricingModelId).toBe(pricingModel.id)
-              return Result.ok(undefined)
-            }
-          )
+            expect(invoice.pricingModelId).toBe(
+              purchase.pricingModelId
+            )
+            expect(invoice.pricingModelId).toBe(pricingModel.id)
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should insert invoice and derive pricingModelId from customer', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const invoice = await insertInvoice(
+          await adminTransaction(async ({ transaction }) => {
+            const invoice = await insertInvoice(
+              {
+                customerId: customer.id,
+                organizationId: customer.organizationId,
+                status: InvoiceStatus.Draft,
+                type: InvoiceType.Standalone,
+                livemode: true,
+                invoiceNumber: `TEST-${core.nanoid()}`,
+                currency: CurrencyCode.USD,
+                billingPeriodId: null,
+                purchaseId: null,
+                subscriptionId: null,
+                invoiceDate: Date.now(),
+              },
+              transaction
+            )
+
+            expect(invoice.pricingModelId).toBe(
+              customer.pricingModelId
+            )
+            expect(invoice.pricingModelId).toBe(pricingModel.id)
+            return Result.ok(undefined)
+          })
+        ).unwrap()
+      })
+
+      it('should throw error when customer does not exist', async () => {
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            const nonExistentCustomerId = `cust_${core.nanoid()}`
+
+            await expect(
+              insertInvoice(
                 {
-                  customerId: customer.id,
+                  customerId: nonExistentCustomerId,
                   organizationId: customer.organizationId,
                   status: InvoiceStatus.Draft,
                   type: InvoiceType.Standalone,
@@ -890,44 +905,9 @@ describe('selectInvoicesTableRowData', () => {
                 },
                 transaction
               )
-
-              expect(invoice.pricingModelId).toBe(
-                customer.pricingModelId
-              )
-              expect(invoice.pricingModelId).toBe(pricingModel.id)
-              return Result.ok(undefined)
-            }
-          )
-        ).unwrap()
-      })
-
-      it('should throw error when customer does not exist', async () => {
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const nonExistentCustomerId = `cust_${core.nanoid()}`
-
-              await expect(
-                insertInvoice(
-                  {
-                    customerId: nonExistentCustomerId,
-                    organizationId: customer.organizationId,
-                    status: InvoiceStatus.Draft,
-                    type: InvoiceType.Standalone,
-                    livemode: true,
-                    invoiceNumber: `TEST-${core.nanoid()}`,
-                    currency: CurrencyCode.USD,
-                    billingPeriodId: null,
-                    purchaseId: null,
-                    subscriptionId: null,
-                    invoiceDate: Date.now(),
-                  },
-                  transaction
-                )
-              ).rejects.toThrow()
-              return Result.ok(undefined)
-            }
-          )
+            ).rejects.toThrow()
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })

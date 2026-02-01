@@ -10,8 +10,7 @@ import {
   PaymentStatus,
   SubscriptionItemType,
   SubscriptionStatus,
-  UsageCreditType,
-} from '@db-core/enums'
+  UsageCreditType} from '@db-core/enums'
 import type { BillingPeriod } from '@db-core/schema/billingPeriods'
 import type { BillingRun } from '@db-core/schema/billingRuns'
 import type { Customer } from '@db-core/schema/customers'
@@ -51,37 +50,29 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageEvent,
   setupUsageLedgerScenario,
-  setupUsageMeter,
-} from '@/../seedDatabase'
+  setupUsageMeter} from '@/../seedDatabase'
 import {
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+  adminTransaction} from '@/db/adminTransaction'
 import {
   selectBillingPeriods,
-  updateBillingPeriod,
-} from '@/db/tableMethods/billingPeriodMethods'
+  updateBillingPeriod} from '@/db/tableMethods/billingPeriodMethods'
 import {
   aggregateBalanceForLedgerAccountFromEntries,
-  selectLedgerEntries,
-} from '@/db/tableMethods/ledgerEntryMethods'
+  selectLedgerEntries} from '@/db/tableMethods/ledgerEntryMethods'
 import { selectResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionStatus,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
+  updateSubscription} from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   attemptToTransitionSubscriptionBillingPeriod,
   billingPeriodAndItemsInsertsFromSubscription,
-  createBillingPeriodAndItems,
-} from '@/subscriptions/billingPeriodHelpers'
+  createBillingPeriodAndItems} from '@/subscriptions/billingPeriodHelpers'
 import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
-  createProcessingEffectsContext,
-} from '@/test-utils/transactionCallbacks'
+  createProcessingEffectsContext} from '@/test-utils/transactionCallbacks'
 import core from '@/utils/core'
 
 let customer: Customer.Record
@@ -105,12 +96,10 @@ describe('Subscription Billing Period Transition', async () => {
 
   beforeEach(async () => {
     customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+      organizationId: organization.id})
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerId: customer.id,
-    })
+      customerId: customer.id})
 
     subscription = (await setupSubscription({
       organizationId: organization.id,
@@ -120,44 +109,38 @@ describe('Subscription Billing Period Transition', async () => {
       currentBillingPeriodEnd: Date.now() - 3000,
       currentBillingPeriodStart:
         Date.now() - 30 * 24 * 60 * 60 * 1000,
-      renews: true,
-    })) as Subscription.StandardRecord
+      renews: true})) as Subscription.StandardRecord
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart!,
       endDate: subscription.currentBillingPeriodEnd!,
-      status: BillingPeriodStatus.Active,
-    })
+      status: BillingPeriodStatus.Active})
     billingRun = await setupBillingRun({
       billingPeriodId: billingPeriod.id,
       paymentMethodId: paymentMethod.id,
       subscriptionId: subscription.id,
-      status: BillingRunStatus.Scheduled,
-    })
+      status: BillingRunStatus.Scheduled})
     await setupBillingPeriodItem({
       billingPeriodId: billingPeriod.id,
       quantity: 1,
-      unitPrice: 100,
-    })
+      unitPrice: 100})
   })
 
   // Test 1: When the current billing period is already terminal (e.g. Completed)…
   it('should create a new future billing period and billing run when current billing period is terminal and subscription is active', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Mark the current billing period as terminal (Completed)
         const updatedBillingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            status: BillingPeriodStatus.Completed,
-          },
+            status: BillingPeriodStatus.Completed},
           transaction
         )
         // Call the transition function
         const {
           subscription: updatedSub,
-          billingRun: newBillingRun,
-        } = (
+          billingRun: newBillingRun} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -178,12 +161,11 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 2: Billing period endDate in the future should return an error Result
   it('should return Result.err if the billing period endDate is in the future', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Create a copy of billingPeriod with an endDate in the future
         const futureBillingPeriod = {
           ...billingPeriod,
-          endDate: Date.now() + 24 * 60 * 60 * 1000,
-        }
+          endDate: Date.now() + 24 * 60 * 60 * 1000}
         const result =
           await attemptToTransitionSubscriptionBillingPeriod(
             futureBillingPeriod,
@@ -208,8 +190,7 @@ describe('Subscription Billing Period Transition', async () => {
       status: InvoiceStatus.Paid,
       customerId: customer.id,
       organizationId: organization.id,
-      priceId: price.id,
-    })
+      priceId: price.id})
     await setupPayment({
       billingPeriodId: billingPeriod.id,
       organizationId: organization.id,
@@ -217,12 +198,11 @@ describe('Subscription Billing Period Transition', async () => {
       stripeChargeId: `ch_123_${core.nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 100,
-      invoiceId: invoice.id,
-    })
+      invoiceId: invoice.id})
 
     // Create a paid invoice for the billing period (simulate full payment)
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Set the billing period endDate in the past so closure logic runs
         const { subscription: updatedSub } = (
           await attemptToTransitionSubscriptionBillingPeriod(
@@ -253,7 +233,7 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 4: If the subscription is in a terminal state, no future billing period should be created.
   it('should return early if the subscription is in a terminal state', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Mark subscription as terminal (Canceled)
         await safelyUpdateSubscriptionStatus(
           subscription,
@@ -262,8 +242,7 @@ describe('Subscription Billing Period Transition', async () => {
         )
         const {
           subscription: updatedSub,
-          billingRun: newBillingRun,
-        } = (
+          billingRun: newBillingRun} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             billingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -280,7 +259,7 @@ describe('Subscription Billing Period Transition', async () => {
   //   // Test 5: If subscription.cancelScheduledAt is in the past, cancel the subscription.
   it('should cancel the subscription if cancelScheduledAt is in the past', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const pastDate = Date.now() - 1000
         subscription.cancelScheduledAt = pastDate
         await updateSubscription(
@@ -288,8 +267,7 @@ describe('Subscription Billing Period Transition', async () => {
             id: subscription.id,
             cancelScheduledAt: pastDate,
             status: SubscriptionStatus.Active,
-            renews: subscription.renews,
-          },
+            renews: subscription.renews},
           transaction
         )
         const updatedBillingPeriod = await updateBillingPeriod(
@@ -299,8 +277,7 @@ describe('Subscription Billing Period Transition', async () => {
 
         const {
           subscription: updatedSub,
-          billingRun: newBillingRun,
-        } = (
+          billingRun: newBillingRun} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -319,20 +296,18 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 6: Normal transition when subscription is active with a valid payment method.
   it('should create a new active billing period and billing run for active subscription with valid payment method', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Ensure the current billing period has already ended
         const updatedBillingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            endDate: Date.now() - 1000,
-          },
+            endDate: Date.now() - 1000},
           transaction
         )
 
         const {
           subscription: updatedSub,
-          billingRun: newBillingRun,
-        } = (
+          billingRun: newBillingRun} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -362,7 +337,7 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 7: Transition when no payment method is available.
   it('should create a new active billing period but set subscription to PastDue when no payment method exists', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Remove payment method(s) from subscription
         subscription.defaultPaymentMethodId = null
         subscription.backupPaymentMethodId = null
@@ -372,23 +347,20 @@ describe('Subscription Billing Period Transition', async () => {
             defaultPaymentMethodId: null,
             backupPaymentMethodId: null,
             status: SubscriptionStatus.Active,
-            renews: subscription.renews,
-          },
+            renews: subscription.renews},
           transaction
         )
         // Ensure current billing period endDate is in the past
         const updatedBillingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            endDate: Date.now() - 1000,
-          },
+            endDate: Date.now() - 1000},
           transaction
         )
 
         const {
           subscription: updatedSub,
-          billingRun: newBillingRun,
-        } = (
+          billingRun: newBillingRun} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -409,7 +381,7 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 8: No new future billing period should be created when subscription.cancelScheduledAt >= last billing period end.
   it('should not create a new billing period if subscription.cancelScheduledAt is set and >= current billing period end date', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Set subscription.cancelScheduledAt to just after the current billing period end
         const futureEnd = new Date(billingPeriod.endDate + 50000)
         subscription.cancelScheduledAt = futureEnd.getTime()
@@ -418,8 +390,7 @@ describe('Subscription Billing Period Transition', async () => {
             id: subscription.id,
             cancelScheduledAt: futureEnd.getTime(),
             status: SubscriptionStatus.Active,
-            renews: subscription.renews,
-          },
+            renews: subscription.renews},
           transaction
         )
 
@@ -427,14 +398,12 @@ describe('Subscription Billing Period Transition', async () => {
         const updatedBillingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            endDate: Date.now() - 1000,
-          },
+            endDate: Date.now() - 1000},
           transaction
         )
         const {
           subscription: updatedSub,
-          billingRun: newBillingRun,
-        } = (
+          billingRun: newBillingRun} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -465,8 +434,7 @@ describe('Subscription Billing Period Transition', async () => {
       status: InvoiceStatus.Paid,
       customerId: customer.id,
       organizationId: organization.id,
-      priceId: price.id,
-    })
+      priceId: price.id})
 
     await setupPayment({
       billingPeriodId: billingPeriod.id,
@@ -475,21 +443,18 @@ describe('Subscription Billing Period Transition', async () => {
       stripeChargeId: `ch_123_${core.nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 100,
-      invoiceId: invoice.id,
-    })
+      invoiceId: invoice.id})
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const updatedBillingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            endDate: Date.now() - 1000,
-          },
+            endDate: Date.now() - 1000},
           transaction
         )
         const {
           subscription: updatedSub,
-          updatedBillingPeriod: uBP,
-        } = (
+          updatedBillingPeriod: uBP} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -511,11 +476,10 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 13: When required billing period data is missing (e.g. endDate), return an error Result.
   it('should return Result.err when billing period endDate is missing', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const invalidBillingPeriod = {
           ...billingPeriod,
-          endDate: null,
-        }
+          endDate: null}
         const result =
           await attemptToTransitionSubscriptionBillingPeriod(
             invalidBillingPeriod as unknown as BillingPeriod.Record,
@@ -530,20 +494,18 @@ describe('Subscription Billing Period Transition', async () => {
 
   it('should create a new future billing period and billing run when current billing period is terminal and subscription is active', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Mark the current billing period as terminal (Completed)
         const updatedBillingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            status: BillingPeriodStatus.Completed,
-          },
+            status: BillingPeriodStatus.Completed},
           transaction
         )
         // Call the transition function
         const {
           subscription: updatedSub,
-          billingRun: newBillingRun,
-        } = (
+          billingRun: newBillingRun} = (
           await attemptToTransitionSubscriptionBillingPeriod(
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
@@ -562,13 +524,12 @@ describe('Subscription Billing Period Transition', async () => {
 
   it('calls enqueueLedgerCommand with BillingPeriodTransitionLedgerCommand when transitioning to a new billing period', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Mark the current billing period as completed (terminal state)
         const completedBillingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            status: BillingPeriodStatus.Completed,
-          },
+            status: BillingPeriodStatus.Completed},
           transaction
         )
 
@@ -609,8 +570,7 @@ describe('Subscription Billing Period Transition', async () => {
         unitPrice: 50,
         metadata: {
           name: 'Test Item',
-          description: 'Test Description',
-        },
+          description: 'Test Description'},
         livemode: subscription.livemode,
         subscriptionId: subscription.id,
         priceId: price.id,
@@ -625,8 +585,7 @@ describe('Subscription Billing Period Transition', async () => {
         position: 0,
         type: SubscriptionItemType.Static,
         manuallyCreated: false,
-        pricingModelId: pricingModel.id,
-      }
+        pricingModelId: pricingModel.id}
     })
 
     it('should generate trial billing period inserts with trialPeriod true and no billing period items', () => {
@@ -635,23 +594,21 @@ describe('Subscription Billing Period Transition', async () => {
           subscription,
           subscriptionItems: [dummySubscriptionItem],
           trialPeriod: true,
-          isInitialBillingPeriod: true,
-        })
+          isInitialBillingPeriod: true})
       expect(billingPeriodInsert.trialPeriod).toBe(true)
       expect(billingPeriodItemInserts).toHaveLength(0)
     })
 
     it('should create a trial billing period in the database with no billing period items', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const { billingPeriod, billingPeriodItems } = (
             await createBillingPeriodAndItems(
               {
                 subscription,
                 subscriptionItems: [dummySubscriptionItem],
                 trialPeriod: true,
-                isInitialBillingPeriod: true,
-              },
+                isInitialBillingPeriod: true},
               transaction
             )
           ).unwrap()
@@ -665,7 +622,7 @@ describe('Subscription Billing Period Transition', async () => {
 
   it('should not transition a subscription with CreditTrial status', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Set subscription status to CreditTrial
         const creditTrialUpdate: Subscription.NonRenewingUpdate = {
           id: subscription.id,
@@ -676,13 +633,11 @@ describe('Subscription Billing Period Transition', async () => {
           billingCycleAnchorDate: null,
           defaultPaymentMethodId: null,
           status: SubscriptionStatus.CreditTrial,
-          renews: false,
-        }
+          renews: false}
         await updateSubscription(
           {
             ...creditTrialUpdate,
-            status: SubscriptionStatus.CreditTrial,
-          },
+            status: SubscriptionStatus.CreditTrial},
           transaction
         )
 
@@ -705,14 +660,13 @@ describe('Subscription Billing Period Transition', async () => {
 
   it('should exclude manual subscription items from billing period items', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Create a regular subscription item
         const regularItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           name: 'Regular Plan',
           quantity: 1,
-          unitPrice: 1000,
-        })
+          unitPrice: 1000})
 
         // Create a manual subscription item (simulating one created by addFeatureToSubscriptionItem)
         const manualItem = await insertSubscriptionItem(
@@ -728,8 +682,7 @@ describe('Subscription Billing Period Transition', async () => {
             externalId: null,
             type: SubscriptionItemType.Static,
             manuallyCreated: true,
-            livemode: subscription.livemode,
-          },
+            livemode: subscription.livemode},
           transaction
         )
 
@@ -738,8 +691,7 @@ describe('Subscription Billing Period Transition', async () => {
             subscription,
             subscriptionItems: [regularItem, manualItem],
             trialPeriod: false,
-            isInitialBillingPeriod: true,
-          })
+            isInitialBillingPeriod: true})
 
         // Should only include the regular item, not the manual item
         expect(billingPeriodItemInserts.length).toBe(1)
@@ -753,7 +705,7 @@ describe('Subscription Billing Period Transition', async () => {
   describe('doNotCharge subscriptions', () => {
     it('should stay Active when transitioning billing periods without payment method', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update subscription to doNotCharge=true and remove payment methods
           await updateSubscription(
             {
@@ -762,23 +714,20 @@ describe('Subscription Billing Period Transition', async () => {
               defaultPaymentMethodId: null,
               backupPaymentMethodId: null,
               status: SubscriptionStatus.Active,
-              renews: subscription.renews,
-            },
+              renews: subscription.renews},
             transaction
           )
           // Ensure current billing period endDate is in the past
           const updatedBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              endDate: Date.now() - 1000,
-            },
+              endDate: Date.now() - 1000},
             transaction
           )
 
           const {
             subscription: updatedSub,
-            billingRun: newBillingRun,
-          } = (
+            billingRun: newBillingRun} = (
             await attemptToTransitionSubscriptionBillingPeriod(
               updatedBillingPeriod,
               createDiscardingEffectsContext(transaction)
@@ -802,30 +751,27 @@ describe('Subscription Billing Period Transition', async () => {
     // but we test this edge case to ensure the billing period transition logic handles it correctly
     it('should not create billing run even with payment method available', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update subscription to doNotCharge=true but keep payment method
           await updateSubscription(
             {
               id: subscription.id,
               doNotCharge: true,
               status: SubscriptionStatus.Active,
-              renews: subscription.renews,
-            },
+              renews: subscription.renews},
             transaction
           )
           // Ensure current billing period endDate is in the past
           const updatedBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              endDate: Date.now() - 1000,
-            },
+              endDate: Date.now() - 1000},
             transaction
           )
 
           const {
             subscription: updatedSub,
-            billingRun: newBillingRun,
-          } = (
+            billingRun: newBillingRun} = (
             await attemptToTransitionSubscriptionBillingPeriod(
               updatedBillingPeriod,
               createDiscardingEffectsContext(transaction)
@@ -861,12 +807,9 @@ describe('Ledger Interactions', () => {
         currentBillingPeriodStart: thirtyDaysAgo.getTime(),
         currentBillingPeriodEnd: oneDayAgo.getTime(),
         status: SubscriptionStatus.Active,
-        startDate: thirtyDaysAgo.getTime(),
-      },
+        startDate: thirtyDaysAgo.getTime()},
       subscriptionItemArgs: {
-        addedDate: thirtyDaysAgo.getTime(),
-      },
-    })
+        addedDate: thirtyDaysAgo.getTime()}})
     organization = result.organization
     pricingModel = result.pricingModel
     price = result.price
@@ -878,27 +821,23 @@ describe('Ledger Interactions', () => {
     otherUsageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
-      name: 'Non-Entitled Test Meter',
-    })
+      name: 'Non-Entitled Test Meter'})
     ledgerAccount = result.ledgerAccount
     otherLedgerAccount = await setupLedgerAccount({
       organizationId: organization.id,
       subscriptionId: subscription.id,
       usageMeterId: otherUsageMeter.id,
-      livemode: true,
-    })
+      livemode: true})
     pastBillingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
       startDate: thirtyDaysAgo,
       endDate: oneDayAgo,
       status: BillingPeriodStatus.Active,
-      livemode: true,
-    })
+      livemode: true})
     await setupBillingPeriodItem({
       billingPeriodId: pastBillingPeriod.id,
       quantity: 1,
-      unitPrice: 100,
-    })
+      unitPrice: 100})
   })
 
   describe('Credit Granting Scenarios', () => {
@@ -906,7 +845,7 @@ describe('Ledger Interactions', () => {
       // setup:
       const grantAmount = 5000 // 50 dollars in cents
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const feature = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
             name: 'Monthly Credits',
@@ -914,14 +853,12 @@ describe('Ledger Interactions', () => {
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount,
-            livemode: true,
-          })
+            livemode: true})
           const productFeature = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: feature.id,
-            livemode: true,
-          })
+            livemode: true})
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: feature.id,
@@ -931,23 +868,22 @@ describe('Ledger Interactions', () => {
             type: FeatureType.UsageCreditGrant,
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
-            amount: grantAmount,
-          })
+            amount: grantAmount})
           return Result.ok(undefined)
         })
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredits = await selectUsageCredits(
             { subscriptionId: subscription.id },
             transaction
@@ -998,7 +934,7 @@ describe('Ledger Interactions', () => {
     it('should not grant usage credits if the subscription is in a terminal state', async () => {
       // setup:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await safelyUpdateSubscriptionStatus(
             subscription,
             SubscriptionStatus.Canceled,
@@ -1009,16 +945,16 @@ describe('Ledger Interactions', () => {
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredits = await selectUsageCredits(
             { subscriptionId: subscription.id },
             transaction
@@ -1040,7 +976,7 @@ describe('Ledger Interactions', () => {
     it('should not grant usage credits if a future billing period already exists', async () => {
       // setup:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const futureStartDate = pastBillingPeriod.endDate + 1000
 
           const futureEndDate =
@@ -1050,23 +986,22 @@ describe('Ledger Interactions', () => {
             startDate: futureStartDate,
             endDate: futureEndDate,
             status: BillingPeriodStatus.Upcoming,
-            livemode: true,
-          })
+            livemode: true})
           return Result.ok(undefined)
         })
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredits = await selectUsageCredits(
             { subscriptionId: subscription.id },
             transaction
@@ -1088,14 +1023,13 @@ describe('Ledger Interactions', () => {
       let canceledSub: Subscription.Record | null = null
       // setup:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
               cancelScheduledAt: Date.now() - 1000,
               status: SubscriptionStatus.Active,
-              renews: subscription.renews,
-            },
+              renews: subscription.renews},
             transaction
           )
           return Result.ok(undefined)
@@ -1104,18 +1038,18 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async (params) =>
+        (await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        )
+        ).unwrap()
       canceledSub = updatedSub
 
       // expects:
       expect(canceledSub.status).toBe(SubscriptionStatus.Canceled)
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredits = await selectUsageCredits(
             { subscriptionId: subscription.id },
             transaction
@@ -1136,16 +1070,16 @@ describe('Ledger Interactions', () => {
 
     it('should not grant usage credits if the subscription has no credit entitlements', async () => {
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerEntries = await selectLedgerEntries(
             { ledgerAccountId: ledgerAccount.id },
             transaction
@@ -1171,7 +1105,7 @@ describe('Ledger Interactions', () => {
       let pastDueSub: Subscription.Record | null = null
       // setup:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const grantAmount = 5000
           const feature = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
@@ -1180,14 +1114,12 @@ describe('Ledger Interactions', () => {
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount,
-            livemode: true,
-          })
+            livemode: true})
           const productFeature = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: feature.id,
-            livemode: true,
-          })
+            livemode: true})
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: feature.id,
@@ -1196,8 +1128,7 @@ describe('Ledger Interactions', () => {
             type: FeatureType.UsageCreditGrant,
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
-            amount: grantAmount,
-          })
+            amount: grantAmount})
 
           await updateSubscription(
             {
@@ -1205,8 +1136,7 @@ describe('Ledger Interactions', () => {
               defaultPaymentMethodId: null,
               backupPaymentMethodId: null,
               status: SubscriptionStatus.Active,
-              renews: subscription.renews,
-            },
+              renews: subscription.renews},
             transaction
           )
           return Result.ok(undefined)
@@ -1215,18 +1145,18 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async (params) =>
+        (await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        )
+        ).unwrap()
       pastDueSub = updatedSub
 
       // expects:
       expect(pastDueSub.status).toBe(SubscriptionStatus.PastDue)
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const grantAmount = 5000
           const creditEntry = (
             await selectLedgerEntries(
@@ -1257,7 +1187,7 @@ describe('Ledger Interactions', () => {
       const grantAmount1 = 5000
       const grantAmount2 = 2000
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const feature1 = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
             name: 'Monthly Credits 1',
@@ -1265,8 +1195,7 @@ describe('Ledger Interactions', () => {
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount1,
-            livemode: true,
-          })
+            livemode: true})
           const feature2 = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
             name: 'Monthly Credits 2',
@@ -1274,20 +1203,17 @@ describe('Ledger Interactions', () => {
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount2,
-            livemode: true,
-          })
+            livemode: true})
           const productFeature1 = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: feature1.id,
-            livemode: true,
-          })
+            livemode: true})
           const productFeature2 = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: feature2.id,
-            livemode: true,
-          })
+            livemode: true})
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: feature1.id,
@@ -1296,8 +1222,7 @@ describe('Ledger Interactions', () => {
             type: FeatureType.UsageCreditGrant,
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
-            amount: grantAmount1,
-          })
+            amount: grantAmount1})
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: feature2.id,
@@ -1306,23 +1231,22 @@ describe('Ledger Interactions', () => {
             type: FeatureType.UsageCreditGrant,
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
-            amount: grantAmount2,
-          })
+            amount: grantAmount2})
           return Result.ok(undefined)
         })
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCredits = await selectUsageCredits(
             { subscriptionId: subscription.id },
             transaction
@@ -1376,7 +1300,7 @@ describe('Ledger Interactions', () => {
     it('should not grant credits to ledger accounts for meters without entitlements', async () => {
       // setup:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const grantAmount = 5000
           const feature = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
@@ -1385,14 +1309,12 @@ describe('Ledger Interactions', () => {
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: grantAmount,
-            livemode: true,
-          })
+            livemode: true})
           const productFeature = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: feature.id,
-            livemode: true,
-          })
+            livemode: true})
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: feature.id,
@@ -1401,23 +1323,22 @@ describe('Ledger Interactions', () => {
             type: FeatureType.UsageCreditGrant,
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
-            amount: grantAmount,
-          })
+            amount: grantAmount})
           return Result.ok(undefined)
         })
       ).unwrap()
 
       // execution:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // expects:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerEntries = await selectLedgerEntries(
             { ledgerAccountId: ledgerAccount.id },
             transaction
@@ -1462,15 +1383,14 @@ describe('Ledger Interactions', () => {
       const onceGrantAmount = 7000
       const everyGrantAmount = 8000
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const featureOnce = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
             name: 'One-Time Credits',
             usageMeterId: usageMeter.id,
             renewalFrequency: FeatureUsageGrantFrequency.Once,
             amount: onceGrantAmount,
-            livemode: true,
-          })
+            livemode: true})
           const featureEvery = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
             name: 'Recurring Credits',
@@ -1478,20 +1398,17 @@ describe('Ledger Interactions', () => {
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
             amount: everyGrantAmount,
-            livemode: true,
-          })
+            livemode: true})
           const productFeatureOnce = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: featureOnce.id,
-            livemode: true,
-          })
+            livemode: true})
           const productFeatureEvery = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: featureEvery.id,
-            livemode: true,
-          })
+            livemode: true})
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: featureOnce.id,
@@ -1499,8 +1416,7 @@ describe('Ledger Interactions', () => {
             usageMeterId: usageMeter.id,
             type: FeatureType.UsageCreditGrant,
             renewalFrequency: FeatureUsageGrantFrequency.Once,
-            amount: onceGrantAmount,
-          })
+            amount: onceGrantAmount})
           await setupSubscriptionItemFeature({
             subscriptionItemId: subscriptionItem.id,
             featureId: featureEvery.id,
@@ -1509,23 +1425,22 @@ describe('Ledger Interactions', () => {
             type: FeatureType.UsageCreditGrant,
             renewalFrequency:
               FeatureUsageGrantFrequency.EveryBillingPeriod,
-            amount: everyGrantAmount,
-          })
+            amount: everyGrantAmount})
           return Result.ok(undefined)
         })
       ).unwrap()
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // Assertions:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Only the "EveryBillingPeriod" credit should be granted.
           const usageCredits = await selectUsageCredits(
             { subscriptionId: subscription.id },
@@ -1569,13 +1484,11 @@ describe('Ledger Interactions', () => {
         issuedAmount: 500,
         usageMeterId: usageMeter.id,
         expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
+        livemode: true})
       const ledgerTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       const ledgerEntries = await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1586,25 +1499,22 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: expiringCredit.id,
-            amount: 500,
-          },
-        ],
-      })
-      await comprehensiveAdminTransaction(async (params) =>
+            amount: 500},
+        ]})
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       const expiredLedgerEntryResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectLedgerEntries(
               {
                 sourceUsageCreditId: expiringCredit.id,
-                entryType: LedgerEntryType.CreditGrantExpired,
-              },
+                entryType: LedgerEntryType.CreditGrantExpired},
               transaction
             )
           )
@@ -1619,7 +1529,7 @@ describe('Ledger Interactions', () => {
       expect(expiredLedgerEntry!.amount).toBe(500)
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -1640,14 +1550,12 @@ describe('Ledger Interactions', () => {
         issuedAmount: 1000,
         usageMeterId: usageMeter.id,
         expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
+        livemode: true})
 
       const grantTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1658,10 +1566,8 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: expiringCredit.id,
-            amount: 1000,
-          },
-        ],
-      })
+            amount: 1000},
+        ]})
 
       const usageEvent = await setupUsageEvent({
         organizationId: organization.id,
@@ -1672,19 +1578,16 @@ describe('Ledger Interactions', () => {
         billingPeriodId: pastBillingPeriod.id,
         transactionId: 'test-tx-1',
         customerId: customer.id,
-        livemode: true,
-      })
+        livemode: true})
       const creditApplication = await setupUsageCreditApplication({
         organizationId: organization.id,
         usageCreditId: expiringCredit.id,
         amountApplied: 400,
-        usageEventId: usageEvent.id,
-      })
+        usageEventId: usageEvent.id})
       const usageTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+        type: LedgerTransactionType.UsageEventProcessed})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1698,25 +1601,22 @@ describe('Ledger Interactions', () => {
             sourceCreditApplicationId: creditApplication.id,
             sourceUsageEventId: usageEvent.id,
             sourceUsageCreditId: expiringCredit.id,
-            amount: 400,
-          },
-        ],
-      })
+            amount: 400},
+        ]})
 
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectLedgerEntries(
               {
-                sourceUsageCreditId: expiringCredit.id,
-              },
+                sourceUsageCreditId: expiringCredit.id},
               transaction
             )
           )
@@ -1731,7 +1631,7 @@ describe('Ledger Interactions', () => {
       expect(expiredLedgerEntry!.amount).toBe(600) // 1000 - 400
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -1752,14 +1652,12 @@ describe('Ledger Interactions', () => {
         issuedAmount: 1000,
         usageMeterId: usageMeter.id,
         expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
+        livemode: true})
 
       const grantTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1770,10 +1668,8 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: expiringCredit.id,
-            amount: 1000,
-          },
-        ],
-      })
+            amount: 1000},
+        ]})
 
       const usageEvent = await setupUsageEvent({
         organizationId: organization.id,
@@ -1784,19 +1680,16 @@ describe('Ledger Interactions', () => {
         billingPeriodId: pastBillingPeriod.id,
         transactionId: 'test-tx-1',
         customerId: customer.id,
-        livemode: false,
-      })
+        livemode: false})
       const creditApplication = await setupUsageCreditApplication({
         organizationId: organization.id,
         usageCreditId: expiringCredit.id,
         amountApplied: 1000,
-        usageEventId: usageEvent.id,
-      })
+        usageEventId: usageEvent.id})
       const usageTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.UsageEventProcessed,
-      })
+        type: LedgerTransactionType.UsageEventProcessed})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1810,25 +1703,22 @@ describe('Ledger Interactions', () => {
             sourceCreditApplicationId: creditApplication.id,
             sourceUsageEventId: usageEvent.id,
             sourceUsageCreditId: expiringCredit.id,
-            amount: 1000,
-          },
-        ],
-      })
+            amount: 1000},
+        ]})
 
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectLedgerEntries(
               {
-                sourceUsageCreditId: expiringCredit.id,
-              },
+                sourceUsageCreditId: expiringCredit.id},
               transaction
             )
           )
@@ -1842,7 +1732,7 @@ describe('Ledger Interactions', () => {
       expect(expiredLedgerEntry).toBeUndefined()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -1863,14 +1753,12 @@ describe('Ledger Interactions', () => {
         issuedAmount: 700,
         usageMeterId: usageMeter.id,
         expiresAt: null, // This credit should not expire
-        livemode: false,
-      })
+        livemode: false})
 
       const ledgerTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1881,25 +1769,22 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: nonExpiringCredit.id,
-            amount: 700,
-          },
-        ],
-      })
+            amount: 700},
+        ]})
 
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectLedgerEntries(
               {
-                sourceUsageCreditId: nonExpiringCredit.id,
-              },
+                sourceUsageCreditId: nonExpiringCredit.id},
               transaction
             )
           )
@@ -1913,7 +1798,7 @@ describe('Ledger Interactions', () => {
       expect(expiredLedgerEntry).toBeUndefined()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -1934,14 +1819,12 @@ describe('Ledger Interactions', () => {
         issuedAmount: 10000,
         usageMeterId: usageMeter.id,
         expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-        livemode: false,
-      })
+        livemode: false})
 
       const ledgerTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -1952,25 +1835,22 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: futureCredit.id,
-            amount: 10000,
-          },
-        ],
-      })
+            amount: 10000},
+        ]})
 
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       const ledgerEntries = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectLedgerEntries(
               {
-                sourceUsageCreditId: futureCredit.id,
-              },
+                sourceUsageCreditId: futureCredit.id},
               transaction
             )
           )
@@ -1983,7 +1863,7 @@ describe('Ledger Interactions', () => {
       expect(expiredLedgerEntry).toBeUndefined()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -2005,13 +1885,11 @@ describe('Ledger Interactions', () => {
         issuedAmount: 100,
         usageMeterId: usageMeter.id,
         expiresAt: pastBillingPeriod.endDate,
-        livemode: false,
-      })
+        livemode: false})
       const ledgerTx1 = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2022,10 +1900,8 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: expiringCredit.id,
-            amount: 100,
-          },
-        ],
-      })
+            amount: 100},
+        ]})
 
       // Evergreen credit with balance
       const evergreenCredit = await setupUsageCredit({
@@ -2035,13 +1911,11 @@ describe('Ledger Interactions', () => {
         issuedAmount: 200,
         usageMeterId: usageMeter.id,
         expiresAt: null,
-        livemode: false,
-      })
+        livemode: false})
       const ledgerTx2 = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2052,10 +1926,8 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: evergreenCredit.id,
-            amount: 200,
-          },
-        ],
-      })
+            amount: 200},
+        ]})
 
       // Future-expiring credit with balance
       const futureCredit = await setupUsageCredit({
@@ -2065,13 +1937,11 @@ describe('Ledger Interactions', () => {
         issuedAmount: 300,
         usageMeterId: usageMeter.id,
         expiresAt: pastBillingPeriod.endDate + 10000, // Expires after transition
-        livemode: false,
-      })
+        livemode: false})
       const ledgerTx3 = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2082,26 +1952,23 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: futureCredit.id,
-            amount: 300,
-          },
-        ],
-      })
+            amount: 300},
+        ]})
 
       // Action
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
       // Assertions
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Check expiring credit
           const expiringEntries = await selectLedgerEntries(
             {
-              sourceUsageCreditId: expiringCredit.id,
-            },
+              sourceUsageCreditId: expiringCredit.id},
             transaction
           )
           const expiringEntry = expiringEntries.find(
@@ -2114,8 +1981,7 @@ describe('Ledger Interactions', () => {
           // Check evergreen credit
           const evergreenEntries = await selectLedgerEntries(
             {
-              sourceUsageCreditId: evergreenCredit.id,
-            },
+              sourceUsageCreditId: evergreenCredit.id},
             transaction
           )
           const evergreenEntry = evergreenEntries.find(
@@ -2127,8 +1993,7 @@ describe('Ledger Interactions', () => {
           // Check future credit
           const futureEntries = await selectLedgerEntries(
             {
-              sourceUsageCreditId: futureCredit.id,
-            },
+              sourceUsageCreditId: futureCredit.id},
             transaction
           )
           const futureEntry = futureEntries.find(
@@ -2141,8 +2006,7 @@ describe('Ledger Interactions', () => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               {
-                ledgerAccountId: ledgerAccount.id,
-              },
+                ledgerAccountId: ledgerAccount.id},
               'available',
               transaction
             )
@@ -2163,13 +2027,11 @@ describe('Ledger Interactions', () => {
         issuedAmount: expiringAmount,
         usageMeterId: usageMeter.id,
         expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
+        livemode: true})
       const expiringTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2180,10 +2042,8 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: expiringCredit.id,
-            amount: expiringAmount,
-          },
-        ],
-      })
+            amount: expiringAmount},
+        ]})
 
       // 2. A new grant entitlement
       const grantAmount = 250
@@ -2194,14 +2054,12 @@ describe('Ledger Interactions', () => {
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: grantAmount,
-        livemode: true,
-      })
+        livemode: true})
       const productFeature = await setupProductFeature({
         organizationId: organization.id,
         productId: product.id,
         featureId: feature.id,
-        livemode: true,
-      })
+        livemode: true})
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: feature.id,
@@ -2211,26 +2069,24 @@ describe('Ledger Interactions', () => {
         type: FeatureType.UsageCreditGrant,
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
-        amount: grantAmount,
-      })
+        amount: grantAmount})
 
       // Action:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // Assertions:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // 1. Check expiration
           const expiredEntries = await selectLedgerEntries(
             {
               sourceUsageCreditId: expiringCredit.id,
-              entryType: LedgerEntryType.CreditGrantExpired,
-            },
+              entryType: LedgerEntryType.CreditGrantExpired},
             transaction
           )
           expect(expiredEntries.length).toBe(1)
@@ -2240,8 +2096,7 @@ describe('Ledger Interactions', () => {
           const usageCredits = await selectUsageCredits(
             {
               subscriptionId: subscription.id,
-              issuedAmount: grantAmount,
-            },
+              issuedAmount: grantAmount},
             transaction
           )
           expect(usageCredits.length).toBe(1)
@@ -2251,8 +2106,7 @@ describe('Ledger Interactions', () => {
           const grantEntries = await selectLedgerEntries(
             {
               sourceUsageCreditId: newCredit.id,
-              entryType: LedgerEntryType.CreditGrantRecognized,
-            },
+              entryType: LedgerEntryType.CreditGrantRecognized},
             transaction
           )
           expect(grantEntries.length).toBe(1)
@@ -2262,8 +2116,7 @@ describe('Ledger Interactions', () => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               {
-                ledgerAccountId: ledgerAccount.id,
-              },
+                ledgerAccountId: ledgerAccount.id},
               'available',
               transaction
             )
@@ -2285,13 +2138,11 @@ describe('Ledger Interactions', () => {
         issuedAmount: expiringAmount,
         usageMeterId: usageMeter.id,
         expiresAt: pastBillingPeriod.endDate,
-        livemode: true,
-      })
+        livemode: true})
       const expiringTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2302,10 +2153,8 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: expiringCredit.id,
-            amount: expiringAmount,
-          },
-        ],
-      })
+            amount: expiringAmount},
+        ]})
 
       // 2. A non-expiring (evergreen) credit
       const evergreenAmount = 200
@@ -2316,13 +2165,11 @@ describe('Ledger Interactions', () => {
         issuedAmount: evergreenAmount,
         usageMeterId: usageMeter.id,
         expiresAt: null,
-        livemode: true,
-      })
+        livemode: true})
       const evergreenTx = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
-        type: LedgerTransactionType.AdminCreditAdjusted,
-      })
+        type: LedgerTransactionType.AdminCreditAdjusted})
       await setupLedgerEntries({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -2333,10 +2180,8 @@ describe('Ledger Interactions', () => {
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
             sourceUsageCreditId: evergreenCredit.id,
-            amount: evergreenAmount,
-          },
-        ],
-      })
+            amount: evergreenAmount},
+        ]})
 
       // 3. A new grant entitlement
       const grantAmount = 300
@@ -2347,14 +2192,12 @@ describe('Ledger Interactions', () => {
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: grantAmount,
-        livemode: true,
-      })
+        livemode: true})
       const productFeature = await setupProductFeature({
         organizationId: organization.id,
         productId: product.id,
         featureId: feature.id,
-        livemode: true,
-      })
+        livemode: true})
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: feature.id,
@@ -2364,26 +2207,24 @@ describe('Ledger Interactions', () => {
         type: FeatureType.UsageCreditGrant,
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
-        amount: grantAmount,
-      })
+        amount: grantAmount})
 
       // Action:
-      await comprehensiveAdminTransaction(async (params) =>
+      (await adminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      )
+      ).unwrap()
 
       // Assertions:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // 1. Check expiration
           const expiredEntries = await selectLedgerEntries(
             {
               sourceUsageCreditId: expiringCredit.id,
-              entryType: LedgerEntryType.CreditGrantExpired,
-            },
+              entryType: LedgerEntryType.CreditGrantExpired},
             transaction
           )
           expect(expiredEntries.length).toBe(1)
@@ -2393,8 +2234,7 @@ describe('Ledger Interactions', () => {
           const evergreenExpiredEntries = await selectLedgerEntries(
             {
               sourceUsageCreditId: evergreenCredit.id,
-              entryType: LedgerEntryType.CreditGrantExpired,
-            },
+              entryType: LedgerEntryType.CreditGrantExpired},
             transaction
           )
           expect(evergreenExpiredEntries.length).toBe(0)
@@ -2403,8 +2243,7 @@ describe('Ledger Interactions', () => {
           const usageCredits = await selectUsageCredits(
             {
               subscriptionId: subscription.id,
-              issuedAmount: grantAmount,
-            },
+              issuedAmount: grantAmount},
             transaction
           )
           expect(usageCredits.length).toBe(1)
@@ -2413,8 +2252,7 @@ describe('Ledger Interactions', () => {
           const finalBalance =
             await aggregateBalanceForLedgerAccountFromEntries(
               {
-                ledgerAccountId: ledgerAccount.id,
-              },
+                ledgerAccountId: ledgerAccount.id},
               'available',
               transaction
             )
@@ -2434,12 +2272,10 @@ describe('Resource claim expiration during billing period transition', async () 
   it('releases resource claims with expiredAt set during billing period transition', async () => {
     // Setup customer and payment method
     const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+      organizationId: organization.id})
     const paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerId: customer.id,
-    })
+      customerId: customer.id})
 
     // Create subscription with billing period in the past (ready for transition)
     const now = Date.now()
@@ -2450,36 +2286,31 @@ describe('Resource claim expiration during billing period transition', async () 
       paymentMethodId: paymentMethod.id,
       currentBillingPeriodEnd: now - 3000, // 3 seconds ago
       currentBillingPeriodStart: now - 30 * 24 * 60 * 60 * 1000, // 30 days ago
-      renews: true,
-    })) as Subscription.StandardRecord
+      renews: true})) as Subscription.StandardRecord
 
     const billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart!,
       endDate: subscription.currentBillingPeriodEnd!,
-      status: BillingPeriodStatus.Active,
-    })
+      status: BillingPeriodStatus.Active})
 
     await setupBillingRun({
       billingPeriodId: billingPeriod.id,
       paymentMethodId: paymentMethod.id,
       subscriptionId: subscription.id,
-      status: BillingRunStatus.Scheduled,
-    })
+      status: BillingRunStatus.Scheduled})
 
     await setupBillingPeriodItem({
       billingPeriodId: billingPeriod.id,
       quantity: 1,
-      unitPrice: 100,
-    })
+      unitPrice: 100})
 
     // Create a resource for claims
     const resource = await setupResource({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       slug: 'seats',
-      name: 'Seats',
-    })
+      name: 'Seats'})
 
     // Create resource feature with capacity
     const resourceFeature = await setupResourceFeature({
@@ -2488,8 +2319,7 @@ describe('Resource claim expiration during billing period transition', async () 
       resourceId: resource.id,
       livemode: true,
       pricingModelId: pricingModel.id,
-      amount: 10,
-    })
+      amount: 10})
 
     // Create subscription item
     const subscriptionItem = await setupSubscriptionItem({
@@ -2498,8 +2328,7 @@ describe('Resource claim expiration during billing period transition', async () 
       name: price.name ?? 'Basic Plan',
       quantity: 1,
       unitPrice: price.unitPrice,
-      type: SubscriptionItemType.Static,
-    })
+      type: SubscriptionItemType.Static})
 
     // Link feature to subscription item
     await setupResourceSubscriptionItemFeature({
@@ -2507,8 +2336,7 @@ describe('Resource claim expiration during billing period transition', async () 
       featureId: resourceFeature.id,
       resourceId: resource.id,
       pricingModelId: pricingModel.id,
-      amount: 10,
-    })
+      amount: 10})
 
     // Create two resource claims:
     // 1. A normal claim without expiration
@@ -2518,8 +2346,7 @@ describe('Resource claim expiration during billing period transition', async () 
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
-      externalId: 'user_normal',
-    })
+      externalId: 'user_normal'})
 
     const expiredClaim = await setupResourceClaim({
       organizationId: organization.id,
@@ -2532,7 +2359,7 @@ describe('Resource claim expiration during billing period transition', async () 
 
     // Verify initial state: both claims exist and are not released
     const claimsBefore = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectResourceClaims(
             { subscriptionId: subscription.id },
@@ -2547,16 +2374,16 @@ describe('Resource claim expiration during billing period transition', async () 
     )
 
     // Transition the billing period
-    await comprehensiveAdminTransaction(async (params) =>
+    (await adminTransaction(async (params) =>
       attemptToTransitionSubscriptionBillingPeriod(
         billingPeriod,
         createProcessingEffectsContext(params)
       )
-    )
+    ).unwrap()
 
     // Verify claims after transition
     const claimsAfter = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectResourceClaims(
             { subscriptionId: subscription.id },
@@ -2574,8 +2401,7 @@ describe('Resource claim expiration during billing period transition', async () 
     expect(normalClaimAfter).toMatchObject({
       id: normalClaim.id,
       releasedAt: null,
-      releaseReason: null,
-    })
+      releaseReason: null})
 
     // The expired claim should be released with reason 'expired'
     const expiredClaimAfter = claimsAfter.find(
@@ -2583,8 +2409,7 @@ describe('Resource claim expiration during billing period transition', async () 
     )
     expect(expiredClaimAfter).toMatchObject({
       id: expiredClaim.id,
-      releaseReason: 'expired',
-    })
+      releaseReason: 'expired'})
     expect(expiredClaimAfter!.releasedAt).toBeGreaterThan(0)
   })
 })

@@ -18,7 +18,7 @@ import {
   setupPrice,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   insertBillingPeriod,
@@ -66,7 +66,7 @@ describe('Billing Period Methods', () => {
   describe('insertBillingPeriod', () => {
     it('should successfully insert billing period and derive pricingModelId from subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const now = Date.now()
           const billingPeriod = await insertBillingPeriod(
             {
@@ -94,7 +94,7 @@ describe('Billing Period Methods', () => {
 
     it('should throw an error when subscriptionId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentSubscriptionId = `sub_${core.nanoid()}`
           const now = Date.now()
 
@@ -119,7 +119,7 @@ describe('Billing Period Methods', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const now = Date.now()
           const billingPeriod = await insertBillingPeriod(
             {

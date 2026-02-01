@@ -8,8 +8,7 @@ import {
   PaymentMethodType,
   PriceType,
   PurchaseStatus,
-  SubscriptionStatus,
-} from '@db-core/enums'
+  SubscriptionStatus} from '@db-core/enums'
 import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import type { Customer } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
@@ -30,12 +29,9 @@ import {
   setupPrice,
   setupProduct,
   setupPurchase,
-  setupSubscription,
-} from '@/../seedDatabase'
+  setupSubscription} from '@/../seedDatabase'
 import {
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+  adminTransaction} from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
@@ -44,28 +40,24 @@ import {
   selectCurrentSubscriptionForCustomer,
   selectSubscriptionById,
   selectSubscriptions,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
+  updateSubscription} from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
   createCapturingEffectsContext,
-  createDiscardingEffectsContext,
-} from '@/test-utils/transactionCallbacks'
+  createDiscardingEffectsContext} from '@/test-utils/transactionCallbacks'
 import { CancellationReason } from '@/types'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import {
   type CoreSripeSetupIntent,
   processSetupIntentSucceeded,
-  setupIntentStatusToCheckoutSessionStatus,
-} from '@/utils/bookkeeping/processSetupIntent'
+  setupIntentStatusToCheckoutSessionStatus} from '@/utils/bookkeeping/processSetupIntent'
 import { core } from '@/utils/core'
 import { IntentMetadataType } from '@/utils/stripe'
 
 // Helper function to create mock setup intent
 const mockSucceededSetupIntent = ({
   checkoutSessionId,
-  stripeCustomerId,
-}: {
+  stripeCustomerId}: {
   checkoutSessionId: string
   stripeCustomerId: string
 }): CoreSripeSetupIntent => ({
@@ -75,9 +67,7 @@ const mockSucceededSetupIntent = ({
   payment_method: `pm_${core.nanoid()}`,
   metadata: {
     type: IntentMetadataType.CheckoutSession,
-    checkoutSessionId,
-  },
-})
+    checkoutSessionId}})
 
 // Helper function to get the new subscription after upgrade
 const getNewPaidSubscriptionId = async (
@@ -133,8 +123,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       organizationId: organization.id,
       stripeCustomerId: `cus_${core.nanoid()}`,
       email: `test_${core.nanoid()}@example.com`,
-      livemode: true,
-    })
+      livemode: true})
 
     // Create payment method
     paymentMethod = await setupPaymentMethod({
@@ -142,16 +131,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       customerId: customer.id,
       stripePaymentMethodId: `pm_${core.nanoid()}`,
       type: PaymentMethodType.Card,
-      livemode: true,
-    })
+      livemode: true})
 
     // Create free product and price
     freeProduct = await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       name: 'Free Plan',
-      livemode: true,
-    })
+      livemode: true})
 
     freePrice = await setupPrice({
       productId: freeProduct.id,
@@ -162,16 +149,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      currency: CurrencyCode.USD,
-    })
+      currency: CurrencyCode.USD})
 
     // Create paid product and price
     paidProduct = await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
       name: 'Pro Plan',
-      livemode: true,
-    })
+      livemode: true})
 
     paidPrice = await setupPrice({
       productId: paidProduct.id,
@@ -182,8 +167,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      currency: CurrencyCode.USD,
-    })
+      currency: CurrencyCode.USD})
 
     // Create free subscription (common for most tests)
     freeSubscription = await setupSubscription({
@@ -197,8 +181,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       currentBillingPeriodStart: Date.now(),
       currentBillingPeriodEnd: new Date(
         Date.now() + 30 * 24 * 60 * 60 * 1000
-      ).getTime(),
-    })
+      ).getTime()})
 
     // Create checkout session for paid product (common for upgrade tests)
     checkoutSession = await setupCheckoutSession({
@@ -210,8 +193,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       priceId: paidPrice.id,
       quantity: 1,
       outputMetadata: { upgraded: 'true' },
-      outputName: 'Pro Plan Subscription',
-    })
+      outputName: 'Pro Plan Subscription'})
 
     // Create purchase for checkout session
     purchase = await setupPurchase({
@@ -219,8 +201,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       customerId: customer.id,
       status: PurchaseStatus.Pending,
       livemode: true,
-      priceId: paidPrice.id,
-    })
+      priceId: paidPrice.id})
   })
 
   describe('Basic Upgrade Flow', () => {
@@ -228,12 +209,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Create the setup intent for the upgrade
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       // Process the upgrade
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create fee calculation required for checkout session processing
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
@@ -251,7 +231,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Query for the new subscription
       const allSubscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },
@@ -269,7 +249,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Verify the upgrade was processed correctly
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Check that the free subscription was canceled with the correct reason
           const canceledFreeSubscription = (
             await selectSubscriptionById(
@@ -314,7 +294,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     it('should preserve customer data during upgrade', async () => {
       // Add metadata to the free subscription to verify it's preserved
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
@@ -322,9 +302,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
               metadata: {
                 source: 'organic',
                 campaign: 'summer2024',
-                tier: 'free',
-              },
-            },
+                tier: 'free'}},
             transaction
           )
           return Result.ok(undefined)
@@ -334,11 +312,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process the upgrade
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -354,7 +331,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -364,7 +341,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Verify customer data preservation
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const newSubscription = (
             await selectSubscriptionById(
               newSubscriptionId!,
@@ -399,15 +376,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     it('should create paid subscription directly when no free subscription exists', async () => {
       // Cancel the free subscription to simulate no active subscription
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
               renews: false,
               status: SubscriptionStatus.Canceled,
               canceledAt: Date.now(),
-              cancellationReason: CancellationReason.CustomerRequest,
-            },
+              cancellationReason: CancellationReason.CustomerRequest},
             transaction
           )
           return Result.ok(undefined)
@@ -417,11 +393,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process setup intent without an active free subscription
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -437,7 +412,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Verify paid subscription was created without upgrade
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -446,7 +421,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof newSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const newSubscription = (
             await selectSubscriptionById(
               newSubscriptionId!,
@@ -488,20 +463,18 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: true,
         isFreePlan: true,
         currentBillingPeriodStart: now,
-        currentBillingPeriodEnd: now + 30 * 24 * 60 * 60 * 1000,
-      })
+        currentBillingPeriodEnd: now + 30 * 24 * 60 * 60 * 1000})
 
       // First cancel the older free subscription to avoid multiple active subscriptions
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
               renews: false,
               status: SubscriptionStatus.Canceled,
               canceledAt: Date.now(),
-              cancellationReason: CancellationReason.CustomerRequest,
-            },
+              cancellationReason: CancellationReason.CustomerRequest},
             transaction
           )
           return Result.ok(undefined)
@@ -511,11 +484,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process upgrade with the remaining free subscription
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -531,7 +503,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -540,7 +512,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof newSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // The second free subscription should be canceled with upgrade reason
           const canceledSubscription = (
             await selectSubscriptionById(
@@ -584,11 +556,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // First, upgrade to a paid subscription
       const firstSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const firstResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -604,7 +575,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the first paid subscription ID
       const firstPaidSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -620,8 +591,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Open,
         livemode: true,
         priceId: paidPrice.id,
-        quantity: 1,
-      })
+        quantity: 1})
 
       // Create a new purchase for the second checkout session
       await setupPurchase({
@@ -629,18 +599,16 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         customerId: customer.id,
         priceId: paidPrice.id,
         status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+        livemode: true})
 
       // Attempt to create another paid subscription
       const secondSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: secondCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       // This should return an error Result
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             secondCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -661,7 +629,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       }
       // Verify that only one paid subscription exists
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const allSubscriptions = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -684,12 +652,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
   describe('Free Subscription Cancellation Logic', () => {
     it('should cancel free subscription but leave paid subscription unchanged', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateOrganization(
             {
               id: organization.id,
-              allowMultipleSubscriptionsPerCustomer: true,
-            },
+              allowMultipleSubscriptionsPerCustomer: true},
             transaction
           )
           return Result.ok(undefined)
@@ -704,17 +671,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
         livemode: true,
-        isFreePlan: false,
-      })
+        isFreePlan: false})
 
       // Process upgrade
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -730,7 +695,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -738,7 +703,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Free subscription should be canceled
           const canceledFreeSubscription = (
             await selectSubscriptionById(
@@ -791,7 +756,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Test by calling createSubscriptionWorkflow directly with a free price
       // This should fail because only one free subscription is allowed per customer
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const stripeSetupIntentId = `setupintent_free_test_${core.nanoid()}`
           const secondFreeResult = await createSubscriptionWorkflow(
             {
@@ -799,8 +764,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
               customer,
               product: {
                 ...freeProduct,
-                default: freeProduct.default ?? false,
-              },
+                default: freeProduct.default ?? false},
               price: freePrice,
               quantity: 1,
               livemode: true,
@@ -809,8 +773,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
               intervalCount: 1,
               defaultPaymentMethod: paymentMethod,
               stripeSetupIntentId,
-              autoStart: true,
-            },
+              autoStart: true},
             createDiscardingEffectsContext(transaction)
           )
           expect(Result.isError(secondFreeResult)).toBe(true)
@@ -824,7 +787,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Original free subscription should remain active and unchanged
           const originalFreeSubscription = (
             await selectSubscriptionById(
@@ -865,11 +828,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process the setup intent for the first time
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const firstResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -885,7 +847,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the first subscription ID
       const firstSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -895,7 +857,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Process the same setup intent again (idempotency check)
       const secondResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Note: Fee calculation already exists, so this shouldn't cause issues
           return Result.ok(
             await processSetupIntentSucceeded(
@@ -908,7 +870,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the subscription ID after second processing
       const secondSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -920,7 +882,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Verify no duplicate subscriptions were created
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const allSubscriptions = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -948,30 +910,26 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Open,
         livemode: true,
         priceId: paidPrice.id,
-        quantity: 1,
-      })
+        quantity: 1})
 
       await setupPurchase({
         organizationId: organization.id,
         customerId: customer.id,
         priceId: paidPrice.id,
         status: PurchaseStatus.Pending,
-        livemode: true,
-      })
+        livemode: true})
 
       const firstSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const secondSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: secondCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       // Process the first setup intent
       const firstResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -987,7 +945,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the first subscription ID
       const firstSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -997,7 +955,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Attempt to process the second setup intent (should fail)
       const concurrentResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             secondCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1018,7 +976,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       }
       // Verify only one paid subscription exists
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const allSubscriptions = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -1042,12 +1000,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     it('should convert free subscription in trial to paid', async () => {
       // Update free subscription to have a trial period
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
-              renews: false,
-            },
+              renews: false},
             transaction
           )
           return Result.ok(undefined)
@@ -1057,11 +1014,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process upgrade during trial
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1077,7 +1033,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -1086,7 +1042,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof newSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Free trial subscription should be canceled
           const canceledFreeSubscription = (
             await selectSubscriptionById(
@@ -1120,15 +1076,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     it('should handle upgrade when free subscription is already canceled', async () => {
       // Cancel the free subscription manually first
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
               renews: false,
               status: SubscriptionStatus.Canceled,
               canceledAt: Date.now(),
-              cancellationReason: CancellationReason.CustomerRequest,
-            },
+              cancellationReason: CancellationReason.CustomerRequest},
             transaction
           )
           return Result.ok(undefined)
@@ -1138,11 +1093,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process upgrade with already canceled free subscription
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1158,7 +1112,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -1167,7 +1121,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof newSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Free subscription should remain canceled with original reason
           const stillCanceledSubscription = (
             await selectSubscriptionById(
@@ -1210,17 +1164,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         subscriptionId: freeSubscription.id,
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        livemode: true,
-      })
+        livemode: true})
 
       // Process upgrade mid-period
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1236,7 +1188,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -1245,7 +1197,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof newSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // New subscription should have proper billing period dates
           const newSubscription = (
             await selectSubscriptionById(
@@ -1281,13 +1233,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Add metadata to track usage credits on free subscription
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
               renews: false,
-              metadata: { usageCredits: '100', plan: 'free' },
-            },
+              metadata: { usageCredits: '100', plan: 'free' }},
             transaction
           )
           return Result.ok(undefined)
@@ -1297,11 +1248,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process upgrade
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1317,7 +1267,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -1326,7 +1276,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof newSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const newSubscription = (
             await selectSubscriptionById(
               newSubscriptionId!,
@@ -1351,11 +1301,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Process upgrade to create the upgraded subscription scenario
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1371,7 +1320,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the new subscription ID
       const newSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -1380,7 +1329,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof newSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Query active subscriptions using the helper function
           const activeSubscriptions =
             await selectActiveSubscriptionsForCustomer(
@@ -1407,11 +1356,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // First upgrade: free → paid
       const firstSetupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
 
       const firstResult = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1427,7 +1375,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Get the paid subscription ID
       const paidSubscriptionId = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getNewPaidSubscriptionId(customer.id, transaction)
           )
@@ -1436,7 +1384,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof paidSubscriptionId).toBe('string')
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Query current subscription - should return the latest in the chain
           const currentSubscription =
             await selectCurrentSubscriptionForCustomer(
@@ -1446,8 +1394,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
           // Should return the paid subscription, not the canceled free one
           expect(currentSubscription).toMatchObject({
-            id: paidSubscriptionId,
-          })
+            id: paidSubscriptionId})
           expect(currentSubscription!.id).toBe(paidSubscriptionId!)
           expect(currentSubscription!.isFreePlan).toBe(false)
 
@@ -1472,8 +1419,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Create a new customer for this test to avoid interference
       const testCustomer = await setupCustomer({
         organizationId: organization.id,
-        email: `terminal-test-${core.nanoid()}@example.com`,
-      })
+        email: `terminal-test-${core.nanoid()}@example.com`})
 
       // Create a free subscription for this customer
       const testFreeSubscription = await setupSubscription({
@@ -1481,8 +1427,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         customerId: testCustomer.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Active,
-        isFreePlan: true,
-      })
+        isFreePlan: true})
 
       // Create a checkout session that's already succeeded
       const terminalCheckoutSession = await setupCheckoutSession({
@@ -1492,23 +1437,20 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Succeeded, // Terminal state
         priceId: paidPrice.id,
         quantity: 1,
-        livemode: true,
-      })
+        livemode: true})
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: terminalCheckoutSession.id,
-        stripeCustomerId: testCustomer.stripeCustomerId!,
-      })
+        stripeCustomerId: testCustomer.stripeCustomerId!})
 
       // Add fee calculation for the terminal checkout session
       await setupFeeCalculation({
         checkoutSessionId: terminalCheckoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: terminalCheckoutSession.livemode,
-      })
+        livemode: terminalCheckoutSession.livemode})
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      (await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1539,15 +1481,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(freeSubAfter.status).toBe(SubscriptionStatus.Active)
         expect(freeSubAfter.cancellationReason).toBeNull()
         return Result.ok(result)
-      })
+      }).unwrap()
     })
 
     it('should handle Failed terminal checkout session', async () => {
       // Create a new customer for this test to avoid interference
       const testCustomer = await setupCustomer({
         organizationId: organization.id,
-        email: `failed-terminal-test-${core.nanoid()}@example.com`,
-      })
+        email: `failed-terminal-test-${core.nanoid()}@example.com`})
 
       // Create a free subscription for this customer
       const testFreeSubscription = await setupSubscription({
@@ -1555,8 +1496,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         customerId: testCustomer.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Active,
-        isFreePlan: true,
-      })
+        isFreePlan: true})
 
       const failedCheckoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1565,23 +1505,20 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Failed, // Terminal state
         priceId: paidPrice.id,
         quantity: 1,
-        livemode: true,
-      })
+        livemode: true})
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: failedCheckoutSession.id,
-        stripeCustomerId: testCustomer.stripeCustomerId!,
-      })
+        stripeCustomerId: testCustomer.stripeCustomerId!})
 
       // Add fee calculation for the failed checkout session
       await setupFeeCalculation({
         checkoutSessionId: failedCheckoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: failedCheckoutSession.livemode,
-      })
+        livemode: failedCheckoutSession.livemode})
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      (await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1600,7 +1537,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           SubscriptionStatus.Active
         )
         return Result.ok(result)
-      })
+      }).unwrap()
     })
   })
 
@@ -1637,20 +1574,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Pending,
         priceId: paidPrice.id,
         quantity: 1,
-        livemode: true,
-      })
+        livemode: true})
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        livemode: checkoutSession.livemode})
+      (await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1668,7 +1602,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
 
         return Result.ok(result)
-      })
+      }).unwrap()
     })
   })
 
@@ -1677,8 +1611,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // Create a new customer without any trial history
       const newCustomer = await setupCustomer({
         organizationId: organization.id,
-        email: 'new-trial@example.com',
-      })
+        email: 'new-trial@example.com'})
 
       // Create a price with trial period
       const priceWithTrial = await setupPrice({
@@ -1690,8 +1623,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         intervalCount: 1,
         trialPeriodDays: 14, // 14-day trial
         livemode: true,
-        isDefault: false,
-      })
+        isDefault: false})
 
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1700,20 +1632,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Pending,
         priceId: priceWithTrial.id,
         quantity: 1,
-        livemode: true,
-      })
+        livemode: true})
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: newCustomer.stripeCustomerId!,
-      })
+        stripeCustomerId: newCustomer.stripeCustomerId!})
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        livemode: checkoutSession.livemode})
+      (await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1739,15 +1668,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(daysDiff).toBeGreaterThanOrEqual(13)
         expect(daysDiff).toBeLessThanOrEqual(14)
         return Result.ok(result)
-      })
+      }).unwrap()
     })
 
     it('should NOT grant trial when customer had a previous trial', async () => {
       // Create a customer with trial history
       const customerWithTrialHistory = await setupCustomer({
         organizationId: organization.id,
-        email: 'had-trial@example.com',
-      })
+        email: 'had-trial@example.com'})
 
       // Create a previous subscription with trial that ended
       const previousSub = await setupSubscription({
@@ -1756,8 +1684,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
         trialEnd: new Date('2023-01-15').getTime(), // Had a trial in the past
-        canceledAt: new Date('2023-02-01').getTime(),
-      })
+        canceledAt: new Date('2023-02-01').getTime()})
 
       // Create a price with trial period
       const priceWithTrial = await setupPrice({
@@ -1769,8 +1696,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         intervalCount: 1,
         trialPeriodDays: 14,
         livemode: true,
-        isDefault: false,
-      })
+        isDefault: false})
 
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1779,20 +1705,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Pending,
         priceId: priceWithTrial.id,
         quantity: 1,
-        livemode: true,
-      })
+        livemode: true})
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customerWithTrialHistory.stripeCustomerId!,
-      })
+        stripeCustomerId: customerWithTrialHistory.stripeCustomerId!})
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        livemode: checkoutSession.livemode})
+      (await adminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -1802,8 +1725,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         const subscriptions = await selectSubscriptions(
           {
             customerId: customerWithTrialHistory.id,
-            status: SubscriptionStatus.Active,
-          },
+            status: SubscriptionStatus.Active},
           transaction
         )
         expect(subscriptions).toHaveLength(1)
@@ -1812,7 +1734,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         // Should NOT have trial since customer already had one
         expect(newSubscription.trialEnd).toBeNull()
         return Result.ok(result)
-      })
+      }).unwrap()
     })
   })
 
@@ -1833,13 +1755,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       // Update the subscription to have the stripeSetupIntentId
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscriptionForActivation.id,
               stripeSetupIntentId: setupIntentId,
-              renews: subscriptionForActivation.renews,
-            },
+              renews: subscriptionForActivation.renews},
             transaction
           )
           return Result.ok(undefined)
@@ -1855,8 +1776,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         quantity: 1,
         livemode: true,
-        targetSubscriptionId: subscriptionForActivation.id,
-      })
+        targetSubscriptionId: subscriptionForActivation.id})
 
       const setupIntentNoPM: CoreSripeSetupIntent = {
         status: 'succeeded',
@@ -1865,9 +1785,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         payment_method: null as any, // No payment method
         metadata: {
           type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: activateCheckoutSession.id,
-        },
-      }
+          checkoutSessionId: activateCheckoutSession.id}}
 
       await expect(
         comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -1890,8 +1808,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         customerId: customer.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        defaultPaymentMethodId: paymentMethod.id,
-      })
+        defaultPaymentMethodId: paymentMethod.id})
 
       const addPMCheckoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1901,8 +1818,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         quantity: 1,
         livemode: true,
-        targetSubscriptionId: targetSub.id,
-      })
+        targetSubscriptionId: targetSub.id})
 
       const newPaymentMethodId = `pm_new_${core.nanoid()}`
       const setupIntent: CoreSripeSetupIntent = {
@@ -1912,18 +1828,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         payment_method: newPaymentMethodId,
         metadata: {
           type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: addPMCheckoutSession.id,
-        },
-      }
+          checkoutSessionId: addPMCheckoutSession.id}}
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      (await adminTransaction(async ({ transaction }) => {
         // Create the new payment method first
         const newPM = await setupPaymentMethod({
           organizationId: organization.id,
           customerId: customer.id,
           stripePaymentMethodId: newPaymentMethodId,
-          type: PaymentMethodType.Card,
-        })
+          type: PaymentMethodType.Card})
 
         await processSetupIntentSucceeded(
           setupIntent,
@@ -1938,7 +1851,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         // Verify renews is preserved
         expect(updatedSub.renews).toBe(targetSub.renews)
         return Result.ok(null)
-      })
+      }).unwrap()
     })
 
     it('should update all subscriptions when automaticallyUpdateSubscriptions is true', async () => {
@@ -1947,14 +1860,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         customerId: customer.id,
         priceId: paidPrice.id,
-        status: SubscriptionStatus.Active,
-      })
+        status: SubscriptionStatus.Active})
       const sub2 = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
         priceId: paidPrice.id,
-        status: SubscriptionStatus.Active,
-      })
+        status: SubscriptionStatus.Active})
 
       const addPMCheckoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1964,8 +1875,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         quantity: 1,
         livemode: true,
-        automaticallyUpdateSubscriptions: true,
-      })
+        automaticallyUpdateSubscriptions: true})
 
       const newPaymentMethodId = `pm_auto_update_${core.nanoid()}`
       const setupIntent: CoreSripeSetupIntent = {
@@ -1975,18 +1885,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         payment_method: newPaymentMethodId,
         metadata: {
           type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: addPMCheckoutSession.id,
-        },
-      }
+          checkoutSessionId: addPMCheckoutSession.id}}
 
       // Create the new payment method
       const newPM = await setupPaymentMethod({
         customerId: customer.id,
         stripePaymentMethodId: newPaymentMethodId,
         type: PaymentMethodType.Card,
-        organizationId: organization.id,
-      })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        organizationId: organization.id})
+      (await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -2003,7 +1910,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(updatedSub1.defaultPaymentMethodId).toBe(newPM.id)
         expect(updatedSub2.defaultPaymentMethodId).toBe(newPM.id)
         return Result.ok(null)
-      })
+      }).unwrap()
     })
   })
 
@@ -2016,8 +1923,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Pending,
         priceId: paidPrice.id,
         quantity: 1,
-        livemode: true,
-      })
+        livemode: true})
 
       const pmId = `pm_assoc_${core.nanoid()}`
       const setupIntent: CoreSripeSetupIntent = {
@@ -2027,16 +1933,13 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         payment_method: pmId,
         metadata: {
           type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: checkoutSession.id,
-        },
-      }
+          checkoutSessionId: checkoutSession.id}}
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        livemode: checkoutSession.livemode})
+      (await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -2053,15 +1956,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         const subscriptions = await selectSubscriptions(
           {
             customerId: customer.id,
-            isFreePlan: false,
-          },
+            isFreePlan: false},
           transaction
         )
         expect(subscriptions[0].defaultPaymentMethodId).toBe(
           paymentMethods[0].id
         )
         return Result.ok(null)
-      })
+      }).unwrap()
     })
   })
 
@@ -2075,20 +1977,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         priceId: paidPrice.id,
         quantity: 1,
         livemode: true,
-        outputName: 'Premium Plan - Special Edition',
-      })
+        outputName: 'Premium Plan - Special Edition'})
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        livemode: checkoutSession.livemode})
+      (await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
           createDiscardingEffectsContext(transaction)
@@ -2097,8 +1996,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         const subscriptions = await selectSubscriptions(
           {
             customerId: customer.id,
-            isFreePlan: false,
-          },
+            isFreePlan: false},
           transaction
         )
 
@@ -2107,7 +2005,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           'Premium Plan - Special Edition'
         )
         return Result.ok(null)
-      })
+      }).unwrap()
     })
   })
 
@@ -2120,19 +2018,16 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: CheckoutSessionStatus.Pending,
         priceId: paidPrice.id,
         quantity: 1,
-        livemode: true,
-      })
+        livemode: true})
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
+        stripeCustomerId: customer.stripeCustomerId!})
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
         priceId: paidPrice.id,
-        livemode: checkoutSession.livemode,
-      })
+        livemode: checkoutSession.livemode})
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)

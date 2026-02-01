@@ -3,10 +3,7 @@ import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
@@ -21,7 +18,7 @@ describe('validateAndResolvePricingModelId', () => {
   beforeEach(async () => {
     // Set up two separate organizations with their own pricing models
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const {
           organization: organization1,
           pricingModel: pricingModel1,
@@ -50,7 +47,7 @@ describe('validateAndResolvePricingModelId', () => {
 
   it('returns the provided pricingModelId when it belongs to the same organization', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await validateAndResolvePricingModelId({
             pricingModelId: org1PricingModelId,
@@ -131,7 +128,7 @@ describe('validateAndResolvePricingModelId', () => {
 
   it('returns the default pricing model ID when pricingModelId is not provided', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const defaultPM = await selectDefaultPricingModel(
           { organizationId: org1Id, livemode },
           transaction
@@ -156,7 +153,7 @@ describe('validateAndResolvePricingModelId', () => {
 
   it('returns the default pricing model ID when pricingModelId is null', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const defaultPM = await selectDefaultPricingModel(
           { organizationId: org1Id, livemode },
           transaction
@@ -213,7 +210,7 @@ describe('validateAndResolvePricingModelId', () => {
   describe('integration with insertDiscount', () => {
     it('creates a discount successfully after validation passes', async () => {
       const discount = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // First validate and resolve the pricingModelId
           const resolvedPricingModelId =
             await validateAndResolvePricingModelId({

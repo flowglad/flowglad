@@ -4,7 +4,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 
@@ -30,7 +30,7 @@ const SubscriptionCheckoutSuccessPage = async ({
   // If we don't have the price and organization, fetch them
   if (!innerOrganization || !innerPrice) {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [data] =
           await selectPriceProductAndOrganizationByPriceWhere(
             { id: checkoutSession.priceId! },
@@ -57,7 +57,7 @@ const SubscriptionCheckoutSuccessPage = async ({
   let customerEmail: string | null = null
   if (checkoutSession.customerId) {
     const customer = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const customerRecord = (
           await selectCustomerById(
             checkoutSession.customerId!,

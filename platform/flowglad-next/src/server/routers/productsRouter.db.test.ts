@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import { IntervalUnit, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
 import {
@@ -30,7 +30,7 @@ describe('productsRouter - Default Product Constraints', () => {
   beforeEach(async () => {
     // Set up organization and pricing model with default product
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const { organization } = await setupOrg()
 
@@ -131,7 +131,7 @@ describe('productsRouter - Default Product Constraints', () => {
 
     it('returns Result.ok when creating regular products with default: false', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Validate this should return ok
           const validationResult = validateProductCreation({
@@ -204,7 +204,7 @@ describe('productsRouter - Default Product Constraints', () => {
     it('returns Result.err with ValidationError when attempting to change default field on any product', async () => {
       // Test changing a regular product to default
       const { regularProduct, defaultProduct } = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const regular = (
             await selectProductById(regularProductId, transaction)
@@ -254,7 +254,7 @@ describe('productsRouter - Default Product Constraints', () => {
 
     it('returns Result.ok when updating allowed fields on default products (excluding slug)', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingProduct = (
             await selectProductById(defaultProductId, transaction)
@@ -292,7 +292,7 @@ describe('productsRouter - Default Product Constraints', () => {
 
     it('returns Result.err with ValidationError when attempting to update restricted fields on default products', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingProduct = (
             await selectProductById(defaultProductId, transaction)
@@ -336,7 +336,7 @@ describe('productsRouter - Default Product Constraints', () => {
 
     it('returns Result.ok when updating any field on non-default products', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingProduct = (
             await selectProductById(regularProductId, transaction)

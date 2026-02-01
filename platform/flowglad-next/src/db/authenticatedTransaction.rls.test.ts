@@ -14,7 +14,7 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { User } from '@db-core/schema/users'
 import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
 import {
@@ -73,7 +73,7 @@ describe('RLS Access Control with selectOrganizations', () => {
 
     // Create memberships for cross-organization testing
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Give userA membership in testOrg2 as well (focused: false)
         await insertMembership(
@@ -220,7 +220,7 @@ describe('RLS Access Control with selectMemberships', () => {
 
     // Create specific membership configurations for testing
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Give userA membership in testOrg2 (focused: false)
         membershipA2 = await insertMembership(
@@ -282,7 +282,7 @@ describe('RLS Access Control with selectMemberships', () => {
       // expects:
       // - selectMemberships should return the membership because API key auth bypasses focused check
       const testApiKey = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           return Result.ok(
             await insertApiKey(
@@ -308,7 +308,7 @@ describe('RLS Access Control with selectMemberships', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const [membership] = await selectMemberships(
             { userId: apiUserId, organizationId: testOrg2.id },
@@ -405,7 +405,7 @@ describe('RLS for selectProducts', () => {
 
     // Also give user A a membership in org2, unfocused
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertMembership(
           {
@@ -682,7 +682,7 @@ describe('RLS for selectPricingModels', () => {
 
     // Also give user A a membership in org2, unfocused
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertMembership(
           {
@@ -1065,7 +1065,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
 
     // Switch focus: add focused membership for org2 and unfocus org1
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await insertMembership(
           {

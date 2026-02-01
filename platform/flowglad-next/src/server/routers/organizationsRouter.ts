@@ -23,10 +23,7 @@ import {
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
@@ -459,7 +456,7 @@ const createOrganization = protectedProcedure
     }
 
     const result = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction, cacheRecomputationContext }) => {
           const [user] = await selectUsers(
             {

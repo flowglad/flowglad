@@ -24,10 +24,7 @@ import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
@@ -788,11 +785,14 @@ export const executeBillingRun = async (
     adjustmentDate: Date | number
   }
 ) => {
-  const billingRun = await adminTransaction(({ transaction }) => {
-    return selectBillingRunById(billingRunId, transaction).then((r) =>
-      r.unwrap()
-    )
-  })
+  const billingRunResult = await adminTransaction(
+    async ({ transaction }) =>
+      selectBillingRunById(billingRunId, transaction)
+  )
+  if (Result.isError(billingRunResult)) {
+    throw billingRunResult.error
+  }
+  const billingRun = billingRunResult.value
 
   if (billingRun.status !== BillingRunStatus.Scheduled) {
     return
@@ -804,20 +804,8 @@ export const executeBillingRun = async (
       )
     }
 
-    const {
-      invoice,
-      payment,
-      feeCalculation,
-      customer,
-      billingPeriod,
-      paymentMethod,
-      totalDueAmount,
-      totalAmountPaid,
-      organization,
-      payments,
-      paymentIntent,
-    } =
-      await comprehensiveAdminTransaction<ExecuteBillingRunStepsResult>(
+    const billingRunStepsResult =
+      await adminTransaction<ExecuteBillingRunStepsResult>(
         async ({ transaction }) => {
           const resultFromSteps =
             await executeBillingRunCalculationAndBookkeepingSteps(
@@ -963,6 +951,22 @@ export const executeBillingRun = async (
           livemode: billingRun.livemode,
         }
       )
+    if (Result.isError(billingRunStepsResult)) {
+      throw billingRunStepsResult.error
+    }
+    const {
+      invoice,
+      payment,
+      feeCalculation,
+      customer,
+      billingPeriod,
+      paymentMethod,
+      totalDueAmount,
+      totalAmountPaid,
+      organization,
+      payments,
+      paymentIntent,
+    } = billingRunStepsResult.value
 
     // Trigger PDF generation as a non-failing side effect
     if (!core.IS_TEST) {
@@ -990,7 +994,7 @@ export const executeBillingRun = async (
 
     // Update payment record with charge ID
     if (payment) {
-      await adminTransaction(
+      const updateResult = await adminTransaction(
         async ({ transaction }) => {
           await updatePayment(
             {
@@ -1003,11 +1007,15 @@ export const executeBillingRun = async (
             },
             transaction
           )
+          return Result.ok(undefined)
         },
         {
           livemode: billingRun.livemode,
         }
       )
+      if (Result.isError(updateResult)) {
+        throw updateResult.error
+      }
     }
 
     // Process payment intent in comprehensive transaction if payment intent in terminal state
@@ -1015,23 +1023,30 @@ export const executeBillingRun = async (
       confirmationResult.status === 'succeeded' ||
       confirmationResult.status === 'requires_payment_method'
     ) {
-      await comprehensiveAdminTransaction(async (params) => {
-        const effectsCtx: TransactionEffectsContext = {
-          transaction: params.transaction,
-          cacheRecomputationContext: params.cacheRecomputationContext,
-          invalidateCache: params.invalidateCache,
-          emitEvent: params.emitEvent,
-          enqueueLedgerCommand: params.enqueueLedgerCommand,
-        }
-        const result = await processOutcomeForBillingRun(
-          {
-            input: confirmationResult,
-            adjustmentParams: adjustmentParams,
-          },
-          effectsCtx
-        )
-        return result
-      })
+      const processResult = await adminTransaction(
+        async (params) => {
+          const effectsCtx: TransactionEffectsContext = {
+            transaction: params.transaction,
+            cacheRecomputationContext:
+              params.cacheRecomputationContext,
+            invalidateCache: params.invalidateCache,
+            emitEvent: params.emitEvent,
+            enqueueLedgerCommand: params.enqueueLedgerCommand,
+          }
+          const result = await processOutcomeForBillingRun(
+            {
+              input: confirmationResult,
+              adjustmentParams: adjustmentParams,
+            },
+            effectsCtx
+          )
+          return result
+        },
+        { livemode: billingRun.livemode }
+      )
+      if (Result.isError(processResult)) {
+        throw processResult.error
+      }
     }
 
     return {
@@ -1051,21 +1066,28 @@ export const executeBillingRun = async (
       billingRunId,
       error,
     })
-    return adminTransaction(async ({ transaction }) => {
-      const isError = error instanceof Error
-      return updateBillingRun(
-        {
-          id: billingRun.id,
-          status: BillingRunStatus.Failed,
-          errorDetails: {
-            message: isError ? error.message : String(error),
-            name: isError ? error.name : 'Error',
-            stack: isError ? error.stack : undefined,
+    const updateResult = await adminTransaction(
+      async ({ transaction }) => {
+        const isError = error instanceof Error
+        const updatedBillingRun = await updateBillingRun(
+          {
+            id: billingRun.id,
+            status: BillingRunStatus.Failed,
+            errorDetails: {
+              message: isError ? error.message : String(error),
+              name: isError ? error.name : 'Error',
+              stack: isError ? error.stack : undefined,
+            },
           },
-        },
-        transaction
-      )
-    })
+          transaction
+        )
+        return Result.ok(updatedBillingRun)
+      }
+    )
+    if (Result.isError(updateResult)) {
+      throw updateResult.error
+    }
+    return updateResult.value
   }
 }
 

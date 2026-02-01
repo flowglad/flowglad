@@ -18,7 +18,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase' // Corrected path
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId,
@@ -98,7 +98,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should return existing ledger accounts and not attempt to create new ones if all specified ledger accounts already exist', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const ledgerAccountForUsageMeter2 = await setupLedgerAccount({
           organizationId: organization.id,
@@ -155,7 +155,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should create new ledger accounts for all usage meters if none exist', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const usageMeterIdsToCreateFor = [
           usageMeter2.id,
@@ -219,7 +219,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should create missing ledger accounts and return the initially existing accounts and the newly created ones', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const usageMeterIdsToProcess = [
           usageMeter1.id,
@@ -307,7 +307,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should return an empty array and not attempt to create accounts if usageMeterIds is empty', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const initialTotalLedgerAccountsForSub = (
           await selectLedgerAccounts(
@@ -392,7 +392,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
   describe('insertLedgerAccount', () => {
     it('should successfully insert ledger account and derive pricingModelId from usage meter', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccount = await insertLedgerAccount(
             {
               organizationId: organization.id,
@@ -417,7 +417,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccount = await insertLedgerAccount(
             {
               organizationId: organization.id,
@@ -440,7 +440,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should throw an error when usageMeterId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
           await expect(
@@ -476,7 +476,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should bulk insert ledger accounts and derive pricingModelId for each', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccounts =
             await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
               [
@@ -514,7 +514,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should honor pre-provided pricingModelId in bulk insert', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccounts =
             await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
               [
@@ -554,7 +554,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should throw an error if a usage meter does not exist for derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
           await expect(

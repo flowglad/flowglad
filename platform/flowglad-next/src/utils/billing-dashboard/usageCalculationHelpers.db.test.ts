@@ -17,10 +17,7 @@ import {
   setupUsageEvent,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   calculateUsageVolumeByInterval,
@@ -42,7 +39,7 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-07T23:59:59.999Z')
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -143,7 +140,7 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-02T23:59:59.999Z')
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -222,7 +219,7 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-07T23:59:59.999Z')
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -309,7 +306,7 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-01T23:59:59.999Z')
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -403,7 +400,7 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-01T23:59:59.999Z')
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -484,7 +481,7 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-02T23:59:59.999Z')
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -563,7 +560,7 @@ describe('calculateUsageVolumeByInterval', () => {
       // Request from org2 with product from org1 should return zeros
       // (product should not be found due to org validation)
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               org2.id,
@@ -651,7 +648,7 @@ describe('calculateUsageVolumeByInterval', () => {
 
       // Query with product filter - should find matching events
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -720,7 +717,7 @@ describe('calculateUsageVolumeByInterval', () => {
 
       // Query with non-existent productId
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await calculateUsageVolumeByInterval(
               organization.id,
@@ -822,7 +819,7 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getUsageMetersWithEvents(
             organization.id,
@@ -850,7 +847,7 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getUsageMetersWithEvents(
             organization.id,
@@ -875,7 +872,7 @@ describe('getUsageMetersWithEvents', () => {
 
     // No customers created for this org
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getUsageMetersWithEvents(
             organization.id,
@@ -971,7 +968,7 @@ describe('getUsageMetersWithEvents', () => {
 
     // getUsageMetersWithEvents should return BOTH meters (decoupled from product filter)
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getUsageMetersWithEvents(
             organization.id,
@@ -1032,7 +1029,7 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getUsageMetersWithEvents(
             organization.id,
@@ -1125,7 +1122,7 @@ describe('getUsageMetersWithEvents', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getUsageMetersWithEvents(
             organization.id,

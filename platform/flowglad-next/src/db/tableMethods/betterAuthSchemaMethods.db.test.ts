@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { user } from '@db-core/schema/betterAuthSchema'
 import { Result } from 'better-result'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   selectBetterAuthUserByEmail,
@@ -17,7 +14,7 @@ describe('selectBetterAuthUserById', () => {
     const userEmail = `test+${core.nanoid()}@test.com`
     const userName = 'Test User'
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await transaction.insert(user).values({
           id: userId,
           email: userEmail,
@@ -32,7 +29,7 @@ describe('selectBetterAuthUserById', () => {
     ).unwrap()
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBetterAuthUserById(userId, transaction)
         )
@@ -63,7 +60,7 @@ describe('selectBetterAuthUserByEmail', () => {
     const userEmail = `email-test+${core.nanoid()}@test.com`
     const userName = 'Email Test User'
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await transaction.insert(user).values({
           id: userId,
           email: userEmail,
@@ -78,7 +75,7 @@ describe('selectBetterAuthUserByEmail', () => {
     ).unwrap()
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBetterAuthUserByEmail(userEmail, transaction)
         )
@@ -111,7 +108,7 @@ describe('selectBetterAuthUserByEmail', () => {
     const user2Id = `bau_${core.nanoid()}`
     const user2Email = `user2+${core.nanoid()}@test.com`
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await transaction.insert(user).values([
           {
             id: user1Id,
@@ -137,7 +134,7 @@ describe('selectBetterAuthUserByEmail', () => {
     ).unwrap()
 
     const result1 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBetterAuthUserByEmail(user1Email, transaction)
         )
@@ -145,7 +142,7 @@ describe('selectBetterAuthUserByEmail', () => {
     ).unwrap()
 
     const result2 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBetterAuthUserByEmail(user2Email, transaction)
         )

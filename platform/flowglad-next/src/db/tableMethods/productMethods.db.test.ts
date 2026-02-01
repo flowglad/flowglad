@@ -12,10 +12,7 @@ import {
   setupProduct,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   getProductTableRows,
@@ -105,7 +102,7 @@ describe('getProductTableRows', () => {
 
   it("should return products with prices and pricingModels for the user's organization, sorted by creation date descending", async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -149,7 +146,7 @@ describe('getProductTableRows', () => {
 
   it('should filter products by active status', async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -179,7 +176,7 @@ describe('getProductTableRows', () => {
     const { organization: otherOrg, pricingModel: otherOrgPm } =
       await setupOrg()
     const otherUser = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await insertUser(
@@ -225,7 +222,7 @@ describe('getProductTableRows', () => {
 
     // Get products for the original user
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -277,7 +274,7 @@ describe('getProductTableRows', () => {
 
     // First page
     const result1 = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -298,7 +295,7 @@ describe('getProductTableRows', () => {
 
     // Second page
     const result2 = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -319,7 +316,7 @@ describe('getProductTableRows', () => {
 
     // Third page
     const result3 = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -357,7 +354,7 @@ describe('getProductTableRows', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -404,7 +401,7 @@ describe('getProductTableRows', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await getProductTableRows(
@@ -503,7 +500,7 @@ describe('Database Constraints', () => {
 
   it('allows inserting a non-default product when a default product already exists', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const nonDefaultProduct = await insertProduct(
           {
@@ -530,7 +527,7 @@ describe('Database Constraints', () => {
 
   it('allows multiple default products in different pricingModels', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // First default product is already created in the first pricingModel
         // Create a second pricingModel
@@ -704,7 +701,7 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
 
     // Get product with prices and features (no features assigned)
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectProductPriceAndFeaturesByProductId(
@@ -771,7 +768,7 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
 
     // Get product with prices and features
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectProductPriceAndFeaturesByProductId(
@@ -806,7 +803,7 @@ describe('selectProductsCursorPaginated search', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Search by name (case-insensitive)
         const byName = await selectProductsCursorPaginated({
@@ -860,7 +857,7 @@ describe('selectProductsCursorPaginated search', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const resultEmpty = await selectProductsCursorPaginated({
           input: {
@@ -931,7 +928,7 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
     // Query with excludeProductsWithNoPrices=true
     // Should only include products that have at least one price
     const resultWithExclusion = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectProductsCursorPaginated({
@@ -963,7 +960,7 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
 
     // Query without the filter - should return all products including orphaned ones
     const resultWithoutExclusion = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectProductsCursorPaginated({
@@ -1021,7 +1018,7 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
 
     // Query with excludeProductsWithNoPrices=false (should include all)
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectProductsCursorPaginated({
@@ -1073,7 +1070,7 @@ describe('pricingModelIdsForProducts', () => {
 
   it('should successfully return map of pricingModelIds for multiple products', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const pricingModelIdMap = await pricingModelIdsForProducts(
           [product1.id, product2.id],
@@ -1094,7 +1091,7 @@ describe('pricingModelIdsForProducts', () => {
 
   it('should return empty map when no product IDs are provided', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const pricingModelIdMap = await pricingModelIdsForProducts(
           [],
@@ -1109,7 +1106,7 @@ describe('pricingModelIdsForProducts', () => {
 
   it('should only return entries for existing products', async () => {
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const nonExistentProductId = `prod_${core.nanoid()}`
         const pricingModelIdMap = await pricingModelIdsForProducts(

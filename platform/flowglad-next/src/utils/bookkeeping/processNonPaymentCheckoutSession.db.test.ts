@@ -4,8 +4,7 @@ import {
   CheckoutSessionType,
   DiscountAmountType,
   PriceType,
-  PurchaseStatus,
-} from '@db-core/enums'
+  PurchaseStatus} from '@db-core/enums'
 import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import type { Customer } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
@@ -17,9 +16,8 @@ import {
   setupCustomer,
   setupDiscount,
   setupOrg,
-  setupPrice,
-} from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+  setupPrice} from '@/../seedDatabase'
+import {  } from '@/db/adminTransaction'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
@@ -51,13 +49,11 @@ describe('processNonPaymentCheckoutSession', () => {
       type: PriceType.SinglePayment,
       unitPrice: 10000, // $100.00
       livemode: true,
-      isDefault: false,
-    })
+      isDefault: false})
 
     customer = await setupCustomer({
       organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-    })
+      stripeCustomerId: `cus_${core.nanoid()}`})
 
     checkoutSession = await setupCheckoutSession({
       organizationId: organization.id,
@@ -66,8 +62,7 @@ describe('processNonPaymentCheckoutSession', () => {
       status: CheckoutSessionStatus.Open,
       type: CheckoutSessionType.Product,
       quantity: 1,
-      livemode: true,
-    })
+      livemode: true})
   })
 
   describe('Purchase State for Zero-Total Checkouts', () => {
@@ -80,35 +75,33 @@ describe('processNonPaymentCheckoutSession', () => {
         code: core.nanoid().slice(0, 10),
         amount: price.unitPrice, // Full price coverage
         amountType: DiscountAmountType.Fixed,
-        livemode: true,
-      })
+        livemode: true})
 
       // Update checkout session to include the full discount
       const updatedCheckoutSession =
-        await comprehensiveAdminTransaction(
+        (await adminTransaction(
           async ({ transaction }) => {
             const result = await updateCheckoutSession(
               {
                 ...checkoutSession,
-                discountId: fullDiscount.id,
-              } as CheckoutSession.Update,
+                discountId: fullDiscount.id} as CheckoutSession.Update,
               transaction
             )
             return Result.ok(result)
           }
-        )
+        ).unwrap()
 
       // Create fee calculation with the discount applied
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      (await adminTransaction(async ({ transaction }) => {
         const result = await createFeeCalculationForCheckoutSession(
           updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
         return Result.ok(result)
-      })
+      }).unwrap()
 
       // Process the non-payment checkout session
-      const result = await comprehensiveAdminTransaction(
+      const result = (await adminTransaction(
         async (params) => {
           return Result.ok(
             await processNonPaymentCheckoutSession(
@@ -117,7 +110,7 @@ describe('processNonPaymentCheckoutSession', () => {
             )
           )
         }
-      )
+      ).unwrap()
 
       // Verify purchase status is Paid
       expect(result.purchase.status).toEqual(PurchaseStatus.Paid)
@@ -141,13 +134,13 @@ describe('processNonPaymentCheckoutSession', () => {
 
     it('throws error when total due is not zero', async () => {
       // Create fee calculation without discount (non-zero total)
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      (await adminTransaction(async ({ transaction }) => {
         const result = await createFeeCalculationForCheckoutSession(
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
         return Result.ok(result)
-      })
+      }).unwrap()
 
       // Attempt to process non-payment checkout should fail
       await expect(

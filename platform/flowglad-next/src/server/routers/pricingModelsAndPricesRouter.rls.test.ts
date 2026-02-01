@@ -7,7 +7,7 @@ import {
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectPrices,
   selectPricesAndProductsByProductWhere,
@@ -90,7 +90,7 @@ describe('pricingModelsRouter.create', () => {
     expect(pricingModel.name).toBe('PM Subscription')
 
     const productAndPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPricesAndProductsByProductWhere(
@@ -135,7 +135,7 @@ describe('pricingModelsRouter.create', () => {
         pricingModel: { name: 'PM One-Time', isDefault: false },
       } as any)
     const productAndPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPricesAndProductsByProductWhere(
@@ -231,7 +231,7 @@ describe('pricesRouter.create', () => {
       path: '',
     }
     const product = (
-      await adminTransactionWithResult(async (txCtx) => {
+      await adminTransaction(async (txCtx) => {
         return Result.ok(
           await insertProduct(
             {
@@ -308,7 +308,7 @@ describe('pricesRouter.create', () => {
 
     // Create a non-default product under the pricing model
     const product = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await insertProduct(
             {
@@ -373,7 +373,7 @@ describe('pricesRouter.create', () => {
 
     // Verify the first price is now non-default and inactive
     const [updatedFirstPrice] = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPrices({ id: firstPrice.price.id }, transaction)
@@ -412,7 +412,7 @@ describe('pricesRouter.create', () => {
 
     // Get the default product that was created with the pricing model
     const productAndPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPricesAndProductsByProductWhere(
@@ -467,7 +467,7 @@ describe('pricesRouter.create', () => {
       path: '',
     }
     const productAndPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPricesAndProductsByProductWhere(
@@ -539,7 +539,7 @@ describe('pricesRouter.create', () => {
     }
     // Create a regular (non-default) product to test currency and livemode
     const product = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await insertProduct(
             {
@@ -577,7 +577,7 @@ describe('pricesRouter.create', () => {
     })
     // Verify via direct select to see stored fields
     const [stored] = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPrices({ id: created.price.id }, transaction)
@@ -737,7 +737,7 @@ describe('pricingModelsRouter.clone', () => {
 
     // Verify in database that the cloned model is actually livemode
     const dbClonedPM = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           (
@@ -787,7 +787,7 @@ describe('pricingModelsRouter.clone', () => {
 
     // Verify in database
     const dbClonedPM = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           (

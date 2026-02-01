@@ -5,7 +5,7 @@ import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { NotFoundError } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
@@ -25,7 +25,7 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
   const { id } = await params
 
   const { feature, pricingModel, usageMeter } = (
-    await authenticatedTransactionWithResult(
+    await authenticatedTransaction(
       async ({
         transaction,
       }): Promise<Result<FeaturePageData, Error>> => {

@@ -20,7 +20,7 @@ import type { Product } from '@db-core/schema/products'
 import { Result } from 'better-result'
 import { and as drizzleAnd, eq } from 'drizzle-orm'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertPrice,
@@ -202,7 +202,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
 
     // Verify (using admin) that the pricingModel was not actually created
     const checkPricingModel = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await transaction

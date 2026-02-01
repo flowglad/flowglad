@@ -24,7 +24,7 @@ import {
   setupUsageEvent,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   bulkInsertUsageCreditApplications,
@@ -102,7 +102,7 @@ describe('Usage Credit Application Methods', () => {
   describe('insertUsageCreditApplication', () => {
     it('should successfully insert usage credit application and derive pricingModelId from usage credit', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a usage event first
           const usageEvent = await setupUsageEvent({
             organizationId: organization.id,
@@ -146,7 +146,7 @@ describe('Usage Credit Application Methods', () => {
 
     it('should throw an error when usageCreditId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageEvent = await setupUsageEvent({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -180,7 +180,7 @@ describe('Usage Credit Application Methods', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageEvent = await setupUsageEvent({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -234,7 +234,7 @@ describe('Usage Credit Application Methods', () => {
 
     it('should bulk insert usage credit applications and derive pricingModelId for each', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create usage events first
           const usageEvent1 = await setupUsageEvent({
             organizationId: organization.id,

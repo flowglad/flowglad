@@ -20,7 +20,7 @@ import {
   setupSubscriptionItem,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertResourceClaim,
@@ -61,7 +61,7 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
 
     // Create a resource using admin transaction (bypasses RLS for setup)
     resource = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertResource(
             {

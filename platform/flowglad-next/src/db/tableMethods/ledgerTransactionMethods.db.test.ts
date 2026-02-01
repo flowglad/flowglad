@@ -17,7 +17,7 @@ import {
   setupPrice,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   insertLedgerTransaction,
@@ -65,7 +65,7 @@ describe('Ledger Transaction Methods', () => {
   describe('insertLedgerTransaction', () => {
     it('should successfully insert ledger transaction and derive pricingModelId from subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerTransaction = await insertLedgerTransaction(
             {
               organizationId: organization.id,
@@ -95,7 +95,7 @@ describe('Ledger Transaction Methods', () => {
 
     it('should throw an error when subscriptionId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
           await expect(
@@ -118,7 +118,7 @@ describe('Ledger Transaction Methods', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerTransaction = await insertLedgerTransaction(
             {
               organizationId: organization.id,
@@ -145,7 +145,7 @@ describe('Ledger Transaction Methods', () => {
   describe('insertLedgerTransactionOrDoNothingByIdempotencyKey', () => {
     it('should successfully insert ledger transaction with idempotency key and derive pricingModelId', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const idempotencyKey = `idem_${core.nanoid()}`
           const result = (
             await insertLedgerTransactionOrDoNothingByIdempotencyKey(
@@ -179,7 +179,7 @@ describe('Ledger Transaction Methods', () => {
 
     it('should not insert duplicate when idempotency key already exists', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const idempotencyKey = `idem_${core.nanoid()}`
 
           // First insert
@@ -222,7 +222,7 @@ describe('Ledger Transaction Methods', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const idempotencyKey = `idem_${core.nanoid()}`
           const result = (
             await insertLedgerTransactionOrDoNothingByIdempotencyKey(

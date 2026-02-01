@@ -22,7 +22,7 @@ import {
   setupUsageCreditBalanceAdjustment,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { insertUsageCreditBalanceAdjustment } from './usageCreditBalanceAdjustmentMethods'
 
@@ -85,7 +85,7 @@ describe('Usage Credit Balance Adjustment Methods', () => {
   describe('insertUsageCreditBalanceAdjustment', () => {
     it('should successfully insert usage credit balance adjustment and derive pricingModelId from usage credit', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCreditBalanceAdjustment =
             await insertUsageCreditBalanceAdjustment(
               {
@@ -117,7 +117,7 @@ describe('Usage Credit Balance Adjustment Methods', () => {
 
     it('should throw an error when adjustedUsageCreditId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
           await expect(
@@ -141,7 +141,7 @@ describe('Usage Credit Balance Adjustment Methods', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const usageCreditBalanceAdjustment =
             await insertUsageCreditBalanceAdjustment(
               {

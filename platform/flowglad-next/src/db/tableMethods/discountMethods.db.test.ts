@@ -10,10 +10,7 @@ import {
   setupOrg,
   setupPurchase,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   enrichDiscountsWithRedemptionCounts,
   insertDiscount,
@@ -38,7 +35,7 @@ describe('insertDiscount uniqueness constraints', () => {
 
   it('should not allow two discounts with the same code and pricingModelId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await insertDiscount(
           {
             organizationId: organization1.id,
@@ -81,7 +78,7 @@ describe('insertDiscount uniqueness constraints', () => {
 
   it('should allow two discounts with the same code but different pricingModelId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await insertDiscount(
           {
             organizationId: organization1.id,
@@ -118,7 +115,7 @@ describe('insertDiscount uniqueness constraints', () => {
     ).unwrap()
 
     const discountsOrg1 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectDiscounts(
             {
@@ -131,7 +128,7 @@ describe('insertDiscount uniqueness constraints', () => {
       })
     ).unwrap()
     const discountsOrg2 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectDiscounts(
             {
@@ -149,7 +146,7 @@ describe('insertDiscount uniqueness constraints', () => {
 
   it('should allow two discounts with different codes for the same pricingModelId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await insertDiscount(
           {
             organizationId: organization1.id,
@@ -186,7 +183,7 @@ describe('insertDiscount uniqueness constraints', () => {
     ).unwrap()
 
     const discounts = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectDiscounts(
             {
@@ -227,7 +224,7 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
     })
 
     const discounts = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const discountRecord = (
           await selectDiscountById(discount.id, transaction)
         ).unwrap()
@@ -289,7 +286,7 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
     )
 
     const enrichedDiscounts = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const discountRecord = (
           await selectDiscountById(discount.id, transaction)
         ).unwrap()

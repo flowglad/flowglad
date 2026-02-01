@@ -11,7 +11,7 @@ import {
   setupOrg,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectCustomers,
@@ -55,7 +55,7 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
     apiKeyForOrg1 = uaOrg1.apiKey
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await insertMembership(
           {
             organizationId: org2.id,

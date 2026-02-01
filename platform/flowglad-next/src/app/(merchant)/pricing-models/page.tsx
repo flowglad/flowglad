@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFocusedMembershipAndOrganizationAndPricingModel } from '@/db/tableMethods/membershipMethods'
@@ -12,14 +13,18 @@ import InnerPricingModelsPage from './InnerPricingModelsPage'
  */
 export default async function PricingModelsPage() {
   try {
-    const focusedMembership = await authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        return selectFocusedMembershipAndOrganizationAndPricingModel(
-          userId,
-          transaction
-        )
-      }
-    )
+    const focusedMembership = (
+      await authenticatedTransaction(
+        async ({ transaction, userId }) => {
+          const result =
+            await selectFocusedMembershipAndOrganizationAndPricingModel(
+              userId,
+              transaction
+            )
+          return Result.ok(result)
+        }
+      )
+    ).unwrap()
 
     if (focusedMembership?.pricingModel?.id) {
       redirect(`/pricing-models/${focusedMembership.pricingModel.id}`)
