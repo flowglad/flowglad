@@ -42,6 +42,17 @@ interface BiomeJsonDiagnostic {
   source: unknown
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isBiomeJsonOutput = (
+  value: unknown
+): value is BiomeJsonOutput =>
+  isRecord(value) &&
+  isRecord(value.summary) &&
+  Array.isArray(value.diagnostics) &&
+  typeof value.command === 'string'
+
 /**
  * Convert line/column from source position
  * This is a simplified approach - we use the file path and estimate line number
@@ -129,7 +140,10 @@ export const runBiomeLint = async (
 
     if (trimmed.startsWith('{')) {
       try {
-        biomeOutput = JSON.parse(trimmed) as BiomeJsonOutput
+        const parsed: unknown = JSON.parse(trimmed)
+        if (isBiomeJsonOutput(parsed)) {
+          biomeOutput = parsed
+        }
       } catch {
         biomeOutput = null
       }
@@ -145,7 +159,10 @@ export const runBiomeLint = async (
       ) {
         const jsonSlice = output.slice(firstBrace, lastBrace + 1)
         try {
-          biomeOutput = JSON.parse(jsonSlice) as BiomeJsonOutput
+          const parsed: unknown = JSON.parse(jsonSlice)
+          if (isBiomeJsonOutput(parsed)) {
+            biomeOutput = parsed
+          }
         } catch {
           biomeOutput = null
         }
