@@ -26,6 +26,7 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
   authenticatedTransactionUnwrap,
+  authenticatedTransactionWithResult,
 } from './authenticatedTransaction'
 import {
   insertMembership,
@@ -891,7 +892,7 @@ describe('authenticatedTransactionUnwrap', () => {
   })
 })
 
-describe('authenticatedTransaction', () => {
+describe('authenticatedTransactionWithResult', () => {
   let testOrg: Organization.Record
   let apiKey: ApiKey.Record
 
@@ -912,7 +913,7 @@ describe('authenticatedTransaction', () => {
     // - provide transaction function that returns Result.ok with a value
     // expects:
     // - the result should be Result.ok with the value
-    const result = await authenticatedTransaction(
+    const result = await authenticatedTransactionWithResult(
       async ({ transaction }) => {
         const orgs = await selectOrganizations({}, transaction)
         return Result.ok({ count: orgs.length, success: true })
@@ -935,7 +936,7 @@ describe('authenticatedTransaction', () => {
     // - the result should be Result.err with the error (not thrown)
     const errorMessage = 'Business logic validation failed'
 
-    const result = await authenticatedTransaction(
+    const result = await authenticatedTransactionWithResult(
       async () => Result.err(new Error(errorMessage)),
       { apiKey: apiKey.token }
     )
@@ -954,7 +955,7 @@ describe('authenticatedTransaction', () => {
     // - the result should be Result.err with the error (not thrown to caller)
     const directErrorMessage = 'Direct throw converted to Result.err'
 
-    const result = await authenticatedTransaction(
+    const result = await authenticatedTransactionWithResult(
       async () => {
         throw new Error(directErrorMessage)
       },
@@ -973,7 +974,7 @@ describe('authenticatedTransaction', () => {
     // - verify params contains all expected properties
     // expects:
     // - params should have transaction, invalidateCache, emitEvent, enqueueLedgerCommand, organizationId
-    const result = await authenticatedTransaction(
+    const result = await authenticatedTransactionWithResult(
       async (params) => {
         expect(typeof params.transaction.execute).toBe('function')
         expect(typeof params.invalidateCache).toBe('function')
@@ -994,10 +995,10 @@ describe('authenticatedTransaction', () => {
 
   it('can be unwrapped at the caller level', async () => {
     // setup:
-    // - call authenticatedTransaction and then unwrap the result
+    // - call authenticatedTransactionWithResult and then unwrap the result
     // expects:
     // - unwrap should return the value directly on success
-    const result = await authenticatedTransaction(
+    const result = await authenticatedTransactionWithResult(
       async () => Result.ok('unwrap_test'),
       { apiKey: apiKey.token }
     )
@@ -1008,12 +1009,12 @@ describe('authenticatedTransaction', () => {
 
   it('unwrap throws when result is an error', async () => {
     // setup:
-    // - call authenticatedTransaction with Result.err and then try to unwrap
+    // - call authenticatedTransactionWithResult with Result.err and then try to unwrap
     // expects:
     // - unwrap should throw the error
     const errorMessage = 'Error to be thrown by unwrap'
 
-    const result = await authenticatedTransaction(
+    const result = await authenticatedTransactionWithResult(
       async () => Result.err(new Error(errorMessage)),
       { apiKey: apiKey.token }
     )
