@@ -448,11 +448,11 @@ describe('subscriptionItemHelpers', () => {
           expect(activeItems[0].name).toBe('Updated Name')
           expect(activeItems[0].expiredAt).toBeNull()
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should throw when provided ID does not exist in current items', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Provide an ID that doesn't exist in current subscription items
           const fakeId = 'sub_item_fake_id_12345'
@@ -484,7 +484,7 @@ describe('subscriptionItemHelpers', () => {
             `Cannot update subscription item with id ${fakeId} because it is non-existent`
           )
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should preserve manual subscription items during adjustments', async () => {
@@ -509,7 +509,7 @@ describe('subscriptionItemHelpers', () => {
           })
         ).unwrap()
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Adjust with completely different items
           const newPrice = await setupPrice({
@@ -560,11 +560,11 @@ describe('subscriptionItemHelpers', () => {
           expect(stillActiveManualItem!.manuallyCreated).toBe(true)
           expect(stillActiveManualItem!.expiredAt).toBeNull()
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should expire old item and create new when client provides item without id', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // New item without id = replace the existing item
           const newSubscriptionItems: SubscriptionItem.Insert[] = [
@@ -612,7 +612,7 @@ describe('subscriptionItemHelpers', () => {
           // New item should have a different id than the expired one
           expect(activeItems[0].id).not.toBe(subscriptionItem.id)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
@@ -631,7 +631,7 @@ describe('subscriptionItemHelpers', () => {
           trialPeriodDays: 0,
           currency: CurrencyCode.USD})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newSubscriptionItems: SubscriptionItem.Insert[] = [
             {
@@ -679,7 +679,7 @@ describe('subscriptionItemHelpers', () => {
           )
           expect(createdFeatures[0].usageMeterId).toBe(usageMeter.id)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should expire manual features that overlap with plan features (plan takes precedence)', async () => {
@@ -1062,13 +1062,13 @@ describe('subscriptionItemHelpers', () => {
             )
           expect(stillActiveWithSameFeature).toBeUndefined()
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
     describe('prorated credit grants', () => {
       it('should grant prorated credits for mid-period adjustment (EveryBillingPeriod features)', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const midPeriodDate =
             billingPeriodStartDate + 15 * oneDayInMs // Halfway through
@@ -1254,11 +1254,11 @@ describe('subscriptionItemHelpers', () => {
             LedgerEntryType.CreditGrantRecognized
           )
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should not grant credits if adjustment is at period start', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Verify pre-condition: we have an active subscription item
           const itemsBefore =
@@ -1342,7 +1342,7 @@ describe('subscriptionItemHelpers', () => {
           )
           expect(proratedCredits.length).toBe(0)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should not double-grant credits if credits already exist for the feature', async () => {
@@ -1368,7 +1368,7 @@ describe('subscriptionItemHelpers', () => {
             UsageCreditSourceReferenceType.ManualAdjustment,
           status: UsageCreditStatus.Posted})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const midPeriodDate =
             billingPeriodStartDate + 15 * oneDayInMs
@@ -1428,7 +1428,7 @@ describe('subscriptionItemHelpers', () => {
           )
           expect(allManualAdjustmentCredits.length).toBe(1)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should grant full credits for Once features (no proration)', async () => {
@@ -1448,7 +1448,7 @@ describe('subscriptionItemHelpers', () => {
           productId: product.id,
           featureId: onceFeature.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const midPeriodDate =
             billingPeriodStartDate + 15 * oneDayInMs // Halfway through
@@ -1527,11 +1527,11 @@ describe('subscriptionItemHelpers', () => {
             LedgerEntryType.CreditGrantRecognized
           )
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should not expire Once feature credits when subscription item expires', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a Once feature
           const onceFeature = await setupUsageCreditGrantFeature({
@@ -1945,13 +1945,13 @@ describe('subscriptionItemHelpers', () => {
             UsageCreditStatus.Posted
           )
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
     describe('edge cases', () => {
       it('should handle empty newSubscriptionItems array', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = (
             await handleSubscriptionItemAdjustment(
@@ -1978,7 +1978,7 @@ describe('subscriptionItemHelpers', () => {
           expect(expiredItem).toMatchObject({ expiredAt: now })
           expect(expiredItem!.expiredAt).toBe(now)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should handle subscription with no existing items', async () => {
@@ -1993,7 +1993,7 @@ describe('subscriptionItemHelpers', () => {
           currentBillingPeriodEnd: billingPeriodEndDate,
           renews: true})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newSubscriptionItems: SubscriptionItem.Insert[] = [
             {
@@ -2024,7 +2024,7 @@ describe('subscriptionItemHelpers', () => {
             result.createdOrUpdatedSubscriptionItems[0].priceId
           ).toBe(price.id)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should handle multiple items being added and removed simultaneously', async () => {
@@ -2045,7 +2045,7 @@ describe('subscriptionItemHelpers', () => {
           priceId: price.id,
           addedDate: itemAddedDate})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Keep item2 (include its id), remove item1 and item3 (don't include their ids), add new item
           const newSubscriptionItems: (
@@ -2263,11 +2263,11 @@ describe('subscriptionItemHelpers', () => {
           expect(expiredItem1?.expiredAt).toBe(now)
           expect(expiredItem3?.expiredAt).toBe(now)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should create separate items for duplicate new items without IDs', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await setupPrice({
             productId: product.id,
@@ -2341,11 +2341,11 @@ describe('subscriptionItemHelpers', () => {
           )
           expect(totalCredits).toBe(100) // 50 per item × 2 items (prorated)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('should account for quantity when creating subscription items', async () => {
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await setupPrice({
             productId: product.id,
@@ -2418,7 +2418,7 @@ describe('subscriptionItemHelpers', () => {
           )
           expect(creditsFromAdjustment.length).toBe(1)
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
@@ -2426,7 +2426,7 @@ describe('subscriptionItemHelpers', () => {
       describe('basic deduplication', () => {
         it('should NOT grant duplicate credits when subscription items are recreated (downgrade/upgrade cycle)', async () => {
           // This tests the core fix: deduplication uses stable featureId, not ephemeral subscription_item_feature.id
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -2516,7 +2516,7 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(firstCreditAmount)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should grant credits for DIFFERENT features when both are present in same adjustment', async () => {
@@ -2543,7 +2543,7 @@ describe('subscriptionItemHelpers', () => {
             productId: product.id,
             featureId: feature2.id})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -2616,12 +2616,12 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(2)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should NOT grant credits when feature already has credits from earlier adjustment (same featureId, different subscription_item_feature.id)', async () => {
           // This explicitly tests that deduplication uses featureId, not subscription_item_feature.id
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -2705,13 +2705,13 @@ describe('subscriptionItemHelpers', () => {
               originalSourceRefId
             )
             return Result.ok(null)
-          })
+          })).unwrap()
         })
       })
 
       describe('multiple adjustments within the same billing period', () => {
         it('should prevent credit grants on 3 consecutive adjustments (simulating rapid exploit attempt)', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -2807,11 +2807,11 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(50)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should prevent credit grants on 5 consecutive adjustments within minutes', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -2877,7 +2877,7 @@ describe('subscriptionItemHelpers', () => {
               subItemFeatureIds[0]
             )
             return Result.ok(null)
-          })
+          })).unwrap()
         }).unwrap()(await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await setupPrice({
@@ -3422,7 +3422,7 @@ describe('subscriptionItemHelpers', () => {
         })
 
         it('should prevent credit grants on 5 consecutive adjustments within minutes', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -3488,7 +3488,7 @@ describe('subscriptionItemHelpers', () => {
               subItemFeatureIds[0]
             )
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should track which subscription_item_feature.id granted the credit (first adjustment wins)', async () => {
@@ -3819,7 +3819,7 @@ describe('subscriptionItemHelpers', () => {
             expect(finalOnceCredits.length).toBe(1)
             expect(finalOnceCredits[0].expiresAt).toBeNull()
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should grant both Once and EveryBillingPeriod credits on first adjustment then deduplicate both on subsequent adjustments', async () => {
@@ -3838,7 +3838,7 @@ describe('subscriptionItemHelpers', () => {
             productId: product.id,
             featureId: onceFeature.id})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -3914,7 +3914,7 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(2)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
       })
 
@@ -3947,7 +3947,7 @@ describe('subscriptionItemHelpers', () => {
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Adjust at exactly 50% through the billing period
             const midPeriodDate =
@@ -3996,7 +3996,7 @@ describe('subscriptionItemHelpers', () => {
               existingCreditAmount
             )
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('grants no additional credits when prorated new amount equals existing credits (zero delta)', async () => {
@@ -4017,7 +4017,7 @@ describe('subscriptionItemHelpers', () => {
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -4058,7 +4058,7 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(allCredits.length).toBe(1)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('grants positive delta credits when upgrading to plan with more credits', async () => {
@@ -4080,7 +4080,7 @@ describe('subscriptionItemHelpers', () => {
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -4129,7 +4129,7 @@ describe('subscriptionItemHelpers', () => {
             )
             expect(totalCredits).toBe(50) // 20 + 30 = 50, which is the prorated amount
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('calculates delta correctly when ManualAdjustment credits already exist', async () => {
@@ -4159,7 +4159,7 @@ describe('subscriptionItemHelpers', () => {
               UsageCreditSourceReferenceType.ManualAdjustment,
             status: UsageCreditStatus.Posted})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -4202,7 +4202,7 @@ describe('subscriptionItemHelpers', () => {
             expect(allCredits.length).toBe(1)
             expect(allCredits[0].issuedAmount).toBe(50) // Original amount unchanged
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('calculates delta correctly when multiple features share the same usageMeterId (no double-subtraction)', async () => {
@@ -4256,7 +4256,7 @@ describe('subscriptionItemHelpers', () => {
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs // 50% through
@@ -4340,7 +4340,7 @@ describe('subscriptionItemHelpers', () => {
               )
             expect(manualAdjustmentTotal).toBe(100) // Exactly the delta amount
             return Result.ok(null)
-          })
+          })).unwrap()
         })
       })
 
@@ -4369,7 +4369,7 @@ describe('subscriptionItemHelpers', () => {
             endDate: billingPeriodEndDate,
             status: BillingPeriodStatus.Active})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -4445,7 +4445,7 @@ describe('subscriptionItemHelpers', () => {
             expect(sub1Credits.length).toBe(1)
             expect(sub2Credits.length).toBe(1)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should deduplicate within same subscription but not across subscriptions', async () => {
@@ -4472,7 +4472,7 @@ describe('subscriptionItemHelpers', () => {
             endDate: billingPeriodEndDate,
             status: BillingPeriodStatus.Active})
 
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
               billingPeriodStartDate + 15 * oneDayInMs
@@ -4562,13 +4562,13 @@ describe('subscriptionItemHelpers', () => {
             ).unwrap()
             expect(sub2Result2.usageCredits.length).toBe(0) // Deduplicated
             return Result.ok(null)
-          })
+          })).unwrap()
         })
       })
 
       describe('exact proration calculations', () => {
         it('should calculate exact prorated credits at day 10 of 30-day period (66.67% remaining)', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Day 10 of 30-day period = 20/30 = 66.67% remaining
             const day10 = billingPeriodStartDate + 10 * oneDayInMs
@@ -4597,11 +4597,11 @@ describe('subscriptionItemHelpers', () => {
             // 100 credits * (20/30) = 66.67, rounded = 67
             expect(result.usageCredits[0].issuedAmount).toBe(67)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should calculate exact prorated credits at day 20 of 30-day period (33.33% remaining)', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Day 20 of 30-day period = 10/30 = 33.33% remaining
             const day20 = billingPeriodStartDate + 20 * oneDayInMs
@@ -4630,11 +4630,11 @@ describe('subscriptionItemHelpers', () => {
             // 100 credits * (10/30) = 33.33, rounded = 33
             expect(result.usageCredits[0].issuedAmount).toBe(33)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should calculate exact prorated credits at day 25 of 30-day period (16.67% remaining)', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Day 25 of 30-day period = 5/30 = 16.67% remaining
             const day25 = billingPeriodStartDate + 25 * oneDayInMs
@@ -4663,11 +4663,11 @@ describe('subscriptionItemHelpers', () => {
             // 100 credits * (5/30) = 16.67, rounded = 17
             expect(result.usageCredits[0].issuedAmount).toBe(17)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should calculate exact prorated credits at day 1 of 30-day period (96.67% remaining)', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Day 1 of 30-day period = 29/30 = 96.67% remaining
             const day1 = billingPeriodStartDate + 1 * oneDayInMs
@@ -4696,11 +4696,11 @@ describe('subscriptionItemHelpers', () => {
             // 100 credits * (29/30) = 96.67, rounded = 97
             expect(result.usageCredits[0].issuedAmount).toBe(97)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
 
         it('should calculate exact prorated credits at day 29 of 30-day period (3.33% remaining)', async () => {
-          await comprehensiveAdminTransaction(async (ctx) => {
+          (await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Day 29 of 30-day period = 1/30 = 3.33% remaining
             const day29 = billingPeriodStartDate + 29 * oneDayInMs
@@ -4729,7 +4729,7 @@ describe('subscriptionItemHelpers', () => {
             // 100 credits * (1/30) = 3.33, rounded = 3
             expect(result.usageCredits[0].issuedAmount).toBe(3)
             return Result.ok(null)
-          })
+          })).unwrap()
         })
       })
     }).unwrap()(await adminTransaction(async (ctx) => {

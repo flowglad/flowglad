@@ -2932,7 +2932,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Billing run is routed to mock server - we verify the operation completed
         return Result.ok(null)
-      })
+      })).unwrap()
     })
   })
 
@@ -2947,7 +2947,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100})
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      (await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3008,7 +3008,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
         return Result.ok(null)
-      })
+      })).unwrap()
     })
 
     it('should send upgrade notification when prorateCurrentBillingPeriod is false and isUpgrade is true', async () => {
@@ -3018,7 +3018,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100})
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      (await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateBillingPeriod(
           {
@@ -3064,7 +3064,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         }
         return Result.ok(null)
-      })
+      })).unwrap()
     })
   })
 
@@ -3095,7 +3095,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 0,
         priceId: price.id})
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      (await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
@@ -3126,7 +3126,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.error.message.toLowerCase()).toContain('free')
         }
         return Result.ok(null)
-      })
+      })).unwrap()
     })
   })
 
@@ -3208,7 +3208,7 @@ describe('adjustSubscription Integration Tests', async () => {
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: 100})
 
-      await comprehensiveAdminTransaction(async (ctx) => {
+      (await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const adjustmentDate = Date.now()
         const newStartDate = adjustmentDate - 15 * 24 * 60 * 60 * 1000 // 15 days ago
@@ -3432,7 +3432,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.value.subscription.name).toBe('Basic Plan')
         }
         return Result.ok(null)
-      })
+      })).unwrap()
     })
   })
 
@@ -3530,7 +3530,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: premiumResourceFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4234,7 +4234,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(2)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('validates capacity before creating billing run for upgrade', async () => {
@@ -4316,7 +4316,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: limitedResourceFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4373,7 +4373,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeClaims.length).toBe(8)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
@@ -4466,7 +4466,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: premiumResourceFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4529,7 +4529,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(7)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('preserves existing claims after downgrade when new capacity >= active claims', async () => {
@@ -4622,7 +4622,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: basicResourceFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4682,7 +4682,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(2)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('rejects downgrade when new capacity would be less than active claims', async () => {
@@ -4775,7 +4775,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: tinyResourceFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4843,7 +4843,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeItems[0].name).toBe('Premium Plan')
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
@@ -4938,7 +4938,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: tinyResourceFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -4996,7 +4996,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeClaims.length).toBe(5)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('preserves claims when scheduling valid end-of-period downgrade', async () => {
@@ -5083,7 +5083,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: basicResourceFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5152,7 +5152,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(7)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
@@ -5261,7 +5261,7 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5321,7 +5321,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(activeClaims.length).toBe(4)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('allows adjustment when aggregated capacity is sufficient', async () => {
@@ -5422,7 +5422,7 @@ describe('adjustSubscription Integration Tests', async () => {
           })
         ).unwrap()
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5484,7 +5484,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(1)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
@@ -5561,7 +5561,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Note: The new price is for the same product, and the product already
         // has a seats feature. We intentionally do NOT attach a second seats
         // feature, otherwise capacity would double (5 + 5) after adjustment.
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5651,7 +5651,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(1)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('allows releasing claims after adjustment', async () => {
@@ -5720,7 +5720,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Note: The new price is for the same product, and the product already
         // has a seats feature. We intentionally do NOT attach a second seats
         // feature, otherwise capacity would double (5 + 5) after adjustment.
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5800,7 +5800,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.available).toBe(3)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
 
@@ -5891,7 +5891,7 @@ describe('adjustSubscription Integration Tests', async () => {
           featureId: downgradedFeature.id,
           organizationId: organization.id})
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -5976,7 +5976,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(claimsAfterFailedClaim.length).toBe(2)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
 
       it('during end-of-period downgrade interim, excess claims are temporary and expire at transition', async () => {
@@ -6065,7 +6065,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Set billing period to end in the future
         const periodEnd = Date.now() + 24 * 60 * 60 * 1000 // 1 day from now
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
             {
@@ -6171,7 +6171,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Use anchorDate parameter to simulate checking capacity after period end
         const afterTransitionAnchor = periodEnd + 1000 // 1 second after period end
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
 
           // Update billing period to reflect the new period
@@ -6213,7 +6213,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageAfterTransition.available).toBe(0)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       }).unwrap()(await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateBillingPeriod(
@@ -8069,7 +8069,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Use anchorDate parameter to simulate checking capacity after period end
         const afterTransitionAnchor = periodEnd + 1000 // 1 second after period end
 
-        await comprehensiveAdminTransaction(async (ctx) => {
+        (await adminTransaction(async (ctx) => {
           const { transaction } = ctx
 
           // Update billing period to reflect the new period
@@ -8111,7 +8111,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageAfterTransition.available).toBe(0)
 
           return Result.ok(null)
-        })
+        })).unwrap()
       })
     })
   })

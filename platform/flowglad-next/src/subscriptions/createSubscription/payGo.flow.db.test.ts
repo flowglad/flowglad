@@ -157,7 +157,7 @@ describe('Pay as You Go Workflow E2E', () => {
           )
           return Result.ok(result)
         }
-      ).unwrap()
+      )).unwrap()
 
     if (!subscription) {
       throw new Error('No subscription')
@@ -210,7 +210,7 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // 2. Create a usage event for the subscription
     const staticTransctionId = 'test-' + core.nanoid()
-    (await adminTransaction(async (ctx) => {
+    ;(await adminTransaction(async (ctx) => {
       return ingestAndProcessUsageEvent(
         {
           input: {
@@ -225,7 +225,7 @@ describe('Pay as You Go Workflow E2E', () => {
           livemode: true},
         ctx
       )
-    }).unwrap()
+    })).unwrap()
     // 3. Call @customerBillingTransaction again and assert final state
     // 3. Call @customerBillingTransaction again and assert final state
     ;(
@@ -268,7 +268,7 @@ describe('Pay as You Go Workflow E2E', () => {
           livemode: true},
         ctx
       )
-    }).unwrap()
+    })).unwrap()
     // 5. Call @customerBillingTransaction again and assert final state
     ;(
       await adminTransaction(async (ctx) => {
@@ -356,7 +356,7 @@ describe('Pay as You Go Workflow E2E', () => {
         expect(feeCalculations).toHaveLength(1)
         return Result.ok(checkoutSession)
       }
-    ).unwrap()
+    )).unwrap()
 
     // Create IDs for the payment
     const paymentIntentId = 'pi_' + core.nanoid()
@@ -403,7 +403,7 @@ describe('Pay as You Go Workflow E2E', () => {
       const payment = result.unwrap().payment
       expect(payment.customerId).toBe(customer.id)
       return Result.ok(result)
-    }).unwrap()
+    })).unwrap()
 
     // Restore the spy
     getStripeChargeSpy.mockRestore()
@@ -437,7 +437,7 @@ describe('Pay as You Go Workflow E2E', () => {
           .availableBalance
       ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
       return Result.ok(null)
-    }).unwrap()
+    })).unwrap()
 
     // 6. Create a usage event after payment
     const newTransactionId = 'test2-' + core.nanoid()
@@ -456,7 +456,7 @@ describe('Pay as You Go Workflow E2E', () => {
           livemode: true},
         ctx
       )
-    }).unwrap()
+    })).unwrap()
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage
     (await adminTransaction(async (ctx) => {
@@ -480,6 +480,6 @@ describe('Pay as You Go Workflow E2E', () => {
           ?.usageMeterBalances?.[0].availableBalance
       ).toBe(900) // 1000 - 100 (new usage) = 900
       return Result.ok(null)
-    }).unwrap()
+    })).unwrap()
   }, 120000)
 })

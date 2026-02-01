@@ -129,7 +129,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
           )
           return Result.ok(result)
         }
-      ).unwrap()
+      )).unwrap()
     // 2. Associate the toggle feature with the created product
     await setupProductFeature({
       organizationId: organization.id,
@@ -220,7 +220,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         expect(feeCalculations).toHaveLength(1)
         return Result.ok(checkoutSession)
       }
-    ).unwrap()
+    )).unwrap()
 
     // Intermediary: check checkout info by checkout session ID
     (await adminTransaction(async ({ transaction }) => {
@@ -289,6 +289,6 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         )
         return Result.ok(null)
       }
-    ).unwrap()
+    )).unwrap()
   })
 })

@@ -145,7 +145,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
 
         // Expect that the subscription's current billing period dates are updated (i.e. a new period was created)
         expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -154,8 +154,8 @@ describe('Subscription Billing Period Transition', async () => {
         // And because a valid payment method exists, a billing run should be created
         expect(typeof newBillingRun).toBe('object')
         return Result.ok(undefined)
-      })
-    ).unwrap()
+      }
+    )).unwrap()
   })
 
   // Test 2: Billing period endDate in the future should return an error Result
@@ -209,7 +209,7 @@ describe('Subscription Billing Period Transition', async () => {
             billingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
 
         // Verify that the current (old) billing period is now Completed
         const allBPeriods = await selectBillingPeriods(
@@ -247,7 +247,7 @@ describe('Subscription Billing Period Transition', async () => {
             billingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
 
         expect(newBillingRun).toBeNull()
         expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
@@ -282,7 +282,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
 
         expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
         expect(typeof updatedSub.canceledAt).toBe('number')
@@ -312,7 +312,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
 
         // Verify that subscription billing period dates have been updated to new period values
         expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -365,7 +365,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
 
         // Expect no billing run is created and subscription status is updated to PastDue
         expect(newBillingRun).toBeNull()
@@ -408,7 +408,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
 
         // Since attemptToCreateFutureBillingPeriodForSubscription returns null,
         // billingRun remains null and subscription status is set to PastDue.
@@ -459,7 +459,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
         const allBPeriods = await selectBillingPeriods(
           { subscriptionId: subscription.id },
           transaction
@@ -510,7 +510,7 @@ describe('Subscription Billing Period Transition', async () => {
             updatedBillingPeriod,
             createDiscardingEffectsContext(transaction)
           )
-        ).unwrap()
+        )).unwrap()
         // Expect that the subscription's current billing period dates are updated.
         expect(updatedSub.currentBillingPeriodStart).not.toEqual(
           updatedBillingPeriod.startDate
@@ -611,12 +611,12 @@ describe('Subscription Billing Period Transition', async () => {
                 isInitialBillingPeriod: true},
               transaction
             )
-          ).unwrap()
+          )).unwrap()
           expect(billingPeriod.trialPeriod).toBe(true)
           expect(billingPeriodItems).toHaveLength(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
   })
 
@@ -732,7 +732,7 @@ describe('Subscription Billing Period Transition', async () => {
               updatedBillingPeriod,
               createDiscardingEffectsContext(transaction)
             )
-          ).unwrap()
+          )).unwrap()
 
           // doNotCharge subscription should remain Active (not PastDue)
           expect(updatedSub.status).toBe(SubscriptionStatus.Active)
@@ -744,7 +744,7 @@ describe('Subscription Billing Period Transition', async () => {
           ).toBeGreaterThan(billingPeriod.startDate)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     // Defensive test: API validation should prevent doNotCharge=true with payment methods,
@@ -776,7 +776,7 @@ describe('Subscription Billing Period Transition', async () => {
               updatedBillingPeriod,
               createDiscardingEffectsContext(transaction)
             )
-          ).unwrap()
+          )).unwrap()
 
           // Should remain Active
           expect(updatedSub.status).toBe(SubscriptionStatus.Active)
@@ -788,7 +788,7 @@ describe('Subscription Billing Period Transition', async () => {
           ).toBeGreaterThan(billingPeriod.startDate)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
   })
 })
@@ -871,7 +871,7 @@ describe('Ledger Interactions', () => {
             amount: grantAmount})
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // execution:
       (await adminTransaction(async (params) =>
@@ -879,7 +879,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // expects:
       ;(
@@ -928,7 +928,7 @@ describe('Ledger Interactions', () => {
           expect(balance).toBe(grantAmount)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not grant usage credits if the subscription is in a terminal state', async () => {
@@ -942,7 +942,7 @@ describe('Ledger Interactions', () => {
           )
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // execution:
       (await adminTransaction(async (params) =>
@@ -950,7 +950,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // expects:
       ;(
@@ -970,7 +970,7 @@ describe('Ledger Interactions', () => {
           expect(balance).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not grant usage credits if a future billing period already exists', async () => {
@@ -989,7 +989,7 @@ describe('Ledger Interactions', () => {
             livemode: true})
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // execution:
       (await adminTransaction(async (params) =>
@@ -997,7 +997,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // expects:
       ;(
@@ -1016,7 +1016,7 @@ describe('Ledger Interactions', () => {
           expect(balance).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not grant usage credits if the subscription is canceled due to a past cancelScheduledAt date', async () => {
@@ -1034,7 +1034,7 @@ describe('Ledger Interactions', () => {
           )
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // execution:
       const { subscription: updatedSub } =
@@ -1043,7 +1043,7 @@ describe('Ledger Interactions', () => {
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        ).unwrap()
+        )).unwrap()
       canceledSub = updatedSub
 
       // expects:
@@ -1065,7 +1065,7 @@ describe('Ledger Interactions', () => {
           expect(balance).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not grant usage credits if the subscription has no credit entitlements', async () => {
@@ -1075,7 +1075,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // expects:
       ;(
@@ -1098,7 +1098,7 @@ describe('Ledger Interactions', () => {
           expect(balance).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should grant usage credits even if the subscription becomes PastDue', async () => {
@@ -1141,7 +1141,7 @@ describe('Ledger Interactions', () => {
           )
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // execution:
       const { subscription: updatedSub } =
@@ -1150,7 +1150,7 @@ describe('Ledger Interactions', () => {
             pastBillingPeriod,
             createProcessingEffectsContext(params)
           )
-        ).unwrap()
+        )).unwrap()
       pastDueSub = updatedSub
 
       // expects:
@@ -1179,7 +1179,7 @@ describe('Ledger Interactions', () => {
           expect(balance).toBe(grantAmount)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should grant multiple, distinct usage credits for different entitlements', async () => {
@@ -1234,7 +1234,7 @@ describe('Ledger Interactions', () => {
             amount: grantAmount2})
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // execution:
       (await adminTransaction(async (params) =>
@@ -1242,7 +1242,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // expects:
       ;(
@@ -1294,7 +1294,7 @@ describe('Ledger Interactions', () => {
           expect(balance2).toBe(grantAmount2)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not grant credits to ledger accounts for meters without entitlements', async () => {
@@ -1326,7 +1326,7 @@ describe('Ledger Interactions', () => {
             amount: grantAmount})
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // execution:
       (await adminTransaction(async (params) =>
@@ -1334,7 +1334,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // expects:
       ;(
@@ -1375,7 +1375,7 @@ describe('Ledger Interactions', () => {
           expect(balance2).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not grant "Once" credits on subsequent billing period transitions', async () => {
@@ -1428,7 +1428,7 @@ describe('Ledger Interactions', () => {
             amount: everyGrantAmount})
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
       (await adminTransaction(async (params) =>
@@ -1436,7 +1436,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // Assertions:
       ;(
@@ -1471,7 +1471,7 @@ describe('Ledger Interactions', () => {
           expect(balanceForEveryMeter).toBe(everyGrantAmount)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
   })
 
@@ -1506,7 +1506,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       const expiredLedgerEntryResult = (
         await adminTransaction(async ({ transaction }) => {
@@ -1519,7 +1519,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      ).unwrap()
+      )).unwrap()
       const expiredLedgerEntry = expiredLedgerEntryResult.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1539,7 +1539,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should expire a usage credit that has a partial balance and create a credit_grant_expired ledger entry for the remaining balance', async () => {
@@ -1609,7 +1609,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       const ledgerEntries = (
         await adminTransaction(async ({ transaction }) => {
@@ -1621,7 +1621,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      ).unwrap()
+      )).unwrap()
 
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
@@ -1641,7 +1641,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not create a credit_grant_expired ledger entry for a usage credit with a zero balance', async () => {
@@ -1711,7 +1711,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       const ledgerEntries = (
         await adminTransaction(async ({ transaction }) => {
@@ -1723,7 +1723,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      ).unwrap()
+      )).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1742,7 +1742,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(0)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not expire a usage credit that has a null expiresAt', async () => {
@@ -1777,7 +1777,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       const ledgerEntries = (
         await adminTransaction(async ({ transaction }) => {
@@ -1789,7 +1789,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      ).unwrap()
+      )).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1808,7 +1808,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(700)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should not expire credits with a future expiration date', async () => {
@@ -1843,7 +1843,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       const ledgerEntries = (
         await adminTransaction(async ({ transaction }) => {
@@ -1855,7 +1855,7 @@ describe('Ledger Interactions', () => {
             )
           )
         })
-      ).unwrap()
+      )).unwrap()
       const expiredLedgerEntry = ledgerEntries.find(
         (le: LedgerEntry.Record) =>
           le.entryType === LedgerEntryType.CreditGrantExpired
@@ -1873,7 +1873,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(10000)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should correctly handle a mix of expiring and non-expiring credits', async () => {
@@ -1961,7 +1961,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
       // Assertions
       ;(
         await adminTransaction(async ({ transaction }) => {
@@ -2013,7 +2013,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(500)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should handle expiring credits and new grant entitlements', async () => {
@@ -2077,7 +2077,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // Assertions:
       ;(
@@ -2124,7 +2124,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(grantAmount)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
 
     it('should handle expiring credits, non-expiring credits, and new grant entitlements', async () => {
@@ -2215,7 +2215,7 @@ describe('Ledger Interactions', () => {
           pastBillingPeriod,
           createProcessingEffectsContext(params)
         )
-      ).unwrap()
+      )).unwrap()
 
       // Assertions:
       ;(
@@ -2261,7 +2261,7 @@ describe('Ledger Interactions', () => {
           expect(finalBalance).toBe(evergreenAmount + grantAmount)
           return Result.ok(undefined)
         })
-      ).unwrap()
+      )).unwrap()
     })
   })
 })

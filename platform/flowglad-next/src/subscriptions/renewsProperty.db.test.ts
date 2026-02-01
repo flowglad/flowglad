@@ -93,7 +93,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify renewing subscription properties
         expect(result.subscription.renews).toBe(true)
@@ -135,7 +135,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify billing period was created
         expect(result.billingPeriod).toMatchObject({})
@@ -172,7 +172,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify billing run was created
         expect(typeof result.billingRun).toBe('object')
@@ -209,7 +209,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify trial subscription properties
         expect(result.subscription.renews).toBe(true)
@@ -396,7 +396,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               ctx
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify new billing period was created
         expect(
@@ -478,7 +478,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               ctx
             )
           }
-        ).unwrap()
+        )).unwrap()
         // Verify billing run was created
         ;(
           await adminTransaction(async (ctx) => {
@@ -541,7 +541,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               ctx
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify subscription transitioned to PastDue
         expect(result.subscription.status).toBe(
@@ -611,7 +611,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               ctx
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify subscription was canceled
         expect(result.subscription.status).toBe(
@@ -779,7 +779,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               createProcessingEffectsContext(params)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify subscription state
         expect(result.subscription.status).toBe(
@@ -1023,7 +1023,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify no billing run was created
         expect(result.billingRun).toBeNull()
@@ -1084,7 +1084,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               createDiscardingEffectsContext(transaction)
             )
           }
-        ).unwrap()
+        )).unwrap()
 
         // Verify subscription is renewing
         expect(result.subscription.renews).toBe(true)

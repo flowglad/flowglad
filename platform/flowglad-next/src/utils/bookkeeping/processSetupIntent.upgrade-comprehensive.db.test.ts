@@ -2028,7 +2028,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode})
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
+      (await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
         const result = await processSetupIntentSucceeded(
@@ -2055,7 +2055,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(purchaseCompletedEvents).toHaveLength(1)
 
         return Result.ok(result)
-      })
+      })).unwrap()
     })
   })
 })

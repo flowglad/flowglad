@@ -193,11 +193,11 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // Should have net positive charge since upgrading from $9.99 to $49.99
       expect(totalProrationAmount).toBeGreaterThan(0)
       return Result.ok(null)
-    })
+    })).unwrap()
   })
 
   it('should treat succeeded payment + upgrade mid-cycle the same as processing payment', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
+    (await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       // Setup: Create payment with Succeeded status (instead of Processing)
       await setupPayment({
@@ -274,11 +274,11 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       )
       expect(999 + totalProrationAmount).toBeCloseTo(2999, 2) // Total ~$29.99, allow 2 cent tolerance
       return Result.ok(null)
-    })
+    })).unwrap()
   })
 
   it('should ignore failed payment amount when calculating proration for upgrade', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
+    (await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       // Setup: Create payment with Failed status
       await setupPayment({
@@ -359,11 +359,11 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // This means proration adjustments alone should equal ~$29.99
       expect(totalProrationAmount / 100).toBeCloseTo(2999 / 100, 0) // ~$29.99 from proration alone, allow 2 cent tolerance
       return Result.ok(null)
-    })
+    })).unwrap()
   })
 
   it('should add new subscription items without removing existing items', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
+    (await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -450,11 +450,11 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
       expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
       return Result.ok(null)
-    })
+    })).unwrap()
   })
 
   it('should remove existing subscription items without adding new items', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
+    (await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -765,7 +765,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
   })
 
   it('should remove existing subscription items without adding new items', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
+    (await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -822,7 +822,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // (The sync logic doesn't update when there are no active items)
       expect(result.subscription.name).toBe(subscription.name)
       return Result.ok(null)
-    })
+    })).unwrap()
   })
 
   it('should apply downgrade protection to zero out negative charges and prevent credits', async () => {

@@ -103,7 +103,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
   it('should create a new payment method when no existing payment method with the stripePaymentMethodId exists', async () => {
     const stripePaymentMethodId = `pm_${core.nanoid()}`
 
-    const result = await comprehensiveAdminTransaction(
+    const result = (await adminTransaction(
       async ({
         transaction,
         cacheRecomputationContext,
