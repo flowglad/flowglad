@@ -248,6 +248,29 @@ export const runBiomeLint = async (
 }
 
 /**
+ * Check if a diagnostic category matches a rule name.
+ * Uses suffix matching (endsWith) rather than substring includes to avoid
+ * collisions between rule names (e.g., "no-any" vs "no-explicit-any").
+ *
+ * Matching rules:
+ * 1. Exact match: `lint/plugin/<ruleName>`
+ * 2. Suffix match: category ends with `/<ruleName>` (for variations)
+ * 3. Fallback: category is exactly 'plugin' (some Biome versions emit this)
+ */
+export const matchesRuleCategory = (
+  category: string,
+  ruleName: string
+): boolean => {
+  const expectedCategory = `lint/plugin/${ruleName}`
+
+  return (
+    category === expectedCategory ||
+    category.endsWith(`/${ruleName}`) ||
+    category === 'plugin'
+  )
+}
+
+/**
  * Count violations by file for a specific rule
  * Returns a Map of file path (relative to package) -> violation count
  */
@@ -257,17 +280,8 @@ export const countViolationsByFile = (
 ): Map<string, number> => {
   const counts = new Map<string, number>()
 
-  // The category format for GritQL plugins is "lint/plugin/<rule-name>"
-  // but some Biome versions emit "plugin" without the rule name.
-  const expectedCategory = `lint/plugin/${ruleName}`
-
   for (const diag of diagnostics) {
-    // Match either exact category or category that contains the rule name
-    if (
-      diag.category === expectedCategory ||
-      diag.category.includes(ruleName) ||
-      diag.category === 'plugin'
-    ) {
+    if (matchesRuleCategory(diag.category, ruleName)) {
       const current = counts.get(diag.filePath) || 0
       counts.set(diag.filePath, current + 1)
     }
@@ -284,13 +298,9 @@ export const getDiagnosticsForFile = (
   filePath: string,
   ruleName: string
 ): BiomeDiagnostic[] => {
-  const expectedCategory = `lint/plugin/${ruleName}`
-
   return diagnostics.filter(
     (diag) =>
       diag.filePath === filePath &&
-      (diag.category === expectedCategory ||
-        diag.category.includes(ruleName) ||
-        diag.category === 'plugin')
+      matchesRuleCategory(diag.category, ruleName)
   )
 }
