@@ -493,11 +493,10 @@ describe('subscriptionItemHelpers', () => {
       })
 
       it('should return error when provided ID does not exist in current items', async () => {
-        ;(
-          await adminTransaction(async (ctx) => {
-            const { transaction } = ctx
+        const fakeId = 'sub_item_fake_id_12345'
+        const transactionResult = await adminTransaction(
+          async (ctx) => {
             // Provide an ID that doesn't exist in current subscription items
-            const fakeId = 'sub_item_fake_id_12345'
             const newSubscriptionItems: (
               | SubscriptionItem.Insert
               | SubscriptionItem.Record
@@ -530,8 +529,16 @@ describe('subscriptionItemHelpers', () => {
               )
             }
             return Result.ok(null)
-          })
-        ).unwrap()
+          }
+        )
+        // The transaction should fail because handleSubscriptionItemAdjustment throws
+        // when given a non-existent ID, and that error propagates up
+        expect(Result.isError(transactionResult)).toBe(true)
+        if (Result.isError(transactionResult)) {
+          expect(transactionResult.error.message).toContain(
+            `Cannot update subscription item with id ${fakeId} because it is non-existent`
+          )
+        }
       })
 
       it('should preserve manual subscription items during adjustments', async () => {

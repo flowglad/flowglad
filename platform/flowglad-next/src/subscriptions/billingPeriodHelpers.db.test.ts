@@ -2572,17 +2572,18 @@ describe('Resource claim expiration during billing period transition', async () 
       })
     ).unwrap()
     expect(claimsBefore.length).toBe(2)
-    expect(claimsBefore.every((c) => c.releasedAt === null))
-      .toBe(true)(
-        // Transition the billing period
-        await adminTransaction(async (params) =>
-          attemptToTransitionSubscriptionBillingPeriod(
-            billingPeriod,
-            createProcessingEffectsContext(params)
-          )
+    expect(claimsBefore.every((c) => c.releasedAt === null)).toBe(
+      true
+    )
+    // Transition the billing period
+    ;(
+      await adminTransaction(async (params) =>
+        attemptToTransitionSubscriptionBillingPeriod(
+          billingPeriod,
+          createProcessingEffectsContext(params)
         )
       )
-      .unwrap()
+    ).unwrap()
 
     // Verify claims after transition
     const claimsAfter = (

@@ -27,7 +27,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import {} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 // Database query functions
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
@@ -51,24 +51,24 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     // Set up organization and price
     const orgData = await setupOrg()
     organization = orgData.organization
-    price = orgData
-      .price(
-        // Enable feature flag for immediate adjustments
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          organization = await updateOrganization(
-            {
-              id: organization.id,
-              featureFlags: {
-                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
-              },
+    price = orgData.price
+
+    // Enable feature flag for immediate adjustments
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        organization = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
             },
-            transaction
-          )
-          return Result.ok(null)
-        })
-      )
-      .unwrap()
+          },
+          transaction
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
 
     // Set up customer
     customer = await setupCustomer({

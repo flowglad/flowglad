@@ -687,8 +687,9 @@ describe('updatePricingModelTransaction', () => {
 
     it('updates existing resources when properties change', async () => {
       // First create a pricing model with resources
-      const setupResult = await createBasicPricingModel()(
-        // Add resources first
+      const setupResult = await createBasicPricingModel()
+      // Add resources first
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (
@@ -812,8 +813,9 @@ describe('updatePricingModelTransaction', () => {
 
     it('deactivates resources removed from proposed input', async () => {
       // First create a pricing model with resources
-      const setupResult = await createBasicPricingModel()(
-        // Add resources first
+      const setupResult = await createBasicPricingModel()
+      // Add resources first
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (
@@ -949,8 +951,9 @@ describe('updatePricingModelTransaction', () => {
 
     it('does not modify unchanged resources', async () => {
       // First create a pricing model with resources
-      const setupResult = await createBasicPricingModel()(
-        // Add resources first
+      const setupResult = await createBasicPricingModel()
+      // Add resources first
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (
@@ -1076,8 +1079,9 @@ describe('updatePricingModelTransaction', () => {
   describe('resource feature updates', () => {
     it('creates new Resource features with correct resourceId', async () => {
       // First create a pricing model with a resource but no Resource features
-      const setupResult = await createBasicPricingModel()(
-        // Add a resource first
+      const setupResult = await createBasicPricingModel()
+      // Add a resource first
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (
@@ -1221,8 +1225,9 @@ describe('updatePricingModelTransaction', () => {
 
     it('transforms resourceSlug to resourceId when updating Resource feature', async () => {
       // First create a pricing model with two resources and a Resource feature
-      const setupResult = await createBasicPricingModel()(
-        // Add resources and a Resource feature
+      const setupResult = await createBasicPricingModel()
+      // Add resources and a Resource feature
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (
@@ -1380,8 +1385,9 @@ describe('updatePricingModelTransaction', () => {
     })
 
     it('throws when Resource feature references non-existent resource', async () => {
-      const setupResult = await createBasicPricingModel()(
-        // Add a resource first
+      const setupResult = await createBasicPricingModel()
+      // Add a resource first
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (
@@ -1506,8 +1512,9 @@ describe('updatePricingModelTransaction', () => {
     })
 
     it('deactivates Resource features when removed from proposed input', async () => {
-      const setupResult = await createBasicPricingModel()(
-        // Add a resource and Resource feature
+      const setupResult = await createBasicPricingModel()
+      // Add a resource and Resource feature
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (

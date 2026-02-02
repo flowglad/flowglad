@@ -2919,7 +2919,8 @@ describe('editProductTransaction - Feature Updates', () => {
   })
 
   it('should add features to a product', async () => {
-    const featureIds = [features[0].id, features[1].id](
+    const featureIds = [features[0].id, features[1].id]
+    ;(
       await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
@@ -3398,7 +3399,8 @@ describe('editProductTransaction - Price Updates', () => {
       usageEventsPerUnit: null,
       usageMeterId: null,
       active: currentPrice.active,
-    }(
+    }
+    ;(
       await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
@@ -3487,7 +3489,8 @@ describe('editProductTransaction - Price Updates', () => {
       usageMeterId: null,
       active: currentPrice.active, // Same - non-immutable field
       slug: currentPrice.slug ?? null, // Same - preserve slug
-    }(
+    }
+    ;(
       await authenticatedTransaction(
         async (params) => {
           const txResult = await editProductTransaction(
@@ -3676,7 +3679,8 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         usageMeterId: null,
         active: currentPrice.active,
         slug: 'different-slug', // This should be overridden
-      }(
+      }
+      ;(
         await authenticatedTransaction(
           async (params) => {
             const txResult = await editProductTransaction(
@@ -4130,7 +4134,8 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         usageEventsPerUnit: null,
         usageMeterId: null,
         active: currentPrice.active,
-      }(
+      }
+      ;(
         await authenticatedTransaction(
           async (params) => {
             const txResult = await editProductTransaction(
@@ -4213,7 +4218,8 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         usageMeterId: null,
         active: currentPrice.active,
         // Note: slug is not provided, but will be synced to product slug if product slug changes
-      }(
+      }
+      ;(
         await authenticatedTransaction(
           async (params) => {
             const txResult = await editProductTransaction(

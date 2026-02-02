@@ -113,15 +113,18 @@ describe('updateFocusedPricingModelTransaction', () => {
   describe('Focused membership validation', () => {
     it('returns NOT_FOUND error when user has no focused membership', async () => {
       // Unfocus the user's membership
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            focused: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: membership.id,
+              focused: false,
+            },
+            transaction
+          )
+          return Result.ok(null)
+        })
+      ).unwrap()
 
       const result = await adminTransaction(
         async ({ transaction }) => {

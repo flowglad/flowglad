@@ -2110,20 +2110,22 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should return an error for invalid subscription input', async () => {
-      ;(
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Passing a null subscription should result in an error.
-          const result = await cancelSubscriptionImmediately(
-            {
-              subscription: null as unknown as Subscription.Record,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-          expect(Result.isError(result)).toBe(true)
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+      // Passing a null subscription should result in an error.
+      // The function throws when accessing subscription.customerId on null,
+      // which adminTransaction converts to a Result.err
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const innerResult = await cancelSubscriptionImmediately(
+          {
+            subscription: null as unknown as Subscription.Record,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+        expect(Result.isError(innerResult)).toBe(true)
+        return Result.ok(undefined)
+      })
+      // The transaction should fail because cancelSubscriptionImmediately throws
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
