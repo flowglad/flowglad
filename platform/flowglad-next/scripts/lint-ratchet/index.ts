@@ -9,10 +9,13 @@ const printUsage = (): void => {
 Usage: bun run scripts/lint-ratchet/index.ts <command> [options]
 
 Commands:
-  check                     Check violations against baseline (exits 1 if exceeded)
+  check [options]           Check violations against baseline (exits 1 if exceeded)
   init <rule> [options]     Initialize baseline for a rule
   status                    Show progress metrics (never fails)
   update                    Update baseline by ratcheting down counts
+
+Check options:
+  --verbose                 Show all files (default: truncate to 5 per category)
 
 Init options:
   --force                   Skip confirmation prompt
@@ -34,6 +37,7 @@ const main = async (): Promise<void> => {
     options: {
       force: { type: 'boolean', default: false },
       package: { type: 'string' },
+      verbose: { type: 'boolean', short: 'v', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
     allowPositionals: true,
@@ -50,7 +54,9 @@ const main = async (): Promise<void> => {
 
   switch (command) {
     case 'check': {
-      const result = await checkCommand()
+      const result = await checkCommand({
+        verbose: values.verbose === true,
+      })
       if (!result.passed) {
         process.exitCode = 1
       }
