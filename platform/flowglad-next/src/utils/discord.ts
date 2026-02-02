@@ -177,6 +177,14 @@ async function getOrCreateCategoryWithSpace(
 }
 
 /**
+ * Get the bot's user ID by calling /users/@me
+ */
+async function getBotUserId(rest: REST): Promise<string> {
+  const user = (await rest.get(Routes.user('@me'))) as { id: string }
+  return user.id
+}
+
+/**
  * Create a private text channel that only invited users and Flowglad team can see.
  * Automatically places it in a category with available space.
  */
@@ -193,12 +201,26 @@ async function createPrivateChannel(
     config
   )
 
+  // Get bot's user ID so we can grant it access to the channel
+  const botUserId = await getBotUserId(rest)
+
   const permissionOverwrites: APIOverwrite[] = [
     {
       id: guildId, // @everyone role (same as guild ID)
       type: OverwriteType.Role,
       deny: PermissionFlagsBits.ViewChannel.toString(),
       allow: '0',
+    },
+    {
+      // Grant the bot access to view and manage the channel
+      id: botUserId,
+      type: OverwriteType.Member,
+      allow: (
+        PermissionFlagsBits.ViewChannel |
+        PermissionFlagsBits.SendMessages |
+        PermissionFlagsBits.ManageChannels
+      ).toString(),
+      deny: '0',
     },
   ]
 
@@ -284,19 +306,35 @@ export async function getOrCreateConciergeChannel(
 
   let channel: APIChannel | null = null
 
+  console.log('[Discord] getOrCreateConciergeChannel called with:', {
+    orgName,
+    existingChannelId,
+    channelName,
+  })
+
   // Try to find by existing channel ID first (fast lookup)
   if (existingChannelId) {
+    console.log(
+      '[Discord] Attempting to fetch existing channel:',
+      existingChannelId
+    )
     channel = await fetchChannelById(rest, existingChannelId)
+    console.log(
+      '[Discord] Fetch result:',
+      channel ? 'found' : 'not found'
+    )
   }
 
   // Create if doesn't exist
   if (!channel) {
+    console.log('[Discord] Creating new channel:', channelName)
     channel = await createPrivateChannel(
       rest,
       config.guildId,
       channelName,
       config
     )
+    console.log('[Discord] Created channel with ID:', channel.id)
   }
 
   // Get or create invite
