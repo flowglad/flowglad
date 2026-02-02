@@ -5,12 +5,12 @@ import { resetPassword } from '@/server/mutations/resetPassword'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
-import { toggleTestMode } from './mutations/toggleTestMode'
 import { getFundsFlowEligibilityForCountry } from './queries/getFundsFlowEligibilityForCountry'
 import { ping } from './queries/ping'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { bannersRouter } from './routers/bannersRouter'
 import { checkoutSessionsRouter } from './routers/checkoutSessionsRouter'
+import { cliRouter } from './routers/cliRouter'
 import { countriesRouter } from './routers/countriesRouter'
 import { customerBillingPortalRouter } from './routers/customerBillingPortalRouter'
 import { customersRouter } from './routers/customersRouter'
@@ -58,7 +58,6 @@ export const appRouter = router({
     pong,
     generateDescription,
     getPresignedURL,
-    toggleTestMode,
     inviteUserToOrganization,
     logout,
     setReferralSelection,
@@ -79,6 +78,7 @@ export const appRouter = router({
   resources: resourcesRouter,
   resourceClaims: resourceClaimsRouter,
   supportChat: supportChatRouter,
+  cli: cliRouter,
 })
 
 // This would map to REST endpoints like:

@@ -23,6 +23,12 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
   const [webhookSecret, setWebhookSecret] = useState<string | null>(
     null
   )
+  // Get focused membership to auto-set pricingModelId
+  const focusedMembership =
+    trpc.organizations.getFocusedMembership.useQuery()
+  const focusedPricingModelId =
+    focusedMembership.data?.pricingModel?.id ?? ''
+
   const createWebhook = trpc.webhooks.create.useMutation({
     onSuccess: (result) => {
       setWebhookSecret(result.secret)
@@ -41,7 +47,7 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
       url: '',
       filterTypes: [],
       active: true,
-      pricingModelId: '',
+      pricingModelId: focusedPricingModelId,
     }
     return {
       webhook: webhookDefaultValues,
@@ -76,7 +82,7 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
           </p>
         </div>
       ) : (
-        <WebhookFormFields />
+        <WebhookFormFields hidePricingModelSelector />
       )}
     </FormModal>
   )

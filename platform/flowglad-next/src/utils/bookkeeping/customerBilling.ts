@@ -28,10 +28,7 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import type { RichSubscription } from '@/subscriptions/schemas'
-import {
-  CacheDependency,
-  type CacheRecomputationContext,
-} from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
 import { customerBillingPortalURL } from '@/utils/core'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
 
@@ -41,7 +38,7 @@ export const customerBillingTransaction = async (
     organizationId: string
   },
   transaction: DbTransaction,
-  cacheRecomputationContext: CacheRecomputationContext
+  cacheRecomputationContext: { livemode: boolean }
 ) => {
   const [customer] = await selectCustomers(params, transaction)
   // All queries below depend only on customer, so they can run in parallel
@@ -55,7 +52,7 @@ export const customerBillingTransaction = async (
     selectRichSubscriptionsAndActiveItems(
       { customerId: customer.id },
       transaction,
-      cacheRecomputationContext
+      cacheRecomputationContext.livemode
     ),
     selectPricingModelForCustomer(customer, transaction),
     selectCustomerFacingInvoicesWithLineItems(

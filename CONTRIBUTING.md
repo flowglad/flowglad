@@ -157,6 +157,78 @@ The API Reference is sourced from `https://app.flowglad.com/api/openapi` into `p
 
 ---
 
+# Recommended Developer Tools
+
+The following tools are recommended for effective development and refactoring in this codebase.
+
+## Required Tools
+
+| Tool | Purpose | Installation |
+|------|---------|--------------|
+| **bun** | Package manager and runtime | [bun.sh](https://bun.sh) |
+| **Docker** | Test database and mock servers | [docker.com](https://docker.com) |
+| **gh** | GitHub CLI for PRs and issues | `brew install gh` |
+
+## Refactoring Tools
+
+For large-scale refactoring and codemod operations, install these tools:
+
+| Tool | Purpose | Installation |
+|------|---------|--------------|
+| **ast-grep** | AST-aware search and replace (primary refactoring tool) | `brew install ast-grep` or `cargo install ast-grep` |
+| **ts-morph** | TypeScript compiler API for type-aware transforms | `bun add -d ts-morph` (per-project) |
+| **jscodeshift** | Facebook's codemod toolkit | `bun add -d jscodeshift` (per-project) |
+| **comby** | Structural search tool | `brew install comby` |
+
+### ast-grep (Recommended)
+
+ast-grep is the primary tool for refactoring in this codebase. It provides syntax-aware search and replace:
+
+```bash
+# Install
+brew install ast-grep
+
+# Verify installation
+ast-grep --version
+
+# Example: Find all function calls
+ast-grep --lang typescript -p 'myFunction($$$ARGS)'
+
+# Example: Rename function across codebase
+ast-grep --lang typescript -p 'oldName($$$ARGS)' -r 'newName($$$ARGS)' --update-all
+```
+
+See `.claude/skills/refactor/ast-grep-patterns.md` for a comprehensive pattern library.
+
+### ts-morph (For Type-Aware Transforms)
+
+Use ts-morph when you need TypeScript type information:
+
+```bash
+# Install as dev dependency
+bun add -d ts-morph
+```
+
+ts-morph is useful for:
+- Transforms that depend on type information
+- Following type references across files
+- Complex programmatic transformations
+
+### Tool Selection Guide
+
+| Task | Recommended Tool |
+|------|------------------|
+| Simple rename (function, variable, type) | ast-grep |
+| Pattern replacement | ast-grep |
+| Import path updates | ast-grep |
+| Type-dependent transforms | ts-morph |
+| Leveraging existing codemods | jscodeshift |
+| Text-only changes (not code) | sed/awk |
+
+For detailed tool comparisons and usage, see `.claude/skills/refactor/tools-reference.md`.
+
+---
+
 # Contributing to the backend (platform/flowglad-next)
 
 Thanks for your interest in contributing to Flowglad’s backend. This section focuses on the Next.js app in `platform/flowglad-next`.
@@ -235,3 +307,65 @@ Guidelines:
 - Use the seeding helpers in `platform/flowglad-next/seedDatabase.ts` to create state; avoid ad‑hoc inserts.
 - When asserting existence or absence, fetch and compare primary keys (ids) rather than relying solely on list lengths.
 - Useful commands: `bun run test` (CI run), `bun run test:watch` (local TDD), `bun run test:setup` (reset DB), `bun run test:teardown` (stop DB).
+
+---
+
+# Contributing to the Mock Server (packages/mock-server)
+
+The mock server provides lightweight HTTP stubs for external services (Svix, Unkey, Trigger.dev) used during testing.
+
+## Prerequisites
+
+- Docker installed and running
+- `gh` CLI installed and authenticated (for pushing images to GHCR)
+
+To authenticate with GitHub CLI:
+```bash
+gh auth login
+```
+
+If you need to push Docker images, ensure your token has the `write:packages` scope:
+```bash
+gh auth refresh --scopes write:packages
+```
+
+## Running Locally
+
+```bash
+cd packages/mock-server
+bun run dev      # Start with hot reload
+bun run start    # Start without hot reload
+```
+
+## Building and Pushing Docker Images
+
+The mock server image is hosted on GitHub Container Registry (GHCR) and used by CI for integration tests.
+
+### Build only (for local testing)
+```bash
+cd packages/mock-server
+bun run docker:build                  # Build with tag 'latest'
+bun run docker:build --tag v1.0.0     # Build with custom tag
+```
+
+### Build and push to GHCR
+```bash
+cd packages/mock-server
+bun run docker:push                   # Build and push 'latest'
+bun run docker:push --tag v1.0.0      # Build and push custom tag
+```
+
+The push command automatically logs into GHCR using your `gh` CLI credentials.
+
+### Manual GHCR login (if needed)
+```bash
+cd packages/mock-server
+bun run ghcr:login
+```
+
+## When to Push a New Image
+
+Push a new image when:
+- You've made changes to the mock server code
+- You need CI to use the updated version
+- The CI workflow for `packages/mock-server/**` will also auto-build on merge to main

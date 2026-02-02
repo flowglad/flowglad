@@ -12,8 +12,4 @@
  * @internal
  */
 
-export {
-  invalidateDependencies,
-  recomputeCacheEntry,
-  recomputeDependencies,
-} from './cache'
+export { invalidateDependencies } from './cache'

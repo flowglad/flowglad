@@ -13,6 +13,10 @@ import {
   organizations,
   organizationsSelectSchema,
 } from '@db-core/schema/organizations'
+import {
+  pricingModels,
+  pricingModelsSelectSchema,
+} from '@db-core/schema/pricingModels'
 import type { User } from '@db-core/schema/users'
 import { users, usersSelectSchema } from '@db-core/schema/users'
 import {
@@ -289,6 +293,62 @@ export const selectFocusedMembershipAndOrganization = async (
   )
   return focusedMembership
 }
+
+/**
+ * Select the focused membership, organization, and pricing model for a user.
+ * Deactivated memberships are automatically filtered out, meaning a user
+ * whose focused membership was deactivated will have no focused membership returned.
+ *
+ * This function joins memberships with organizations and pricing models to return
+ * all three in a single query, avoiding N+1 queries.
+ *
+ * @param userId - The user ID
+ * @param transaction - The database transaction
+ * @returns Object with membership, organization, and pricingModel, or undefined if not found
+ */
+export const selectFocusedMembershipAndOrganizationAndPricingModel =
+  async (userId: string, transaction: DbTransaction) => {
+    const result = await transaction
+      .select({
+        membership: memberships,
+        organization: organizations,
+        pricingModel: pricingModels,
+      })
+      .from(memberships)
+      .innerJoin(
+        organizations,
+        eq(memberships.organizationId, organizations.id)
+      )
+      .innerJoin(
+        pricingModels,
+        eq(memberships.focusedPricingModelId, pricingModels.id)
+      )
+      .where(
+        and(
+          eq(memberships.userId, userId),
+          eq(memberships.focused, true),
+          isNull(memberships.deactivatedAt)
+        )
+      )
+      .limit(1)
+
+    const [focusedMembership] = result
+    if (!focusedMembership) {
+      return undefined
+    }
+
+    return {
+      membership: membershipsSelectSchema.parse(
+        focusedMembership.membership
+      ),
+      organization: organizationsSelectSchema.parse(
+        focusedMembership.organization
+      ),
+      pricingModel: pricingModelsSelectSchema.parse(
+        focusedMembership.pricingModel
+      ),
+    }
+  }
 
 export const updateMembership = createUpdateFunction(
   memberships,

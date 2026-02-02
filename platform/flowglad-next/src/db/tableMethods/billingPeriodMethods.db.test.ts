@@ -11,13 +11,14 @@ import type { Price } from '@db-core/schema/prices'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Product } from '@db-core/schema/products'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
   setupPrice,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   insertBillingPeriod,
@@ -64,41 +65,14 @@ describe('Billing Period Methods', () => {
 
   describe('insertBillingPeriod', () => {
     it('should successfully insert billing period and derive pricingModelId from subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const now = Date.now()
-        const billingPeriod = await insertBillingPeriod(
-          {
-            subscriptionId: subscription.id,
-            startDate: now,
-            endDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days later
-            status: BillingPeriodStatus.Active,
-            trialPeriod: false,
-            proratedPeriod: false,
-            livemode: true,
-          },
-          transaction
-        )
-
-        // Verify pricingModelId is correctly derived from subscription
-        expect(billingPeriod.pricingModelId).toBe(
-          subscription.pricingModelId
-        )
-        expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
-        expect(billingPeriod.subscriptionId).toBe(subscription.id)
-      })
-    })
-
-    it('should throw an error when subscriptionId does not exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-        const now = Date.now()
-
-        await expect(
-          insertBillingPeriod(
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const now = Date.now()
+          const billingPeriod = await insertBillingPeriod(
             {
-              subscriptionId: nonExistentSubscriptionId,
+              subscriptionId: subscription.id,
               startDate: now,
-              endDate: now + 30 * 24 * 60 * 60 * 1000,
+              endDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days later
               status: BillingPeriodStatus.Active,
               trialPeriod: false,
               proratedPeriod: false,
@@ -106,30 +80,66 @@ describe('Billing Period Methods', () => {
             },
             transaction
           )
-        ).rejects.toThrow()
-      })
+
+          // Verify pricingModelId is correctly derived from subscription
+          expect(billingPeriod.pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
+          expect(billingPeriod.subscriptionId).toBe(subscription.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('should throw an error when subscriptionId does not exist', async () => {
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+          const now = Date.now()
+
+          await expect(
+            insertBillingPeriod(
+              {
+                subscriptionId: nonExistentSubscriptionId,
+                startDate: now,
+                endDate: now + 30 * 24 * 60 * 60 * 1000,
+                status: BillingPeriodStatus.Active,
+                trialPeriod: false,
+                proratedPeriod: false,
+                livemode: true,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const now = Date.now()
-        const billingPeriod = await insertBillingPeriod(
-          {
-            subscriptionId: subscription.id,
-            startDate: now,
-            endDate: now + 30 * 24 * 60 * 60 * 1000,
-            status: BillingPeriodStatus.Active,
-            trialPeriod: false,
-            proratedPeriod: false,
-            livemode: true,
-            pricingModelId: pricingModel.id, // explicitly provided
-          },
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const now = Date.now()
+          const billingPeriod = await insertBillingPeriod(
+            {
+              subscriptionId: subscription.id,
+              startDate: now,
+              endDate: now + 30 * 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+              trialPeriod: false,
+              proratedPeriod: false,
+              livemode: true,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
 
-        // Verify the provided pricingModelId is used
-        expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
-      })
+          // Verify the provided pricingModelId is used
+          expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 

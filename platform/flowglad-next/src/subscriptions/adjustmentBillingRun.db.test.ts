@@ -16,6 +16,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { Price } from '@db-core/schema/prices'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -27,7 +28,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { executeBillingRun } from './billingRunHelpers'
 
@@ -103,13 +104,14 @@ describe('executeBillingRun - Adjustment Billing Run Error Handling', () => {
     // Execute without adjustment params - should fail early before Stripe calls
     await executeBillingRun(adjustmentBillingRun.id)
 
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransactionWithResult(({ transaction }) =>
         selectBillingRunById(
           adjustmentBillingRun.id,
           transaction
-        ).then((r) => r.unwrap())
-    )
+        ).then((r) => Result.ok(r.unwrap()))
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     expect(typeof updatedBillingRun.errorDetails).toBe('object')
     expect(updatedBillingRun.errorDetails?.message).toContain(

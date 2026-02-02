@@ -30,6 +30,7 @@ import type { Resource } from '@db-core/schema/resources'
 import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -46,7 +47,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
@@ -228,28 +229,32 @@ describeIfStripeKey(
           externalId: `preserved-user-${i}`,
         })
       }
-
       // Remove stripeCustomerId to trigger a validation error during billing run
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            stripeCustomerId: null,
-          },
-          transaction
-        )
-      })
-
-      // Capture initial state
-      const initialSubscriptionItems = await adminTransaction(
-        async ({ transaction }) => {
-          return selectCurrentlyActiveSubscriptionItems(
-            { subscriptionId: subscription.id },
-            new Date(),
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              stripeCustomerId: null,
+            },
             transaction
           )
-        }
-      )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+
+      // Capture initial state
+      const initialSubscriptionItems = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              new Date(),
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       const newSubscriptionItems: SubscriptionItem.Insert[] = [
         {
@@ -273,26 +278,30 @@ describeIfStripeKey(
       })
 
       // Assert: Billing run should be marked as failed
-      const updatedBillingRun = await adminTransaction(
-        async ({ transaction }) => {
-          return selectBillingRunById(
-            billingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-        }
-      )
+      const updatedBillingRun = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectBillingRunById(
+              billingRun.id,
+              transaction
+            ).then((r) => r.unwrap())
+          )
+        })
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
 
       // Assert: Subscription items NOT adjusted (processOutcomeForBillingRun early exits for failed adjustment)
-      const subscriptionItemsAfterFailure = await adminTransaction(
-        async ({ transaction }) => {
-          return selectCurrentlyActiveSubscriptionItems(
-            { subscriptionId: subscription.id },
-            new Date(),
-            transaction
+      const subscriptionItemsAfterFailure = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              new Date(),
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(subscriptionItemsAfterFailure.length).toBe(
         initialSubscriptionItems.length
       )
@@ -301,17 +310,19 @@ describeIfStripeKey(
       )
 
       // Assert: All 3 claims still accessible
-      const claimsAfterFailure = await adminTransaction(
-        async ({ transaction }) => {
-          return selectActiveResourceClaims(
-            {
-              subscriptionId: subscription.id,
-              resourceId: resource.id,
-            },
-            transaction
+      const claimsAfterFailure = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(claimsAfterFailure.length).toBe(3)
       expect(
         claimsAfterFailure.map((c) => c.externalId).sort()
@@ -322,15 +333,17 @@ describeIfStripeKey(
       ])
 
       // Assert: Capacity unchanged (still from old features)
-      const usage = await adminTransaction(
-        async ({ transaction }) => {
-          return getResourceUsage(
-            subscription.id,
-            resource.id,
-            transaction
+      const usage = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await getResourceUsage(
+              subscription.id,
+              resource.id,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(usage.capacity).toBe(5) // Original capacity
       expect(usage.claimed).toBe(3)
       expect(usage.available).toBe(2)

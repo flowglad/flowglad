@@ -29,6 +29,7 @@ import { countActiveResourceClaimsBatch } from '@/db/tableMethods/resourceClaimM
 import {
   bulkCreateOrUpdateSubscriptionItems,
   selectCurrentlyActiveSubscriptionItems,
+  selectSubscriptionItemsIncludingScheduled,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
@@ -50,6 +51,7 @@ import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
 import { SubscriptionAdjustmentTiming } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   createBillingRun,
@@ -1189,6 +1191,58 @@ export const adjustSubscription = async (
       currency: price.currency,
     })
   }
+
+  // Update scheduledAdjustmentAt based on the resolved timing
+  // - For AtEndOfCurrentBillingPeriod: Set to the adjustment date
+  // - For Immediately: Clear any previous scheduled adjustment
+  const scheduledAdjustmentAt =
+    resolvedTiming ===
+    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+      ? adjustmentDate
+      : null
+
+  // If doing an immediate adjustment and there was a previously scheduled adjustment,
+  // clean up the orphaned future-dated subscription items that would otherwise
+  // remain in the database and unexpectedly activate at the end of the billing period
+  if (
+    resolvedTiming === SubscriptionAdjustmentTiming.Immediately &&
+    subscription.scheduledAdjustmentAt !== null
+  ) {
+    const now = Date.now()
+    const allItems = await selectSubscriptionItemsIncludingScheduled(
+      { subscriptionId: id },
+      now,
+      transaction
+    )
+
+    // Find items scheduled for the future (addedDate > now)
+    // These are the items that were created as part of the previous scheduled adjustment
+    const scheduledItems = allItems.filter(
+      (item) => item.addedDate > now
+    )
+
+    if (scheduledItems.length > 0) {
+      const itemIds = scheduledItems.map((item) => item.id)
+      await expireSubscriptionItems(itemIds, now, transaction)
+
+      // Invalidate cache for subscription items and each item's features
+      ctx.invalidateCache(
+        CacheDependency.subscriptionItems(id),
+        ...itemIds.map((itemId) =>
+          CacheDependency.subscriptionItemFeatures(itemId)
+        )
+      )
+    }
+  }
+
+  await updateSubscription(
+    {
+      id: subscription.id,
+      scheduledAdjustmentAt,
+      renews: subscription.renews,
+    },
+    transaction
+  )
 
   // Get currently active subscription items to return
   // Note: New items will be created in processOutcomeForBillingRun after payment succeeds

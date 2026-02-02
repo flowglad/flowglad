@@ -16,7 +16,7 @@ interface ServerConfig {
   routeHandler?: (
     req: Request,
     pathname: string
-  ) => Response | Promise<Response> | null
+  ) => Response | Promise<Response | null> | null
 }
 
 // Import the health handler to create test servers
@@ -30,7 +30,7 @@ function createTestServer(
 
   return Bun.serve({
     port,
-    fetch(req) {
+    async fetch(req): Promise<Response> {
       const url = new URL(req.url)
 
       if (url.pathname === '/health') {
@@ -39,7 +39,7 @@ function createTestServer(
 
       // Try service-specific route handler
       if (routeHandler) {
-        const response = routeHandler(req, url.pathname)
+        const response = await routeHandler(req, url.pathname)
         if (response) {
           return response
         }

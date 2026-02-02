@@ -15,10 +15,7 @@ import {
   type SubscriptionItem,
 } from '@/email-templates/organization/organization-subscription-adjusted'
 import { ValidationError } from '@/errors'
-import {
-  createTriggerIdempotencyKey,
-  testSafeTriggerInvoker,
-} from '@/utils/backendCore'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import {
   formatEmailSubject,
@@ -214,17 +211,15 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
 })
 
 export const idempotentSendOrganizationSubscriptionAdjustedNotification =
-  testSafeTriggerInvoker(
-    async (
-      params: SendOrganizationSubscriptionAdjustedNotificationPayload
-    ) => {
-      await sendOrganizationSubscriptionAdjustedNotificationTask.trigger(
-        params,
-        {
-          idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-subscription-adjusted-notification-${params.subscriptionId}-${params.effectiveDate}`
-          ),
-        }
-      )
-    }
-  )
+  async (
+    params: SendOrganizationSubscriptionAdjustedNotificationPayload
+  ) => {
+    await sendOrganizationSubscriptionAdjustedNotificationTask.trigger(
+      params,
+      {
+        idempotencyKey: await createTriggerIdempotencyKey(
+          `send-organization-subscription-adjusted-notification-${params.subscriptionId}-${params.effectiveDate}`
+        ),
+      }
+    )
+  }

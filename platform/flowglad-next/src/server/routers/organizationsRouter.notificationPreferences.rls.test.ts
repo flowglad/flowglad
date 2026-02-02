@@ -5,8 +5,9 @@ import type {
 } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
+import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectMemberships,
   updateMembership,
@@ -55,14 +56,16 @@ describe('organizationsRouter notification preferences', () => {
     user = userApiKeySetup.user
 
     // Get the membership that was created
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMemberships(
-          { userId: user.id, organizationId: organization.id },
-          transaction
+    const memberships = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectMemberships(
+            { userId: user.id, organizationId: organization.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     membership = memberships[0]
   })
 
@@ -109,18 +112,21 @@ describe('organizationsRouter notification preferences', () => {
 
     it('returns stored preferences merged with defaults', async () => {
       // Update membership with partial preferences
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            notificationPreferences: {
-              testModeNotifications: true,
-              subscriptionCreated: false,
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: membership.id,
+              notificationPreferences: {
+                testModeNotifications: true,
+                subscriptionCreated: false,
+              },
             },
-          },
-          transaction
-        )
-      })
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken, user)
 
@@ -168,19 +174,21 @@ describe('organizationsRouter notification preferences', () => {
 
     it('updates specified preferences while preserving unspecified ones', async () => {
       // First set some initial preferences
-      const adminUpdatedMembership = await adminTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: membership.id,
-              notificationPreferences: {
-                subscriptionCreated: false,
+      const adminUpdatedMembership = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await updateMembership(
+              {
+                id: membership.id,
+                notificationPreferences: {
+                  subscriptionCreated: false,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken, user)
 

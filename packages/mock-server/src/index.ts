@@ -1,4 +1,7 @@
+import { handleCloudflareRoute } from './routes/cloudflare'
 import { handleHealth } from './routes/health'
+import { handleRedisRoute } from './routes/redis'
+import { handleResendRoute } from './routes/resend'
 import { handleSvixRoute } from './routes/svix'
 import { handleTriggerRoute } from './routes/trigger'
 import { handleUnkeyRoute } from './routes/unkey'
@@ -6,14 +9,23 @@ import { handleUnkeyRoute } from './routes/unkey'
 const SVIX_PORT = 9001
 const UNKEY_PORT = 9002
 const TRIGGER_PORT = 9003
+const REDIS_PORT = 9004
+const RESEND_PORT = 9005
+const CLOUDFLARE_PORT = 9006
 
 interface ServerConfig {
   port: number
-  serviceName: string
+  serviceName:
+    | 'svix'
+    | 'unkey'
+    | 'trigger'
+    | 'redis'
+    | 'resend'
+    | 'cloudflare'
   routeHandler?: (
     req: Request,
     pathname: string
-  ) => Response | Promise<Response> | null
+  ) => Response | Promise<Response | null> | null
 }
 
 function createServer(config: ServerConfig): void {
@@ -21,7 +33,7 @@ function createServer(config: ServerConfig): void {
 
   Bun.serve({
     port,
-    fetch(req) {
+    async fetch(req) {
       const url = new URL(req.url)
 
       if (url.pathname === '/health') {
@@ -30,7 +42,7 @@ function createServer(config: ServerConfig): void {
 
       // Try service-specific route handler
       if (routeHandler) {
-        const response = routeHandler(req, url.pathname)
+        const response = await routeHandler(req, url.pathname)
         if (response) {
           return response
         }
@@ -72,8 +84,28 @@ createServer({
   serviceName: 'trigger',
   routeHandler: handleTriggerRoute,
 })
+createServer({
+  port: REDIS_PORT,
+  serviceName: 'redis',
+  routeHandler: handleRedisRoute,
+})
+createServer({
+  port: RESEND_PORT,
+  serviceName: 'resend',
+  routeHandler: handleResendRoute,
+})
+createServer({
+  port: CLOUDFLARE_PORT,
+  serviceName: 'cloudflare',
+  routeHandler: handleCloudflareRoute,
+})
 
 console.log('\nMock servers started:')
-console.log(`  Svix:    http://localhost:${SVIX_PORT}/health`)
-console.log(`  Unkey:   http://localhost:${UNKEY_PORT}/health`)
-console.log(`  Trigger: http://localhost:${TRIGGER_PORT}/health`)
+console.log(`  Svix:       http://localhost:${SVIX_PORT}/health`)
+console.log(`  Unkey:      http://localhost:${UNKEY_PORT}/health`)
+console.log(`  Trigger:    http://localhost:${TRIGGER_PORT}/health`)
+console.log(`  Redis:      http://localhost:${REDIS_PORT}/health`)
+console.log(`  Resend:     http://localhost:${RESEND_PORT}/health`)
+console.log(
+  `  Cloudflare: http://localhost:${CLOUDFLARE_PORT}/health`
+)

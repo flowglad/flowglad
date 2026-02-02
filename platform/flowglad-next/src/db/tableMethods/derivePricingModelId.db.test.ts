@@ -20,6 +20,7 @@ import type { Purchase } from '@db-core/schema/purchases'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { UsageCredit } from '@db-core/schema/usageCredits'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -32,7 +33,7 @@ import {
   setupUsageCredit,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { ValidationError } from '@/errors'
 import { core, nanoid } from '@/utils/core'
 import {
@@ -61,13 +62,19 @@ describe('derivePricingModelIdFromProduct', () => {
   })
 
   it('should successfully derive pricingModelId when product has pricingModelId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdFromProduct(product.id, transaction)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const derivedPricingModelId =
+          await derivePricingModelIdFromProduct(
+            product.id,
+            transaction
+          )
 
-      expect(derivedPricingModelId).toBe(product.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(product.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   // Note: We skip testing the case where product.pricingModelId is null because
@@ -76,16 +83,19 @@ describe('derivePricingModelIdFromProduct', () => {
   // bypassing database constraints which is not a realistic test case.
 
   it('should throw an error when product does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentProductId = `prod_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentProductId = `prod_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromProduct(
-          nonExistentProductId,
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          derivePricingModelIdFromProduct(
+            nonExistentProductId,
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -108,16 +118,19 @@ describe('derivePricingModelIdFromUsageMeter', () => {
   })
 
   it('should successfully derive pricingModelId when usage meter has pricingModelId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdFromUsageMeter(
-          usageMeter.id,
-          transaction
-        )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const derivedPricingModelId =
+          await derivePricingModelIdFromUsageMeter(
+            usageMeter.id,
+            transaction
+          )
 
-      expect(derivedPricingModelId).toBe(usageMeter.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(usageMeter.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   // Note: We skip testing the case where usageMeter.pricingModelId is null because
@@ -126,16 +139,19 @@ describe('derivePricingModelIdFromUsageMeter', () => {
   // bypassing database constraints which is not a realistic test case.
 
   it('should throw an error when usage meter does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentUsageMeterId = `um_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromUsageMeter(
-          nonExistentUsageMeterId,
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          derivePricingModelIdFromUsageMeter(
+            nonExistentUsageMeterId,
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -163,23 +179,32 @@ describe('derivePricingModelIdFromPrice', () => {
   })
 
   it('should successfully derive pricingModelId from price via product', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdFromPrice(price.id, transaction)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const derivedPricingModelId =
+          await derivePricingModelIdFromPrice(price.id, transaction)
 
-      expect(derivedPricingModelId).toBe(product.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(product.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should throw an error when price does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentPriceId = `price_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentPriceId = `price_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromPrice(nonExistentPriceId, transaction)
-      ).rejects.toThrow()
-    })
+        await expect(
+          derivePricingModelIdFromPrice(
+            nonExistentPriceId,
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -240,29 +265,35 @@ describe('derivePricingModelIdFromUsageCredit', () => {
   })
 
   it('should successfully derive pricingModelId from usage credit', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdFromUsageCredit(
-          usageCredit.id,
-          transaction
-        )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const derivedPricingModelId =
+          await derivePricingModelIdFromUsageCredit(
+            usageCredit.id,
+            transaction
+          )
 
-      expect(derivedPricingModelId).toBe(usageCredit.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(usageCredit.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should throw an error when usage credit does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromUsageCredit(
-          nonExistentUsageCreditId,
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          derivePricingModelIdFromUsageCredit(
+            nonExistentUsageCreditId,
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -315,22 +346,25 @@ describe('derivePricingModelIdForCheckoutSession', () => {
   })
 
   it('should derive pricingModelId from priceId when provided (Product session)', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await derivePricingModelIdForCheckoutSession(
-        {
-          priceId: price.id,
-          purchaseId: null,
-          invoiceId: null,
-          customerId: null,
-          type: CheckoutSessionType.Product,
-        },
-        transaction
-      )
-      const derivedPricingModelId = result.unwrap()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: price.id,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: null,
+            type: CheckoutSessionType.Product,
+          },
+          transaction
+        )
+        const derivedPricingModelId = result.unwrap()
 
-      expect(derivedPricingModelId).toBe(product.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(product.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should derive pricingModelId from priceId for ActivateSubscription session', async () => {
@@ -341,93 +375,80 @@ describe('derivePricingModelIdForCheckoutSession', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      const result = await derivePricingModelIdForCheckoutSession(
-        {
-          priceId: price.id,
-          purchaseId: null,
-          invoiceId: null,
-          customerId: customer.id,
-          type: CheckoutSessionType.ActivateSubscription,
-        },
-        transaction
-      )
-      const derivedPricingModelId = result.unwrap()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: price.id,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: customer.id,
+            type: CheckoutSessionType.ActivateSubscription,
+          },
+          transaction
+        )
+        const derivedPricingModelId = result.unwrap()
 
-      expect(derivedPricingModelId).toBe(product.pricingModelId)
-      expect(derivedPricingModelId).toBe(subscription.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(product.pricingModelId)
+        expect(derivedPricingModelId).toBe(
+          subscription.pricingModelId
+        )
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should derive pricingModelId from purchaseId when priceId not provided (Purchase session)', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await derivePricingModelIdForCheckoutSession(
-        {
-          priceId: null,
-          purchaseId: purchase.id,
-          invoiceId: null,
-          customerId: null,
-          type: CheckoutSessionType.Purchase,
-        },
-        transaction
-      )
-      const derivedPricingModelId = result.unwrap()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: null,
+            purchaseId: purchase.id,
+            invoiceId: null,
+            customerId: null,
+            type: CheckoutSessionType.Purchase,
+          },
+          transaction
+        )
+        const derivedPricingModelId = result.unwrap()
 
-      expect(derivedPricingModelId).toBe(purchase.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(purchase.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should derive pricingModelId from customerId for AddPaymentMethod session when other IDs not provided', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await derivePricingModelIdForCheckoutSession(
-        {
-          priceId: null,
-          purchaseId: null,
-          invoiceId: null,
-          customerId: customer.id,
-          type: CheckoutSessionType.AddPaymentMethod,
-        },
-        transaction
-      )
-      const derivedPricingModelId = result.unwrap()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await derivePricingModelIdForCheckoutSession(
+          {
+            priceId: null,
+            purchaseId: null,
+            invoiceId: null,
+            customerId: customer.id,
+            type: CheckoutSessionType.AddPaymentMethod,
+          },
+          transaction
+        )
+        const derivedPricingModelId = result.unwrap()
 
-      expect(derivedPricingModelId).toBe(customer.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(customer.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should return error when no valid parent is provided', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await derivePricingModelIdForCheckoutSession(
-        {
-          priceId: null,
-          purchaseId: null,
-          invoiceId: null,
-          customerId: null,
-          type: CheckoutSessionType.Product,
-        },
-        transaction
-      )
-      expect(result.status).toBe('error')
-      if (result.status === 'error') {
-        expect(result.error).toBeInstanceOf(ValidationError)
-        expect(result.error.message).toBe(
-          'Invalid checkoutSession: Cannot derive pricingModelId for checkout session: no valid parent found'
-        )
-      }
-    })
-  })
-
-  it('should throw an error when parent does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentPriceId = `price_${core.nanoid()}`
-
-      await expect(
-        derivePricingModelIdForCheckoutSession(
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const result = await derivePricingModelIdForCheckoutSession(
           {
-            priceId: nonExistentPriceId,
+            priceId: null,
             purchaseId: null,
             invoiceId: null,
             customerId: null,
@@ -435,8 +456,38 @@ describe('derivePricingModelIdForCheckoutSession', () => {
           },
           transaction
         )
-      ).rejects.toThrow()
-    })
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toBe(
+            'Invalid checkoutSession: Cannot derive pricingModelId for checkout session: no valid parent found'
+          )
+        }
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+  })
+
+  it('should throw an error when parent does not exist', async () => {
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentPriceId = `price_${core.nanoid()}`
+
+        await expect(
+          derivePricingModelIdForCheckoutSession(
+            {
+              priceId: nonExistentPriceId,
+              purchaseId: null,
+              invoiceId: null,
+              customerId: null,
+              type: CheckoutSessionType.Product,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -492,26 +543,35 @@ describe('derivePricingModelIdFromPayment', () => {
   })
 
   it('should successfully derive pricingModelId from payment', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdFromPayment(payment.id, transaction)
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const derivedPricingModelId =
+          await derivePricingModelIdFromPayment(
+            payment.id,
+            transaction
+          )
 
-      expect(derivedPricingModelId).toBe(payment.pricingModelId)
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-    })
+        expect(derivedPricingModelId).toBe(payment.pricingModelId)
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('should throw an error when payment does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentPaymentId = `payment_${core.nanoid()}`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const nonExistentPaymentId = `payment_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromPayment(
-          nonExistentPaymentId,
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          derivePricingModelIdFromPayment(
+            nonExistentPaymentId,
+            transaction
+          )
+        ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -547,42 +607,45 @@ describe('insertCheckoutSession with derived pricingModelId', () => {
   })
 
   it('should automatically derive and set pricingModelId when inserting Product checkout session', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const checkoutSessionResult = await insertCheckoutSession(
-        {
-          organizationId: organization.id,
-          type: CheckoutSessionType.Product,
-          status: CheckoutSessionStatus.Open,
-          priceId: price.id,
-          customerId: customer.id,
-          livemode: true,
-          quantity: 1,
-          purchaseId: null,
-          invoiceId: null,
-          targetSubscriptionId: null,
-          preserveBillingCycleAnchor: false,
-          automaticallyUpdateSubscriptions: null,
-          billingAddress: null,
-          customerEmail: customer.email,
-          customerName: null,
-          paymentMethodType: null,
-          stripePaymentIntentId: null,
-          stripeSetupIntentId: null,
-          successUrl: null,
-          cancelUrl: null,
-          discountId: null,
-          outputMetadata: null,
-          outputName: null,
-        },
-        transaction
-      )
-      const checkoutSession = checkoutSessionResult.unwrap()
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const checkoutSessionResult = await insertCheckoutSession(
+          {
+            organizationId: organization.id,
+            type: CheckoutSessionType.Product,
+            status: CheckoutSessionStatus.Open,
+            priceId: price.id,
+            customerId: customer.id,
+            livemode: true,
+            quantity: 1,
+            purchaseId: null,
+            invoiceId: null,
+            targetSubscriptionId: null,
+            preserveBillingCycleAnchor: false,
+            automaticallyUpdateSubscriptions: null,
+            billingAddress: null,
+            customerEmail: customer.email,
+            customerName: null,
+            paymentMethodType: null,
+            stripePaymentIntentId: null,
+            stripeSetupIntentId: null,
+            successUrl: null,
+            cancelUrl: null,
+            discountId: null,
+            outputMetadata: null,
+            outputName: null,
+          },
+          transaction
+        )
+        const checkoutSession = checkoutSessionResult.unwrap()
 
-      expect(checkoutSession.pricingModelId).toBe(
-        product.pricingModelId
-      )
-      expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
-    })
+        expect(checkoutSession.pricingModelId).toBe(
+          product.pricingModelId
+        )
+        expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })
 
@@ -638,27 +701,30 @@ describe('insertRefund with derived pricingModelId', () => {
   })
 
   it('should automatically derive and set pricingModelId when inserting refund', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const refund = await insertRefund(
-        {
-          organizationId: organization.id,
-          paymentId: payment.id,
-          subscriptionId: null,
-          amount: 500,
-          currency: CurrencyCode.USD,
-          reason: 'Test refund',
-          status: RefundStatus.Succeeded,
-          refundProcessedAt: Date.now(),
-          gatewayRefundId: null,
-          notes: null,
-          initiatedByUserId: null,
-          livemode: true,
-        },
-        transaction
-      )
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        const refund = await insertRefund(
+          {
+            organizationId: organization.id,
+            paymentId: payment.id,
+            subscriptionId: null,
+            amount: 500,
+            currency: CurrencyCode.USD,
+            reason: 'Test refund',
+            status: RefundStatus.Succeeded,
+            refundProcessedAt: Date.now(),
+            gatewayRefundId: null,
+            notes: null,
+            initiatedByUserId: null,
+            livemode: true,
+          },
+          transaction
+        )
 
-      expect(refund.pricingModelId).toBe(payment.pricingModelId)
-      expect(refund.pricingModelId).toBe(pricingModel.id)
-    })
+        expect(refund.pricingModelId).toBe(payment.pricingModelId)
+        expect(refund.pricingModelId).toBe(pricingModel.id)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })

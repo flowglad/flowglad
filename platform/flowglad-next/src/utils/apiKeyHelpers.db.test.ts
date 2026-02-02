@@ -48,6 +48,7 @@ describe('apiKeyHelpers', () => {
     // Create a test membership
     const membership = await setupMemberships({
       organizationId: organization.id,
+      focusedPricingModelId: livemodePricingModelId,
     })
     membershipId = membership.id
     userId = membership.userId
@@ -436,24 +437,22 @@ describe('apiKeyHelpers', () => {
     })
 
     it('should NOT delete the database record if Unkey deletion fails', async () => {
-      // Configure the mock to reject for this test
-      globalThis.__mockUnkeyDeleteApiKey.mockRejectedValueOnce(
-        new Error('Unkey API error: Key not found')
-      )
+      // This test verifies atomicity: if Unkey deletion fails, the DB record should not be deleted.
+      // The mock server returns a 404 error when the keyId contains '_error_' or '_fail_'.
 
-      // Create a livemode API key WITH a fake unkeyId
+      // Create a livemode API key with an unkeyId that triggers mock server error
       const apiKeyWithUnkeyId = await adminTransaction(
         async ({ transaction }) => {
           return insertApiKey(
             {
               organizationId: organization.id,
               pricingModelId: livemodePricingModelId,
-              name: 'API Key With Fake Unkey ID',
+              name: 'API Key With Error-Triggering Unkey ID',
               token: `live_sk_unkey_${core.nanoid()}`,
               type: FlowgladApiKeyType.Secret,
               active: true,
               livemode: true,
-              unkeyId: `fake_unkey_id_${core.nanoid()}`, // Fake Unkey ID that will fail
+              unkeyId: `key_error_${core.nanoid()}`, // Contains '_error_' to trigger mock server 404
               hashText: `hash_${core.nanoid()}`,
             },
             transaction
@@ -486,7 +485,7 @@ describe('apiKeyHelpers', () => {
       )
       expect(keyAfterFailedDelete.id).toBe(apiKeyWithUnkeyId.id)
       expect(keyAfterFailedDelete.name).toBe(
-        'API Key With Fake Unkey ID'
+        'API Key With Error-Triggering Unkey ID'
       )
     })
   })

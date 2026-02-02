@@ -204,7 +204,6 @@ const migrateStripeCustomerDataToFlowglad = async (
         {
           transaction,
           cacheRecomputationContext: {
-            type: 'admin',
             livemode: true,
           },
           invalidateCache: () => {},
@@ -476,7 +475,6 @@ const migrateStripeCatalogDataToFlowglad = async (
   await db.transaction(async (transaction) => {
     // Create transaction context with noop callbacks for scripts
     const ctx = createTransactionEffectsContext(transaction, {
-      type: 'admin',
       livemode: true,
     })
 

@@ -1,8 +1,14 @@
-FROM oven/bun:1.3.6-slim
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+FROM oven/bun:1.3.6-alpine
+
+# Link package to repository for GHCR permissions
+LABEL org.opencontainers.image.source=https://github.com/flowglad/flowglad
+
+# Install wget for health checks (not included by default in alpine)
+RUN apk add --no-cache wget
+
 WORKDIR /app
 COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile --production
 COPY src ./src
-EXPOSE 9001 9002 9003
+EXPOSE 9001 9002 9003 9004 9005 9006
 CMD ["bun", "run", "src/index.ts"]

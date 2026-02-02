@@ -29,7 +29,6 @@ import {
   insertSubscriptionItemFeature,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectSubscriptionItemsWithPricesBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
@@ -37,18 +36,13 @@ import {
   generateTestKeyPrefix,
   getRedisTestClient,
   waitForCacheInvalidation,
-  waitForCachePopulation,
 } from '@/test/redisIntegrationHelpers'
 import {
   CacheDependency,
-  type CacheRecomputeMetadata,
   cached,
   cachedBulkLookup,
 } from '@/utils/cache'
-import {
-  invalidateDependencies,
-  recomputeDependencies,
-} from '@/utils/cache.internal'
+import { invalidateDependencies } from '@/utils/cache.internal'
 import { nanoid } from '@/utils/core'
 import {
   _setTestRedisClient,
@@ -1690,108 +1684,6 @@ return 0
     }
   })
 })
-
-describeIfRedisKey(
-  'selectSubscriptionItemsWithPricesBySubscriptionId recomputation Integration Tests',
-  () => {
-    let keysToCleanup: string[] = []
-
-    afterEach(async () => {
-      const client = getRedisTestClient()
-      await cleanupRedisTestKeys(client, keysToCleanup)
-      keysToCleanup = []
-    })
-
-    it('stores recompute metadata with params when populating cache', async () => {
-      const client = getRedisTestClient()
-
-      // Setup test data
-      const { organization, pricingModel } = await setupOrg()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const product = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Subscription Items Recompute Test Product',
-      })
-      const price = await setupPrice({
-        productId: product.id,
-        name: 'Subscription Items Recompute Test Price',
-        type: PriceType.Subscription,
-        unitPrice: 3000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-      })
-      const subscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        paymentMethodId: paymentMethod.id,
-        priceId: price.id,
-        status: SubscriptionStatus.Active,
-      })
-      await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        priceId: price.id,
-        name: 'Test Subscription Item',
-        quantity: 1,
-        unitPrice: 3000,
-      })
-
-      // Track keys for cleanup
-      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
-      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
-      const dependencyKey = CacheDependency.subscriptionItems(
-        subscription.id
-      )
-      const registryKey = `cacheDeps:${dependencyKey}`
-      keysToCleanup.push(cacheKey, metadataKey, registryKey)
-
-      // Populate cache by calling the function
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const cacheRecomputationContext = {
-          type: 'admin' as const,
-          livemode,
-        }
-        return selectSubscriptionItemsWithPricesBySubscriptionId(
-          subscription.id,
-          transaction,
-          cacheRecomputationContext
-        )
-      })
-
-      // Verify cache is populated (Upstash auto-parses JSON)
-      const cachedValue = await client.get(cacheKey)
-      expect(Array.isArray(cachedValue)).toBe(true)
-
-      // Verify recompute metadata is stored with correct params (Upstash auto-parses JSON)
-      const metadataValue =
-        await client.get<CacheRecomputeMetadata>(metadataKey)
-      expect(typeof metadataValue).toBe('object')
-
-      expect(metadataValue?.namespace).toBe(
-        RedisKeyNamespace.ItemsBySubscription
-      )
-      expect(metadataValue?.params).toEqual({
-        subscriptionId: subscription.id,
-        livemode: true,
-      })
-      expect(metadataValue?.cacheRecomputationContext.type).toBe(
-        'admin'
-      )
-      expect(metadataValue?.cacheRecomputationContext.livemode).toBe(
-        true
-      )
-      expect(metadataValue?.createdAt).toBeGreaterThan(0)
-    })
-  }
-)
 
 /**
  * Tests for evalWithShaFallback behavior in trackAndEvictLRU.

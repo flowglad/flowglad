@@ -38,7 +38,7 @@ import {
   setupPurchase,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import {
@@ -382,14 +382,17 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
+      const confirmResult = result
       // Verify customer was created with proper attributes
-      expect(result.customer).toMatchObject({})
-      expect(result.customer.email).toEqual('newcustomer@example.com')
-      expect(result.customer.name).toEqual('Test Customer')
-      expect(result.customer.stripeCustomerId).toEqual(
+      expect(confirmResult.customer).toMatchObject({})
+      expect(confirmResult.customer.email).toEqual(
+        'newcustomer@example.com'
+      )
+      expect(confirmResult.customer.name).toEqual('Test Customer')
+      expect(confirmResult.customer.stripeCustomerId).toEqual(
         mockStripeCustomer.id
       )
-      expect(result.customer.billingAddress).toEqual({
+      expect(confirmResult.customer.billingAddress).toEqual({
         address: {
           name: 'Test Customer',
           line1: '123 Test St',
@@ -401,14 +404,18 @@ describe('confirmCheckoutSessionTransaction', () => {
       })
 
       // Verify pricing model was associated with the correct default pricing model
-      expect(typeof result.customer.pricingModelId).toBe('string')
-      expect(result.customer.pricingModelId).toEqual(pricingModel.id)
+      expect(typeof confirmResult.customer.pricingModelId).toBe(
+        'string'
+      )
+      expect(confirmResult.customer.pricingModelId).toEqual(
+        pricingModel.id
+      )
     })
 
     it('should create free subscription when default product exists', async () => {
       // Ensure there is a free default price for this pricing model by creating one on the default product
-      const defaultProductId = await adminTransaction(
-        async ({ transaction }) => {
+      const defaultProductId = (
+        await adminTransactionWithResult(async ({ transaction }) => {
           const results =
             await selectPricesProductsAndPricingModelsForOrganization(
               { isDefault: true, livemode: true },
@@ -424,9 +431,9 @@ describe('confirmCheckoutSessionTransaction', () => {
             )
           if (!match.product)
             throw new Error('Product not found for default price')
-          return match.product.id
-        }
-      )
+          return Result.ok(await match.product.id)
+        })
+      ).unwrap()
       const freeDefaultPrice = await setupPrice({
         productId: defaultProductId,
         name: 'Free Plan',
@@ -474,20 +481,25 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
+      const confirmResult = result
       // Verify customer was created
-      expect(result.customer).toMatchObject({})
-      expect(result.customer.email).toEqual('newcustomer@example.com')
+      expect(confirmResult.customer).toMatchObject({})
+      expect(confirmResult.customer.email).toEqual(
+        'newcustomer@example.com'
+      )
 
       // Check for events in the database
-      const dbEvents = await adminTransaction(
-        async ({ transaction }) => {
-          return selectEventsByCustomer(
-            result.customer.id,
-            organization.id,
-            transaction
+      const dbEvents = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectEventsByCustomer(
+              confirmResult.customer.id,
+              organization.id,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify CustomerCreated event was created
       const customerCreatedEvent = dbEvents.find(
@@ -503,9 +515,9 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       // Assert customer payload details
       const customerPayload = customerCreatedEvent!.payload.customer!
-      expect(customerPayload.id).toEqual(result.customer.id)
+      expect(customerPayload.id).toEqual(confirmResult.customer.id)
       expect(customerPayload.externalId).toEqual(
-        result.customer.externalId
+        confirmResult.customer.externalId
       )
 
       // Check for subscription-related events (if default product exists)
@@ -517,18 +529,20 @@ describe('confirmCheckoutSessionTransaction', () => {
         EventNoun.Subscription
       )
       expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(
-        result.customer.id
+        confirmResult.customer.id
       )
 
       // Verify a subscription record exists and is a free plan linked to the free default price
-      const subscriptions = await adminTransaction(
-        async ({ transaction }) => {
-          return selectSubscriptions(
-            { customerId: result.customer.id },
-            transaction
+      const subscriptions = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await selectSubscriptions(
+              { customerId: confirmResult.customer.id },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(subscriptions).toHaveLength(1)
       expect(subscriptions[0].isFreePlan).toBe(true)
       expect(subscriptions[0].priceId).toEqual(defaultPriceId)
@@ -570,12 +584,15 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
+      const confirmResult = result
       // Verify customer was created with Stripe customer ID
-      expect(result.customer).toMatchObject({})
-      expect(result.customer.stripeCustomerId).toEqual(
+      expect(confirmResult.customer).toMatchObject({})
+      expect(confirmResult.customer.stripeCustomerId).toEqual(
         mockStripeCustomer.id
       )
-      expect(result.customer.email).toEqual('newcustomer@example.com')
+      expect(confirmResult.customer.email).toEqual(
+        'newcustomer@example.com'
+      )
 
       // Verify createStripeCustomer was called
       expect(mockCreateStripeCustomer).toHaveBeenCalledWith(
@@ -635,13 +652,16 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
+      const confirmResult = result
       // Verify customer was created with correct billing address
-      expect(result.customer).toMatchObject({})
-      expect(result.customer.billingAddress).toEqual(
+      expect(confirmResult.customer).toMatchObject({})
+      expect(confirmResult.customer.billingAddress).toEqual(
         testBillingAddress
       )
-      expect(result.customer.email).toEqual('newcustomer@example.com')
-      expect(result.customer.name).toEqual('Test Customer')
+      expect(confirmResult.customer.email).toEqual(
+        'newcustomer@example.com'
+      )
+      expect(confirmResult.customer.name).toEqual('Test Customer')
     })
 
     it('should throw an error when no customerId, purchaseId, or customerEmail are available', async () => {
@@ -731,8 +751,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toMatchObject({})
-      expect(result.customer?.stripeCustomerId).toEqual(
+      const confirmResult = result
+      expect(confirmResult.customer).toMatchObject({})
+      expect(confirmResult.customer?.stripeCustomerId).toEqual(
         mockStripeCustomer.id
       )
       // Verify that createStripeCustomer was called
@@ -1266,10 +1287,11 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.customer).toMatchObject({})
-      expect(result.customer?.id).toEqual(customer.id)
-      expect(result.customer?.email).toEqual(customer.email)
-      expect(result.customer?.stripeCustomerId).toEqual(
+      const confirmResult = result
+      expect(confirmResult.customer).toMatchObject({})
+      expect(confirmResult.customer?.id).toEqual(customer.id)
+      expect(confirmResult.customer?.email).toEqual(customer.email)
+      expect(confirmResult.customer?.stripeCustomerId).toEqual(
         customer.stripeCustomerId
       )
     })
