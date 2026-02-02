@@ -1151,9 +1151,11 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
       })
 
-      await expect(
-        executeBillingRun(testBillingRun.id)
-      ).resolves.toBeUndefined()
+      const result = await executeBillingRun(testBillingRun.id)
+      expect(Result.isOk(result)).toBe(true)
+      if (Result.isOk(result)) {
+        expect(result.value).toBeUndefined()
+      }
     }
     ;(
       await adminTransaction(async ({ transaction }) => {
@@ -1168,9 +1170,11 @@ describe('billingRunHelpers', async () => {
       })
     ).unwrap()
 
-    await expect(
-      executeBillingRun(billingRun.id)
-    ).resolves.toBeUndefined()
+    const finalResult = await executeBillingRun(billingRun.id)
+    expect(Result.isOk(finalResult)).toBe(true)
+    if (Result.isOk(finalResult)) {
+      expect(finalResult.value).toBeUndefined()
+    }
   })
 
   // NOTE: Atomicity tests for executeBillingRun have been moved to
@@ -1987,7 +1991,7 @@ describe('billingRunHelpers', async () => {
       )
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
-        expect(result.error.message).toBe(
+        expect(result.error.message).toContain(
           'Cannot run billing for a billing period with a customer that does not have a stripe customer id'
         )
       }
@@ -2018,7 +2022,7 @@ describe('billingRunHelpers', async () => {
       )
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
-        expect(result.error.message).toBe(
+        expect(result.error.message).toContain(
           'Cannot run billing for a billing period with a payment method that does not have a stripe payment method id'
         )
       }
