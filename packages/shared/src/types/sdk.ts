@@ -22,6 +22,7 @@ export enum FlowgladActionKey {
   GetPricingModel = 'pricing-models/retrieve',
   GetUsageMeterBalances = 'usage-meters/balances',
   GetFeatureAccess = 'features/access',
+  GetPaymentMethods = 'payment-methods/list',
 }
 
 /**
@@ -80,6 +81,9 @@ export interface FeatureAccessItem {
 
 export type CustomerRetrieveBillingResponse =
   FlowgladNode.Customers.CustomerRetrieveBillingResponse
+
+export type PaymentMethodDetails =
+  CustomerRetrieveBillingResponse['paymentMethods'][number]
 
 export type BillingWithChecks = CustomerRetrieveBillingResponse & {
   /**
