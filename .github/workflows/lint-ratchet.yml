@@ -5,7 +5,7 @@ on:
     branches: [main]
   merge_group:
 
-permissions: read
+permissions: read-all
 
 jobs:
   ratchet-check:
