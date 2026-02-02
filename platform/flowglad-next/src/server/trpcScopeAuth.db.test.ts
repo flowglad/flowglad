@@ -165,6 +165,11 @@ afterEach(() => {
 describe('customerProtectedProcedure scope validation', () => {
   describe('with valid customer session (scope=customer)', () => {
     it('authenticates successfully and returns billing data', async () => {
+      // Set the legacy auth session (used internally by authenticatedTransaction)
+      globalThis.__mockedAuthSession = {
+        user: { id: user.betterAuthId!, email: user.email! },
+      }
+
       // Create context with customer scope
       const ctx = {
         user,
@@ -192,6 +197,11 @@ describe('customerProtectedProcedure scope validation', () => {
     })
 
     it('gets organizationId from session.contextOrganizationId', async () => {
+      // Set the legacy auth session (used internally by authenticatedTransaction)
+      globalThis.__mockedAuthSession = {
+        user: { id: user.betterAuthId!, email: user.email! },
+      }
+
       // The organizationId in context should come from session.contextOrganizationId
       const ctx = {
         user,
