@@ -49,6 +49,80 @@ const parseErrorMessage = (rawMessage: string) => {
   return parsedMessage
 }
 
+/**
+ * Helper to get current trace ID from active span.
+ */
+function getTraceId(): string | undefined {
+  const span = trace.getActiveSpan()
+  return span?.spanContext().traceId
+}
+
+/**
+ * Creates response helpers with request ID and trace context baked in.
+ * These helpers ensure all responses include correlation headers for Better Stack.
+ */
+function createResponseHelpers(requestId: string) {
+  const getHeaders = (): HeadersInit => ({
+    'X-Request-Id': requestId,
+    ...(getTraceId() && { 'X-Trace-Id': getTraceId()! }),
+  })
+
+  return {
+    /**
+     * JSON response with correlation headers
+     */
+    json: <T>(
+      data: T,
+      init?: { status?: number; headers?: HeadersInit }
+    ): NextResponse<T> => {
+      return NextResponse.json(data, {
+        ...init,
+        headers: {
+          ...getHeaders(),
+          ...init?.headers,
+        },
+      })
+    },
+
+    /**
+     * Error response with trace context in body for Better Stack correlation.
+     * Includes request_id and trace_id so monitors can link to logs/traces.
+     */
+    error: (
+      errorMessage: string | object,
+      init: {
+        status: number
+        code?: string
+      }
+    ): NextResponse => {
+      const traceId = getTraceId()
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          ...(init.code && { code: init.code }),
+          // Include correlation IDs in error responses for Better Stack
+          request_id: requestId,
+          ...(traceId && { trace_id: traceId }),
+        },
+        {
+          status: init.status,
+          headers: getHeaders(),
+        }
+      )
+    },
+
+    /**
+     * Plain text response with correlation headers
+     */
+    text: (body: string, init?: { status?: number }): Response => {
+      return new Response(body, {
+        ...init,
+        headers: getHeaders(),
+      })
+    },
+  }
+}
+
 // NOTE: consolidated REST route mapping lives in `restRoutes.ts` so it can be unit-tested
 // without importing Next.js route handler modules.
 
@@ -82,6 +156,7 @@ const innerHandler = async (
   const tracer = trace.getTracer('rest-api')
   const requestId = crypto.randomUUID().slice(0, 8)
   const requestStartTime = Date.now()
+  const respond = createResponseHelpers(requestId)
 
   return tracer.startActiveSpan(
     `REST ${req.method}`,
@@ -118,7 +193,7 @@ const innerHandler = async (
             method: req.method,
             url: req.url,
           })
-          return new Response('Unauthorized', { status: 401 })
+          return respond.text('Unauthorized', { status: 401 })
         }
 
         const path = (await params).path.join('/')
@@ -190,7 +265,7 @@ const innerHandler = async (
         const routeMatchingStartTime = Date.now()
         const matchingRoute = Object.entries(routes).find(
           ([key, config]) => {
-            const [routeMethod, routePath] = key.split(' ')
+            const [routeMethod] = key.split(' ')
             return (
               req.method === routeMethod && config.pattern.test(path)
             )
@@ -222,7 +297,7 @@ const innerHandler = async (
             available_routes: Object.keys(routes).length,
           })
 
-          return new Response('Not Found', { status: 404 })
+          return respond.text('Not Found', { status: 404 })
         }
 
         const [routeKey, route] = matchingRoute
@@ -304,10 +379,9 @@ const innerHandler = async (
                 }
               )
 
-              return NextResponse.json(
-                { error: 'Invalid JSON in request body' },
-                { status: 400 }
-              )
+              return respond.error('Invalid JSON in request body', {
+                status: 400,
+              })
             }
           }
         }
@@ -417,10 +491,9 @@ const innerHandler = async (
               }
             )
 
-            return NextResponse.json(
-              { error: (error as Error).message },
-              { status: 400 }
-            )
+            return respond.error((error as Error).message, {
+              status: 400,
+            })
           }
         }
 
@@ -526,15 +599,10 @@ const innerHandler = async (
             stack: responseJson.error.json.data.stack,
           })
 
-          return NextResponse.json(
-            {
-              error: errorMessage,
-              code: errorCode,
-            },
-            {
-              status: httpStatus,
-            }
-          )
+          return respond.error(errorMessage, {
+            status: httpStatus,
+            code: errorCode,
+          })
         }
 
         // Success response
@@ -589,7 +657,7 @@ const innerHandler = async (
           span: parentSpan, // Pass span explicitly for trace correlation
         })
 
-        return NextResponse.json(responseData)
+        return respond.json(responseData)
       } catch (error) {
         // Catch any unexpected errors
         const totalDuration = Date.now() - requestStartTime
@@ -623,10 +691,7 @@ const innerHandler = async (
           span: parentSpan, // Pass span explicitly for trace correlation
         })
 
-        return NextResponse.json(
-          { error: 'Internal server error' },
-          { status: 500 }
-        )
+        return respond.error('Internal server error', { status: 500 })
       } finally {
         parentSpan.end()
       }
