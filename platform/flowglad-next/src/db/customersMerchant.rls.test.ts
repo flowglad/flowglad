@@ -124,19 +124,17 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
 
   it('does not allow updating customers from another organization', async () => {
     await expect(
-      (
-        await authenticatedTransaction(
-          async ({ transaction }) => {
-            const updated = await updateCustomer(
-              { id: customerOrg2.id, name: 'Blocked update' },
-              transaction
-            )
-            return Result.ok(updated)
-          },
-          { apiKey: apiKeyForOrg1.token }
-        )
-      ).unwrap()
-    ).toThrow()
+      authenticatedTransaction(
+        async ({ transaction }) => {
+          const updated = await updateCustomer(
+            { id: customerOrg2.id, name: 'Blocked update' },
+            transaction
+          )
+          return Result.ok(updated)
+        },
+        { apiKey: apiKeyForOrg1.token }
+      ).then((result) => result.unwrap())
+    ).rejects.toThrow()
   })
 
   it('allows updating a customer in the current organization', async () => {

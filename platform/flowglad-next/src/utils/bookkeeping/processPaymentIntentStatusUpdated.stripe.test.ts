@@ -2512,7 +2512,7 @@ describe('Process payment intent status updated', async () => {
             last4: '4242',
           },
         },
-      } as any)
+      } as unknown as Stripe.Charge)
 
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -2948,7 +2948,7 @@ describe('Process payment intent status updated', async () => {
           organizationId: organization.id,
           createdBy: 'test',
         },
-      } as any)
+      } as unknown as Stripe.Response<Stripe.Customer>)
 
       // Create an anonymous checkout session (no customer ID)
       const anonymousCheckoutSession = (

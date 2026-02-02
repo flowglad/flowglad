@@ -800,7 +800,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         object: 'setup_intent',
         customer: null,
         status: 'requires_payment_method',
-      } as any)
+      } as unknown as Stripe.Response<Stripe.SetupIntent>)
     })
 
     it('should update setup intent when stripeSetupIntentId is set and fetched setup intent has no customer', async () => {

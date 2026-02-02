@@ -1033,7 +1033,7 @@ const retryBillingRunProcedure = protectedProcedure
   .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
   .mutation(async ({ input, ctx }) => {
-    const result = (
+    const result = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
           const billingPeriod = (
@@ -1114,7 +1114,7 @@ const retryBillingRunProcedure = protectedProcedure
         },
         { apiKey: ctx.apiKey }
       )
-    ).unwrap()
+    )
     const billingRunResult = await executeBillingRun(result.id)
     if (Result.isError(billingRunResult)) {
       throw new TRPCError({
