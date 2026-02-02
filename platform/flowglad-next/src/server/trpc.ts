@@ -317,6 +317,14 @@ const isCustomerSessionAuthed = t.middleware(
       })
     }
 
+    // Verify organization exists (handles deleted/stale org references)
+    if (!customerCtx.organization) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Organization not found or access denied',
+      })
+    }
+
     return next({
       ctx: {
         user,
