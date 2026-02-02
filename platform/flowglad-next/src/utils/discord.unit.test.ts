@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test'
-import { sanitizeChannelName } from './discord'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { getDiscordConfig, sanitizeChannelName } from './discord'
 
 describe('discord', () => {
   describe('sanitizeChannelName', () => {
@@ -35,29 +35,69 @@ describe('discord', () => {
     })
   })
 
+  describe('getDiscordConfig', () => {
+    let originalBotToken: string | undefined
+    let originalGuildId: string | undefined
+
+    beforeEach(() => {
+      originalBotToken = process.env.DISCORD_BOT_TOKEN
+      originalGuildId = process.env.DISCORD_GUILD_ID
+    })
+
+    afterEach(() => {
+      if (originalBotToken !== undefined) {
+        process.env.DISCORD_BOT_TOKEN = originalBotToken
+      } else {
+        delete process.env.DISCORD_BOT_TOKEN
+      }
+      if (originalGuildId !== undefined) {
+        process.env.DISCORD_GUILD_ID = originalGuildId
+      } else {
+        delete process.env.DISCORD_GUILD_ID
+      }
+    })
+
+    it('throws error when bot token is missing', () => {
+      delete process.env.DISCORD_BOT_TOKEN
+      process.env.DISCORD_GUILD_ID = 'test-guild-id'
+
+      expect(() => getDiscordConfig()).toThrow(
+        'DISCORD_BOT_TOKEN environment variable is required'
+      )
+    })
+
+    it('throws error when guild ID is missing', () => {
+      process.env.DISCORD_BOT_TOKEN = 'test-bot-token'
+      delete process.env.DISCORD_GUILD_ID
+
+      expect(() => getDiscordConfig()).toThrow(
+        'DISCORD_GUILD_ID environment variable is required'
+      )
+    })
+
+    it('returns config when both required env vars are set', () => {
+      process.env.DISCORD_BOT_TOKEN = 'test-bot-token'
+      process.env.DISCORD_GUILD_ID = 'test-guild-id'
+
+      const config = getDiscordConfig()
+
+      expect(config.botToken).toBe('test-bot-token')
+      expect(config.guildId).toBe('test-guild-id')
+      expect(config.conciergeCategoryPrefix).toBe('Concierge Cohort')
+    })
+  })
+
   describe('getOrCreateConciergeChannel', () => {
     it.skip('creates a new channel when none exists', async () => {
-      // PENDING: Patch 5
+      // Requires mocking Discord REST API - better suited for manual integration testing
       // setup: mock discord.js client, guild with no matching channel
       // expectation: creates channel with correct name and permissions, returns invite URL
     })
 
     it.skip('finds existing channel by ID and returns invite', async () => {
-      // PENDING: Patch 5
+      // Requires mocking Discord REST API - better suited for manual integration testing
       // setup: mock discord.js client, pass existing channel ID
       // expectation: does not create new channel, returns existing invite URL
-    })
-
-    it.skip('throws error when bot token is missing', async () => {
-      // PENDING: Patch 5
-      // setup: unset DISCORD_BOT_TOKEN
-      // expectation: throws Error with message about missing token
-    })
-
-    it.skip('throws error when guild ID is missing', async () => {
-      // PENDING: Patch 5
-      // setup: unset DISCORD_GUILD_ID
-      // expectation: throws Error with message about missing guild ID
     })
   })
 })
