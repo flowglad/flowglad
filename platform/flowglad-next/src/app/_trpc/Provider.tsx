@@ -38,26 +38,44 @@ export default function Provider({
     trpc.createClient({
       links: [
         /**
-         * Conditional link to use streaming or batching based on the path
-         * .streaming suffix on procedure name indicates a streaming response.
+         * First split: Route customerBillingPortal operations to customer TRPC endpoint.
+         * This ensures customer billing portal uses customer session context.
          */
         splitLink({
-          // decide which link to use
           condition(op) {
-            return op.path.endsWith('.streaming')
+            return op.path.startsWith('customerBillingPortal.')
           },
-          // true branch -> stream responses
+          // customerBillingPortal operations -> customer endpoint
           true: [
-            httpBatchStreamLink({
-              url: `${core.envVariable('APP_URL')}/api/trpc`,
+            httpBatchLink({
+              url: `${core.envVariable('APP_URL')}/api/trpc/customer`,
               transformer: SuperJSON,
             }),
           ],
-          // false branch -> normal batching
+          // All other operations -> default endpoint with streaming support
           false: [
-            httpBatchLink({
-              url: `${core.envVariable('APP_URL')}/api/trpc`,
-              transformer: SuperJSON,
+            /**
+             * Second split: Use streaming or batching based on the path
+             * .streaming suffix on procedure name indicates a streaming response.
+             */
+            splitLink({
+              condition(op) {
+                return op.path.endsWith('.streaming')
+              },
+              // true branch -> stream responses
+              true: [
+                httpBatchStreamLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc`,
+                  transformer: SuperJSON,
+                }),
+              ],
+              // false branch -> normal batching
+              false: [
+                httpBatchLink({
+                  url: `${core.envVariable('APP_URL')}/api/trpc`,
+                  transformer: SuperJSON,
+                }),
+              ],
             }),
           ],
         }),
