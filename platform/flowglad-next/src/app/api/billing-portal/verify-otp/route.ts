@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
@@ -163,23 +164,85 @@ export async function POST(request: NextRequest) {
 
     // Update the session's contextOrganizationId in the database
     // This makes the organization context authoritative from the session, not cookies
+    // CRITICAL: This is required for proper authorization - customer procedures read from session context
     if (sessionToken) {
       try {
-        await adminTransaction(async ({ transaction }) => {
-          return updateSessionContextOrganizationId(
-            sessionToken,
-            organizationId,
-            transaction
+        const updatedSession = await adminTransaction(
+          async ({ transaction }) => {
+            return updateSessionContextOrganizationId(
+              sessionToken,
+              organizationId,
+              transaction
+            )
+          }
+        )
+
+        // Verify the update succeeded - if no session was found, this is a critical error
+        if (!updatedSession) {
+          const error = new Error(
+            `Failed to set contextOrganizationId: session not found for token`
           )
-        })
+          Sentry.captureException(error, {
+            extra: {
+              organizationId,
+              customerId,
+              hasSessionToken: true,
+              sessionTokenLength: sessionToken.length,
+            },
+          })
+          // Fail the request - without contextOrganizationId, customer procedures will reject
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'Authentication succeeded but session setup failed. Please try again.',
+            },
+            { status: 500 }
+          )
+        }
       } catch (error) {
-        // Log but don't fail the request - session will work without context
-        // and fallback to cookie-based context
+        // Report to Sentry for observability - this is a critical failure
+        Sentry.captureException(error, {
+          extra: {
+            organizationId,
+            customerId,
+            context: 'verify-otp contextOrganizationId update',
+          },
+        })
         console.error(
           'Failed to set contextOrganizationId on session:',
           error
         )
+        // Fail the request - without contextOrganizationId, customer procedures will reject
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Authentication succeeded but session setup failed. Please try again.',
+          },
+          { status: 500 }
+        )
       }
+    } else {
+      // No session token found in response - this is unexpected
+      const error = new Error(
+        'Customer auth response did not include session token cookie'
+      )
+      Sentry.captureException(error, {
+        extra: {
+          organizationId,
+          customerId,
+          setCookieHeadersCount: setCookieHeaders.length,
+        },
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Authentication succeeded but session setup failed. Please try again.',
+        },
+        { status: 500 }
+      )
     }
 
     // Clear the transient email cookie after successful verification

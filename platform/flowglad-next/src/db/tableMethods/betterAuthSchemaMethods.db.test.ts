@@ -116,4 +116,62 @@ describe('updateSessionContextOrganizationId', () => {
 
     expect(updatedSession.contextOrganizationId).toBe(orgId2)
   })
+
+  describe('Zod input validation', () => {
+    it('throws ZodError when sessionToken is empty string', async () => {
+      const emptyToken = ''
+      const orgId = 'org_test_123'
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return updateSessionContextOrganizationId(
+            emptyToken,
+            orgId,
+            transaction
+          )
+        })
+      ).rejects.toThrow('Session token is required')
+    })
+
+    it('throws ZodError when contextOrganizationId is empty string', async () => {
+      const emptyOrgId = ''
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return updateSessionContextOrganizationId(
+            testSessionToken,
+            emptyOrgId,
+            transaction
+          )
+        })
+      ).rejects.toThrow('Context organization ID is required')
+    })
+  })
+
+  describe('Zod output validation', () => {
+    it('returns properly validated session object with all expected fields', async () => {
+      const orgId = 'org_test_validated'
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return updateSessionContextOrganizationId(
+            testSessionToken,
+            orgId,
+            transaction
+          )
+        }
+      )
+
+      // Verify all expected fields are present and correctly typed
+      // (subsequent assertions will fail if result is undefined)
+      expect(typeof result!.id).toBe('string')
+      expect(typeof result!.token).toBe('string')
+      expect(typeof result!.userId).toBe('string')
+      expect(result!.expiresAt).toBeInstanceOf(Date)
+      expect(result!.createdAt).toBeInstanceOf(Date)
+      expect(result!.updatedAt).toBeInstanceOf(Date)
+      expect(result!.scope).toBe('customer')
+      expect(result!.contextOrganizationId).toBe(orgId)
+    })
+  })
 })

@@ -78,10 +78,14 @@ beforeEach(async () => {
   product = orgSetup.product
   price = orgSetup.price
 
+  // Generate a betterAuthId for the test user (required for auth session mocking)
+  const betterAuthUserId = `ba_${core.nanoid()}`
+
   // Set up user and customer with authentication
   const userAndCustomerSetup = await setupUserAndCustomer({
     organizationId: organization.id,
     livemode: true,
+    betterAuthUserId,
   })
   user = userAndCustomerSetup.user
   customer = userAndCustomerSetup.customer
