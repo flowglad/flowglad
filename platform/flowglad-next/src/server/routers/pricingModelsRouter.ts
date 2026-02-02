@@ -158,23 +158,27 @@ const createPricingModelProcedure = protectedProcedure
     }
     // Always create in testmode - only one livemode pricing model is allowed
     // per organization. Uses adminTransaction to bypass livemode RLS.
-    const result = await adminTransaction(
-      async (transactionCtx) => {
-        const bookkeepingResult = await createPricingModelBookkeeping(
-          {
-            pricingModel: input.pricingModel,
-            defaultPlanIntervalUnit: input.defaultPlanIntervalUnit,
-          },
-          {
-            ...transactionCtx,
-            organizationId,
-            livemode: false,
-          }
-        )
-        return bookkeepingResult.unwrap()
-      },
-      { livemode: false }
-    )
+    const result = (
+      await adminTransaction(
+        async (transactionCtx) => {
+          const bookkeepingResult =
+            await createPricingModelBookkeeping(
+              {
+                pricingModel: input.pricingModel,
+                defaultPlanIntervalUnit:
+                  input.defaultPlanIntervalUnit,
+              },
+              {
+                ...transactionCtx,
+                organizationId,
+                livemode: false,
+              }
+            )
+          return Result.ok(bookkeepingResult.unwrap())
+        },
+        { livemode: false }
+      )
+    ).unwrap()
     return { pricingModel: result.pricingModel }
   })
 
@@ -311,11 +315,13 @@ const clonePricingModelProcedure = protectedProcedure
      * - Removing destinationEnvironment from the public API schema (clonePricingModelInputSchema)
      * - Adding role/scope checks before allowing cross-environment clones
      */
-    const clonedPricingModel = await adminTransaction(
-      async (transactionCtx) => {
-        return clonePricingModelTransaction(input, transactionCtx)
-      }
-    )
+    const clonedPricingModel = (
+      await adminTransaction(async (transactionCtx) => {
+        return Result.ok(
+          await clonePricingModelTransaction(input, transactionCtx)
+        )
+      })
+    ).unwrap()
 
     return { pricingModel: clonedPricingModel }
   })
@@ -374,17 +380,21 @@ const getAllForSwitcherProcedure = protectedProcedure
 
     // Use adminTransaction to bypass RLS livemode check,
     // but explicitly scope to the user's organization for security
-    return adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsTableRows({
-        input: {
-          pageSize: 100,
-          filters: {
-            organizationId: ctx.organizationId,
-          },
-        },
-        transaction,
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectPricingModelsTableRows({
+            input: {
+              pageSize: 100,
+              filters: {
+                organizationId: ctx.organizationId,
+              },
+            },
+            transaction,
+          })
+        )
       })
-    })
+    ).unwrap()
   })
 
 /**
@@ -424,7 +434,7 @@ const setupPricingModelProcedure = protectedProcedure
     // Always create in testmode - only one livemode pricing model is allowed
     // per organization. Uses adminTransaction to bypass livemode and pricing
     // model scope RLS policies.
-    const pricingModelWithProductsAndUsageMeters =
+    const pricingModelWithProductsAndUsageMeters = (
       await adminTransaction(
         async (transactionCtx) => {
           const { transaction } = transactionCtx
@@ -442,10 +452,11 @@ const setupPricingModelProcedure = protectedProcedure
               { id: setupResult.pricingModel.id },
               transaction
             )
-          return pricingModel
+          return Result.ok(pricingModel)
         },
         { livemode: false }
       )
+    ).unwrap()
     return { pricingModel: pricingModelWithProductsAndUsageMeters }
   })
 

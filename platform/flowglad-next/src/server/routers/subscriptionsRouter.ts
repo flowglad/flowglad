@@ -1034,85 +1034,88 @@ const retryBillingRunProcedure = protectedProcedure
   .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
   .mutation(async ({ input, ctx }) => {
-    // Use authenticatedTransaction (throwing version) since callback doesn't need Result return
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const billingPeriod = (
-          await selectBillingPeriodById(
-            input.billingPeriodId,
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const billingPeriod = (
+            await selectBillingPeriodById(
+              input.billingPeriodId,
+              transaction
+            )
+          ).unwrap()
+          if (
+            billingPeriod.status === BillingPeriodStatus.Completed
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already completed',
+            })
+          }
+          if (billingPeriod.status === BillingPeriodStatus.Canceled) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already canceled',
+            })
+          }
+          if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already upcoming',
+            })
+          }
+          const subscription = (
+            await selectSubscriptionById(
+              billingPeriod.subscriptionId,
+              transaction
+            )
+          ).unwrap()
+
+          if (subscription.doNotCharge) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Cannot retry billing for doNotCharge subscriptions',
+            })
+          }
+
+          const paymentMethod = subscription.defaultPaymentMethodId
+            ? (
+                await selectPaymentMethodById(
+                  subscription.defaultPaymentMethodId,
+                  transaction
+                )
+              ).unwrap()
+            : (
+                await selectPaymentMethods(
+                  {
+                    customerId: subscription.customerId,
+                    default: true,
+                  },
+                  transaction
+                )
+              )[0]
+
+          if (!paymentMethod) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'No payment method found for subscription',
+            })
+          }
+
+          const billingRunResult = await createBillingRun(
+            {
+              billingPeriod,
+              scheduledFor: new Date(),
+              paymentMethod,
+            },
             transaction
           )
-        ).unwrap()
-        if (billingPeriod.status === BillingPeriodStatus.Completed) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already completed',
-          })
-        }
-        if (billingPeriod.status === BillingPeriodStatus.Canceled) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already canceled',
-          })
-        }
-        if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already upcoming',
-          })
-        }
-        const subscription = (
-          await selectSubscriptionById(
-            billingPeriod.subscriptionId,
-            transaction
-          )
-        ).unwrap()
-
-        if (subscription.doNotCharge) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Cannot retry billing for doNotCharge subscriptions',
-          })
-        }
-
-        const paymentMethod = subscription.defaultPaymentMethodId
-          ? (
-              await selectPaymentMethodById(
-                subscription.defaultPaymentMethodId,
-                transaction
-              )
-            ).unwrap()
-          : (
-              await selectPaymentMethods(
-                {
-                  customerId: subscription.customerId,
-                  default: true,
-                },
-                transaction
-              )
-            )[0]
-
-        if (!paymentMethod) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'No payment method found for subscription',
-          })
-        }
-
-        const billingRunResult = await createBillingRun(
-          {
-            billingPeriod,
-            scheduledFor: new Date(),
-            paymentMethod,
-          },
-          transaction
-        )
-        // Unwrap the Result from createBillingRun
-        return billingRunResult.unwrap()
-      },
-      { apiKey: ctx.apiKey }
-    )
+          // Unwrap the Result from createBillingRun and wrap in Result.ok
+          return Result.ok(billingRunResult.unwrap())
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
     const billingRun = await executeBillingRun(result.id)
     if (!billingRun) {
       throw new TRPCError({

@@ -283,38 +283,40 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
 
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
-    return adminTransaction(
-      async ({
-        transaction,
-        cacheRecomputationContext,
-        invalidateCache,
-        emitEvent,
-        enqueueLedgerCommand,
-      }) => {
-        const ctx = {
+    return (
+      await adminTransaction(
+        async ({
           transaction,
           cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+        }) => {
+          const ctx = {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }
+          const subscriptionResult =
+            await scheduleSubscriptionCancellation(input, ctx)
+          const subscription = subscriptionResult.unwrap()
+          return Result.ok({
+            subscription: {
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            },
+          })
+        },
+        {
+          livemode,
         }
-        const subscriptionResult =
-          await scheduleSubscriptionCancellation(input, ctx)
-        const subscription = subscriptionResult.unwrap()
-        return {
-          subscription: {
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
-          },
-        }
-      },
-      {
-        livemode,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 // uncancelSubscription procedure

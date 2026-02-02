@@ -262,34 +262,31 @@ export async function authenticatedTransactionUnwrap<T>(
  * Executes a function within an authenticated database transaction.
  * The callback receives full transaction parameters including userId, organizationId, and livemode.
  *
- * This function throws on errors - use `authenticatedTransactionWithResult` for explicit Result handling.
+ * The callback is responsible for returning a Result - this function passes through whatever
+ * Result the callback returns.
  *
- * @param fn - Function that receives authenticated transaction parameters and returns a value
+ * @param fn - Function that receives authenticated transaction parameters and returns a Result
  * @param options - Authentication options including apiKey
- * @returns The value returned by the callback, throws on error
+ * @returns Promise resolving to the Result returned by the callback
  *
  * @example
  * ```ts
- * const data = await authenticatedTransaction(async ({ transaction, organizationId }) => {
- *   return selectCustomerById(customerId, transaction)
+ * const result = await authenticatedTransaction(async ({ transaction, organizationId }) => {
+ *   const customer = await selectCustomerById(customerId, transaction)
+ *   if (!customer) {
+ *     return Result.err(new NotFoundError('Customer', customerId))
+ *   }
+ *   return Result.ok(customer)
  * }, { apiKey })
  * ```
  */
 export async function authenticatedTransaction<T>(
-  fn: (params: AuthenticatedTransactionParams) => Promise<T>,
+  fn: (
+    params: AuthenticatedTransactionParams
+  ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
-): Promise<T> {
-  const result = await authenticatedTransactionWithResult(
-    async (params) => {
-      const value = await fn(params)
-      return Result.ok(value)
-    },
-    options
-  )
-  if (result.status === 'error') {
-    throw result.error
-  }
-  return result.value
+): Promise<Result<T, Error>> {
+  return authenticatedTransactionWithResult(fn, options)
 }
 
 /**

@@ -143,31 +143,29 @@ export async function adminTransactionUnwrap<T>(
  * Executes a function within an admin database transaction.
  * The callback receives full transaction parameters.
  *
- * This function throws on errors - use `adminTransactionWithResult` for explicit Result handling.
+ * The callback is responsible for returning a Result - this function passes through whatever
+ * Result the callback returns.
  *
- * @param fn - Function that receives admin transaction parameters and returns a value
+ * @param fn - Function that receives admin transaction parameters and returns a Result
  * @param options - Transaction options including livemode flag
- * @returns The value returned by the callback, throws on error
+ * @returns Promise resolving to the Result returned by the callback
  *
  * @example
  * ```ts
- * const data = await adminTransaction(async ({ transaction }) => {
- *   return selectCustomerById(customerId, transaction)
+ * const result = await adminTransaction(async ({ transaction }) => {
+ *   const customer = await selectCustomerById(customerId, transaction)
+ *   if (!customer) {
+ *     return Result.err(new NotFoundError('Customer', customerId))
+ *   }
+ *   return Result.ok(customer)
  * })
  * ```
  */
 export async function adminTransaction<T>(
-  fn: (params: AdminTransactionParams) => Promise<T>,
+  fn: (params: AdminTransactionParams) => Promise<Result<T, Error>>,
   options: AdminTransactionOptions = {}
-): Promise<T> {
-  const result = await adminTransactionWithResult(async (params) => {
-    const value = await fn(params)
-    return Result.ok(value)
-  }, options)
-  if (result.status === 'error') {
-    throw result.error
-  }
-  return result.value
+): Promise<Result<T, Error>> {
+  return adminTransactionWithResult(fn, options)
 }
 
 /**

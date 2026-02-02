@@ -271,14 +271,16 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return adminTransaction(async ({ transaction }) => {
-        const result =
-          await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
-            input,
-            transaction
-          )
-        return { checkoutSession: result.unwrap() }
-      })
+      return (
+        await adminTransaction(async ({ transaction }) => {
+          const result =
+            await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
+              input,
+              transaction
+            )
+          return Result.ok({ checkoutSession: result.unwrap() })
+        })
+      ).unwrap()
     })
 
 export const checkoutSessionsRouter = router({
