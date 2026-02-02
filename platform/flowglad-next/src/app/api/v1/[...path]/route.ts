@@ -18,7 +18,7 @@ import { appRouter } from '@/server'
 import { createApiContext } from '@/server/trpcContext'
 import { type ApiEnvironment } from '@/types'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
-import core from '@/utils/core'
+import core, { captureError } from '@/utils/core'
 import { logger } from '@/utils/logger'
 import {
   type PaginationParams,
@@ -86,13 +86,14 @@ function createResponseHelpers(requestId: string) {
 
     /**
      * Error response with trace context in body for Better Stack correlation.
-     * Includes request_id and trace_id so monitors can link to logs/traces.
+     * Includes request_id, trace_id, and sentry_event_id so monitors can link to logs/traces/Sentry.
      */
     error: (
       errorMessage: string | object,
       init: {
         status: number
         code?: string
+        sentryEventId?: string
       }
     ): NextResponse => {
       const traceId = getTraceId()
@@ -103,6 +104,9 @@ function createResponseHelpers(requestId: string) {
           // Include correlation IDs in error responses for Better Stack
           request_id: requestId,
           ...(traceId && { trace_id: traceId }),
+          ...(init.sentryEventId && {
+            sentry_event_id: init.sentryEventId,
+          }),
         },
         {
           status: init.status,
@@ -567,6 +571,33 @@ const innerHandler = async (
 
           const totalDuration = Date.now() - requestStartTime
 
+          // Capture to Sentry only for 5xx server errors (not client errors)
+          let sentryEventId: string | undefined
+          if (httpStatus >= 500) {
+            sentryEventId = captureError(
+              new Error(
+                typeof errorMessage === 'string'
+                  ? errorMessage
+                  : JSON.stringify(errorMessage)
+              ),
+              {
+                tags: {
+                  request_id: requestId,
+                  error_code: errorCode,
+                  error_category: errorCategory,
+                  procedure: route.procedure,
+                },
+                extra: {
+                  path,
+                  method: req.method,
+                  organization_id: organizationId,
+                  http_status: httpStatus,
+                  stack: responseJson.error.json.data.stack,
+                },
+              }
+            )
+          }
+
           parentSpan.setStatus({
             code: SpanStatusCode.ERROR,
             message: errorMessage as string,
@@ -580,6 +611,9 @@ const innerHandler = async (
             'perf.total_duration_ms': totalDuration,
             'perf.response_serialization_duration_ms':
               responseSerializationDuration,
+            ...(sentryEventId && {
+              'sentry.event_id': sentryEventId,
+            }),
           })
 
           logger.error(`[${requestId}] REST API Error`, {
@@ -597,11 +631,13 @@ const innerHandler = async (
             pricing_model_id: pricingModelId,
             total_duration_ms: totalDuration,
             stack: responseJson.error.json.data.stack,
+            sentry_event_id: sentryEventId,
           })
 
           return respond.error(errorMessage, {
             status: httpStatus,
             code: errorCode,
+            sentryEventId,
           })
         }
 
@@ -662,6 +698,18 @@ const innerHandler = async (
         // Catch any unexpected errors
         const totalDuration = Date.now() - requestStartTime
 
+        // Capture to Sentry and get event ID for correlation
+        const sentryEventId = captureError(error, {
+          tags: {
+            request_id: requestId,
+            method: req.method,
+          },
+          extra: {
+            url: req.url,
+            total_duration_ms: totalDuration,
+          },
+        })
+
         parentSpan.recordException(error as Error)
         parentSpan.setStatus({
           code: SpanStatusCode.ERROR,
@@ -673,6 +721,7 @@ const innerHandler = async (
           'error.message': (error as Error).message,
           'http.status_code': 500,
           'perf.total_duration_ms': totalDuration,
+          ...(sentryEventId && { 'sentry.event_id': sentryEventId }),
         })
 
         const errorApiEnvironment = req.unkey
@@ -689,9 +738,13 @@ const innerHandler = async (
           total_duration_ms: totalDuration,
           rest_sdk_version: sdkVersion,
           span: parentSpan, // Pass span explicitly for trace correlation
+          sentry_event_id: sentryEventId,
         })
 
-        return respond.error('Internal server error', { status: 500 })
+        return respond.error('Internal server error', {
+          status: 500,
+          sentryEventId,
+        })
       } finally {
         parentSpan.end()
       }
