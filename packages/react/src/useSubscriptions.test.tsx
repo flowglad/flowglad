@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
-import { describe, it } from 'vitest'
+import { describe, it } from 'bun:test'
 
 describe('useSubscriptions', () => {
   it.skip('returns subscriptions after successful fetch', async () => {
