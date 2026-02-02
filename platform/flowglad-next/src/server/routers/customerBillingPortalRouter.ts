@@ -44,7 +44,8 @@ import {
   uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
 import { SubscriptionCancellationArrangement } from '@/types'
-import { auth } from '@/utils/auth'
+import { customerAuth } from '@/utils/auth/customerAuth'
+import { merchantAuth } from '@/utils/auth/merchantAuth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import {
   customerBillingCreateAddPaymentMethodSession,
@@ -470,7 +471,7 @@ const requestMagicLinkProcedure = publicProcedure
 
           if (!user || !user.betterAuthId) {
             // Create new user account for the customer
-            const result = await auth.api.createUser({
+            const result = await merchantAuth.api.createUser({
               body: {
                 email,
                 password: core.nanoid(),
@@ -512,7 +513,7 @@ const requestMagicLinkProcedure = publicProcedure
         return { success: true }
       })
 
-      await auth.api.signInMagicLink({
+      await customerAuth.api.signInMagicLink({
         body: {
           email, // required
           callbackURL: core.safeUrl(
@@ -840,7 +841,7 @@ const sendOTPToCustomerProcedure = publicProcedure
 
           if (!user || !user.betterAuthId) {
             // Create new user account for the customer
-            const result = await auth.api.createUser({
+            const result = await merchantAuth.api.createUser({
               body: {
                 email,
                 password: core.nanoid(),
@@ -889,7 +890,7 @@ const sendOTPToCustomerProcedure = publicProcedure
       await setCustomerBillingPortalEmail(customer.email)
 
       // 5. Send OTP using Better Auth
-      await auth.api.sendVerificationOTP({
+      await customerAuth.api.sendVerificationOTP({
         body: {
           email: customer.email,
           type: 'sign-in',

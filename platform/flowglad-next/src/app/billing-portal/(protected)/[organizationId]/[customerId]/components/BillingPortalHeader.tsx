@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
-import { signOut } from '@/utils/authClient'
 
 interface BillingPortalHeaderProps {
   customer: {

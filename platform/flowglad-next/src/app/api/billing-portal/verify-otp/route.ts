@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call BetterAuth's API endpoint directly via HTTP to capture Set-Cookie headers
+    // Call BetterAuth's customer auth API endpoint directly via HTTP to capture Set-Cookie headers
+    // Uses the customer auth instance at /api/auth/customer to create a customer-scoped session
     const baseUrl = new URL(request.url).origin
     const originalCookies = request.headers.get('Cookie') || ''
     const orgCookie = `customer-billing-organization-id=${organizationId}`
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       : orgCookie
 
     const authResponse = await fetch(
-      `${baseUrl}/api/auth/sign-in/email-otp`,
+      `${baseUrl}/api/auth/customer/sign-in/email-otp`,
       {
         method: 'POST',
         headers: {

@@ -4,7 +4,7 @@ import type { User } from '@db-core/schema/users'
 import { usePathname } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { useSession } from '@/utils/authClient'
+import { useMerchantSession } from '@/utils/authClient'
 
 export type AuthContextValues = Partial<{
   user: User.Record
@@ -33,7 +33,7 @@ export const useAuthContext = () => useContext(AuthContext)
 export const useAuthenticatedContext = () => {
   const { organization, user, setOrganization, livemode } =
     useAuthContext()
-  const session = useSession()
+  const session = useMerchantSession()
   if (!organization || !user || session.isPending) {
     return {
       authenticatedLoading: session.isPending,
@@ -72,7 +72,7 @@ const AuthProvider = ({
   const [organization, setOrganization] = useState<
     Organization.ClientRecord | undefined
   >(values.organization)
-  const session = useSession()
+  const session = useMerchantSession()
   const pathname = usePathname()
   const authenticated = session.data?.user?.id !== undefined
   // Don't call getFocusedMembership during onboarding - user has no membership yet
