@@ -581,74 +581,82 @@ describe('previewAdjustSubscription', () => {
     it('returns canAdjust: false when a scheduled adjustment already exists', async () => {
       const futureTimestamp = Date.now() + 86400000 // 1 day from now
 
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscription.id,
-            scheduledAdjustmentAt: futureTimestamp,
-            renews: true,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: price.id,
-                  quantity: 2,
-                },
-              ],
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              scheduledAdjustmentAt: futureTimestamp,
+              renews: true,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        expect(result.canAdjust).toBe(false)
-        if (!result.canAdjust) {
-          expect(result.reason).toContain('scheduled adjustment')
-          expect(result.reason).toContain('already pending')
-        }
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain('scheduled adjustment')
+            expect(result.reason).toContain('already pending')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns canAdjust: false when a cancellation is scheduled', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscription.id,
-            status: SubscriptionStatus.CancellationScheduled,
-            cancelScheduledAt: billingPeriod.endDate,
-            renews: true,
-          },
-          transaction
-        )
-
-        const result = await calculateAdjustmentPreview(
-          {
-            id: subscription.id,
-            adjustment: {
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              newSubscriptionItems: [
-                {
-                  priceId: price.id,
-                  quantity: 2,
-                },
-              ],
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              status: SubscriptionStatus.CancellationScheduled,
+              cancelScheduledAt: billingPeriod.endDate,
+              renews: true,
             },
-          },
-          transaction
-        )
+            transaction
+          )
 
-        expect(result.canAdjust).toBe(false)
-        if (!result.canAdjust) {
-          expect(result.reason).toContain('cancellation is scheduled')
-          expect(result.reason).toContain('Uncancel')
-        }
-      })
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain(
+              'cancellation is scheduled'
+            )
+            expect(result.reason).toContain('Uncancel')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })
