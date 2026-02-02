@@ -400,6 +400,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
+      enqueueTriggerTask,
     } = transactionCtx
     const { organizationId } = ctx
     const { externalId, newPricingModelId } = input
@@ -409,6 +410,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
+      enqueueTriggerTask,
     }
 
     if (!organizationId) {

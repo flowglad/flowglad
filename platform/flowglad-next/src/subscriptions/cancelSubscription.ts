@@ -649,6 +649,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = transactionCtx
   // Construct context for internal function calls
   const ctx: TransactionEffectsContext = {
@@ -657,6 +658,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   }
 
   // Fetch subscription first to check if it's a free plan
@@ -989,6 +991,7 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = transactionCtx
   const ctx: TransactionEffectsContext = {
     transaction,
@@ -996,6 +999,7 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   }
 
   const subscription = (

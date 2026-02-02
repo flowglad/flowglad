@@ -158,6 +158,7 @@ export const cancelScheduledAdjustmentProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = transactionCtx
 
   const ctx: TransactionEffectsContext = {
@@ -166,6 +167,7 @@ export const cancelScheduledAdjustmentProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   }
 
   const result = await cancelScheduledAdjustment(input.id, ctx)
