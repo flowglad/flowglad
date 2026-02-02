@@ -502,7 +502,6 @@ describe('adjustSubscription Integration Tests', async () => {
           customerId: customer.id,
           priceId: price.id,
           paymentMethodId: paymentMethod.id,
-          scheduledAdjustmentAt: futureTimestamp,
         })
 
       await setupBillingPeriod({
@@ -521,6 +520,17 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Set the scheduled adjustment after creation since setupSubscription doesn't support it
+        await updateSubscription(
+          {
+            id: subscriptionWithScheduledAdjustment.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: subscriptionWithScheduledAdjustment.renews,
+          },
+          transaction
+        )
+
         const result = await adjustSubscription(
           {
             id: subscriptionWithScheduledAdjustment.id,
@@ -615,7 +625,6 @@ describe('adjustSubscription Integration Tests', async () => {
           customerId: customer.id,
           priceId: price.id,
           paymentMethodId: paymentMethod.id,
-          scheduledAdjustmentAt: futureTimestamp,
         })
 
       await setupBillingPeriod({
@@ -635,7 +644,17 @@ describe('adjustSubscription Integration Tests', async () => {
 
       await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
-        // Clear the scheduled adjustment first
+        // First set the scheduled adjustment (setupSubscription doesn't support it)
+        await updateSubscription(
+          {
+            id: subscriptionWithScheduledAdjustment.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: subscriptionWithScheduledAdjustment.renews,
+          },
+          transaction
+        )
+
+        // Then clear the scheduled adjustment to simulate canceling it
         await updateSubscription(
           {
             id: subscriptionWithScheduledAdjustment.id,

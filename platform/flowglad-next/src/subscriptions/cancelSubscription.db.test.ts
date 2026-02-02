@@ -1392,8 +1392,17 @@ describe('Subscription Cancellation Test Suite', async () => {
           customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
-          scheduledAdjustmentAt: futureTimestamp,
         })
+
+        // Set scheduledAdjustmentAt after creation since setupSubscription doesn't support it
+        const updatedSubscription = await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: subscription.renews,
+          },
+          transaction
+        )
 
         await setupBillingPeriod({
           subscriptionId: subscription.id,
@@ -1403,7 +1412,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         const result = await cancelSubscriptionImmediately(
           {
-            subscription,
+            subscription: updatedSubscription,
           },
           createDiscardingEffectsContext(transaction)
         )
@@ -1810,8 +1819,17 @@ describe('Subscription Cancellation Test Suite', async () => {
           customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
-          scheduledAdjustmentAt: futureTimestamp,
         })
+
+        // Set scheduledAdjustmentAt after creation since setupSubscription doesn't support it
+        await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: subscription.renews,
+          },
+          transaction
+        )
 
         await setupBillingPeriod({
           subscriptionId: subscription.id,
