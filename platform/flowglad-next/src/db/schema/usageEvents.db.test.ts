@@ -11,6 +11,7 @@ import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { Price } from '@db-core/schema/prices'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -117,30 +118,29 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
 
   it('rejects inserting usage event without priceId at the database level', async () => {
     // setup: attempt to insert usage event with priceId explicitly set to null
-    // expectation: database constraint violation error
-    await expect(
-      authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertUsageEvent(
-            {
-              customerId: customer.id,
-              subscriptionId: subscription.id,
-              usageMeterId: usageMeter.id,
-              // @ts-expect-error - Testing that null priceId is rejected at runtime
-              priceId: null,
-              billingPeriodId: billingPeriod.id,
-              amount: 100,
-              transactionId: `txn_null_price_${core.nanoid()}`,
-              usageDate: Date.now(),
-              livemode: true,
-              properties: {},
-            },
-            transaction
-          )
-        },
-        { apiKey: apiKeyToken }
-      )
-    ).rejects.toThrow()
+    // expectation: database constraint violation error returned as Result.err
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return insertUsageEvent(
+          {
+            customerId: customer.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            // @ts-expect-error - Testing that null priceId is rejected at runtime
+            priceId: null,
+            billingPeriodId: billingPeriod.id,
+            amount: 100,
+            transactionId: `txn_null_price_${core.nanoid()}`,
+            usageDate: Date.now(),
+            livemode: true,
+            properties: {},
+          },
+          transaction
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('successfully inserts usage event with valid priceId for matching usage meter', async () => {

@@ -597,7 +597,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       )
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
-        expect(result.error.message).toBe(
+        expect(result.error.message).toContain(
           'Expected 1 ledger accounts for usage line items, but got 0'
         )
       }

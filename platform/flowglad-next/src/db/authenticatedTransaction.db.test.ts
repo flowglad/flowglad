@@ -146,20 +146,19 @@ describe('authenticatedTransaction', () => {
   })
 
   describe('JWT Claims Validation', () => {
-    it('should throw error when invalid API key is provided', async () => {
+    it('should return error when invalid API key is provided', async () => {
       // setup:
       // - call authenticatedTransaction with invalid/empty API key
       // - provide simple transaction function that should not execute
 
       // expects:
-      // - function should throw authentication error
+      // - function should return Result.err with authentication error
       // - no database transaction should be started
-      await expect(
-        authenticatedTransaction(
-          async () => Result.ok('should not reach here'),
-          { apiKey: 'invalid_key_that_does_not_exist' }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async () => Result.ok('should not reach here'),
+        { apiKey: 'invalid_key_that_does_not_exist' }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should work with valid API key authentication', async () => {
@@ -349,20 +348,19 @@ describe('authenticatedTransaction (with Result callbacks)', () => {
   })
 
   describe('JWT Claims Validation', () => {
-    it('should throw error when invalid API key is provided', async () => {
+    it('should return error when invalid API key is provided', async () => {
       // setup:
       // - call authenticatedTransaction with invalid API key
       // - provide transaction function that should not execute
 
       // expects:
-      // - function should throw authentication error
+      // - function should return Result.err with authentication error
       // - no database transaction should be started
-      await expect(
-        authenticatedTransaction(
-          async () => Result.ok('should not reach here'),
-          { apiKey: 'invalid_key_that_does_not_exist' }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async () => Result.ok('should not reach here'),
+        { apiKey: 'invalid_key_that_does_not_exist' }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should work with valid organization_id in JWT claims', async () => {
@@ -534,7 +532,7 @@ describe('Error Handling Tests', () => {
   })
 
   describe('Test-Only Organization ID Validation', () => {
-    it('throws error when __testOnlyOrganizationId is used in non-test environment', async () => {
+    it('returns error when __testOnlyOrganizationId is used in non-test environment', async () => {
       const originalIsTest = core.IS_TEST
       // Temporarily override IS_TEST to simulate non-test environment
       Object.defineProperty(core, 'IS_TEST', {
@@ -544,14 +542,16 @@ describe('Error Handling Tests', () => {
       })
 
       try {
-        await expect(
-          authenticatedTransaction(
-            async () => Result.ok('should not reach here'),
-            { __testOnlyOrganizationId: testOrg1.id }
-          )
-        ).rejects.toThrow(
-          'Attempted to use test organization id in a non-test environment'
+        const result = await authenticatedTransaction(
+          async () => Result.ok('should not reach here'),
+          { __testOnlyOrganizationId: testOrg1.id }
         )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Attempted to use test organization id in a non-test environment'
+          )
+        }
       } finally {
         // Restore original IS_TEST value
         Object.defineProperty(core, 'IS_TEST', {
@@ -592,15 +592,14 @@ describe('Error Handling Tests', () => {
       // - provide simple transaction function
 
       // expects:
-      // - authentication error should be propagated
+      // - authentication error should be returned as Result.err
       // - no database transaction should be started
       // - no database state should be left dirty
-      await expect(
-        authenticatedTransaction(
-          async () => Result.ok('should not reach here'),
-          { apiKey: 'completely_invalid_key_12345' }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async () => Result.ok('should not reach here'),
+        { apiKey: 'completely_invalid_key_12345' }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -611,20 +610,24 @@ describe('Error Handling Tests', () => {
       // - provide transaction function that throws error after some operations
 
       // expects:
-      // - original error from transaction function should be propagated
+      // - original error from transaction function should be returned as Result.err
       // - database should not be left in dirty state due to transaction rollback
-      await expect(
-        authenticatedTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            // Perform some database operation first
-            await selectOrganizations({}, transaction)
-            // Then throw error
-            throw new Error('Intentional transaction error')
-          },
-          { apiKey: apiKeyA.token }
+      const result = await authenticatedTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          // Perform some database operation first
+          await selectOrganizations({}, transaction)
+          // Then throw error (which gets caught and converted to Result.err)
+          throw new Error('Intentional transaction error')
+        },
+        { apiKey: apiKeyA.token }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'Intentional transaction error'
         )
-      ).rejects.toThrow('Intentional transaction error')
+      }
     })
   })
 })

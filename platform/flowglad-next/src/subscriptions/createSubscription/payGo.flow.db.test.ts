@@ -279,30 +279,29 @@ describe('Pay as You Go Workflow E2E', () => {
         ).toBe(0) // 100 - 100 (usage)
         return Result.ok(undefined)
       })
-    )
-      .unwrap()(
-        // 4. Create a usage event for the subscription
-        await adminTransaction(async (ctx) => {
-          return ingestAndProcessUsageEvent(
-            {
-              input: {
-                usageEvent: {
-                  subscriptionId: subscription.id,
-                  priceId: usagePrice.id,
-                  usageMeterId: usageMeter.id,
-                  amount: 100,
-                  transactionId: staticTransctionId,
-                  properties: {},
-                  usageDate: Date.now(),
-                },
+    ).unwrap()
+    // 4. Create a usage event for the subscription
+    ;(
+      await adminTransaction(async (ctx) => {
+        return ingestAndProcessUsageEvent(
+          {
+            input: {
+              usageEvent: {
+                subscriptionId: subscription.id,
+                priceId: usagePrice.id,
+                usageMeterId: usageMeter.id,
+                amount: 100,
+                transactionId: staticTransctionId,
+                properties: {},
+                usageDate: Date.now(),
               },
-              livemode: true,
             },
-            ctx
-          )
-        })
-      )
-      .unwrap()
+            livemode: true,
+          },
+          ctx
+        )
+      })
+    ).unwrap()
     // 5. Call @customerBillingTransaction again and assert final state
     ;(
       await adminTransaction(async (ctx) => {
@@ -406,145 +405,142 @@ describe('Pay as You Go Workflow E2E', () => {
 
     // Spy on getStripeCharge to return a properly structured charge
     // stripe-mock returns charges with payment_intent: null, but we need it set
-    const getStripeChargeSpy = spyOn(stripeUtils, 'getStripeCharge')
-      .mockResolvedValue({
-        id: chargeId,
-        amount: 1000,
-        status: 'succeeded',
-        created: Math.floor(Date.now() / 1000),
-        payment_intent: paymentIntentId,
-        billing_details: {
-          address: { country: 'US' },
+    const getStripeChargeSpy = spyOn(
+      stripeUtils,
+      'getStripeCharge'
+    ).mockResolvedValue({
+      id: chargeId,
+      amount: 1000,
+      status: 'succeeded',
+      created: Math.floor(Date.now() / 1000),
+      payment_intent: paymentIntentId,
+      billing_details: {
+        address: { country: 'US' },
+      },
+      payment_method_details: {
+        type: 'card',
+        card: {
+          brand: 'visa',
+          last4: '4242',
         },
-        payment_method_details: {
-          type: 'card',
-          card: {
-            brand: 'visa',
-            last4: '4242',
+      },
+    } as any)
+    // 4. Call @processPaymentIntentStatusUpdated with a stubbed paymentIntent
+    ;(
+      await adminTransaction(async (ctx) => {
+        const paymentIntent: CoreStripePaymentIntent = {
+          id: paymentIntentId,
+          status: 'succeeded',
+          latest_charge: chargeId,
+          metadata: {
+            type: IntentMetadataType.CheckoutSession,
+            checkoutSessionId: checkoutSession.id,
           },
-        },
-      } as any)(
-        await adminTransaction(async (ctx) => {
-          // 4. Call @processPaymentIntentStatusUpdated with a stubbed paymentIntent
-          const paymentIntent: CoreStripePaymentIntent = {
-            id: paymentIntentId,
-            status: 'succeeded',
-            latest_charge: chargeId,
-            metadata: {
-              type: IntentMetadataType.CheckoutSession,
-              checkoutSessionId: checkoutSession.id,
-            },
-          }
+        }
 
-          const result = await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            ctx
-          )
-          // Check that payment processing succeeded
-          if (result.status === 'error') {
-            console.error('Payment processing error:', result.error)
-          }
-          expect(result.status).toBe('ok')
-          const payment = result.unwrap().payment
-          expect(payment.customerId).toBe(customer.id)
-          return Result.ok(result)
-        })
-      )
-      .unwrap()
+        const result = await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          ctx
+        )
+        // Check that payment processing succeeded
+        if (result.status === 'error') {
+          console.error('Payment processing error:', result.error)
+        }
+        expect(result.status).toBe('ok')
+        const payment = result.unwrap().payment
+        expect(payment.customerId).toBe(customer.id)
+        return Result.ok(result)
+      })
+    ).unwrap()
 
     // Restore the spy
-    getStripeChargeSpy
-      .mockRestore()(
-        await adminTransaction(async (ctx) => {
-          const { transaction, livemode } = ctx
-          // 5. Call @customerBillingTransaction again and assert final state
-          const cacheRecomputationContext: CacheRecomputationContext =
-            {
-              type: 'admin',
-              livemode,
-            }
-          const billingState3 = await customerBillingTransaction(
-            {
-              externalId: customer.externalId,
-              organizationId: organization.id,
-            },
-            transaction,
-            cacheRecomputationContext
+    getStripeChargeSpy.mockRestore()
+    // 5. Call @customerBillingTransaction again and assert final state
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction, livemode } = ctx
+        // 5. Call @customerBillingTransaction again and assert final state
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState3 = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+
+        const activatedSubscription =
+          billingState3.subscriptions.find(
+            (s) => s.id === subscription.id
           )
 
-          const activatedSubscription =
-            billingState3.subscriptions.find(
-              (s) => s.id === subscription.id
-            )
-
-          expect(activatedSubscription?.status).toBe(
-            SubscriptionStatus.Active
-          )
-          expect(
-            activatedSubscription?.experimental?.featureItems
-          ).toHaveLength(1)
-          expect(
-            activatedSubscription?.experimental
-              ?.usageMeterBalances?.[0].availableBalance
-          ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
-          return Result.ok(null)
-        })
-      )
-      .unwrap()
+        expect(activatedSubscription?.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(
+          activatedSubscription?.experimental?.featureItems
+        ).toHaveLength(1)
+        expect(
+          activatedSubscription?.experimental?.usageMeterBalances?.[0]
+            .availableBalance
+        ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
+        return Result.ok(null)
+      })
+    ).unwrap()
 
     // 6. Create a usage event after payment
-    const newTransactionId =
-      'test2-' +
-      core
-        .nanoid()(
-          await adminTransaction(async (ctx) => {
-            return ingestAndProcessUsageEvent(
-              {
-                input: {
-                  usageEvent: {
-                    subscriptionId: subscription.id,
-                    priceId: usagePrice.id,
-                    usageMeterId: usageMeter.id,
-                    amount: 100,
-                    transactionId: newTransactionId,
-                    properties: {},
-                    usageDate: Date.now(),
-                  },
-                },
-                livemode: true,
+    const newTransactionId = 'test2-' + core.nanoid()
+    ;(
+      await adminTransaction(async (ctx) => {
+        return ingestAndProcessUsageEvent(
+          {
+            input: {
+              usageEvent: {
+                subscriptionId: subscription.id,
+                priceId: usagePrice.id,
+                usageMeterId: usageMeter.id,
+                amount: 100,
+                transactionId: newTransactionId,
+                properties: {},
+                usageDate: Date.now(),
               },
-              ctx
-            )
-          })
+            },
+            livemode: true,
+          },
+          ctx
         )
-        .unwrap()(
-          // 7. Call @customerBillingTransaction again and assert final state after new usage
-          await adminTransaction(async (ctx) => {
-            const { transaction, livemode } = ctx
-            const cacheRecomputationContext: CacheRecomputationContext =
-              {
-                type: 'admin',
-                livemode,
-              }
-            const billingState4 = await customerBillingTransaction(
-              {
-                externalId: customer.externalId,
-                organizationId: organization.id,
-              },
-              transaction,
-              cacheRecomputationContext
-            )
-            const activatedSubscriptionAfterUsage =
-              billingState4.subscriptions.find(
-                (s) => s.id === subscription.id
-              )
-            expect(
-              activatedSubscriptionAfterUsage?.experimental
-                ?.usageMeterBalances?.[0].availableBalance
-            ).toBe(900) // 1000 - 100 (new usage) = 900
-            return Result.ok(null)
-          })
+      })
+    ).unwrap()
+    // 7. Call @customerBillingTransaction again and assert final state after new usage
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction, livemode } = ctx
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState4 = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
         )
-        .unwrap()
+        const activatedSubscriptionAfterUsage =
+          billingState4.subscriptions.find(
+            (s) => s.id === subscription.id
+          )
+        expect(
+          activatedSubscriptionAfterUsage?.experimental
+            ?.usageMeterBalances?.[0].availableBalance
+        ).toBe(900) // 1000 - 100 (new usage) = 900
+        return Result.ok(null)
+      })
+    ).unwrap()
   }, 120000)
 })

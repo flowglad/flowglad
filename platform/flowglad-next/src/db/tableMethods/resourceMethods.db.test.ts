@@ -226,8 +226,8 @@ describe('resourceMethods', () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await insertResource(
             createResourceInsert({
               slug: 'seats',
@@ -235,8 +235,10 @@ describe('resourceMethods', () => {
             }),
             transaction
           )
-        })
-      ).rejects.toThrow()
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should allow the same slug in different pricing models', async () => {
