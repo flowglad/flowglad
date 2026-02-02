@@ -11,7 +11,7 @@ import {
   requestDeviceCode,
 } from '../auth/deviceFlow'
 
-const DEFAULT_BASE_URL = 'https://flowglad.com'
+const DEFAULT_BASE_URL = 'https://app.flowglad.com'
 
 /**
  * Gets the base URL for the Flowglad API.

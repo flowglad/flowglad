@@ -157,6 +157,78 @@ The API Reference is sourced from `https://app.flowglad.com/api/openapi` into `p
 
 ---
 
+# Recommended Developer Tools
+
+The following tools are recommended for effective development and refactoring in this codebase.
+
+## Required Tools
+
+| Tool | Purpose | Installation |
+|------|---------|--------------|
+| **bun** | Package manager and runtime | [bun.sh](https://bun.sh) |
+| **Docker** | Test database and mock servers | [docker.com](https://docker.com) |
+| **gh** | GitHub CLI for PRs and issues | `brew install gh` |
+
+## Refactoring Tools
+
+For large-scale refactoring and codemod operations, install these tools:
+
+| Tool | Purpose | Installation |
+|------|---------|--------------|
+| **ast-grep** | AST-aware search and replace (primary refactoring tool) | `brew install ast-grep` or `cargo install ast-grep` |
+| **ts-morph** | TypeScript compiler API for type-aware transforms | `bun add -d ts-morph` (per-project) |
+| **jscodeshift** | Facebook's codemod toolkit | `bun add -d jscodeshift` (per-project) |
+| **comby** | Structural search tool | `brew install comby` |
+
+### ast-grep (Recommended)
+
+ast-grep is the primary tool for refactoring in this codebase. It provides syntax-aware search and replace:
+
+```bash
+# Install
+brew install ast-grep
+
+# Verify installation
+ast-grep --version
+
+# Example: Find all function calls
+ast-grep --lang typescript -p 'myFunction($$$ARGS)'
+
+# Example: Rename function across codebase
+ast-grep --lang typescript -p 'oldName($$$ARGS)' -r 'newName($$$ARGS)' --update-all
+```
+
+See `.claude/skills/refactor/ast-grep-patterns.md` for a comprehensive pattern library.
+
+### ts-morph (For Type-Aware Transforms)
+
+Use ts-morph when you need TypeScript type information:
+
+```bash
+# Install as dev dependency
+bun add -d ts-morph
+```
+
+ts-morph is useful for:
+- Transforms that depend on type information
+- Following type references across files
+- Complex programmatic transformations
+
+### Tool Selection Guide
+
+| Task | Recommended Tool |
+|------|------------------|
+| Simple rename (function, variable, type) | ast-grep |
+| Pattern replacement | ast-grep |
+| Import path updates | ast-grep |
+| Type-dependent transforms | ts-morph |
+| Leveraging existing codemods | jscodeshift |
+| Text-only changes (not code) | sed/awk |
+
+For detailed tool comparisons and usage, see `.claude/skills/refactor/tools-reference.md`.
+
+---
+
 # Contributing to the backend (platform/flowglad-next)
 
 Thanks for your interest in contributing to Flowglad’s backend. This section focuses on the Next.js app in `platform/flowglad-next`.

@@ -26,3 +26,12 @@ jobs:
         run: bun install --no-progress
       - name: Run ratchet check
         run: bun run lint:ratchet
+
+  all-jobs-succeed:
+    name: All lint ratchet checks succeeded
+    if: failure()
+    runs-on: ubuntu-latest
+    needs: [ratchet-check]
+    steps:
+      - name: Mark the job as failed
+        run: exit 1
