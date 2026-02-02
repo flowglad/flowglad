@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
         with:
-          node-version: '18'
+          node-version: '22'
       - name: Setup Bun
         uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
         with:
@@ -29,9 +29,10 @@ jobs:
 
   all-jobs-succeed:
     name: All lint ratchet checks succeeded
-    if: failure()
+    if: always()
     runs-on: ubuntu-latest
     needs: [ratchet-check]
     steps:
       - name: Mark the job as failed
+        if: needs.ratchet-check.result == 'failure'
         run: exit 1

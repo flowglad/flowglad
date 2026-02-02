@@ -300,9 +300,7 @@ jobs:
     name: Check all-jobs-succeed depends on all jobs
     steps:
       - name: Install yq (for YAML parsing)
-        run: |
-          sudo wget https://github.com/mikefarah/yq/releases/download/v4.50.1/yq_linux_amd64 -O /usr/local/bin/yq
-          sudo chmod +x /usr/local/bin/yq
+        run: go install github.com/mikefarah/yq/v4@latest
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Run dependency check
         run: ./ci/check_job_dependencies.sh
