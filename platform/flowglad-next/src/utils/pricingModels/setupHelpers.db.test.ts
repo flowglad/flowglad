@@ -6,8 +6,12 @@ import {
   PriceType,
 } from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
+import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   selectFeaturesByProductFeatureWhere,
   updateProductFeature,
@@ -175,28 +179,36 @@ describe('getPricingModelSetupData', () => {
     }
 
     // Create the pricing model using setupPricingModelTransaction
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input: originalInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input: originalInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Now fetch it back using getPricingModelSetupData
-    const fetchedData = await adminTransaction(async (ctx) =>
-      (
-        await getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          ctx.transaction
+    const fetchedData = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await getPricingModelSetupData(
+              setupResult.pricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Validate the output using the schema
     const parseResult = setupPricingModelSchema.safeParse(fetchedData)
@@ -306,14 +318,12 @@ describe('getPricingModelSetupData', () => {
 
   it('should throw an error if pricing model is not found', async () => {
     await expect(
-      adminTransaction(async (ctx) =>
-        (
-          await getPricingModelSetupData(
-            'non-existent-id',
-            ctx.transaction
-          )
+      adminTransaction(async (ctx) => {
+        await await getPricingModelSetupData(
+          'non-existent-id',
+          ctx.transaction
         ).unwrap()
-      )
+      })
     ).rejects.toThrow()
   })
 
@@ -343,27 +353,35 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input: minimalInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input: minimalInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
-    const fetchedData = await adminTransaction(async (ctx) =>
-      (
-        await getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          ctx.transaction
+    const fetchedData = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await getPricingModelSetupData(
+              setupResult.pricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Validate with schema
     const parseResult = setupPricingModelSchema.safeParse(fetchedData)
@@ -405,27 +423,35 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
-    const fetchedData = await adminTransaction(async (ctx) =>
-      (
-        await getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          ctx.transaction
+    const fetchedData = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await getPricingModelSetupData(
+              setupResult.pricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Validate with schema
     const parseResult = setupPricingModelSchema.safeParse(fetchedData)
@@ -532,27 +558,35 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
-    const fetchedData = await adminTransaction(async (ctx) =>
-      (
-        await getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          ctx.transaction
+    const fetchedData = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await getPricingModelSetupData(
+              setupResult.pricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Validate with schema
     const parseResult = setupPricingModelSchema.safeParse(fetchedData)
@@ -627,60 +661,70 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      (
-        await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
+    const setupResult = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
-
+      })
+    ).unwrap()
     // Now manually expire one of the product-feature associations
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const product = setupResult.products.find(
-        (p) => p.slug === 'test-product-associations'
-      )
-      if (!product) {
-        throw new Error('Test setup failed: product not found')
-      }
-      const productFeaturesResult =
-        await selectFeaturesByProductFeatureWhere(
-          { productId: product.id },
-          transaction
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        const product = setupResult.products.find(
+          (p) => p.slug === 'test-product-associations'
         )
+        if (!product) {
+          throw new Error('Test setup failed: product not found')
+        }
+        const productFeaturesResult =
+          await selectFeaturesByProductFeatureWhere(
+            { productId: product.id },
+            transaction
+          )
 
-      // Find the product feature for 'feature-b' and expire it
-      const featureBAssociation = productFeaturesResult.find(
-        (pf) => pf.feature.slug === 'feature-b'
-      )
-      expect(typeof featureBAssociation).toBe('object')
-
-      if (featureBAssociation) {
-        await updateProductFeature(
-          {
-            id: featureBAssociation.productFeature.id,
-            expiredAt: Date.now() - 1000, // Expired in the past
-          },
-          ctx
+        // Find the product feature for 'feature-b' and expire it
+        const featureBAssociation = productFeaturesResult.find(
+          (pf) => pf.feature.slug === 'feature-b'
         )
-      }
-    })
+        expect(typeof featureBAssociation).toBe('object')
+
+        if (featureBAssociation) {
+          await updateProductFeature(
+            {
+              id: featureBAssociation.productFeature.id,
+              expiredAt: Date.now() - 1000, // Expired in the past
+            },
+            ctx
+          )
+        }
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     // Fetch the pricing model data
-    const fetchedData = await adminTransaction(async (ctx) =>
-      (
-        await getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          ctx.transaction
+    const fetchedData = (
+      await adminTransactionWithResult(async (ctx) => {
+        return Result.ok(
+          await (
+            await getPricingModelSetupData(
+              setupResult.pricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         )
-      ).unwrap()
-    )
+      })
+    ).unwrap()
 
     // Validate with schema
     const parseResult = setupPricingModelSchema.safeParse(fetchedData)

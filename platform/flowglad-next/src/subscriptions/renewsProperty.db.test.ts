@@ -29,7 +29,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
@@ -260,13 +260,17 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Attempt to transition should return Result.err
-        const result = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return attemptToTransitionSubscriptionBillingPeriod(
-            testBillingPeriod,
-            createDiscardingEffectsContext(transaction)
-          )
-        })
+        const result = (
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await attemptToTransitionSubscriptionBillingPeriod(
+                testBillingPeriod,
+                createDiscardingEffectsContext(transaction)
+              )
+            )
+          })
+        ).unwrap()
         expect(Result.isError(result)).toBe(true)
       })
 
@@ -280,8 +284,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           isDefault: false,
         })
         // Query initial state
-        const { billingPeriods, nonRenewingSubscription } =
-          await adminTransaction(async (ctx) => {
+        const { billingPeriods, nonRenewingSubscription } = (
+          await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
             // Create a subscription price but set renews to false to simulate non-renewing behavior
             const { subscription: nonRenewingSubscription } = (
@@ -305,8 +309,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               { subscriptionId: nonRenewingSubscription.id },
               transaction
             )
-            return { billingPeriods, nonRenewingSubscription }
+            return Result.ok(
+              await { billingPeriods, nonRenewingSubscription }
+            )
           })
+        ).unwrap()
 
         // Should not create any billing periods for non-renewing subscriptions
         expect(billingPeriods).toHaveLength(0)
@@ -322,41 +329,44 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
       it('should not schedule billing runs for non-renewing subscriptions', async () => {
         // Check that no billing runs were created
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Create a subscription price but set renews to false to simulate non-renewing behavior
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: price.id,
-              type: PriceType.Subscription,
-              // Remove usage-specific fields
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-            },
-            ctx
-          )
-          const { subscription: nonRenewingSubscription } = (
-            await createSubscriptionWorkflow(
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            // Create a subscription price but set renews to false to simulate non-renewing behavior
+            const updatedPrice = await safelyUpdatePrice(
               {
-                organization,
-                customer,
-                product,
-                price: updatedPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
+                id: price.id,
+                type: PriceType.Subscription,
+                // Remove usage-specific fields
+                usageMeterId: null,
+                usageEventsPerUnit: null,
               },
-              createDiscardingEffectsContext(transaction)
+              ctx
             )
-          ).unwrap()
-          const billingRuns = await selectBillingRuns(
-            { subscriptionId: nonRenewingSubscription.id },
-            transaction
-          )
-          expect(billingRuns).toHaveLength(0)
-        })
+            const { subscription: nonRenewingSubscription } = (
+              await createSubscriptionWorkflow(
+                {
+                  organization,
+                  customer,
+                  product,
+                  price: updatedPrice,
+                  quantity: 1,
+                  livemode: true,
+                  startDate: new Date(),
+                  interval: IntervalUnit.Month,
+                  intervalCount: 1,
+                },
+                createDiscardingEffectsContext(transaction)
+              )
+            ).unwrap()
+            const billingRuns = await selectBillingRuns(
+              { subscriptionId: nonRenewingSubscription.id },
+              transaction
+            )
+            expect(billingRuns).toHaveLength(0)
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
     })
 
@@ -424,30 +434,32 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         ).toBeGreaterThan(
           result.subscription.currentBillingPeriodStart!
         )
-
         // Check that old billing period status was updated
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const allBillingPeriods = await selectBillingPeriods(
-            { subscriptionId: renewingSubscription.id },
-            transaction
-          )
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const allBillingPeriods = await selectBillingPeriods(
+              { subscriptionId: renewingSubscription.id },
+              transaction
+            )
 
-          // Should have 2 billing periods now
-          expect(allBillingPeriods.length).toBe(2)
+            // Should have 2 billing periods now
+            expect(allBillingPeriods.length).toBe(2)
 
-          const oldPeriod = allBillingPeriods.find(
-            (bp) => bp.id === currentBillingPeriod.id
-          )
-          expect(oldPeriod?.status).toBe(
-            BillingPeriodStatus.Completed
-          )
+            const oldPeriod = allBillingPeriods.find(
+              (bp) => bp.id === currentBillingPeriod.id
+            )
+            expect(oldPeriod?.status).toBe(
+              BillingPeriodStatus.Completed
+            )
 
-          const newPeriod = allBillingPeriods.find(
-            (bp) => bp.id !== currentBillingPeriod.id
-          )
-          expect(newPeriod?.status).toBe(BillingPeriodStatus.Active)
-        })
+            const newPeriod = allBillingPeriods.find(
+              (bp) => bp.id !== currentBillingPeriod.id
+            )
+            expect(newPeriod?.status).toBe(BillingPeriodStatus.Active)
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
 
       it('should schedule billing run for next period when payment method exists', async () => {
@@ -495,24 +507,26 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
             )
           }
         )
-
         // Verify billing run was created
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const billingRuns = await selectBillingRuns(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          expect(billingRuns).toHaveLength(1)
-          expect(billingRuns[0].status).toBe(
-            BillingRunStatus.Scheduled
-          )
-          expect(typeof billingRuns[0].scheduledFor).toBe('number')
-          // scheduledFor should be at or after the end date of the expired period
-          expect(billingRuns[0].scheduledFor).toBeGreaterThanOrEqual(
-            endDate
-          )
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const billingRuns = await selectBillingRuns(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+            expect(billingRuns).toHaveLength(1)
+            expect(billingRuns[0].status).toBe(
+              BillingRunStatus.Scheduled
+            )
+            expect(typeof billingRuns[0].scheduledFor).toBe('number')
+            // scheduledFor should be at or after the end date of the expired period
+            expect(
+              billingRuns[0].scheduledFor
+            ).toBeGreaterThanOrEqual(endDate)
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
 
       it('should transition to PastDue when no payment method exists', async () => {
@@ -565,23 +579,25 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.status).toBe(
           SubscriptionStatus.PastDue
         )
-
         // Verify new billing period was created
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const billingPeriods = await selectBillingPeriods(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          expect(billingPeriods).toHaveLength(2)
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const billingPeriods = await selectBillingPeriods(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+            expect(billingPeriods).toHaveLength(2)
 
-          // No billing run should be created
-          const billingRuns = await selectBillingRuns(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          expect(billingRuns).toHaveLength(0)
-        })
+            // No billing run should be created
+            const billingRuns = await selectBillingRuns(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+            expect(billingRuns).toHaveLength(0)
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
 
       it('should respect cancelScheduledAt and stop renewal', async () => {
@@ -638,23 +654,25 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           SubscriptionStatus.Canceled
         )
         expect(typeof result.subscription.canceledAt).toBe('number')
-
         // Verify no new billing period was created
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const billingPeriods = await selectBillingPeriods(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          expect(billingPeriods).toHaveLength(1) // Only the original
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const billingPeriods = await selectBillingPeriods(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+            expect(billingPeriods).toHaveLength(1) // Only the original
 
-          // No billing run should be created
-          const billingRuns = await selectBillingRuns(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          expect(billingRuns).toHaveLength(0)
-        })
+            // No billing run should be created
+            const billingRuns = await selectBillingRuns(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+            expect(billingRuns).toHaveLength(0)
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
 
       it('should handle subscription that does not renew at period end', async () => {
@@ -677,24 +695,26 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Update subscription to not renew
-        const updatedSubscription = await adminTransaction(
-          async (ctx) => {
+        const updatedSubscription = (
+          await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
-            return updateSubscription(
-              {
-                id: subscription.id,
-                renews: false,
-                currentBillingPeriodStart: null,
-                currentBillingPeriodEnd: null,
-                interval: null,
-                intervalCount: null,
-                billingCycleAnchorDate: null,
-                trialEnd: null,
-              },
-              transaction
+            return Result.ok(
+              await updateSubscription(
+                {
+                  id: subscription.id,
+                  renews: false,
+                  currentBillingPeriodStart: null,
+                  currentBillingPeriodEnd: null,
+                  interval: null,
+                  intervalCount: null,
+                  billingCycleAnchorDate: null,
+                  trialEnd: null,
+                },
+                transaction
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
 
         expect(updatedSubscription.renews).toBe(false)
 
@@ -731,16 +751,18 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         ).rejects.toThrow(
           'Non-renewing subscriptions cannot have billing periods'
         )
-
         // Should not create new billing period for non-renewing
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const billingPeriods = await selectBillingPeriods(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          expect(billingPeriods).toHaveLength(1) // Only original
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const billingPeriods = await selectBillingPeriods(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+            expect(billingPeriods).toHaveLength(1) // Only original
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
     })
   })
@@ -810,23 +832,27 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           SubscriptionStatus.Active
         )
         expect(result.subscription.renews).toBe(false)
-
         // Check for initial credits
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const credits = await selectUsageCredits(
-            { subscriptionId: result.subscription.id },
-            transaction
-          )
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const credits = await selectUsageCredits(
+              { subscriptionId: result.subscription.id },
+              transaction
+            )
 
-          // Should have initial credits
-          expect(credits.length).toBeGreaterThan(0)
-          const initialCredit = credits[0]
-          expect(initialCredit.issuedAmount).toBe(1000)
-          expect(initialCredit.creditType).toBe(UsageCreditType.Grant)
-          // Credits for credit trial should not expire
-          expect(initialCredit.expiresAt).toBeNull()
-        })
+            // Should have initial credits
+            expect(credits.length).toBeGreaterThan(0)
+            const initialCredit = credits[0]
+            expect(initialCredit.issuedAmount).toBe(1000)
+            expect(initialCredit.creditType).toBe(
+              UsageCreditType.Grant
+            )
+            // Credits for credit trial should not expire
+            expect(initialCredit.expiresAt).toBeNull()
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
 
       it('should not grant recurring credits for non-renewing subscriptions', async () => {
@@ -868,13 +894,17 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Check initial credits
-        const initialCredits = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return selectUsageCredits(
-            { subscriptionId: nonRenewingSub.id },
-            transaction
-          )
-        })
+        const initialCredits = (
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await selectUsageCredits(
+                { subscriptionId: nonRenewingSub.id },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         const initialCount = initialCredits.length
 
@@ -882,13 +912,17 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         // But let's verify that even if we tried, no new credits would be granted
 
         // Wait and check again - no new credits should appear
-        const laterCredits = await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return selectUsageCredits(
-            { subscriptionId: nonRenewingSub.id },
-            transaction
-          )
-        })
+        const laterCredits = (
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            return Result.ok(
+              await selectUsageCredits(
+                { subscriptionId: nonRenewingSub.id },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // Should have same number of credits (no recurring grants)
         expect(laterCredits.length).toBe(initialCount)
@@ -1049,34 +1083,38 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           SubscriptionStatus.Active
         )
         expect(result.subscription.renews).toBe(false)
-
         // Double-check database
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const billingRuns = await selectBillingRuns(
-            { subscriptionId: result.subscription.id },
-            transaction
-          )
-          expect(billingRuns).toHaveLength(0)
-        })
+        ;(
+          await adminTransactionWithResult(async (ctx) => {
+            const { transaction } = ctx
+            const billingRuns = await selectBillingRuns(
+              { subscriptionId: result.subscription.id },
+              transaction
+            )
+            expect(billingRuns).toHaveLength(0)
+            return Result.ok(undefined)
+          })
+        ).unwrap()
       })
     })
 
     describe('Renewing Subscriptions', () => {
       it('should create billing runs at period start for subscription prices', async () => {
         // Ensure price is subscription type
-        const subscriptionPrice = await adminTransaction(
-          async (ctx) => {
+        const subscriptionPrice = (
+          await adminTransactionWithResult(async (ctx) => {
             const { transaction } = ctx
-            return updatePrice(
-              {
-                id: price.id,
-                type: PriceType.Subscription,
-              },
-              ctx
+            return Result.ok(
+              await updatePrice(
+                {
+                  id: price.id,
+                  type: PriceType.Subscription,
+                },
+                ctx
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Create renewing subscription
         const result = await comprehensiveAdminTransaction(
@@ -1187,23 +1225,25 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       expect(nonRenewingSubscription.status).toBe(
         SubscriptionStatus.Active
       )
-
       // Verify no billing periods exist
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const billingPeriods = await selectBillingPeriods(
-          { subscriptionId: nonRenewingSubscription.id },
-          transaction
-        )
-        expect(billingPeriods).toHaveLength(0)
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const billingPeriods = await selectBillingPeriods(
+            { subscriptionId: nonRenewingSubscription.id },
+            transaction
+          )
+          expect(billingPeriods).toHaveLength(0)
 
-        // Verify no billing runs exist
-        const billingRuns = await selectBillingRuns(
-          { subscriptionId: nonRenewingSubscription.id },
-          transaction
-        )
-        expect(billingRuns).toHaveLength(0)
-      })
+          // Verify no billing runs exist
+          const billingRuns = await selectBillingRuns(
+            { subscriptionId: nonRenewingSubscription.id },
+            transaction
+          )
+          expect(billingRuns).toHaveLength(0)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })

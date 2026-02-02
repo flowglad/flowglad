@@ -199,7 +199,6 @@ export const setupOrg = async (params?: {
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode: true,
       })
       const [country] = await selectCountries(
@@ -342,7 +341,6 @@ export const setupProduct = async ({
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode: effectiveLivemode,
       })
       return Result.ok(
@@ -1106,7 +1104,6 @@ export const setupPrice = async (
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode,
       })
       // For usage prices, derive pricingModelId from usage meter
@@ -1749,7 +1746,6 @@ export const setupUsageMeter = async ({
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode,
       })
       let pricingModelToUseId: string | null = null
@@ -2002,7 +1998,6 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode,
       })
       const productResult = await selectProductById(
@@ -2724,7 +2719,6 @@ export const setupToggleFeature = async (
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode: params.livemode,
       })
       const pricingModelId =
@@ -2765,7 +2759,6 @@ export const setupUsageCreditGrantFeature = async (
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode: params.livemode,
       })
       const pricingModelId =
@@ -3233,7 +3226,6 @@ export const setupResourceFeature = async (
   return (
     await adminTransactionWithResult(async ({ transaction }) => {
       const ctx = createTransactionEffectsContext(transaction, {
-        type: 'admin',
         livemode: params.livemode,
       })
       const resolvedPricingModelId =

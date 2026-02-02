@@ -27,7 +27,7 @@ const SubscriptionPage = async ({
           await selectRichSubscriptionsAndActiveItems(
             { id },
             transaction,
-            cacheRecomputationContext
+            cacheRecomputationContext.livemode
           )
 
         if (!subscription) {

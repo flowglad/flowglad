@@ -18,13 +18,14 @@ import type {
 } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import type { Purchase } from '@db-core/schema/purchases'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupInvoice,
   setupOrg,
   setupPayment,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
@@ -665,37 +666,41 @@ describe('finalizeFeeCalculation', () => {
   it('applies full fee when no payments exist in current month', async () => {
     const { organization, price } = await setupOrg()
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: '10.00',
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            billingPeriodId: null,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -739,37 +744,41 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: '10.00',
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            billingPeriodId: null,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            livemode: true,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              billingPeriodId: null,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              livemode: true,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -802,37 +811,41 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: organization.feePercentage,
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            billingPeriodId: null,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: organization.feePercentage,
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -873,37 +886,41 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: '10.00',
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            billingPeriodId: null,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            livemode: true,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              billingPeriodId: null,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              livemode: true,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -934,37 +951,41 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: '10.00', // This should be ignored
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            billingPeriodId: null,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00', // This should be ignored
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -997,37 +1018,41 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: '10.00',
-            baseAmount: 20000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            billingPeriodId: null,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 20000, // $200
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 20000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 20000, // $200
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     // Full fee: 20000 * 5% = 1000
     // Effective percentage: (1000 / 20000) * 100 = 5%
@@ -1059,37 +1084,41 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
     const baseFeePercentage = organization.feePercentage
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: baseFeePercentage,
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            billingPeriodId: null,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: baseFeePercentage,
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       baseFeePercentage
@@ -1114,61 +1143,68 @@ describe('finalizeFeeCalculation', () => {
 
     const lastMonth = new Date()
     lastMonth.setMonth(lastMonth.getMonth() - 2)
-
-    await adminTransaction(async ({ transaction }) => {
-      return insertPayment(
-        {
-          stripeChargeId,
-          status: PaymentStatus.Succeeded,
-          amount: 150000,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          chargeDate: lastMonth.getTime(),
-          currency: CurrencyCode.USD,
-          paymentMethod: PaymentMethodType.Card,
-          refunded: false,
-          refundedAt: null,
-          refundedAmount: 0,
-          taxCountry: CountryCode.US,
-          livemode: true,
-          stripePaymentIntentId: `pi_${core.nanoid()}`,
-        },
-        transaction
-      )
-    })
-
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: organization.id,
-            priceId: price.id,
-            pricingModelId: price.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: '10.00',
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            billingPeriodId: null,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertPayment(
+            {
+              stripeChargeId,
+              status: PaymentStatus.Succeeded,
+              amount: 150000,
+              customerId: customer.id,
+              organizationId: organization.id,
+              invoiceId: invoice.id,
+              chargeDate: lastMonth.getTime(),
+              currency: CurrencyCode.USD,
+              paymentMethod: PaymentMethodType.Card,
+              refunded: false,
+              refundedAt: null,
+              refundedAmount: 0,
+              taxCountry: CountryCode.US,
+              livemode: true,
+              stripePaymentIntentId: `pi_${core.nanoid()}`,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              pricingModelId: price.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
+
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -1222,37 +1258,41 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice2.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeeCalculation(
-          {
-            organizationId: org1.id,
-            priceId: price1.id,
-            pricingModelId: price1.pricingModelId,
-            type: FeeCalculationType.CheckoutSessionPayment,
-            flowgladFeePercentage: '10.00',
-            baseAmount: 1000,
-            discountAmountFixed: 0,
-            taxAmountFixed: 0,
-            internationalFeePercentage: '0',
-            paymentMethodFeeFixed: 59,
-            livemode: true,
-            currency: CurrencyCode.USD,
-            billingAddress,
-            billingPeriodId: null,
-            paymentMethodType: PaymentMethodType.Card,
-            pretaxTotal: 1000,
-          },
-          transaction
+    const feeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await insertFeeCalculation(
+            {
+              organizationId: org1.id,
+              priceId: price1.id,
+              pricingModelId: price1.pricingModelId,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
-        return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+    const updatedFeeCalculation = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await finalizeFeeCalculation(feeCalculation, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       org1.feePercentage

@@ -32,8 +32,13 @@ const KEYS_FROM_DEVELOPMENT = [
   'UPSTASH_REDIS_REST_TOKEN',
 ]
 
-// Keys to exclude from .env.integration (triggers stripe-mock)
-const KEYS_TO_EXCLUDE = ['STRIPE_MOCK_HOST']
+// Keys to exclude from .env.integration (mock server URLs)
+const KEYS_TO_EXCLUDE = [
+  'STRIPE_MOCK_HOST',
+  'SVIX_MOCK_HOST',
+  'UNKEY_MOCK_HOST',
+  'TRIGGER_API_URL', // When set to localhost, triggers mock server
+]
 
 function parseEnvFile(path: string): Map<string, string> {
   const content = readFileSync(path, 'utf-8')

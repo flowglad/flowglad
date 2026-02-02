@@ -26,6 +26,7 @@ import type { Product } from '@db-core/schema/products'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -38,7 +39,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { safelyUpdatePaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
@@ -178,15 +179,18 @@ describeIfStripeKey(
       })
 
       // Remove Stripe customer ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            stripeCustomerId: null,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              stripeCustomerId: null,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const newSubscriptionItems = [
         await setupSubscriptionItem({
@@ -204,13 +208,11 @@ describeIfStripeKey(
         adjustmentDate: new Date(),
       })
 
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(
-            adjustmentBillingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-      )
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
       expect(typeof updatedBillingRun.errorDetails).toBe('object')
     })
@@ -226,29 +228,32 @@ describeIfStripeKey(
       })
 
       // Remove Stripe payment method ID
-      await adminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          await safelyUpdatePaymentMethod(
-            {
-              id: paymentMethod.id,
-              stripePaymentMethodId: null,
-            },
-            {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache: invalidateCache!,
-              emitEvent: emitEvent!,
-              enqueueLedgerCommand: enqueueLedgerCommand!,
-            }
-          )
-        }
-      )
+      ;(
+        await adminTransactionWithResult(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            await safelyUpdatePaymentMethod(
+              {
+                id: paymentMethod.id,
+                stripePaymentMethodId: null,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+            return Result.ok(undefined)
+          }
+        )
+      ).unwrap()
 
       const newSubscriptionItems = [
         await setupSubscriptionItem({
@@ -266,13 +271,11 @@ describeIfStripeKey(
         adjustmentDate: new Date(),
       })
 
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(
-            adjustmentBillingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-      )
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
       expect(typeof updatedBillingRun.errorDetails).toBe('object')
     })
@@ -421,25 +424,27 @@ describeIfStripeKey(
         adjustmentDate,
       })
 
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(
-            adjustmentBillingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-      )
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
 
       // Verify subscription items were updated
-      const itemsAfter = await adminTransaction(({ transaction }) =>
-        selectCurrentlyActiveSubscriptionItems(
-          { subscriptionId: subscription.id },
-          new Date(),
-          transaction
+      const itemsAfter = (
+        await adminTransactionWithResult(async ({ transaction }) =>
+          Result.ok(
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              new Date(),
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
       const newItemExists = itemsAfter.some(
         (item) => item.priceId === higherPrice.id && !item.expiredAt
       )
@@ -498,13 +503,11 @@ describeIfStripeKey(
         adjustmentDate: new Date(),
       })
 
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(
-            adjustmentBillingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-      )
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+        )
+      ).unwrap()
       // Zero amount billing runs should succeed without charging
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
@@ -574,25 +577,27 @@ describeIfStripeKey(
         adjustmentDate: new Date(),
       })
 
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(
-            adjustmentBillingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-      )
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
 
       // Verify both new items exist
-      const itemsAfter = await adminTransaction(({ transaction }) =>
-        selectCurrentlyActiveSubscriptionItems(
-          { subscriptionId: subscription.id },
-          new Date(),
-          transaction
+      const itemsAfter = (
+        await adminTransactionWithResult(async ({ transaction }) =>
+          Result.ok(
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              new Date(),
+              transaction
+            )
+          )
         )
-      )
+      ).unwrap()
       const addon1Exists = itemsAfter.some(
         (item) => item.priceId === addonPrice1.id && !item.expiredAt
       )
@@ -647,13 +652,11 @@ describeIfStripeKey(
         }
       )
 
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(
-            adjustmentBillingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-      )
+      const updatedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+        )
+      ).unwrap()
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
@@ -699,13 +702,11 @@ describeIfStripeKey(
       expect(result).toBeUndefined()
 
       // Status should remain unchanged
-      const unchangedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(
-            completedBillingRun.id,
-            transaction
-          ).then((r) => r.unwrap())
-      )
+      const unchangedBillingRun = (
+        await adminTransactionWithResult(({ transaction }) =>
+          selectBillingRunById(completedBillingRun.id, transaction)
+        )
+      ).unwrap()
       expect(unchangedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )

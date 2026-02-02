@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { IntervalUnit, PriceType } from '@db-core/enums'
+import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
 import {
@@ -28,72 +29,75 @@ describe('productsRouter - Default Product Constraints', () => {
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const { organization } = await setupOrg()
+    const result = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        const { organization } = await setupOrg()
 
-      // Create pricing model with default product using the new bookkeeping function
-      const bookkeepingResult = await createPricingModelBookkeeping(
-        {
-          pricingModel: {
-            name: 'Test Pricing Model',
-            isDefault: false, // Can't have multiple defaults per org
+        // Create pricing model with default product using the new bookkeeping function
+        const bookkeepingResult = await createPricingModelBookkeeping(
+          {
+            pricingModel: {
+              name: 'Test Pricing Model',
+              isDefault: false, // Can't have multiple defaults per org
+            },
+            defaultPlanIntervalUnit: IntervalUnit.Month, // Create a subscription price
           },
-          defaultPlanIntervalUnit: IntervalUnit.Month, // Create a subscription price
-        },
-        { ...ctx, organizationId: organization.id, livemode }
-      )
+          { ...ctx, organizationId: organization.id, livemode }
+        )
 
-      // Also create a regular product for comparison
-      const regularProduct = await insertProduct(
-        {
-          name: 'Regular Product',
-          slug: 'regular-product',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+        // Also create a regular product for comparison
+        const regularProduct = await insertProduct(
+          {
+            name: 'Regular Product',
+            slug: 'regular-product',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId:
+              bookkeepingResult.unwrap().pricingModel.id,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          ctx
+        )
+
+        const regularPrice = await insertPrice(
+          {
+            productId: regularProduct.id,
+            unitPrice: 1000,
+            isDefault: true,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Regular Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: null,
+          },
+          ctx
+        )
+
+        return Result.ok({
           organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        ctx
-      )
-
-      const regularPrice = await insertPrice(
-        {
-          productId: regularProduct.id,
-          unitPrice: 1000,
-          isDefault: true,
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Regular Price',
-          trialPeriodDays: null,
-          usageEventsPerUnit: null,
-          usageMeterId: null,
-          externalId: null,
-          slug: null,
-        },
-        ctx
-      )
-
-      return {
-        organizationId: organization.id,
-        pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
-        defaultProductId:
-          bookkeepingResult.unwrap().defaultProduct.id,
-        defaultPriceId: bookkeepingResult.unwrap().defaultPrice.id,
-        regularProductId: regularProduct.id,
-        regularPriceId: regularPrice.id,
-      }
-    })
+          pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+          defaultProductId:
+            bookkeepingResult.unwrap().defaultProduct.id,
+          defaultPriceId: bookkeepingResult.unwrap().defaultPrice.id,
+          regularProductId: regularProduct.id,
+          regularPriceId: regularPrice.id,
+        })
+      })
+    ).unwrap()
 
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
@@ -126,68 +130,70 @@ describe('productsRouter - Default Product Constraints', () => {
     })
 
     it('returns Result.ok when creating regular products with default: false', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        // Validate this should return ok
-        const validationResult = validateProductCreation({
-          name: 'Regular Product 2',
-          slug: 'regular-product-2',
-          default: false, // This should be allowed
-          pricingModelId,
-          active: true,
-          description: '',
-          imageURL: '',
-          singularQuantityLabel: '',
-          pluralQuantityLabel: '',
-        })
-        expect(validationResult.status).toBe('ok')
-
-        // Create the product
-        const product = await insertProduct(
-          {
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          // Validate this should return ok
+          const validationResult = validateProductCreation({
             name: 'Regular Product 2',
             slug: 'regular-product-2',
-            default: false,
-            description: null,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-            externalId: null,
+            default: false, // This should be allowed
             pricingModelId,
-            organizationId,
-            livemode,
             active: true,
-          },
-          ctx
-        )
+            description: '',
+            imageURL: '',
+            singularQuantityLabel: '',
+            pluralQuantityLabel: '',
+          })
+          expect(validationResult.status).toBe('ok')
 
-        // Create a price for the product
-        const org = (
-          await selectOrganizationById(organizationId, transaction)
-        ).unwrap()
-        await insertPrice(
-          {
-            productId: product.id,
-            unitPrice: 2000,
-            isDefault: true,
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            currency: org.defaultCurrency,
-            livemode,
-            active: true,
-            name: 'Regular Price',
-            trialPeriodDays: null,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-            externalId: null,
-            slug: null,
-          },
-          ctx
-        )
+          // Create the product
+          const product = await insertProduct(
+            {
+              name: 'Regular Product 2',
+              slug: 'regular-product-2',
+              default: false,
+              description: null,
+              imageURL: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              externalId: null,
+              pricingModelId,
+              organizationId,
+              livemode,
+              active: true,
+            },
+            ctx
+          )
 
-        return product
-      })
+          // Create a price for the product
+          const org = (
+            await selectOrganizationById(organizationId, transaction)
+          ).unwrap()
+          await insertPrice(
+            {
+              productId: product.id,
+              unitPrice: 2000,
+              isDefault: true,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              currency: org.defaultCurrency,
+              livemode,
+              active: true,
+              name: 'Regular Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+              externalId: null,
+              slug: null,
+            },
+            ctx
+          )
+
+          return Result.ok(await product)
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.default).toBe(false)
@@ -197,8 +203,8 @@ describe('productsRouter - Default Product Constraints', () => {
   describe('editProduct', () => {
     it('returns Result.err with ValidationError when attempting to change default field on any product', async () => {
       // Test changing a regular product to default
-      const { regularProduct, defaultProduct } =
-        await adminTransaction(async (ctx) => {
+      const { regularProduct, defaultProduct } = (
+        await adminTransactionWithResult(async (ctx) => {
           const { transaction } = ctx
           const regular = (
             await selectProductById(regularProductId, transaction)
@@ -206,11 +212,14 @@ describe('productsRouter - Default Product Constraints', () => {
           const defaultProd = (
             await selectProductById(defaultProductId, transaction)
           ).unwrap()
-          return {
-            regularProduct: regular,
-            defaultProduct: defaultProd,
-          }
+          return Result.ok(
+            await {
+              regularProduct: regular,
+              defaultProduct: defaultProd,
+            }
+          )
         })
+      ).unwrap()
 
       // Try to change a regular product to default
       const regularToDefaultResult = validateDefaultProductUpdate(
@@ -244,34 +253,36 @@ describe('productsRouter - Default Product Constraints', () => {
     })
 
     it('returns Result.ok when updating allowed fields on default products (excluding slug)', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const existingProduct = (
-          await selectProductById(defaultProductId, transaction)
-        ).unwrap()
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const existingProduct = (
+            await selectProductById(defaultProductId, transaction)
+          ).unwrap()
 
-        // This should return ok
-        const validationResult = validateDefaultProductUpdate(
-          {
-            name: 'Updated Base Plan Name',
-            description: 'Updated description',
-          },
-          existingProduct
-        )
-        expect(validationResult.status).toBe('ok')
+          // This should return ok
+          const validationResult = validateDefaultProductUpdate(
+            {
+              name: 'Updated Base Plan Name',
+              description: 'Updated description',
+            },
+            existingProduct
+          )
+          expect(validationResult.status).toBe('ok')
 
-        // Actually update the product
-        const updatedProduct = await updateProduct(
-          {
-            id: defaultProductId,
-            name: 'Updated Base Plan Name',
-            description: 'Updated description',
-          },
-          ctx
-        )
+          // Actually update the product
+          const updatedProduct = await updateProduct(
+            {
+              id: defaultProductId,
+              name: 'Updated Base Plan Name',
+              description: 'Updated description',
+            },
+            ctx
+          )
 
-        return updatedProduct
-      })
+          return Result.ok(await updatedProduct)
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Base Plan Name')
@@ -280,75 +291,80 @@ describe('productsRouter - Default Product Constraints', () => {
     })
 
     it('returns Result.err with ValidationError when attempting to update restricted fields on default products', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const existingProduct = (
-          await selectProductById(defaultProductId, transaction)
-        ).unwrap()
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const existingProduct = (
+            await selectProductById(defaultProductId, transaction)
+          ).unwrap()
 
-        // Try to change pricingModelId
-        const pricingModelResult = validateDefaultProductUpdate(
-          {
-            pricingModelId: core.nanoid(), // Not allowed on default products
-          },
-          existingProduct
-        )
-        expect(pricingModelResult.status).toBe('error')
-        if (pricingModelResult.status === 'error') {
-          expect(pricingModelResult.error).toBeInstanceOf(
-            ValidationError
+          // Try to change pricingModelId
+          const pricingModelResult = validateDefaultProductUpdate(
+            {
+              pricingModelId: core.nanoid(), // Not allowed on default products
+            },
+            existingProduct
           )
-          expect(pricingModelResult.error.reason).toContain(
-            'Cannot update the following fields on default products'
-          )
-        }
+          expect(pricingModelResult.status).toBe('error')
+          if (pricingModelResult.status === 'error') {
+            expect(pricingModelResult.error).toBeInstanceOf(
+              ValidationError
+            )
+            expect(pricingModelResult.error.reason).toContain(
+              'Cannot update the following fields on default products'
+            )
+          }
 
-        // Try to change slug (falls under generic disallowed fields validation)
-        const slugResult = validateDefaultProductUpdate(
-          {
-            slug: 'should-not-allow-slug-changes',
-          },
-          existingProduct
-        )
-        expect(slugResult.status).toBe('error')
-        if (slugResult.status === 'error') {
-          expect(slugResult.error).toBeInstanceOf(ValidationError)
-          expect(slugResult.error.reason).toContain(
-            'Cannot update the following fields on default products: slug'
+          // Try to change slug (falls under generic disallowed fields validation)
+          const slugResult = validateDefaultProductUpdate(
+            {
+              slug: 'should-not-allow-slug-changes',
+            },
+            existingProduct
           )
-        }
-      })
+          expect(slugResult.status).toBe('error')
+          if (slugResult.status === 'error') {
+            expect(slugResult.error).toBeInstanceOf(ValidationError)
+            expect(slugResult.error.reason).toContain(
+              'Cannot update the following fields on default products: slug'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns Result.ok when updating any field on non-default products', async () => {
-      const result = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const existingProduct = (
-          await selectProductById(regularProductId, transaction)
-        ).unwrap()
+      const result = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const existingProduct = (
+            await selectProductById(regularProductId, transaction)
+          ).unwrap()
 
-        // This should return ok for regular products
-        const validationResult = validateDefaultProductUpdate(
-          {
-            name: 'Updated Regular Product',
-            active: false,
-          },
-          existingProduct
-        )
-        expect(validationResult.status).toBe('ok')
+          // This should return ok for regular products
+          const validationResult = validateDefaultProductUpdate(
+            {
+              name: 'Updated Regular Product',
+              active: false,
+            },
+            existingProduct
+          )
+          expect(validationResult.status).toBe('ok')
 
-        // Actually update the product
-        const updatedProduct = await updateProduct(
-          {
-            id: regularProductId,
-            name: 'Updated Regular Product',
-            active: false,
-          },
-          ctx
-        )
+          // Actually update the product
+          const updatedProduct = await updateProduct(
+            {
+              id: regularProductId,
+              name: 'Updated Regular Product',
+              active: false,
+            },
+            ctx
+          )
 
-        return updatedProduct
-      })
+          return Result.ok(await updatedProduct)
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Regular Product')

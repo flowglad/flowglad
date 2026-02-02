@@ -224,19 +224,18 @@ Controls HTTP request interception:
 | `warn` | Unhandled requests logged | Frontend tests |
 | `bypass` (silent) | Real requests allowed | Integration tests |
 
-**Mock handlers location:** `mocks/`
-- `stripeServer.ts` - Stripe API mocks
-- `svixServer.ts` - Svix webhook mocks
-- `unkeyServer.ts` - Unkey SDK mocks
-- `triggerServer.ts` - Trigger.dev mocks
+**Mock server containers:**
+- `stripe-mock` (port 12111) - Stripe API
+- `flowglad-mock-server` (ports 9001-9006) - Svix, Unkey, Trigger, Redis, Resend, Cloudflare
 
 ### Module Mocks
 
 Located in `mocks/`:
-- `module-mocks.ts` - Common module mocks (trigger tasks, auth, server-only)
-- `unkey-sdk-mock.ts` - Unkey SDK implementation
-- `redis-mock.ts` - Redis client mock
-- `svix-mock.ts` - Svix webhook mock
+- `module-mocks.ts` - Common module mocks (auth, server-only)
+- `db-blockers.ts` - Database access blockers for unit tests
+
+Note: Svix, Unkey, Trigger, Redis, Resend, and Cloudflare are handled by the
+flowglad-mock-server container (ports 9001-9006) rather than module mocks.
 
 ## Test Utilities
 

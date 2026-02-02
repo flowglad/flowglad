@@ -96,7 +96,7 @@ describe('handleTriggerRoute', () => {
         method: 'POST',
       }
     )
-    const response = handleTriggerRoute(
+    const response = await handleTriggerRoute(
       req,
       '/api/v1/tasks/my-task/trigger'
     )
@@ -107,25 +107,25 @@ describe('handleTriggerRoute', () => {
     expect(body.status).toBe('QUEUED')
   })
 
-  it('returns null for GET requests', () => {
+  it('returns null for GET requests', async () => {
     const req = new Request(
       'http://localhost/api/v1/tasks/my-task/trigger',
       {
         method: 'GET',
       }
     )
-    const response = handleTriggerRoute(
+    const response = await handleTriggerRoute(
       req,
       '/api/v1/tasks/my-task/trigger'
     )
     expect(response).toBe(null)
   })
 
-  it('returns null for non-matching paths', () => {
+  it('returns null for non-matching paths', async () => {
     const req = new Request('http://localhost/health', {
       method: 'POST',
     })
-    const response = handleTriggerRoute(req, '/health')
+    const response = await handleTriggerRoute(req, '/health')
     expect(response).toBe(null)
   })
 })

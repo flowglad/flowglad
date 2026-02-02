@@ -1,11 +1,4 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from 'bun:test'
+import { beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -27,39 +20,13 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionInputSchema } from '@/server/routers/subscriptionsRouter'
-import {
-  createDiscardingEffectsContext,
-  noopEmitEvent,
-  noopInvalidateCache,
-} from '@/test-utils/transactionCallbacks'
-import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
-import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
+import * as customerSubscriptionCreatedNotifications from '@/trigger/notifications/send-customer-subscription-created-notification'
+import * as organizationSubscriptionCreatedNotifications from '@/trigger/notifications/send-organization-subscription-created-notification'
 import { CancellationReason } from '@/types'
 import { core } from '@/utils/core'
 import type { CreateSubscriptionParams } from './types'
 import { createSubscriptionWorkflow } from './workflow'
-
-// Mock the notification functions
-mock.module(
-  '@/trigger/notifications/send-organization-subscription-created-notification',
-  () => ({
-    idempotentSendOrganizationSubscriptionCreatedNotification: mock(),
-  })
-)
-
-mock.module(
-  '@/trigger/notifications/send-customer-subscription-created-notification',
-  () => ({
-    idempotentSendCustomerSubscriptionCreatedNotification: mock(),
-  })
-)
-
-mock.module(
-  '@/trigger/notifications/send-customer-subscription-upgraded-notification',
-  () => ({
-    idempotentSendCustomerSubscriptionUpgradedNotification: mock(),
-  })
-)
 
 describe('doNotCharge subscription creation', () => {
   let organization: Organization.Record
@@ -70,8 +37,6 @@ describe('doNotCharge subscription creation', () => {
   let freeProduct: Product.Record
 
   beforeEach(async () => {
-    mock.clearAllMocks()
-
     const orgData = await setupOrg()
     organization = orgData.organization
 
@@ -199,41 +164,51 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should send notifications when doNotCharge is true and price.unitPrice > 0 (treated as paid plan)', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const orgNotificationSpy = spyOn(
+      organizationSubscriptionCreatedNotifications,
+      'idempotentSendOrganizationSubscriptionCreatedNotification'
+    ).mockResolvedValue(undefined)
+    const customerNotificationSpy = spyOn(
+      customerSubscriptionCreatedNotifications,
+      'idempotentSendCustomerSubscriptionCreatedNotification'
+    ).mockResolvedValue(undefined)
 
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      doNotCharge: true,
+    try {
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+
+      const params: CreateSubscriptionParams = {
+        customer,
+        price: paidPrice,
+        product: paidProduct,
+        organization,
+        quantity: 1,
+        livemode: true,
+        startDate: new Date(),
+        interval: IntervalUnit.Month,
+        intervalCount: 1,
+        autoStart: true,
+        defaultPaymentMethod: paymentMethod,
+        doNotCharge: true,
+      }
+
+      await adminTransaction(async ({ transaction }) => {
+        await createSubscriptionWorkflow(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+
+      expect(orgNotificationSpy).toHaveBeenCalledTimes(1)
+      expect(customerNotificationSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      orgNotificationSpy.mockRestore()
+      customerNotificationSpy.mockRestore()
     }
-
-    await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
-
-    expect(
-      idempotentSendOrganizationSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
-    expect(
-      idempotentSendCustomerSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
   })
 
   it('should cancel existing free subscriptions when doNotCharge is true and price.unitPrice > 0 (treated as paid plan)', async () => {

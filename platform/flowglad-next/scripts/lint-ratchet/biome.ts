@@ -42,6 +42,17 @@ interface BiomeJsonDiagnostic {
   source: unknown
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isBiomeJsonOutput = (
+  value: unknown
+): value is BiomeJsonOutput =>
+  isRecord(value) &&
+  isRecord(value.summary) &&
+  Array.isArray(value.diagnostics) &&
+  typeof value.command === 'string'
+
 /**
  * Convert line/column from source position
  * This is a simplified approach - we use the file path and estimate line number
@@ -71,12 +82,9 @@ export const runBiomeLint = async (
   const absolutePackagePath = resolve(repoRoot, packagePath)
   const absolutePluginPath = resolve(repoRoot, pluginPath)
 
-  // Build file paths to lint (relative to package)
-  const filesToLint = filePatterns.map((pattern) =>
-    resolve(absolutePackagePath, pattern)
-  )
-
   // Create a temporary biome config that only uses the specified plugin
+  // Note: We pass the package directory to biome (not glob patterns) and let
+  // overrides.includes filter which files the plugin applies to
   const tempConfig = {
     $schema:
       './node_modules/@biomejs/biome/configuration_schema.json',
@@ -110,7 +118,7 @@ export const runBiomeLint = async (
         'lint',
         '--reporter=json',
         `--config-path=${tempConfigPath}`,
-        ...filesToLint,
+        absolutePackagePath,
       ],
       {
         cwd: repoRoot,
@@ -122,27 +130,52 @@ export const runBiomeLint = async (
       throw new Error(`Failed to run Biome: ${result.error.message}`)
     }
     // Biome exits with 1 when there are lint errors, which is expected
-    const output = result.stdout || ''
+    const output = [result.stdout, result.stderr]
+      .filter((chunk) => chunk && chunk.length > 0)
+      .join('\n')
 
-    // Parse JSON output (skip the warning line about unstable JSON)
-    const jsonLines = output.split('\n').filter((line) => {
+    // Parse JSON output (Biome prints a single JSON object, often multi-line)
+    const trimmed = output.trim()
+    let biomeOutput: BiomeJsonOutput | null = null
+
+    if (trimmed.startsWith('{')) {
       try {
-        JSON.parse(line)
-        return true
+        const parsed: unknown = JSON.parse(trimmed)
+        if (isBiomeJsonOutput(parsed)) {
+          biomeOutput = parsed
+        }
       } catch {
-        return false
+        biomeOutput = null
       }
-    })
+    }
 
-    if (jsonLines.length === 0) {
+    if (!biomeOutput) {
+      const firstBrace = output.indexOf('{')
+      const lastBrace = output.lastIndexOf('}')
+      if (
+        firstBrace !== -1 &&
+        lastBrace !== -1 &&
+        lastBrace > firstBrace
+      ) {
+        const jsonSlice = output.slice(firstBrace, lastBrace + 1)
+        try {
+          const parsed: unknown = JSON.parse(jsonSlice)
+          if (isBiomeJsonOutput(parsed)) {
+            biomeOutput = parsed
+          }
+        } catch {
+          biomeOutput = null
+        }
+      }
+    }
+
+    if (!biomeOutput) {
       // No JSON output means no diagnostics or an error
       if (result.stderr && !result.stderr.includes('unstable')) {
         throw new Error(`Biome failed with stderr: ${result.stderr}`)
       }
       return []
     }
-
-    const biomeOutput: BiomeJsonOutput = JSON.parse(jsonLines[0])
 
     // Convert Biome diagnostics to our format
     const diagnostics: BiomeDiagnostic[] = []
@@ -152,7 +185,9 @@ export const runBiomeLint = async (
         continue
       }
 
-      const absoluteFilePath = diag.location.path.file
+      const filePath = diag.location.path.file
+      // Biome returns paths relative to cwd (repo root), resolve to absolute first
+      const absoluteFilePath = resolve(repoRoot, filePath)
       // Make path relative to package
       const relativeFilePath = relative(
         absolutePackagePath,
@@ -230,6 +265,29 @@ export const runBiomeLint = async (
 }
 
 /**
+ * Check if a diagnostic category matches a rule name.
+ * Uses suffix matching (endsWith) rather than substring includes to avoid
+ * collisions between rule names (e.g., "no-any" vs "no-explicit-any").
+ *
+ * Matching rules:
+ * 1. Exact match: `lint/plugin/<ruleName>`
+ * 2. Suffix match: category ends with `/<ruleName>` (for variations)
+ * 3. Fallback: category is exactly 'plugin' (some Biome versions emit this)
+ */
+export const matchesRuleCategory = (
+  category: string,
+  ruleName: string
+): boolean => {
+  const expectedCategory = `lint/plugin/${ruleName}`
+
+  return (
+    category === expectedCategory ||
+    category.endsWith(`/${ruleName}`) ||
+    category === 'plugin'
+  )
+}
+
+/**
  * Count violations by file for a specific rule
  * Returns a Map of file path (relative to package) -> violation count
  */
@@ -239,15 +297,8 @@ export const countViolationsByFile = (
 ): Map<string, number> => {
   const counts = new Map<string, number>()
 
-  // The category format for GritQL plugins is "lint/plugin/<rule-name>"
-  const expectedCategory = `lint/plugin/${ruleName}`
-
   for (const diag of diagnostics) {
-    // Match either exact category or category that contains the rule name
-    if (
-      diag.category === expectedCategory ||
-      diag.category.includes(ruleName)
-    ) {
+    if (matchesRuleCategory(diag.category, ruleName)) {
       const current = counts.get(diag.filePath) || 0
       counts.set(diag.filePath, current + 1)
     }
@@ -264,12 +315,9 @@ export const getDiagnosticsForFile = (
   filePath: string,
   ruleName: string
 ): BiomeDiagnostic[] => {
-  const expectedCategory = `lint/plugin/${ruleName}`
-
   return diagnostics.filter(
     (diag) =>
       diag.filePath === filePath &&
-      (diag.category === expectedCategory ||
-        diag.category.includes(ruleName))
+      matchesRuleCategory(diag.category, ruleName)
   )
 }

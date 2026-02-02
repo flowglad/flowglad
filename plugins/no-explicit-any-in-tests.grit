@@ -14,9 +14,17 @@ language js
 
 or {
   `$_: any` as $annotation where {
-    register_diagnostic(span=$annotation, message="Explicit 'any' is not allowed in tests. Use a specific type, 'unknown', or a generic.", severity="error")
+    register_diagnostic(
+      span = $annotation,
+      message = "Explicit 'any' is not allowed in tests. Use a specific type, 'unknown', or a generic.",
+      severity = "error"
+    )
   },
   `$_ as any` as $assertion where {
-    register_diagnostic(span=$assertion, message="Type assertion to 'any' is not allowed in tests. Use a specific type or 'as unknown'.", severity="error")
+    register_diagnostic(
+      span = $assertion,
+      message = "Type assertion to 'any' is not allowed in tests. Use a specific type or 'as unknown'.",
+      severity = "error"
+    )
   }
 }

@@ -721,12 +721,13 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
       expect(secondResult).toHaveLength(0)
 
       // Verify the original event was not modified
-      const originalEvent = await selectEventById(
+      const originalEventResult = await selectEventById(
         eventId,
         transaction
       )
-      expect(originalEvent?.id).toBe(eventId)
-      expect(originalEvent?.occurredAt).toBe(now)
+      const originalEvent = originalEventResult.unwrap()
+      expect(originalEvent.id).toBe(eventId)
+      expect(originalEvent.occurredAt).toBe(now)
     })
   })
 

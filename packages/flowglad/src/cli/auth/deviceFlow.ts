@@ -30,7 +30,7 @@ export interface DeviceTokenResponse {
  * Session response from Better Auth getSession() endpoint.
  */
 export interface SessionResponse {
-  user: { id: string; email: string; name: string }
+  user: { id: string; email: string; name?: string }
   session: { id: string; expiresAt: string }
 }
 
@@ -218,17 +218,82 @@ const fetchSession = async (
 
   const data: unknown = await response.json()
 
+  // Debug: log redacted session response structure (no PII/tokens)
+  if (process.env.DEBUG) {
+    const redactedData = isRecord(data)
+      ? {
+          hasUser: isRecord(data.user),
+          hasSession: isRecord(data.session),
+          userFields: isRecord(data.user)
+            ? Object.keys(data.user as Record<string, unknown>)
+            : [],
+          sessionFields: isRecord(data.session)
+            ? Object.keys(data.session as Record<string, unknown>)
+            : [],
+        }
+      : { dataType: typeof data }
+    console.error('Debug: Session response structure:', redactedData)
+  }
+
   // Validate session response structure
+  // Note: name can be null/undefined in Better Auth if the user hasn't set one
   if (
     !isRecord(data) ||
     !isRecord(data.user) ||
     typeof data.user.id !== 'string' ||
     typeof data.user.email !== 'string' ||
-    typeof data.user.name !== 'string' ||
+    (data.user.name !== null &&
+      data.user.name !== undefined &&
+      typeof data.user.name !== 'string') ||
     !isRecord(data.session) ||
     typeof data.session.id !== 'string' ||
     typeof data.session.expiresAt !== 'string'
   ) {
+    if (process.env.DEBUG) {
+      console.error('Debug: Validation failed. Checks:')
+      console.error('  isRecord(data):', isRecord(data))
+      console.error(
+        '  isRecord(data.user):',
+        isRecord(data) &&
+          isRecord((data as Record<string, unknown>).user)
+      )
+      if (
+        isRecord(data) &&
+        isRecord((data as Record<string, unknown>).user)
+      ) {
+        const user = (data as Record<string, unknown>).user as Record<
+          string,
+          unknown
+        >
+        console.error('  user.id type:', typeof user.id)
+        console.error('  user.email type:', typeof user.email)
+        console.error(
+          '  user.name:',
+          user.name,
+          'type:',
+          typeof user.name
+        )
+      }
+      console.error(
+        '  isRecord(data.session):',
+        isRecord(data) &&
+          isRecord((data as Record<string, unknown>).session)
+      )
+      if (
+        isRecord(data) &&
+        isRecord((data as Record<string, unknown>).session)
+      ) {
+        const session = (data as Record<string, unknown>)
+          .session as Record<string, unknown>
+        console.error('  session.id type:', typeof session.id)
+        console.error(
+          '  session.expiresAt type:',
+          typeof session.expiresAt,
+          'value:',
+          session.expiresAt
+        )
+      }
+    }
     throw new Error('Invalid session response')
   }
 
@@ -236,7 +301,10 @@ const fetchSession = async (
     user: {
       id: data.user.id,
       email: data.user.email,
-      name: data.user.name,
+      name:
+        typeof data.user.name === 'string'
+          ? data.user.name
+          : undefined,
     },
     session: {
       id: data.session.id,

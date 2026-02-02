@@ -10,12 +10,10 @@ import type { Membership } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { User } from '@db-core/schema/users'
-import { users } from '@db-core/schema/users'
 import { Result } from 'better-result'
-import { eq, sql } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
-  setupCustomer,
   setupMemberships,
   setupOrg,
   setupUserAndApiKey,
@@ -795,102 +793,10 @@ describe('Edge Cases', () => {
   })
 })
 
-describe('cacheRecomputationContext derivation', () => {
-  it('sets type to customer with customerId from JWT metadata when using customer billing portal auth', async () => {
-    // Setup organization with a customer linked to a user with betterAuthId
-    const { organization } = await setupOrg()
-    const { user } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
-
-    // Set betterAuthId on the user (required for customer billing portal auth)
-    const betterAuthId = `ba_${core.nanoid()}`
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      await transaction
-        .update(users)
-        .set({ betterAuthId })
-        .where(eq(users.id, user.id))
-    })
-
-    // Create customer linked to the user (required for customer billing portal lookup)
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-      userId: user.id,
-    })
-
-    // Configure session mock to simulate logged-in user via Better Auth.
-    // Use __testOnlyOrganizationId to trigger the customer billing portal auth path
-    // via the built-in test escape hatch in getCustomerBillingPortalOrganizationId.
-    globalThis.__mockedAuthSession = {
-      user: { id: betterAuthId, email: user.email! },
-    }
-
-    // Call comprehensiveAuthenticatedTransaction WITHOUT explicit customerId
-    // to verify that the cacheRecomputationContext.customerId is derived from
-    // JWT metadata (jwtClaim.user_metadata.app_metadata.customer_id).
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        // Verify the cacheRecomputationContext is correctly derived from JWT role
-        expect(params.cacheRecomputationContext.type).toBe('customer')
-
-        if (params.cacheRecomputationContext.type === 'customer') {
-          // The customerId should be extracted from JWT metadata, not explicit param
-          expect(params.cacheRecomputationContext.customerId).toBe(
-            customer.id
-          )
-          expect(
-            params.cacheRecomputationContext.organizationId
-          ).toBe(organization.id)
-          expect(params.cacheRecomputationContext.userId).toBe(
-            user.id
-          )
-        }
-
-        return Result.ok({ verified: true })
-      },
-      // Use __testOnlyOrganizationId to trigger customer billing portal auth path
-      // Do NOT pass customerId - let it be derived from JWT metadata
-      { __testOnlyOrganizationId: organization.id }
-    )
-
-    expect(result.verified).toBe(true)
-
-    // Reset session mock
-    globalThis.__mockedAuthSession = null
-  })
-
-  it('sets type to merchant when using API key auth (non-customer role)', async () => {
-    const { organization } = await setupOrg()
-    const { user, apiKey } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
-
-    // API key auth should result in merchant context, not customer
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        expect(params.cacheRecomputationContext.type).toBe('merchant')
-
-        if (params.cacheRecomputationContext.type === 'merchant') {
-          expect(
-            params.cacheRecomputationContext.organizationId
-          ).toBe(organization.id)
-          expect(params.cacheRecomputationContext.userId).toBe(
-            user.id
-          )
-        }
-
-        return Result.ok({ verified: true })
-      },
-      { apiKey: apiKey.token }
-    )
-
-    expect(result.verified).toBe(true)
-  })
-})
+// NOTE: cacheRecomputationContext derivation tests removed as part of
+// wire-recomputation-to-event-push Patch 1. CacheRecomputationContext was
+// simplified to just { livemode: boolean } - the type/customerId/organizationId/userId
+// fields were only needed for cache recomputation, which has been removed.
 
 describe('authenticatedTransactionUnwrap', () => {
   let testOrg: Organization.Record

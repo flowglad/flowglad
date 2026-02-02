@@ -15,7 +15,7 @@ import {
 
 // Mock fetch globally
 const mockFetch = vi.fn()
-global.fetch = mockFetch as unknown as typeof fetch
+vi.stubGlobal('fetch', mockFetch)
 
 describe('requestAccessToken', () => {
   beforeEach(() => {

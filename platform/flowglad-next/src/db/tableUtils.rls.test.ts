@@ -17,9 +17,10 @@ import {
   pricingModels,
 } from '@db-core/schema/pricingModels'
 import type { Product } from '@db-core/schema/products'
+import { Result } from 'better-result'
 import { and as drizzleAnd, eq } from 'drizzle-orm'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertPrice,
@@ -200,21 +201,25 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     }
 
     // Verify (using admin) that the pricingModel was not actually created
-    const checkPricingModel = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return transaction
-        .select()
-        .from(pricingModels)
-        .where(
-          drizzleAnd(
-            eq(
-              pricingModels.organizationId,
-              org2Data.organization.id
-            ),
-            eq(pricingModels.name, pricingModelNameAttempt)
-          )
+    const checkPricingModel = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await transaction
+            .select()
+            .from(pricingModels)
+            .where(
+              drizzleAnd(
+                eq(
+                  pricingModels.organizationId,
+                  org2Data.organization.id
+                ),
+                eq(pricingModels.name, pricingModelNameAttempt)
+              )
+            )
         )
-    })
+      })
+    ).unwrap()
     expect(checkPricingModel.length).toBe(0)
   })
 })
