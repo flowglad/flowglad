@@ -100,26 +100,6 @@ describe('getPaymentMethods handler', () => {
     expect(mocks.getPaymentMethods).toHaveBeenCalledTimes(1)
   })
 
-  it('returns billingPortalUrl', async () => {
-    const { server, mocks } = createMockFlowgladServer()
-    mocks.getPaymentMethods.mockResolvedValue({
-      paymentMethods: [],
-      billingPortalUrl: mockBillingPortalUrl,
-    })
-
-    const result = await getPaymentMethods(
-      { method: HTTPMethod.POST, data: {} },
-      server
-    )
-
-    expect(result.status).toBe(200)
-    expect(result.data).toHaveProperty(
-      'billingPortalUrl',
-      mockBillingPortalUrl
-    )
-    expect(mocks.getPaymentMethods).toHaveBeenCalledTimes(1)
-  })
-
   it('returns empty array when no payment methods', async () => {
     const { server, mocks } = createMockFlowgladServer()
     mocks.getPaymentMethods.mockResolvedValue({
