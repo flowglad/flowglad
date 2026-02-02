@@ -770,10 +770,63 @@ export const isFirstPayment = async (
   return !hasNonZeroPayment
 }
 
+interface ExecuteBillingRunSuccessResult {
+  invoice: Invoice.Record
+  payment: Payment.Record | undefined
+  feeCalculation: FeeCalculation.Record | null
+  customer: Customer.Record
+  billingPeriod: BillingPeriod.Record
+  paymentMethod: PaymentMethod.Record
+  totalDueAmount: number
+  totalAmountPaid: number
+  organization: Organization.Record
+  payments: Payment.Record[]
+}
+
+/**
+ * Helper to mark a billing run as failed and return a Result.err
+ */
+const markBillingRunAsFailedAndReturnError = async (
+  billingRunId: string,
+  error: unknown,
+  livemode?: boolean
+): Promise<Result<never, Error>> => {
+  console.error('Error executing billing run', {
+    billingRunId,
+    error,
+  })
+  const isError = error instanceof Error
+  const errorObj = isError ? error : new Error(String(error))
+
+  const updateResult = await adminTransaction(
+    async ({ transaction }) => {
+      await updateBillingRun(
+        {
+          id: billingRunId,
+          status: BillingRunStatus.Failed,
+          errorDetails: {
+            message: errorObj.message,
+            name: errorObj.name,
+            stack: errorObj.stack,
+          },
+        },
+        transaction
+      )
+      return Result.ok(undefined)
+    },
+    livemode !== undefined ? { livemode } : undefined
+  )
+  if (Result.isError(updateResult)) {
+    return Result.err(updateResult.error)
+  }
+  return Result.err(errorObj)
+}
+
 /**
  * FIXME : support discount redemptions
  * @param billingRunId - billing run ID
  * @param adjustmentParams - Optional adjustment parameters for adjustment billing runs
+ * @returns Result with the billing run result or an error
  */
 export const executeBillingRun = async (
   billingRunId: string,
@@ -784,18 +837,20 @@ export const executeBillingRun = async (
     )[]
     adjustmentDate: Date | number
   }
-) => {
+): Promise<
+  Result<ExecuteBillingRunSuccessResult | undefined, Error>
+> => {
   const billingRunResult = await adminTransaction(
     async ({ transaction }) =>
       selectBillingRunById(billingRunId, transaction)
   )
   if (Result.isError(billingRunResult)) {
-    throw billingRunResult.error
+    return Result.err(billingRunResult.error)
   }
   const billingRun = billingRunResult.value
 
   if (billingRun.status !== BillingRunStatus.Scheduled) {
-    return
+    return Result.ok(undefined)
   }
   try {
     if (billingRun.isAdjustment && !adjustmentParams) {
@@ -952,7 +1007,11 @@ export const executeBillingRun = async (
         }
       )
     if (Result.isError(billingRunStepsResult)) {
-      throw billingRunStepsResult.error
+      return markBillingRunAsFailedAndReturnError(
+        billingRunId,
+        billingRunStepsResult.error,
+        billingRun.livemode
+      )
     }
     const {
       invoice,
@@ -982,7 +1041,7 @@ export const executeBillingRun = async (
 
     // Only proceed with payment confirmation if there is a payment intent
     if (!paymentIntent) {
-      return
+      return Result.ok(undefined)
     }
 
     // Confirm payment intent (outside transaction)
@@ -1014,7 +1073,11 @@ export const executeBillingRun = async (
         }
       )
       if (Result.isError(updateResult)) {
-        throw updateResult.error
+        return markBillingRunAsFailedAndReturnError(
+          billingRunId,
+          updateResult.error,
+          billingRun.livemode
+        )
       }
     }
 
@@ -1045,11 +1108,15 @@ export const executeBillingRun = async (
         { livemode: billingRun.livemode }
       )
       if (Result.isError(processResult)) {
-        throw processResult.error
+        return markBillingRunAsFailedAndReturnError(
+          billingRunId,
+          processResult.error,
+          billingRun.livemode
+        )
       }
     }
 
-    return {
+    return Result.ok({
       invoice,
       payment,
       feeCalculation,
@@ -1060,34 +1127,13 @@ export const executeBillingRun = async (
       totalAmountPaid,
       organization,
       payments,
-    }
+    })
   } catch (error) {
-    console.error('Error executing billing run', {
+    return markBillingRunAsFailedAndReturnError(
       billingRunId,
       error,
-    })
-    const updateResult = await adminTransaction(
-      async ({ transaction }) => {
-        const isError = error instanceof Error
-        const updatedBillingRun = await updateBillingRun(
-          {
-            id: billingRun.id,
-            status: BillingRunStatus.Failed,
-            errorDetails: {
-              message: isError ? error.message : String(error),
-              name: isError ? error.name : 'Error',
-              stack: isError ? error.stack : undefined,
-            },
-          },
-          transaction
-        )
-        return Result.ok(updatedBillingRun)
-      }
+      billingRun.livemode
     )
-    if (Result.isError(updateResult)) {
-      throw updateResult.error
-    }
-    return updateResult.value
   }
 }
 

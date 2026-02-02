@@ -1115,11 +1115,11 @@ const retryBillingRunProcedure = protectedProcedure
         { apiKey: ctx.apiKey }
       )
     ).unwrap()
-    const billingRun = await executeBillingRun(result.id)
-    if (!billingRun) {
+    const billingRunResult = await executeBillingRun(result.id)
+    if (Result.isError(billingRunResult)) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'Failed to execute billing run',
+        message: `Failed to execute billing run: ${billingRunResult.error.message}`,
       })
     }
     return {

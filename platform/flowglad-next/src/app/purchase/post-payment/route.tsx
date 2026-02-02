@@ -216,7 +216,10 @@ const processSetupIntent = async ({
     setupSucceededResult.billingRun?.id
   ) {
     const { billingRun } = setupSucceededResult
-    await executeBillingRun(billingRun.id)
+    const billingRunResult = await executeBillingRun(billingRun.id)
+    if (Result.isError(billingRunResult)) {
+      throw billingRunResult.error
+    }
   }
 
   const url = checkoutSession.successUrl

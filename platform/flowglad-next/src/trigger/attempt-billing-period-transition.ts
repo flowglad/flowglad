@@ -1,5 +1,6 @@
 import type { BillingPeriod } from '@db-core/schema/billingPeriods'
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
@@ -50,7 +51,13 @@ export const attemptBillingPeriodTransitionTask = task({
         const { billingRun } = result.unwrap()
 
         if (billingRun) {
-          await executeBillingRun(billingRun.id)
+          const billingRunResult = await executeBillingRun(
+            billingRun.id
+          )
+          // Throw on error to trigger Trigger.dev retry
+          if (Result.isError(billingRunResult)) {
+            throw billingRunResult.error
+          }
         }
 
         await storeTelemetry(
