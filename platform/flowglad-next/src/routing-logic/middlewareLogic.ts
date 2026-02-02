@@ -11,25 +11,43 @@ type MiddlewareLogicResponse =
     }
 
 interface MiddlewareLogicParams {
-  sessionCookie: string | null | undefined
+  merchantSessionCookie: string | null | undefined
+  customerSessionCookie: string | null | undefined
   isProtectedRoute: boolean
   pathName: string
-  customerBillingPortalOrganizationId: string | null | undefined
   req: {
     nextUrl: string
   }
+}
+
+/**
+ * Determines whether a route is a billing portal route.
+ * Billing portal routes are under /billing-portal/* or are customerBillingPortal TRPC routes.
+ */
+const isBillingPortalRoute = (pathName: string): boolean => {
+  return (
+    pathName.startsWith('/billing-portal/') ||
+    pathName.startsWith('/api/trpc/customerBillingPortal.')
+  )
 }
 
 export const middlewareLogic = (
   params: MiddlewareLogicParams
 ): MiddlewareLogicResponse => {
   const {
-    sessionCookie,
+    merchantSessionCookie,
+    customerSessionCookie,
     isProtectedRoute,
     pathName,
-    customerBillingPortalOrganizationId,
   } = params
-  if (!sessionCookie && isProtectedRoute) {
+
+  // Determine which session to use based on route type
+  const isBillingPortal = isBillingPortalRoute(pathName)
+  const relevantSessionCookie = isBillingPortal
+    ? customerSessionCookie
+    : merchantSessionCookie
+
+  if (!relevantSessionCookie && isProtectedRoute) {
     if (pathName.startsWith('/billing-portal/')) {
       const pathParts = pathName.split('/').filter(Boolean)
       // pathParts: ['billing-portal', 'org_xxx', 'cust_xxx', ...]
@@ -69,6 +87,7 @@ export const middlewareLogic = (
       }
     }
 
+    // For merchant routes without a merchant session, redirect to sign-in
     return {
       proceed: false,
       redirect: {
@@ -78,21 +97,8 @@ export const middlewareLogic = (
     }
   }
 
-  if (
-    customerBillingPortalOrganizationId &&
-    !pathName.startsWith(
-      `/billing-portal/${customerBillingPortalOrganizationId}`
-    ) &&
-    isProtectedRoute &&
-    !pathName.startsWith('/api/trpc/customerBillingPortal.')
-  ) {
-    return {
-      proceed: false,
-      redirect: {
-        url: `/billing-portal/${customerBillingPortalOrganizationId}`,
-        status: 307,
-      },
-    }
-  }
+  // With dual sessions, we no longer need to redirect users based on customerBillingPortalOrganizationId.
+  // Users with both sessions can access both route types without conflicts.
+
   return { proceed: true }
 }
