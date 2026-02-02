@@ -1,31 +1,435 @@
-import { describe, it } from 'bun:test'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
+import { FlowgladActionKey } from '@flowglad/shared'
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import type React from 'react'
+import { FlowgladConfigProvider } from './FlowgladConfigContext'
+import * as invalidationModule from './lib/invalidation'
+import { useSubscription } from './useSubscription'
+import { SUBSCRIPTIONS_QUERY_KEY } from './useSubscriptions'
+
+// Mock subscription data
+const mockSubscription1 = {
+  id: 'sub_123',
+  status: 'active',
+  current: true,
+  livemode: false,
+  customerId: 'cust_123',
+  priceId: 'price_123',
+  productId: 'prod_123',
+  currentPeriodStart: Date.now(),
+  currentPeriodEnd: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+}
+
+const mockSubscriptionsResponse = {
+  data: {
+    subscriptions: [mockSubscription1],
+    currentSubscriptions: [mockSubscription1],
+    currentSubscription: mockSubscription1,
+  },
+}
+
+const mockEmptySubscriptionsResponse = {
+  data: {
+    subscriptions: [],
+    currentSubscriptions: [],
+    currentSubscription: null,
+  },
+}
+
+// Create mock billing data for dev mode
+const createMockBillingData = () => ({
+  customer: {
+    id: 'cust_123',
+    email: 'test@example.com',
+    name: 'Test Customer',
+    externalId: 'ext_123',
+    livemode: false,
+    organizationId: 'org_123',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    catalog: null,
+  },
+  subscriptions: [mockSubscription1],
+  currentSubscription: mockSubscription1,
+  currentSubscriptions: [mockSubscription1],
+  purchases: [],
+  invoices: [],
+  paymentMethods: [],
+  billingPortalUrl: 'https://billing.example.com',
+  pricingModel: {
+    id: 'pm_123',
+    products: [],
+    prices: [],
+    usageMeters: [],
+    features: [],
+    resources: [],
+  },
+  catalog: {
+    id: 'pm_123',
+    products: [],
+    prices: [],
+    usageMeters: [],
+    features: [],
+    resources: [],
+  },
+})
+
+// Create wrapper for hooks
+const createWrapper = (
+  devMode = false,
+  billingMocks?: ReturnType<typeof createMockBillingData>
+) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
+
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <FlowgladConfigProvider
+        baseURL="https://test.example.com"
+        __devMode={devMode}
+        billingMocks={billingMocks as never}
+      >
+        {children}
+      </FlowgladConfigProvider>
+    </QueryClientProvider>
+  )
+}
 
 describe('useSubscription', () => {
-  it.skip('returns currentSubscription', async () => {
-    // TODO: Implement in Patch 4
+  let originalFetch: typeof fetch
+  let mockFetch: ReturnType<typeof mock>
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch
+    mockFetch = mock()
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
-  it.skip('cancel() calls cancel endpoint with subscription id', async () => {
-    // TODO: Implement in Patch 4
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+    mockFetch.mockReset()
   })
 
-  it.skip('cancel() throws when no active subscription', async () => {
-    // TODO: Implement in Patch 4
+  it('returns currentSubscription from useSubscriptions with loading and error states', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSubscriptionsResponse),
+    })
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: createWrapper(),
+    })
+
+    // Initially loading
+    expect(result.current.isLoading).toBe(true)
+    expect(result.current.subscription).toBeUndefined()
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // After loading, subscription should be set
+    expect(result.current.subscription?.id).toBe('sub_123')
+    expect(result.current.subscription?.status).toBe('active')
+    expect(result.current.error).toBe(null)
+
+    // Verify cancel, uncancel, adjust functions exist
+    expect(typeof result.current.cancel).toBe('function')
+    expect(typeof result.current.uncancel).toBe('function')
+    expect(typeof result.current.adjust).toBe('function')
   })
 
-  it.skip('uncancel() calls uncancel endpoint', async () => {
-    // TODO: Implement in Patch 4
+  it('cancel() calls cancel endpoint with subscription id and cancellation params', async () => {
+    // First call: fetch subscriptions
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSubscriptionsResponse),
+    })
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Second call: cancel subscription
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            subscription: {
+              ...mockSubscription1,
+              status: 'canceled',
+            },
+          },
+        }),
+    })
+
+    await act(async () => {
+      await result.current.cancel({
+        cancellation: { timing: 'at_end_of_current_billing_period' },
+      })
+    })
+
+    // Verify the cancel endpoint was called with correct params
+    const cancelCall = mockFetch.mock.calls[1]
+    expect(cancelCall[0]).toBe(
+      `https://test.example.com/api/flowglad/${FlowgladActionKey.CancelSubscription}`
+    )
+    expect(cancelCall[1].method).toBe('POST')
+
+    const cancelBody = JSON.parse(cancelCall[1].body)
+    expect(cancelBody.id).toBe('sub_123')
+    expect(cancelBody.cancellation.timing).toBe(
+      'at_end_of_current_billing_period'
+    )
   })
 
-  it.skip('adjust() calls adjust endpoint', async () => {
-    // TODO: Implement in Patch 4
+  it('cancel() throws "No active subscription" error when currentSubscription is null', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockEmptySubscriptionsResponse),
+    })
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Subscription should be null
+    expect(result.current.subscription).toBe(null)
+
+    // Calling cancel should throw
+    await expect(
+      result.current.cancel({
+        cancellation: { timing: 'immediately' },
+      })
+    ).rejects.toThrow('No active subscription')
   })
 
-  it.skip('mutations invalidate all customer query keys', async () => {
-    // TODO: Implement in Patch 4
+  it('uncancel() calls uncancel endpoint with subscription id', async () => {
+    // First call: fetch subscriptions
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSubscriptionsResponse),
+    })
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Second call: uncancel subscription
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { subscription: mockSubscription1 },
+        }),
+    })
+
+    await act(async () => {
+      await result.current.uncancel()
+    })
+
+    // Verify the uncancel endpoint was called
+    const uncancelCall = mockFetch.mock.calls[1]
+    expect(uncancelCall[0]).toBe(
+      `https://test.example.com/api/flowglad/${FlowgladActionKey.UncancelSubscription}`
+    )
+    expect(uncancelCall[1].method).toBe('POST')
+
+    const uncancelBody = JSON.parse(uncancelCall[1].body)
+    expect(uncancelBody.id).toBe('sub_123')
   })
 
-  it.skip('uses billingMocks in dev mode', async () => {
-    // TODO: Implement in Patch 4
+  it('adjust() calls adjust endpoint with subscriptionId and adjustment params', async () => {
+    // First call: fetch subscriptions
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSubscriptionsResponse),
+    })
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Second call: adjust subscription
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            subscription: mockSubscription1,
+            subscriptionItems: [],
+            isUpgrade: true,
+            resolvedTiming: 'immediately',
+          },
+        }),
+    })
+
+    await act(async () => {
+      await result.current.adjust({
+        priceSlug: 'pro-monthly',
+        quantity: 1,
+      })
+    })
+
+    // Verify the adjust endpoint was called with subscriptionId
+    const adjustCall = mockFetch.mock.calls[1]
+    expect(adjustCall[0]).toBe(
+      `https://test.example.com/api/flowglad/${FlowgladActionKey.AdjustSubscription}`
+    )
+    expect(adjustCall[1].method).toBe('POST')
+
+    const adjustBody = JSON.parse(adjustCall[1].body)
+    expect(adjustBody.subscriptionId).toBe('sub_123')
+    expect(adjustBody.priceSlug).toBe('pro-monthly')
+    expect(adjustBody.quantity).toBe(1)
+  })
+
+  it('mutations invalidate SUBSCRIPTIONS_QUERY_KEY, USAGE_METERS_QUERY_KEY, FEATURES_QUERY_KEY, and GetCustomerBilling after success', async () => {
+    // First call: fetch subscriptions
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSubscriptionsResponse),
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+
+    const invalidateQueriesSpy = spyOn(
+      queryClient,
+      'invalidateQueries'
+    ).mockResolvedValue(undefined)
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <FlowgladConfigProvider baseURL="https://test.example.com">
+          {children}
+        </FlowgladConfigProvider>
+      </QueryClientProvider>
+    )
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper,
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Clear spy calls from initial render
+    invalidateQueriesSpy.mockClear()
+
+    // Second call: cancel subscription
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: {
+            subscription: {
+              ...mockSubscription1,
+              status: 'canceled',
+            },
+          },
+        }),
+    })
+
+    await act(async () => {
+      await result.current.cancel({
+        cancellation: { timing: 'immediately' },
+      })
+    })
+
+    // Verify invalidateQueries was called for all customer query keys
+    // The invalidateCustomerData helper invalidates: SUBSCRIPTIONS_QUERY_KEY, FEATURES_QUERY_KEY, USAGE_METERS_QUERY_KEY, GetCustomerBilling
+    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(4)
+
+    const invalidatedKeys = invalidateQueriesSpy.mock.calls.map(
+      (call) => (call[0] as { queryKey: string[] }).queryKey[0]
+    )
+    expect(invalidatedKeys).toContain(SUBSCRIPTIONS_QUERY_KEY)
+    expect(invalidatedKeys).toContain(
+      FlowgladActionKey.GetCustomerBilling
+    )
+
+    invalidateQueriesSpy.mockRestore()
+  })
+
+  it('uses billingMocks in dev mode and returns mock responses for mutations without making network calls', async () => {
+    const billingMocks = createMockBillingData()
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: createWrapper(true, billingMocks),
+    })
+
+    // In dev mode, data should be immediately available
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.error).toBe(null)
+    expect(result.current.subscription?.id).toBe('sub_123')
+
+    // No fetch calls should be made in dev mode for initial load
+    expect(mockFetch).not.toHaveBeenCalled()
+
+    // Call cancel in dev mode
+    const cancelResult = await result.current.cancel({
+      cancellation: { timing: 'immediately' },
+    })
+
+    // Should return mock success response
+    expect(cancelResult).toEqual({ success: true })
+
+    // Still no fetch calls in dev mode
+    expect(mockFetch).not.toHaveBeenCalled()
+
+    // Call uncancel in dev mode
+    const uncancelResult = await result.current.uncancel()
+    expect(uncancelResult).toEqual({ success: true })
+    expect(mockFetch).not.toHaveBeenCalled()
+
+    // Call adjust in dev mode
+    const adjustResult = await result.current.adjust({
+      priceSlug: 'pro-monthly',
+    })
+    expect(adjustResult).toEqual({ success: true })
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 })
