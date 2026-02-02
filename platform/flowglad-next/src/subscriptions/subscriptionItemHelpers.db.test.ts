@@ -395,7 +395,9 @@ describe('subscriptionItemHelpers', () => {
           isDefault: false,
           trialPeriodDays: 0,
           currency: CurrencyCode.USD,
-        })(
+        })
+
+        ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const newSubscriptionItems: SubscriptionItem.Insert[] = [
@@ -689,7 +691,9 @@ describe('subscriptionItemHelpers', () => {
           isDefault: false,
           trialPeriodDays: 0,
           currency: CurrencyCode.USD,
-        })(
+        })
+
+        ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const newSubscriptionItems: SubscriptionItem.Insert[] = [
@@ -777,8 +781,10 @@ describe('subscriptionItemHelpers', () => {
           usageMeterId: usageMeter.id,
           amount: 50,
           manuallyCreated: true,
-        })(
-          // Verify manual feature is active before adjustment
+        })
+
+        // Verify manual feature is active before adjustment
+        ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const preAdjustmentFeatures =
@@ -794,100 +800,98 @@ describe('subscriptionItemHelpers', () => {
             expect(preAdjustmentFeatures[0].expiredAt).toBeNull()
             return Result.ok(null)
           })
-        )
-          .unwrap()(
-            await adminTransaction(async (ctx) => {
-              const { transaction } = ctx
-              // Adjust with a plan that includes the same feature
-              const newSubscriptionItems: SubscriptionItem.Insert[] =
-                [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Plan Item With Feature',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: now,
-                    type: SubscriptionItemType.Static,
-                  },
-                ]
+        ).unwrap()
 
-              await handleSubscriptionItemAdjustment(
-                {
-                  subscriptionId: subscription.id,
-                  newSubscriptionItems,
-                  adjustmentDate: now,
-                },
-                ctx
-              )
-
-              // Verify plan subscription item was created with correct properties
-              const activeItems =
-                await selectCurrentlyActiveSubscriptionItems(
-                  { subscriptionId: subscription.id },
-                  now,
-                  transaction
-                )
-              const planItem = activeItems.find(
-                (item) => item.priceId === price.id
-              )
-              expect(planItem).toMatchObject({
+        ;(
+          await adminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            // Adjust with a plan that includes the same feature
+            const newSubscriptionItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
                 name: 'Plan Item With Feature',
-              })
-              expect(planItem!.name).toBe('Plan Item With Feature')
-              expect(planItem!.quantity).toBe(1)
+                quantity: 1,
+                unitPrice: price.unitPrice,
+                priceId: price.id,
+                livemode: true,
+                addedDate: now,
+                type: SubscriptionItemType.Static,
+              },
+            ]
 
-              // Verify plan feature was created with matching featureId
-              const planFeatures =
-                await selectSubscriptionItemFeatures(
-                  {
-                    subscriptionItemId: planItem!.id,
-                    expiredAt: null,
-                  },
-                  transaction
-                )
-              expect(planFeatures.length).toBe(1)
-              expect(planFeatures[0].featureId).toBe(feature.id)
-              expect(planFeatures[0].type).toBe(
-                FeatureType.UsageCreditGrant
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems,
+                adjustmentDate: now,
+              },
+              ctx
+            )
+
+            // Verify plan subscription item was created with correct properties
+            const activeItems =
+              await selectCurrentlyActiveSubscriptionItems(
+                { subscriptionId: subscription.id },
+                now,
+                transaction
               )
-              expect(planFeatures[0].usageMeterId).toBe(usageMeter.id)
-              expect(planFeatures[0].expiredAt).toBeNull()
-
-              // Verify the manual feature was expired at the adjustment time
-              const allManualFeatures =
-                await selectSubscriptionItemFeatures(
-                  { subscriptionItemId: manualItem.id },
-                  transaction
-                )
-              const expiredManualFeature = allManualFeatures.find(
-                (f) => f.id === manualFeature.id
-              )
-              expect(expiredManualFeature).toMatchObject({
-                expiredAt: now,
-              })
-              expect(expiredManualFeature!.expiredAt).toBe(now)
-              expect(expiredManualFeature!.featureId).toBe(feature.id)
-
-              // Verify there's no active manual feature with this featureId anymore
-              const activeManualFeatures =
-                await selectSubscriptionItemFeatures(
-                  {
-                    subscriptionItemId: manualItem.id,
-                    expiredAt: null,
-                  },
-                  transaction
-                )
-              const stillActiveWithSameFeature =
-                activeManualFeatures.find(
-                  (f) => f.featureId === feature.id
-                )
-              expect(stillActiveWithSameFeature).toBeUndefined()
-              return Result.ok(null)
+            const planItem = activeItems.find(
+              (item) => item.priceId === price.id
+            )
+            expect(planItem).toMatchObject({
+              name: 'Plan Item With Feature',
             })
-          )
-          .unwrap()
+            expect(planItem!.name).toBe('Plan Item With Feature')
+            expect(planItem!.quantity).toBe(1)
+
+            // Verify plan feature was created with matching featureId
+            const planFeatures = await selectSubscriptionItemFeatures(
+              {
+                subscriptionItemId: planItem!.id,
+                expiredAt: null,
+              },
+              transaction
+            )
+            expect(planFeatures.length).toBe(1)
+            expect(planFeatures[0].featureId).toBe(feature.id)
+            expect(planFeatures[0].type).toBe(
+              FeatureType.UsageCreditGrant
+            )
+            expect(planFeatures[0].usageMeterId).toBe(usageMeter.id)
+            expect(planFeatures[0].expiredAt).toBeNull()
+
+            // Verify the manual feature was expired at the adjustment time
+            const allManualFeatures =
+              await selectSubscriptionItemFeatures(
+                { subscriptionItemId: manualItem.id },
+                transaction
+              )
+            const expiredManualFeature = allManualFeatures.find(
+              (f) => f.id === manualFeature.id
+            )
+            expect(expiredManualFeature).toMatchObject({
+              expiredAt: now,
+            })
+            expect(expiredManualFeature!.expiredAt).toBe(now)
+            expect(expiredManualFeature!.featureId).toBe(feature.id)
+
+            // Verify there's no active manual feature with this featureId anymore
+            const activeManualFeatures =
+              await selectSubscriptionItemFeatures(
+                {
+                  subscriptionItemId: manualItem.id,
+                  expiredAt: null,
+                },
+                transaction
+              )
+            const stillActiveWithSameFeature =
+              activeManualFeatures.find(
+                (f) => f.featureId === feature.id
+              )
+            expect(stillActiveWithSameFeature).toBeUndefined()
+            return Result.ok(null)
+          })
+        ).unwrap()
       })
     })
 
@@ -1115,7 +1119,9 @@ describe('subscriptionItemHelpers', () => {
           sourceReferenceType:
             UsageCreditSourceReferenceType.ManualAdjustment,
           status: UsageCreditStatus.Posted,
-        })(
+        })
+
+        ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
@@ -1203,7 +1209,9 @@ describe('subscriptionItemHelpers', () => {
           organizationId: orgData.organization.id,
           productId: product.id,
           featureId: onceFeature.id,
-        })(
+        })
+
+        ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const midPeriodDate =
@@ -1449,7 +1457,9 @@ describe('subscriptionItemHelpers', () => {
           currentBillingPeriodStart: billingPeriodStartDate,
           currentBillingPeriodEnd: billingPeriodEndDate,
           renews: true,
-        })(
+        })
+
+        ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const newSubscriptionItems: SubscriptionItem.Insert[] = [
@@ -1505,7 +1515,9 @@ describe('subscriptionItemHelpers', () => {
           unitPrice: 750,
           priceId: price.id,
           addedDate: itemAddedDate,
-        })(
+        })
+
+        ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Keep item2 (include its id), remove item1 and item3 (don't include their ids), add new item
@@ -1881,7 +1893,9 @@ describe('subscriptionItemHelpers', () => {
             organizationId: orgData.organization.id,
             productId: product.id,
             featureId: feature2.id,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -2495,7 +2509,9 @@ describe('subscriptionItemHelpers', () => {
             organizationId: orgData.organization.id,
             productId: product.id,
             featureId: onceFeature.id,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -2624,7 +2640,9 @@ describe('subscriptionItemHelpers', () => {
             organizationId: orgData.organization.id,
             productId: product.id,
             featureId: onceFeature.id,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -2741,7 +2759,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               // Adjust at exactly 50% through the billing period
@@ -2815,7 +2835,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -2882,7 +2904,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -2966,7 +2990,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.ManualAdjustment,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -3069,7 +3095,9 @@ describe('subscriptionItemHelpers', () => {
             sourceReferenceType:
               UsageCreditSourceReferenceType.BillingPeriodTransition,
             status: UsageCreditStatus.Posted,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -3189,7 +3217,9 @@ describe('subscriptionItemHelpers', () => {
             startDate: billingPeriodStartDate,
             endDate: billingPeriodEndDate,
             status: BillingPeriodStatus.Active,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =
@@ -3302,7 +3332,9 @@ describe('subscriptionItemHelpers', () => {
             startDate: billingPeriodStartDate,
             endDate: billingPeriodEndDate,
             status: BillingPeriodStatus.Active,
-          })(
+          })
+
+          ;(
             await adminTransaction(async (ctx) => {
               const { transaction } = ctx
               const midPeriodDate =

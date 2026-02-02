@@ -2433,7 +2433,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       invoiceId: invoice.id,
       purchaseId: purchase.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2475,7 +2477,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       invoiceId: invoice.id,
       purchaseId: purchase.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2514,7 +2518,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       invoiceId: invoice.id,
       purchaseId: purchase.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2554,7 +2560,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       invoiceId: invoice.id,
       // No purchaseId
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2634,7 +2642,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       organizationId: organization.id,
       invoiceId: invoice.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2672,7 +2682,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       organizationId: organization.id,
       invoiceId: invoice.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2718,7 +2730,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       organizationId: organization.id,
       invoiceId: paidInvoice.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2766,7 +2780,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       organizationId: organization.id,
       invoiceId: invoice.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,
@@ -2829,7 +2845,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       organizationId: organization.id,
       invoiceId: invoice.id,
       chargeDate: Date.now(),
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,

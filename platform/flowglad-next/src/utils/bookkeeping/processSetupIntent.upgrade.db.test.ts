@@ -298,13 +298,13 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
-          return Result.ok(
-            await processSetupIntentSucceeded(
-              setupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+          return processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).unwrap()
@@ -395,14 +395,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
-        // Process the setup intent
+      })
+
+      // Process the setup intent
+      ;(
         await adminTransaction(async ({ transaction }) => {
-          return Result.ok(
-            await processSetupIntentSucceeded(
-              setupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+          return processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).unwrap()
@@ -518,14 +518,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
-        // Process the setup intent
+      })
+
+      // Process the setup intent
+      ;(
         await adminTransaction(async ({ transaction }) => {
-          return Result.ok(
-            await processSetupIntentSucceeded(
-              setupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+          return processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).unwrap()
@@ -662,14 +662,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
-      })(
-        // Process the setup intent
+      })
+
+      // Process the setup intent
+      ;(
         await adminTransaction(async ({ transaction }) => {
-          return Result.ok(
-            await processSetupIntentSucceeded(
-              setupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+          return processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).unwrap()

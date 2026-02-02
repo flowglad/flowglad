@@ -1503,7 +1503,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         priceId: paidPrice.id,
         livemode: terminalCheckoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           const result = await processSetupIntentSucceeded(
             setupIntent,
@@ -1578,7 +1580,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         priceId: paidPrice.id,
         livemode: failedCheckoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           const result = await processSetupIntentSucceeded(
             setupIntent,
@@ -1650,7 +1654,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           const result = await processSetupIntentSucceeded(
             setupIntent,
@@ -1712,9 +1718,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
-        priceId: paidPrice.id,
+        priceId: priceWithTrial.id,
         livemode: checkoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           const result = await processSetupIntentSucceeded(
             setupIntent,
@@ -1730,7 +1738,6 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
           const newSubscription = subscriptions[0]
           // Should have trial end date set
-          expect(typeof newSubscription.trialEnd).toBe('number')
           expect(typeof newSubscription.trialEnd).toBe('number')
 
           // Trial should be approximately 14 days from now
@@ -1792,9 +1799,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
-        priceId: paidPrice.id,
+        priceId: priceWithTrial.id,
         livemode: checkoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           const result = await processSetupIntentSucceeded(
             setupIntent,
@@ -1926,7 +1935,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           type: IntentMetadataType.CheckoutSession,
           checkoutSessionId: addPMCheckoutSession.id,
         },
-      }(
+      }
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           // Create the new payment method first
           const newPM = await setupPaymentMethod({
@@ -1997,7 +2008,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         stripePaymentMethodId: newPaymentMethodId,
         type: PaymentMethodType.Card,
         organizationId: organization.id,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           await processSetupIntentSucceeded(
             setupIntent,
@@ -2048,7 +2061,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           await processSetupIntentSucceeded(
             setupIntent,
@@ -2101,7 +2116,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           await processSetupIntentSucceeded(
             setupIntent,
@@ -2147,7 +2164,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
         priceId: paidPrice.id,
         livemode: checkoutSession.livemode,
-      })(
+      })
+
+      ;(
         await adminTransaction(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)

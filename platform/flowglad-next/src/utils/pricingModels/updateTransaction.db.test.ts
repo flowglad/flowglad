@@ -3175,7 +3175,9 @@ describe('updatePricingModelTransaction', () => {
             features: ['feature-a'],
           },
         ],
-      })(
+      })
+
+      ;(
         await adminTransaction(
           async (params) => {
             const result = (

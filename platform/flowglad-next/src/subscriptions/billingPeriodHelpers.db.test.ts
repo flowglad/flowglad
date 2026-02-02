@@ -1602,7 +1602,9 @@ describe('Ledger Interactions', () => {
             amount: 500,
           },
         ],
-      })(
+      })
+
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
@@ -1715,7 +1717,9 @@ describe('Ledger Interactions', () => {
             amount: 400,
           },
         ],
-      })(
+      })
+
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
@@ -1827,7 +1831,9 @@ describe('Ledger Interactions', () => {
             amount: 1000,
           },
         ],
-      })(
+      })
+
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
@@ -1898,7 +1904,9 @@ describe('Ledger Interactions', () => {
             amount: 700,
           },
         ],
-      })(
+      })
+
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
@@ -1969,7 +1977,9 @@ describe('Ledger Interactions', () => {
             amount: 10000,
           },
         ],
-      })(
+      })
+
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
@@ -2099,8 +2109,10 @@ describe('Ledger Interactions', () => {
             amount: 300,
           },
         ],
-      })(
-        // Action
+      })
+
+      // Action
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
@@ -2226,8 +2238,10 @@ describe('Ledger Interactions', () => {
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: grantAmount,
-      })(
-        // Action:
+      })
+
+      // Action:
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
@@ -2379,8 +2393,10 @@ describe('Ledger Interactions', () => {
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: grantAmount,
-      })(
-        // Action:
+      })
+
+      // Action:
+      ;(
         await adminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,

@@ -184,7 +184,9 @@ describe('paymentMethodForStripePaymentMethodId', () => {
       livemode: true,
       type: PaymentMethodType.Card,
       stripePaymentMethodId,
-    })(
+    })
+
+    ;(
       await adminTransaction(
         async ({
           transaction,

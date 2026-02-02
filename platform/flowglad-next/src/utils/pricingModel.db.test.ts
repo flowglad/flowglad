@@ -3134,21 +3134,23 @@ describe('editProductTransaction - Feature Updates', () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
         amount: 500,
-      })(
-        await authenticatedTransaction(
-          async (params) => {
-            const txResult = await editProductTransaction(
-              {
-                product: { id: singlePaymentProduct.id },
-                featureIds: [usageCreditGrantFeature.id],
-              },
-              params
-            )
-            return Result.ok(txResult)
-          },
-          { apiKey: apiKeyToken }
-        )
-      ).unwrap()
+      })
+
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: singlePaymentProduct.id },
+              featureIds: [usageCreditGrantFeature.id],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     const productFeatures = (
       await adminTransaction(async (ctx) => {
