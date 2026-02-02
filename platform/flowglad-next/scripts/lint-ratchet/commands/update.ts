@@ -2,6 +2,7 @@ import { readBaseline, writePackageBaselineAt } from '../baseline'
 import { countViolationsByFile, runBiomeLint } from '../biome'
 import {
   getBaselinePathForPackage,
+  getFirstRule,
   loadConfig,
   resolvePackagePaths,
 } from '../config'
@@ -77,7 +78,10 @@ const updatePackageBaseline = async (
       throw new Error(
         `Baseline update failed: violations increased in ${packagePath}/${filePath} ` +
           `(${baselineCount} → ${currentCount}, +${currentCount - baselineCount}). ` +
-          `This should not happen after CI check passed.`
+          `This can happen if: (1) code changed between CI check and baseline update, ` +
+          `(2) the check command was not run before update, or ` +
+          `(3) the baseline file was manually modified. ` +
+          `Run "lint:ratchet" first to verify violations are within baseline.`
       )
     }
 
@@ -173,15 +177,7 @@ export const updateCommand = async (): Promise<UpdateResult> => {
     }
   }
 
-  // For now, we only support one rule at a time
-  const rule = config.rules[0]
-  if (!rule) {
-    console.error('No rules configured in .lint-ratchet.json')
-    return {
-      updated: false,
-      packageChanges: [],
-    }
-  }
+  const rule = getFirstRule(config)
 
   console.log(`Updating baselines for rule: ${rule.name}`)
   console.log(`Packages: ${packages.map((p) => p.path).join(', ')}`)

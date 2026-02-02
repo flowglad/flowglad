@@ -12,10 +12,7 @@ import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerTrialExpiredNoPaymentEmail } from '@/email-templates/customer-trial-expired-no-payment'
 import { PaymentError, ValidationError } from '@/errors'
-import {
-  createTriggerIdempotencyKey,
-  testSafeTriggerInvoker,
-} from '@/utils/backendCore'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import {
   formatEmailSubject,
   getBccForLivemode,
@@ -178,12 +175,10 @@ const sendCustomerTrialExpiredNotificationTask = task({
 })
 
 export const idempotentSendCustomerTrialExpiredNotification =
-  testSafeTriggerInvoker(
-    async (params: { subscriptionId: string }) => {
-      await sendCustomerTrialExpiredNotificationTask.trigger(params, {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-customer-trial-expired-notification-${params.subscriptionId}`
-        ),
-      })
-    }
-  )
+  async (params: { subscriptionId: string }) => {
+    await sendCustomerTrialExpiredNotificationTask.trigger(params, {
+      idempotencyKey: await createTriggerIdempotencyKey(
+        `send-customer-trial-expired-notification-${params.subscriptionId}`
+      ),
+    })
+  }

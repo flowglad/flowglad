@@ -35,7 +35,7 @@ import {
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import core from '@/utils/core'
 import { insertFeature } from './featureMethods'
 import {
@@ -134,243 +134,295 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('selectSubscriptionItemFeatureById', () => {
     it('returns a record by ID', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        const fetched = (
-          await selectSubscriptionItemFeatureById(
-            inserted.id,
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
             transaction
           )
-        ).unwrap()
-        expect(fetched.id).toBe(inserted.id)
-        expect(fetched.type).toBe(FeatureType.Toggle)
-      })
+          const fetched = (
+            await selectSubscriptionItemFeatureById(
+              inserted.id,
+              transaction
+            )
+          ).unwrap()
+          expect(fetched.id).toBe(inserted.id)
+          expect(fetched.type).toBe(FeatureType.Toggle)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns an error when ID not found', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const result = await selectSubscriptionItemFeatureById(
-          'bad-id',
-          transaction
-        )
-        expect(Result.isError(result)).toBe(true)
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const result = await selectSubscriptionItemFeatureById(
+            'bad-id',
+            transaction
+          )
+          expect(Result.isError(result)).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
   describe('selectClientSubscriptionItemFeatureAndFeatureById', () => {
     it('returns combined record with feature name & slug', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        const rows =
-          await selectClientSubscriptionItemFeatureAndFeatureById(
-            inserted.id,
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
             transaction
           )
-        expect(Array.isArray(rows)).toBe(true)
-        expect(rows.length).toBe(1)
-        expect(rows[0].id).toBe(inserted.id)
-        expect(rows[0].name).toBe(toggleFeature.name)
-        expect(rows[0].slug).toBe(toggleFeature.slug)
-      })
+          const rows =
+            await selectClientSubscriptionItemFeatureAndFeatureById(
+              inserted.id,
+              transaction
+            )
+          expect(Array.isArray(rows)).toBe(true)
+          expect(rows.length).toBe(1)
+          expect(rows[0].id).toBe(inserted.id)
+          expect(rows[0].name).toBe(toggleFeature.name)
+          expect(rows[0].slug).toBe(toggleFeature.slug)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('returns empty array if not found', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const rows =
-          await selectClientSubscriptionItemFeatureAndFeatureById(
-            'bad-id',
-            transaction
-          )
-        expect(rows).toEqual([])
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const rows =
+            await selectClientSubscriptionItemFeatureAndFeatureById(
+              'bad-id',
+              transaction
+            )
+          expect(rows).toEqual([])
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
   describe('insertSubscriptionItemFeature', () => {
     it('inserts a Toggle feature record', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        expect(typeof inserted.id).toBe('string')
-        expect(inserted.type).toBe(FeatureType.Toggle)
-        expect(inserted.usageMeterId).toBeNull()
-        expect(inserted.productFeatureId).toBe(
-          toggleProductFeature.id
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
+            transaction
+          )
+          expect(typeof inserted.id).toBe('string')
+          expect(inserted.type).toBe(FeatureType.Toggle)
+          expect(inserted.usageMeterId).toBeNull()
+          expect(inserted.productFeatureId).toBe(
+            toggleProductFeature.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('inserts a UsageCreditGrant feature record', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.UsageCreditGrant,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageCreditGrantFeature.id,
-            productFeatureId: usageCreditGrantProductFeature.id,
-            usageMeterId: usageMeter.id,
-            amount: 100,
-            renewalFrequency:
-              FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-          },
-          transaction
-        )
-        expect(inserted.type).toBe(FeatureType.UsageCreditGrant)
-        expect(inserted.usageMeterId).toBe(usageMeter.id)
-        expect(inserted.amount).toBe(100)
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.UsageCreditGrant,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageCreditGrantFeature.id,
+              productFeatureId: usageCreditGrantProductFeature.id,
+              usageMeterId: usageMeter.id,
+              amount: 100,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              livemode: true,
+            },
+            transaction
+          )
+          expect(inserted.type).toBe(FeatureType.UsageCreditGrant)
+          expect(inserted.usageMeterId).toBe(usageMeter.id)
+          expect(inserted.amount).toBe(100)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
   describe('updateSubscriptionItemFeature & expire', () => {
     it('updates expiredAt through updateSubscriptionItemFeature', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        const now = new Date()
-        const updated = await updateSubscriptionItemFeature(
-          { ...inserted, expiredAt: now.getTime() },
-          transaction
-        )
-        expect(updated.expiredAt).toBe(now.getTime())
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
+            transaction
+          )
+          const now = new Date()
+          const updated = await updateSubscriptionItemFeature(
+            { ...inserted, expiredAt: now.getTime() },
+            transaction
+          )
+          expect(updated.expiredAt).toBe(now.getTime())
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('expires multiple records by subscriptionItemId', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.UsageCreditGrant,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageCreditGrantFeature.id,
-            productFeatureId: usageCreditGrantProductFeature.id,
-            usageMeterId: usageMeter.id,
-            amount: 50,
-            renewalFrequency:
-              FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-          },
-          transaction
-        )
-        const date = new Date()
-        const updated =
-          await expireSubscriptionItemFeaturesForSubscriptionItems(
-            [subscriptionItem.id],
-            date,
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
             transaction
           )
-        expect(updated.length).toBe(2)
-        updated.forEach((u: SubscriptionItemFeature.Record) => {
-          expect(u.expiredAt).toBe(date.getTime())
+          await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.UsageCreditGrant,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageCreditGrantFeature.id,
+              productFeatureId: usageCreditGrantProductFeature.id,
+              usageMeterId: usageMeter.id,
+              amount: 50,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              livemode: true,
+            },
+            transaction
+          )
+          const date = new Date()
+          const updated =
+            await expireSubscriptionItemFeaturesForSubscriptionItems(
+              [subscriptionItem.id],
+              date,
+              transaction
+            )
+          expect(updated.length).toBe(2)
+          updated.forEach((u: SubscriptionItemFeature.Record) => {
+            expect(u.expiredAt).toBe(date.getTime())
+          })
+          return Result.ok(undefined)
         })
-      })
+      ).unwrap()
     })
   })
 
   describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
     it('joins slug and name correctly', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        const joined =
-          await selectSubscriptionItemFeaturesWithFeatureSlug(
-            subscriptionItem.id,
-            transaction,
-            true // livemode
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
+            transaction
           )
-        expect(joined.length).toBe(1)
-        expect(joined[0].slug).toBe(toggleFeature.slug)
-      })
+          const joined =
+            await selectSubscriptionItemFeaturesWithFeatureSlug(
+              subscriptionItem.id,
+              transaction,
+              true // livemode
+            )
+          expect(joined.length).toBe(1)
+          expect(joined[0].slug).toBe(toggleFeature.slug)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
   describe('upsert and bulkUpsert', () => {
     it('upserts single record', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const [up] = (
-          await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const [up] = (
+            await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
+              {
+                type: FeatureType.Toggle,
+                subscriptionItemId: subscriptionItem.id,
+                productFeatureId: toggleProductFeature.id,
+                featureId: toggleFeature.id,
+                usageMeterId: null,
+                amount: null,
+                renewalFrequency: null,
+                livemode: true,
+              },
+              transaction
+            )
+          ).unwrap()
+          expect(typeof up.id).toBe('string')
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('bulk upserts multiple records', async () => {
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserts: SubscriptionItemFeature.Insert[] = [
             {
               type: FeatureType.Toggle,
               subscriptionItemId: subscriptionItem.id,
@@ -381,120 +433,107 @@ describe('subscriptionItemFeatureMethods', () => {
               renewalFrequency: null,
               livemode: true,
             },
-            transaction
-          )
-        ).unwrap()
-        expect(typeof up.id).toBe('string')
-      })
-    })
-
-    it('bulk upserts multiple records', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserts: SubscriptionItemFeature.Insert[] = [
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            productFeatureId: toggleProductFeature.id,
-            featureId: toggleFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          {
-            type: FeatureType.UsageCreditGrant,
-            subscriptionItemId: subscriptionItem.id,
-            productFeatureId: usageCreditGrantProductFeature.id,
-            featureId: usageCreditGrantFeature.id,
-            usageMeterId: usageMeter.id,
-            amount: 10,
-            renewalFrequency:
-              FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-          },
-        ]
-        const results = (
-          await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
-            inserts,
-            transaction
-          )
-        ).unwrap()
-        expect(results.length).toBe(2)
-      })
+            {
+              type: FeatureType.UsageCreditGrant,
+              subscriptionItemId: subscriptionItem.id,
+              productFeatureId: usageCreditGrantProductFeature.id,
+              featureId: usageCreditGrantFeature.id,
+              usageMeterId: usageMeter.id,
+              amount: 10,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              livemode: true,
+            },
+          ]
+          const results = (
+            await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+              inserts,
+              transaction
+            )
+          ).unwrap()
+          expect(results.length).toBe(2)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
   describe('expire and detach helpers', () => {
     it('expires a single record via expireSubscriptionItemFeature', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        const now = new Date()
-        const updated = await expireSubscriptionItemFeature(
-          inserted,
-          now,
-          transaction
-        )
-        expect(typeof updated.expiredAt).toBe('number')
-        expect(updated.expiredAt).toBe(now.getTime())
-      })
-    })
-
-    it('detaches matching productFeatureIds', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const rec1 = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-        const rec2 = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.UsageCreditGrant,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageCreditGrantFeature.id,
-            productFeatureId: usageCreditGrantProductFeature.id,
-            usageMeterId: usageMeter.id,
-            amount: 100,
-            renewalFrequency:
-              FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-          },
-          transaction
-        )
-        const detached =
-          await detachSubscriptionItemFeaturesFromProductFeature(
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
             {
-              productFeatureIds: [toggleProductFeature.id],
-              detachedReason: 'test',
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
             },
             transaction
           )
-        expect(detached.length).toBe(1)
-        expect(detached[0].productFeatureId).toBeNull()
-        expect(detached[0].detachedReason).toBe('test')
-      })
+          const now = new Date()
+          const updated = await expireSubscriptionItemFeature(
+            inserted,
+            now,
+            transaction
+          )
+          expect(typeof updated.expiredAt).toBe('number')
+          expect(updated.expiredAt).toBe(now.getTime())
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('detaches matching productFeatureIds', async () => {
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const rec1 = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
+            transaction
+          )
+          const rec2 = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.UsageCreditGrant,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageCreditGrantFeature.id,
+              productFeatureId: usageCreditGrantProductFeature.id,
+              usageMeterId: usageMeter.id,
+              amount: 100,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              livemode: true,
+            },
+            transaction
+          )
+          const detached =
+            await detachSubscriptionItemFeaturesFromProductFeature(
+              {
+                productFeatureIds: [toggleProductFeature.id],
+                detachedReason: 'test',
+              },
+              transaction
+            )
+          expect(detached.length).toBe(1)
+          expect(detached[0].productFeatureId).toBeNull()
+          expect(detached[0].detachedReason).toBe('test')
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })
@@ -560,116 +599,65 @@ describe('pricingModelId derivation', () => {
 
   describe('insertSubscriptionItemFeature', () => {
     it('should derive pricingModelId from subscription item', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const subscriptionItemFeature =
-          await insertSubscriptionItemFeature(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: feature.id,
-              productFeatureId: productFeature.id,
-              type: FeatureType.Toggle,
-              livemode: true,
-            },
-            transaction
-          )
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const subscriptionItemFeature =
+            await insertSubscriptionItemFeature(
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: feature.id,
+                productFeatureId: productFeature.id,
+                type: FeatureType.Toggle,
+                livemode: true,
+              },
+              transaction
+            )
 
-        expect(subscriptionItemFeature.pricingModelId).toBe(
-          subscriptionItem.pricingModelId
-        )
-        expect(subscriptionItemFeature.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+          expect(subscriptionItemFeature.pricingModelId).toBe(
+            subscriptionItem.pricingModelId
+          )
+          expect(subscriptionItemFeature.pricingModelId).toBe(
+            pricingModel.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const subscriptionItemFeature =
-          await insertSubscriptionItemFeature(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: feature.id,
-              productFeatureId: productFeature.id,
-              type: FeatureType.Toggle,
-              livemode: true,
-              pricingModelId: pricingModel.id,
-            },
-            transaction
-          )
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const subscriptionItemFeature =
+            await insertSubscriptionItemFeature(
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: feature.id,
+                productFeatureId: productFeature.id,
+                type: FeatureType.Toggle,
+                livemode: true,
+                pricingModelId: pricingModel.id,
+              },
+              transaction
+            )
 
-        expect(subscriptionItemFeature.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+          expect(subscriptionItemFeature.pricingModelId).toBe(
+            pricingModel.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should throw error when subscription item does not exist', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
 
-        await expect(
-          insertSubscriptionItemFeature(
-            {
-              subscriptionItemId: nonExistentSubscriptionItemId,
-              featureId: feature.id,
-              productFeatureId: productFeature.id,
-              type: FeatureType.Toggle,
-              livemode: true,
-            },
-            transaction
-          )
-        ).rejects.toThrow()
-      })
-    })
-  })
-
-  describe('bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId', () => {
-    it('should derive pricingModelId for each feature in bulk upsert', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const subscriptionItemFeatures = (
-          await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
-            [
-              {
-                subscriptionItemId: subscriptionItem.id,
-                featureId: feature.id,
-                productFeatureId: productFeature.id,
-                type: FeatureType.Toggle,
-                livemode: true,
-              },
-            ],
-            transaction
-          )
-        ).unwrap()
-
-        expect(subscriptionItemFeatures).toHaveLength(1)
-        expect(subscriptionItemFeatures[0].pricingModelId).toBe(
-          subscriptionItem.pricingModelId
-        )
-        expect(subscriptionItemFeatures[0].pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
-    })
-
-    it('should return Result.err when one subscription item does not exist in bulk upsert', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
-
-        const result =
-          await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
-            [
-              {
-                subscriptionItemId: subscriptionItem.id,
-                featureId: feature.id,
-                productFeatureId: productFeature.id,
-                type: FeatureType.Toggle,
-                livemode: true,
-              },
+          await expect(
+            insertSubscriptionItemFeature(
               {
                 subscriptionItemId: nonExistentSubscriptionItemId,
                 featureId: feature.id,
@@ -677,11 +665,77 @@ describe('pricingModelId derivation', () => {
                 type: FeatureType.Toggle,
                 livemode: true,
               },
-            ],
-            transaction
+              transaction
+            )
+          ).rejects.toThrow()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+  })
+
+  describe('bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId', () => {
+    it('should derive pricingModelId for each feature in bulk upsert', async () => {
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const subscriptionItemFeatures = (
+            await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+              [
+                {
+                  subscriptionItemId: subscriptionItem.id,
+                  featureId: feature.id,
+                  productFeatureId: productFeature.id,
+                  type: FeatureType.Toggle,
+                  livemode: true,
+                },
+              ],
+              transaction
+            )
+          ).unwrap()
+
+          expect(subscriptionItemFeatures).toHaveLength(1)
+          expect(subscriptionItemFeatures[0].pricingModelId).toBe(
+            subscriptionItem.pricingModelId
           )
-        expect(Result.isError(result)).toBe(true)
-      })
+          expect(subscriptionItemFeatures[0].pricingModelId).toBe(
+            pricingModel.id
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('should return Result.err when one subscription item does not exist in bulk upsert', async () => {
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
+
+          const result =
+            await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+              [
+                {
+                  subscriptionItemId: subscriptionItem.id,
+                  featureId: feature.id,
+                  productFeatureId: productFeature.id,
+                  type: FeatureType.Toggle,
+                  livemode: true,
+                },
+                {
+                  subscriptionItemId: nonExistentSubscriptionItemId,
+                  featureId: feature.id,
+                  productFeatureId: productFeature.id,
+                  type: FeatureType.Toggle,
+                  livemode: true,
+                },
+              ],
+              transaction
+            )
+          expect(Result.isError(result)).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })
@@ -742,93 +796,109 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
     })
 
     // Create a resource feature
-    resourceFeature = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return insertFeature(
-        {
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          type: FeatureType.Resource,
-          name: 'Team Seats Feature',
-          slug: 'team-seats-feature',
-          description: 'Resource feature for team seats',
-          amount: 5,
-          usageMeterId: null,
-          renewalFrequency: null,
-          resourceId: resource.id,
-          livemode: true,
-          active: true,
-        },
-        ctx
-      )
-    })
+    resourceFeature = (
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              type: FeatureType.Resource,
+              name: 'Team Seats Feature',
+              slug: 'team-seats-feature',
+              description: 'Resource feature for team seats',
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              resourceId: resource.id,
+              livemode: true,
+              active: true,
+            },
+            ctx
+          )
+        )
+      })
+    ).unwrap()
   })
 
   describe('insertSubscriptionItemFeature for Resource type', () => {
     it('should insert a resource subscription item feature with type=Resource, resourceId, and amount', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const inserted = await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Resource,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            productFeatureId: null,
-            resourceId: resource.id,
-            amount: 10,
-            usageMeterId: null,
-            renewalFrequency: null,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const inserted = await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Resource,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: resourceFeature.id,
+              productFeatureId: null,
+              resourceId: resource.id,
+              amount: 10,
+              usageMeterId: null,
+              renewalFrequency: null,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
 
-        expect(inserted.id).toMatch(/^sub_feature_/)
-        expect(inserted.type).toBe(FeatureType.Resource)
-        expect(inserted.resourceId).toBe(resource.id)
-        expect(inserted.amount).toBe(10)
-        expect(inserted.usageMeterId).toBeNull()
-        expect(inserted.renewalFrequency).toBeNull()
-        expect(inserted.subscriptionItemId).toBe(subscriptionItem.id)
-        expect(inserted.featureId).toBe(resourceFeature.id)
-      })
+          expect(inserted.id).toMatch(/^sub_feature_/)
+          expect(inserted.type).toBe(FeatureType.Resource)
+          expect(inserted.resourceId).toBe(resource.id)
+          expect(inserted.amount).toBe(10)
+          expect(inserted.usageMeterId).toBeNull()
+          expect(inserted.renewalFrequency).toBeNull()
+          expect(inserted.subscriptionItemId).toBe(
+            subscriptionItem.id
+          )
+          expect(inserted.featureId).toBe(resourceFeature.id)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
 
     it('should select a resource subscription item feature by id', async () => {
-      const inserted = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Resource,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            productFeatureId: null,
-            resourceId: resource.id,
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
-      })
-
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        const selected = (
-          await selectSubscriptionItemFeatureById(
-            inserted.id,
-            transaction
+      const inserted = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await insertSubscriptionItemFeature(
+              {
+                type: FeatureType.Resource,
+                subscriptionItemId: subscriptionItem.id,
+                featureId: resourceFeature.id,
+                productFeatureId: null,
+                resourceId: resource.id,
+                amount: 5,
+                usageMeterId: null,
+                renewalFrequency: null,
+                livemode: true,
+                pricingModelId: pricingModel.id,
+              },
+              transaction
+            )
           )
-        ).unwrap()
+        })
+      ).unwrap()
 
-        expect(selected.id).toBe(inserted.id)
-        expect(selected.type).toBe(FeatureType.Resource)
-        expect(selected.resourceId).toBe(resource.id)
-        expect(selected.amount).toBe(5)
-      })
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const selected = (
+            await selectSubscriptionItemFeatureById(
+              inserted.id,
+              transaction
+            )
+          ).unwrap()
+
+          expect(selected.id).toBe(inserted.id)
+          expect(selected.type).toBe(FeatureType.Resource)
+          expect(selected.resourceId).toBe(resource.id)
+          expect(selected.amount).toBe(5)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -921,24 +991,28 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
 
   describe('resourceSubscriptionItemFeatureSelectSchema validation', () => {
     it('should validate a selected resource subscription item feature with resourceId in the record', async () => {
-      const inserted = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Resource,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            productFeatureId: null,
-            resourceId: resource.id,
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
-      })
+      const inserted = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await insertSubscriptionItemFeature(
+              {
+                type: FeatureType.Resource,
+                subscriptionItemId: subscriptionItem.id,
+                featureId: resourceFeature.id,
+                productFeatureId: null,
+                resourceId: resource.id,
+                amount: 5,
+                usageMeterId: null,
+                renewalFrequency: null,
+                livemode: true,
+                pricingModelId: pricingModel.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       const result =
         resourceSubscriptionItemFeatureSelectSchema.safeParse(
@@ -955,24 +1029,28 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
 
   describe('resourceSubscriptionItemFeatureClientSelectSchema validation', () => {
     it('should include resourceId in client select schema', async () => {
-      const inserted = await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Resource,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            productFeatureId: null,
-            resourceId: resource.id,
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
-      })
+      const inserted = (
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(
+            await insertSubscriptionItemFeature(
+              {
+                type: FeatureType.Resource,
+                subscriptionItemId: subscriptionItem.id,
+                featureId: resourceFeature.id,
+                productFeatureId: null,
+                resourceId: resource.id,
+                amount: 5,
+                usageMeterId: null,
+                renewalFrequency: null,
+                livemode: true,
+                pricingModelId: pricingModel.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // The client select schema expects name and slug from the joined feature
       const clientRecord = {
@@ -999,40 +1077,44 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
 
   describe('selectSubscriptionItemFeatures filtering by type', () => {
     it('should filter subscription item features by type=Resource', async () => {
-      await adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        // Insert a Resource subscription item feature
-        await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Resource,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: resourceFeature.id,
-            productFeatureId: null,
-            resourceId: resource.id,
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
-
-        const resourceFeatures = await selectSubscriptionItemFeatures(
-          { type: FeatureType.Resource },
-          transaction
-        )
-
-        expect(resourceFeatures.length).toBeGreaterThanOrEqual(1)
-        expect(
-          resourceFeatures.every(
-            (f) => f.type === FeatureType.Resource
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          // Insert a Resource subscription item feature
+          await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Resource,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: resourceFeature.id,
+              productFeatureId: null,
+              resourceId: resource.id,
+              amount: 5,
+              usageMeterId: null,
+              renewalFrequency: null,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
           )
-        ).toBe(true)
-        expect(
-          resourceFeatures.every((f) => f.resourceId !== null)
-        ).toBe(true)
-      })
+
+          const resourceFeatures =
+            await selectSubscriptionItemFeatures(
+              { type: FeatureType.Resource },
+              transaction
+            )
+
+          expect(resourceFeatures.length).toBeGreaterThanOrEqual(1)
+          expect(
+            resourceFeatures.every(
+              (f) => f.type === FeatureType.Resource
+            )
+          ).toBe(true)
+          expect(
+            resourceFeatures.every((f) => f.resourceId !== null)
+          ).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })
@@ -1105,50 +1187,58 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
   })
 
   it('returns features with name and slug for a subscription item', async () => {
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Insert a subscription item feature
-      await insertSubscriptionItemFeature(
-        {
-          type: FeatureType.Toggle,
-          subscriptionItemId: subscriptionItem.id,
-          featureId: toggleFeature.id,
-          productFeatureId: toggleProductFeature.id,
-          usageMeterId: null,
-          amount: null,
-          renewalFrequency: null,
-          livemode: true,
-        },
-        transaction
-      )
-
-      const features =
-        await selectSubscriptionItemFeaturesWithFeatureSlug(
-          subscriptionItem.id,
-          transaction,
-          true // livemode
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        // Insert a subscription item feature
+        await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Toggle,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            productFeatureId: toggleProductFeature.id,
+            usageMeterId: null,
+            amount: null,
+            renewalFrequency: null,
+            livemode: true,
+          },
+          transaction
         )
 
-      expect(features.length).toBe(1)
-      expect(features[0].subscriptionItemId).toBe(subscriptionItem.id)
-      expect(features[0].featureId).toBe(toggleFeature.id)
-      expect(features[0].name).toBe(toggleFeature.name)
-      expect(features[0].slug).toBe(toggleFeature.slug)
-      expect(features[0].type).toBe(FeatureType.Toggle)
-    })
+        const features =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
+
+        expect(features.length).toBe(1)
+        expect(features[0].subscriptionItemId).toBe(
+          subscriptionItem.id
+        )
+        expect(features[0].featureId).toBe(toggleFeature.id)
+        expect(features[0].name).toBe(toggleFeature.name)
+        expect(features[0].slug).toBe(toggleFeature.slug)
+        expect(features[0].type).toBe(FeatureType.Toggle)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 
   it('returns empty array for subscription item with no features', async () => {
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const features =
-        await selectSubscriptionItemFeaturesWithFeatureSlug(
-          subscriptionItem.id,
-          transaction,
-          true // livemode
-        )
+    ;(
+      await adminTransactionWithResult(async (ctx) => {
+        const { transaction } = ctx
+        const features =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            subscriptionItem.id,
+            transaction,
+            true // livemode
+          )
 
-      expect(features).toEqual([])
-    })
+        expect(features).toEqual([])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   })
 })

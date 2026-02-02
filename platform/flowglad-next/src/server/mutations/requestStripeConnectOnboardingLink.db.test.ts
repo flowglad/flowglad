@@ -23,9 +23,10 @@ import {
 } from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
+import { Result } from 'better-result'
 // Now import everything else (including mocked modules)
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import * as databaseAuthentication from '@/db/databaseAuthentication'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { organizationsRouter } from '@/server/routers/organizationsRouter'
@@ -109,13 +110,15 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
     expect(result.onboardingLink.length).toBeGreaterThan(0)
 
     // Verify the organization was updated with a Stripe account ID
-    const updatedOrg = await adminTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectOrganizationById(organization.id, transaction)
-        ).unwrap()
-      }
-    )
+    const updatedOrg = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await (
+            await selectOrganizationById(organization.id, transaction)
+          ).unwrap()
+        )
+      })
+    ).unwrap()
     expect(typeof updatedOrg.stripeAccountId).toBe('string')
   })
 
@@ -135,13 +138,15 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
     expect(typeof result.onboardingLink).toBe('string')
 
     // Verify the organization was updated
-    const updatedOrg = await adminTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectOrganizationById(organization.id, transaction)
-        ).unwrap()
-      }
-    )
+    const updatedOrg = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await (
+            await selectOrganizationById(organization.id, transaction)
+          ).unwrap()
+        )
+      })
+    ).unwrap()
     expect(typeof updatedOrg.stripeAccountId).toBe('string')
   })
 
@@ -162,13 +167,15 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
     expect(typeof result.onboardingLink).toBe('string')
 
     // Verify the organization was updated
-    const updatedOrg = await adminTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectOrganizationById(organization.id, transaction)
-        ).unwrap()
-      }
-    )
+    const updatedOrg = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await (
+            await selectOrganizationById(organization.id, transaction)
+          ).unwrap()
+        )
+      })
+    ).unwrap()
     expect(typeof updatedOrg.stripeAccountId).toBe('string')
   })
 })

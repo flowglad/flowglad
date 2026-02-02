@@ -33,6 +33,7 @@ import type { Product } from '@db-core/schema/products'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -51,7 +52,7 @@ import {
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
@@ -246,23 +247,26 @@ describeIfStripeKey(
         await executeBillingRun(billingRun.id)
 
         // Verify billing run succeeded
-        const updatedBillingRun = await adminTransaction(
-          ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction).then(
-              (r) => r.unwrap()
-            )
-        )
+        const updatedBillingRun = (
+          await adminTransactionWithResult(({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+          )
+        ).unwrap()
         expect(updatedBillingRun.status).toBe(
           BillingRunStatus.Succeeded
         )
 
         // Verify invoice is marked as paid
-        const invoices = await adminTransaction(({ transaction }) =>
-          selectInvoices(
-            { billingPeriodId: billingPeriod.id },
-            transaction
+        const invoices = (
+          await adminTransactionWithResult(async ({ transaction }) =>
+            Result.ok(
+              await selectInvoices(
+                { billingPeriodId: billingPeriod.id },
+                transaction
+              )
+            )
           )
-        )
+        ).unwrap()
         const finalInvoice = invoices.find(
           (inv) => inv.billingPeriodId === billingPeriod.id
         )
@@ -273,83 +277,97 @@ describeIfStripeKey(
     describe('Validation Failures', () => {
       it('marks billing run as failed when customer has no Stripe customer ID', async () => {
         // Remove Stripe customer ID
-        await adminTransaction(async ({ transaction }) => {
-          await updateCustomer(
-            {
-              id: customer.id,
-              stripeCustomerId: null,
-            },
-            transaction
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              await updateCustomer(
+                {
+                  id: customer.id,
+                  stripeCustomerId: null,
+                },
+                transaction
+              )
+              return Result.ok(undefined)
+            }
           )
-        })
+        ).unwrap()
 
         await executeBillingRun(billingRun.id)
 
         // Verify billing run failed
-        const updatedBillingRun = await adminTransaction(
-          ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction).then(
-              (r) => r.unwrap()
-            )
-        )
+        const updatedBillingRun = (
+          await adminTransactionWithResult(({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+          )
+        ).unwrap()
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(updatedBillingRun.errorDetails).toBeObject()
 
         // Verify no payment was created
-        const payments = await adminTransaction(({ transaction }) =>
-          selectPayments(
-            { billingPeriodId: billingRun.billingPeriodId },
-            transaction
+        const payments = (
+          await adminTransactionWithResult(async ({ transaction }) =>
+            Result.ok(
+              await selectPayments(
+                { billingPeriodId: billingRun.billingPeriodId },
+                transaction
+              )
+            )
           )
-        )
+        ).unwrap()
         expect(payments).toHaveLength(0)
       })
 
       it('marks billing run as failed when payment method has no Stripe payment method ID', async () => {
         // Remove Stripe payment method ID
-        await adminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            await safelyUpdatePaymentMethod(
-              {
-                id: paymentMethod.id,
-                stripePaymentMethodId: null,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache: invalidateCache!,
-                emitEvent: emitEvent!,
-                enqueueLedgerCommand: enqueueLedgerCommand!,
-              }
-            )
-          }
-        )
+        ;(
+          await adminTransactionWithResult(
+            async ({
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }) => {
+              await safelyUpdatePaymentMethod(
+                {
+                  id: paymentMethod.id,
+                  stripePaymentMethodId: null,
+                },
+                {
+                  transaction,
+                  cacheRecomputationContext,
+                  invalidateCache: invalidateCache!,
+                  emitEvent: emitEvent!,
+                  enqueueLedgerCommand: enqueueLedgerCommand!,
+                }
+              )
+              return Result.ok(undefined)
+            }
+          )
+        ).unwrap()
 
         await executeBillingRun(billingRun.id)
 
         // Verify billing run failed
-        const updatedBillingRun = await adminTransaction(
-          ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction).then(
-              (r) => r.unwrap()
-            )
-        )
+        const updatedBillingRun = (
+          await adminTransactionWithResult(({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+          )
+        ).unwrap()
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(updatedBillingRun.errorDetails).toBeObject()
 
         // Verify no payment was created
-        const payments = await adminTransaction(({ transaction }) =>
-          selectPayments(
-            { billingPeriodId: billingRun.billingPeriodId },
-            transaction
+        const payments = (
+          await adminTransactionWithResult(async ({ transaction }) =>
+            Result.ok(
+              await selectPayments(
+                { billingPeriodId: billingRun.billingPeriodId },
+                transaction
+              )
+            )
           )
-        )
+        ).unwrap()
         expect(payments).toHaveLength(0)
       })
     })
@@ -359,23 +377,26 @@ describeIfStripeKey(
         await executeBillingRun(billingRun.id)
 
         // Verify billing run succeeded
-        const updatedBillingRun = await adminTransaction(
-          ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction).then(
-              (r) => r.unwrap()
-            )
-        )
+        const updatedBillingRun = (
+          await adminTransactionWithResult(({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+          )
+        ).unwrap()
         expect(updatedBillingRun.status).toBe(
           BillingRunStatus.Succeeded
         )
 
         // Verify payment was created
-        const payments = await adminTransaction(({ transaction }) =>
-          selectPayments(
-            { billingPeriodId: billingRun.billingPeriodId },
-            transaction
+        const payments = (
+          await adminTransactionWithResult(async ({ transaction }) =>
+            Result.ok(
+              await selectPayments(
+                { billingPeriodId: billingRun.billingPeriodId },
+                transaction
+              )
+            )
           )
-        )
+        ).unwrap()
         expect(payments.length).toBeGreaterThan(0)
         const payment = payments.find(
           (p) => p.billingPeriodId === billingRun.billingPeriodId
@@ -386,12 +407,16 @@ describeIfStripeKey(
         )
 
         // Verify invoice was marked as paid
-        const invoices = await adminTransaction(({ transaction }) =>
-          selectInvoices(
-            { billingPeriodId: billingPeriod.id },
-            transaction
+        const invoices = (
+          await adminTransactionWithResult(async ({ transaction }) =>
+            Result.ok(
+              await selectInvoices(
+                { billingPeriodId: billingPeriod.id },
+                transaction
+              )
+            )
           )
-        )
+        ).unwrap()
         const invoice = invoices.find(
           (inv) => inv.billingPeriodId === billingPeriod.id
         )
@@ -418,101 +443,118 @@ describeIfStripeKey(
           livemode: false,
         })
 
-        await adminTransaction(async ({ transaction }) => {
-          const activeSubscriptionItems =
-            await selectCurrentlyActiveSubscriptionItems(
-              { subscriptionId: subscription.id },
-              billingPeriod.startDate,
-              transaction
-            )
-
-          // If no items found, update the subscription item's addedDate to be <= billing period start
-          if (activeSubscriptionItems.length === 0) {
-            const allItems = await selectSubscriptionItems(
-              {
-                subscriptionId: subscription.id,
-              },
-              transaction
-            )
-
-            if (allItems.length > 0) {
-              // Update addedDate to be at or before billing period start
-              await updateSubscriptionItem(
-                {
-                  id: allItems[0].id,
-                  addedDate: billingPeriod.startDate,
-                  type: allItems[0].type,
-                },
-                transaction
-              )
-
-              // Re-query after update
-              const updatedItems =
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const activeSubscriptionItems =
                 await selectCurrentlyActiveSubscriptionItems(
                   { subscriptionId: subscription.id },
                   billingPeriod.startDate,
                   transaction
                 )
+
+              // If no items found, update the subscription item's addedDate to be <= billing period start
+              if (activeSubscriptionItems.length === 0) {
+                const allItems = await selectSubscriptionItems(
+                  {
+                    subscriptionId: subscription.id,
+                  },
+                  transaction
+                )
+
+                if (allItems.length > 0) {
+                  // Update addedDate to be at or before billing period start
+                  await updateSubscriptionItem(
+                    {
+                      id: allItems[0].id,
+                      addedDate: billingPeriod.startDate,
+                      type: allItems[0].type,
+                    },
+                    transaction
+                  )
+
+                  // Re-query after update
+                  const updatedItems =
+                    await selectCurrentlyActiveSubscriptionItems(
+                      { subscriptionId: subscription.id },
+                      billingPeriod.startDate,
+                      transaction
+                    )
+                  await createSubscriptionFeatureItems(
+                    updatedItems,
+                    transaction
+                  )
+                  return Result.ok(undefined)
+                }
+              }
+
               await createSubscriptionFeatureItems(
-                updatedItems,
+                activeSubscriptionItems,
                 transaction
               )
-              return
+              return Result.ok(undefined)
             }
-          }
-
-          await createSubscriptionFeatureItems(
-            activeSubscriptionItems,
-            transaction
           )
-        })
+        ).unwrap()
 
         // Execute billing run
         await executeBillingRun(billingRun.id)
 
         // Verify invoice is marked as Paid
-        const invoices = await adminTransaction(({ transaction }) =>
-          selectInvoices(
-            { billingPeriodId: billingPeriod.id },
-            transaction
+        const invoices = (
+          await adminTransactionWithResult(async ({ transaction }) =>
+            Result.ok(
+              await selectInvoices(
+                { billingPeriodId: billingPeriod.id },
+                transaction
+              )
+            )
           )
-        )
+        ).unwrap()
         const invoice = invoices.find(
           (inv) => inv.billingPeriodId === billingPeriod.id
         )
         expect(invoice!.status).toBe(InvoiceStatus.Paid)
-
         // Verify usage credits were granted
-        await adminTransaction(async ({ transaction }) => {
-          const ledgerAccounts = await selectLedgerAccounts(
-            {
-              subscriptionId: subscription.id,
-              usageMeterId: usageMeter.id,
-            },
-            transaction
-          )
-          expect(ledgerAccounts.length).toBe(1)
-          const ledgerAccount = ledgerAccounts[0]
+        ;(
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              const ledgerAccounts = await selectLedgerAccounts(
+                {
+                  subscriptionId: subscription.id,
+                  usageMeterId: usageMeter.id,
+                },
+                transaction
+              )
+              expect(ledgerAccounts.length).toBe(1)
+              const ledgerAccount = ledgerAccounts[0]
 
-          const usageCredits = await selectUsageCredits(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-          expect(usageCredits.length).toBe(1)
-          const usageCredit = usageCredits[0]
-          expect(usageCredit.issuedAmount).toBe(grantAmount)
-          expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
-          expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
+              const usageCredits = await selectUsageCredits(
+                { subscriptionId: subscription.id },
+                transaction
+              )
+              expect(usageCredits.length).toBe(1)
+              const usageCredit = usageCredits[0]
+              expect(usageCredit.issuedAmount).toBe(grantAmount)
+              expect(usageCredit.status).toBe(
+                UsageCreditStatus.Posted
+              )
+              expect(usageCredit.creditType).toBe(
+                UsageCreditType.Grant
+              )
 
-          // Verify correct grant amount in the ledger
-          const balance =
-            await aggregateBalanceForLedgerAccountFromEntries(
-              { ledgerAccountId: ledgerAccount.id },
-              'available',
-              transaction
-            )
-          expect(balance).toBe(grantAmount)
-        })
+              // Verify correct grant amount in the ledger
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  'available',
+                  transaction
+                )
+              expect(balance).toBe(grantAmount)
+              return Result.ok(undefined)
+            }
+          )
+        ).unwrap()
       })
     })
 

@@ -521,6 +521,7 @@ export enum DiscountDuration {
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
   Secret = 'secret',
+  CliSession = 'cli_session',
 }
 
 export enum StripeConnectContractType {

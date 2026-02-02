@@ -30,7 +30,7 @@ import {
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { core } from '@/utils/core'
 import {
@@ -439,16 +439,20 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: singlePaymentPrice.id,
     }
 
-    const result = await adminTransaction(async ({ transaction }) =>
-      createCheckoutSessionTransaction(
-        {
-          checkoutSessionInput,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        transaction
-      )
-    )
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
@@ -468,17 +472,21 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = (
-      await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
-    ).unwrap()
+      })
+    )
+      .unwrap()
+      .unwrap()
 
     expect(typeof checkoutSession.stripePaymentIntentId).toBe(
       'string'
@@ -499,17 +507,21 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = (
-      await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
-    ).unwrap()
+      })
+    )
+      .unwrap()
+      .unwrap()
 
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
@@ -527,16 +539,20 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: usagePrice.id,
     }
 
-    const result = await adminTransaction(async ({ transaction }) =>
-      createCheckoutSessionTransaction(
-        {
-          checkoutSessionInput,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        transaction
-      )
-    )
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
@@ -555,17 +571,21 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = (
-      await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
-    ).unwrap()
+      })
+    )
+      .unwrap()
+      .unwrap()
 
     expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
     expect(url).toBe(
@@ -583,17 +603,21 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = (
-      await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
-    ).unwrap()
+      })
+    )
+      .unwrap()
+      .unwrap()
 
     expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
@@ -611,17 +635,21 @@ describe('createCheckoutSessionTransaction', () => {
       cancelUrl: 'http://cancel.url',
     }
 
-    const result = await adminTransaction(async ({ transaction }) =>
-      createCheckoutSessionTransaction(
-        {
-          // @ts-expect-error - testing invalid type
-          checkoutSessionInput,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        transaction
-      )
-    )
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await createCheckoutSessionTransaction(
+            {
+              // @ts-expect-error - testing invalid type
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
@@ -660,17 +688,22 @@ describe('createCheckoutSessionTransaction', () => {
           priceId: defaultPrice.id,
         }
 
-        const result = await adminTransaction(
-          async ({ transaction }) =>
-            createCheckoutSessionTransaction(
-              {
-                checkoutSessionInput,
-                organizationId: defaultOrg.id,
-                livemode: false,
-              },
-              transaction
-            )
-        )
+        const result = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await createCheckoutSessionTransaction(
+                  {
+                    checkoutSessionInput,
+                    organizationId: defaultOrg.id,
+                    livemode: false,
+                  },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
@@ -694,17 +727,21 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       const { checkoutSession } = (
-        await adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
           )
-        )
-      ).unwrap()
+        })
+      )
+        .unwrap()
+        .unwrap()
 
       expect(typeof checkoutSession.stripePaymentIntentId).toBe(
         'string'
@@ -725,17 +762,21 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       const { checkoutSession, url } = (
-        await adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
           )
-        )
-      ).unwrap()
+        })
+      )
+        .unwrap()
+        .unwrap()
 
       expect(checkoutSession.customerId).toBeNull()
       expect(checkoutSession.customerEmail).toBeNull()
@@ -758,16 +799,20 @@ describe('createCheckoutSessionTransaction', () => {
         priceId: singlePaymentPrice.id,
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -787,17 +832,21 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       const { checkoutSession } = (
-        await adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
           )
-        )
-      ).unwrap()
+        })
+      )
+        .unwrap()
+        .unwrap()
 
       expect(checkoutSession.customerId).toBe(customer.id)
       expect(checkoutSession.customerEmail).toBe(customer.email)
@@ -814,16 +863,20 @@ describe('createCheckoutSessionTransaction', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -844,16 +897,20 @@ describe('createCheckoutSessionTransaction', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -881,16 +938,20 @@ describe('createCheckoutSessionTransaction', () => {
         targetSubscriptionId: 'missing_sub',
       })
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -920,17 +981,22 @@ describe('createCheckoutSessionTransaction', () => {
           targetSubscriptionId: otherSubscription.id,
         })
 
-        const result = await adminTransaction(
-          async ({ transaction }) =>
-            createCheckoutSessionTransaction(
-              {
-                checkoutSessionInput,
-                organizationId: organization.id,
-                livemode: false,
-              },
-              transaction
-            )
-        )
+        const result = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await createCheckoutSessionTransaction(
+                  {
+                    checkoutSessionInput,
+                    organizationId: organization.id,
+                    livemode: false,
+                  },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
@@ -960,16 +1026,20 @@ describe('createCheckoutSessionTransaction', () => {
         targetSubscriptionId: otherCustomerSubscription.id,
       })
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
-      )
+      const result = (
+        await adminTransactionWithResult(async ({ transaction }) => {
+          return Result.ok(
+            await createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -1033,17 +1103,23 @@ describe('createCheckoutSessionTransaction', () => {
         }
 
         const { checkoutSession } = (
-          await adminTransaction(async ({ transaction }) =>
-            createCheckoutSessionTransaction(
-              {
-                checkoutSessionInput,
-                organizationId: organization.id,
-                livemode: false,
-              },
-              transaction
-            )
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await createCheckoutSessionTransaction(
+                  {
+                    checkoutSessionInput,
+                    organizationId: organization.id,
+                    livemode: false,
+                  },
+                  transaction
+                )
+              )
+            }
           )
-        ).unwrap()
+        )
+          .unwrap()
+          .unwrap()
 
         expect(checkoutSession).toMatchObject({})
         expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
@@ -1060,17 +1136,22 @@ describe('createCheckoutSessionTransaction', () => {
           priceSlug: 'non-existent-slug',
         }
 
-        const result = await adminTransaction(
-          async ({ transaction }) =>
-            createCheckoutSessionTransaction(
-              {
-                checkoutSessionInput,
-                organizationId: organization.id,
-                livemode: false,
-              },
-              transaction
-            )
-        )
+        const result = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await createCheckoutSessionTransaction(
+                  {
+                    checkoutSessionInput,
+                    organizationId: organization.id,
+                    livemode: false,
+                  },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
@@ -1092,17 +1173,23 @@ describe('createCheckoutSessionTransaction', () => {
         }
 
         const { checkoutSession } = (
-          await adminTransaction(async ({ transaction }) =>
-            createCheckoutSessionTransaction(
-              {
-                checkoutSessionInput,
-                organizationId: organization.id,
-                livemode: false,
-              },
-              transaction
-            )
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await createCheckoutSessionTransaction(
+                  {
+                    checkoutSessionInput,
+                    organizationId: organization.id,
+                    livemode: false,
+                  },
+                  transaction
+                )
+              )
+            }
           )
-        ).unwrap()
+        )
+          .unwrap()
+          .unwrap()
 
         expect(checkoutSession).toMatchObject({})
         expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
@@ -1119,17 +1206,22 @@ describe('createCheckoutSessionTransaction', () => {
           anonymous: true,
         }
 
-        const result = await adminTransaction(
-          async ({ transaction }) =>
-            createCheckoutSessionTransaction(
-              {
-                checkoutSessionInput,
-                organizationId: organization.id,
-                livemode: false,
-              },
-              transaction
-            )
-        )
+        const result = (
+          await adminTransactionWithResult(
+            async ({ transaction }) => {
+              return Result.ok(
+                await createCheckoutSessionTransaction(
+                  {
+                    checkoutSessionInput,
+                    organizationId: organization.id,
+                    livemode: false,
+                  },
+                  transaction
+                )
+              )
+            }
+          )
+        ).unwrap()
 
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {

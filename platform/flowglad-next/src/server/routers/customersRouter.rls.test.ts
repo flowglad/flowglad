@@ -131,14 +131,12 @@ describe('customersRouter.archive', () => {
 
     // Assert: both subscriptions are canceled
     await adminTransaction(async ({ transaction }) => {
-      const updatedSub1 = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      const updatedSub2 = await selectSubscriptionById(
-        subscription2.id,
-        transaction
-      )
+      const updatedSub1 = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
+      const updatedSub2 = (
+        await selectSubscriptionById(subscription2.id, transaction)
+      ).unwrap()
 
       expect(updatedSub1.status).toBe(SubscriptionStatus.Canceled)
       expect(updatedSub1.cancellationReason).toBe('customer_archived')

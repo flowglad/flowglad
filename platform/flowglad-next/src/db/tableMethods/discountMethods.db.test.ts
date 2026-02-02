@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import { DiscountAmountType, DiscountDuration } from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupDiscount,
@@ -9,7 +10,10 @@ import {
   setupOrg,
   setupPurchase,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import {
   enrichDiscountsWithRedemptionCounts,
   insertDiscount,
@@ -33,23 +37,26 @@ describe('insertDiscount uniqueness constraints', () => {
   })
 
   it('should not allow two discounts with the same code and pricingModelId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await insertDiscount(
-        {
-          organizationId: organization1.id,
-          pricingModelId: pricingModel1.id,
-          name: 'Test Discount',
-          code: 'UNIQUE123',
-          amount: 10,
-          amountType: DiscountAmountType.Percent,
-          duration: DiscountDuration.Once,
-          active: true,
-          livemode: true,
-          numberOfPayments: null,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await insertDiscount(
+          {
+            organizationId: organization1.id,
+            pricingModelId: pricingModel1.id,
+            name: 'Test Discount',
+            code: 'UNIQUE123',
+            amount: 10,
+            amountType: DiscountAmountType.Percent,
+            duration: DiscountDuration.Once,
+            active: true,
+            livemode: true,
+            numberOfPayments: null,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
     await expect(
       adminTransaction(async ({ transaction }) => {
@@ -73,111 +80,123 @@ describe('insertDiscount uniqueness constraints', () => {
   })
 
   it('should allow two discounts with the same code but different pricingModelId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await insertDiscount(
-        {
-          organizationId: organization1.id,
-          pricingModelId: pricingModel1.id,
-          name: 'Test Discount Org1',
-          code: 'UNIQUE123',
-          amount: 10,
-          amountType: DiscountAmountType.Percent,
-          duration: DiscountDuration.Once,
-          active: true,
-          livemode: true,
-          numberOfPayments: null,
-        },
-        transaction
-      )
-
-      await insertDiscount(
-        {
-          organizationId: organization2.id,
-          pricingModelId: pricingModel2.id,
-          name: 'Test Discount Org2',
-          code: 'UNIQUE123',
-          amount: 10,
-          amountType: DiscountAmountType.Percent,
-          duration: DiscountDuration.Once,
-          active: true,
-          livemode: true,
-          numberOfPayments: null,
-        },
-        transaction
-      )
-    })
-
-    const discountsOrg1 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectDiscounts(
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await insertDiscount(
           {
             organizationId: organization1.id,
+            pricingModelId: pricingModel1.id,
+            name: 'Test Discount Org1',
             code: 'UNIQUE123',
+            amount: 10,
+            amountType: DiscountAmountType.Percent,
+            duration: DiscountDuration.Once,
+            active: true,
+            livemode: true,
+            numberOfPayments: null,
           },
           transaction
         )
-      }
-    )
-    const discountsOrg2 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectDiscounts(
+
+        await insertDiscount(
           {
             organizationId: organization2.id,
+            pricingModelId: pricingModel2.id,
+            name: 'Test Discount Org2',
             code: 'UNIQUE123',
+            amount: 10,
+            amountType: DiscountAmountType.Percent,
+            duration: DiscountDuration.Once,
+            active: true,
+            livemode: true,
+            numberOfPayments: null,
           },
           transaction
         )
-      }
-    )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+
+    const discountsOrg1 = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectDiscounts(
+            {
+              organizationId: organization1.id,
+              code: 'UNIQUE123',
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
+    const discountsOrg2 = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectDiscounts(
+            {
+              organizationId: organization2.id,
+              code: 'UNIQUE123',
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(discountsOrg1.length).toBe(1)
     expect(discountsOrg2.length).toBe(1)
   })
 
   it('should allow two discounts with different codes for the same pricingModelId', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await insertDiscount(
-        {
-          organizationId: organization1.id,
-          pricingModelId: pricingModel1.id,
-          name: 'Test Discount 1',
-          code: 'UNIQUE123',
-          amount: 10,
-          amountType: DiscountAmountType.Percent,
-          duration: DiscountDuration.Once,
-          active: true,
-          livemode: true,
-          numberOfPayments: null,
-        },
-        transaction
-      )
-
-      await insertDiscount(
-        {
-          organizationId: organization1.id,
-          pricingModelId: pricingModel1.id,
-          name: 'Test Discount 2',
-          code: 'DIFFERENT456',
-          amount: 20,
-          amountType: DiscountAmountType.Percent,
-          duration: DiscountDuration.Once,
-          active: true,
-          livemode: true,
-          numberOfPayments: null,
-        },
-        transaction
-      )
-    })
-
-    const discounts = await adminTransaction(
-      async ({ transaction }) => {
-        return selectDiscounts(
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await insertDiscount(
           {
             organizationId: organization1.id,
+            pricingModelId: pricingModel1.id,
+            name: 'Test Discount 1',
+            code: 'UNIQUE123',
+            amount: 10,
+            amountType: DiscountAmountType.Percent,
+            duration: DiscountDuration.Once,
+            active: true,
+            livemode: true,
+            numberOfPayments: null,
           },
           transaction
         )
-      }
-    )
+
+        await insertDiscount(
+          {
+            organizationId: organization1.id,
+            pricingModelId: pricingModel1.id,
+            name: 'Test Discount 2',
+            code: 'DIFFERENT456',
+            amount: 20,
+            amountType: DiscountAmountType.Percent,
+            duration: DiscountDuration.Once,
+            active: true,
+            livemode: true,
+            numberOfPayments: null,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+
+    const discounts = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectDiscounts(
+            {
+              organizationId: organization1.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
     expect(discounts.length).toBe(2)
   })
 })
@@ -207,17 +226,19 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
       livemode: true,
     })
 
-    const discounts = await adminTransaction(
-      async ({ transaction }) => {
+    const discounts = (
+      await adminTransactionWithResult(async ({ transaction }) => {
         const discountRecord = (
           await selectDiscountById(discount.id, transaction)
         ).unwrap()
-        return await enrichDiscountsWithRedemptionCounts(
-          [discountRecord],
-          transaction
+        return Result.ok(
+          await enrichDiscountsWithRedemptionCounts(
+            [discountRecord],
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(discounts).toHaveLength(1)
     expect(discounts[0].id).toBe(discount.id)
@@ -267,17 +288,19 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
       )
     )
 
-    const enrichedDiscounts = await adminTransaction(
-      async ({ transaction }) => {
+    const enrichedDiscounts = (
+      await adminTransactionWithResult(async ({ transaction }) => {
         const discountRecord = (
           await selectDiscountById(discount.id, transaction)
         ).unwrap()
-        return await enrichDiscountsWithRedemptionCounts(
-          [discountRecord],
-          transaction
+        return Result.ok(
+          await enrichDiscountsWithRedemptionCounts(
+            [discountRecord],
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(enrichedDiscounts).toHaveLength(1)
     expect(enrichedDiscounts[0].id).toBe(discount.id)

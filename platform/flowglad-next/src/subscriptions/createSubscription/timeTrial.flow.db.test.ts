@@ -310,11 +310,11 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
 
         // After processing setup intent, verify checkoutSession status
-        const finalSession = await selectCheckoutSessionById(
+        const finalSessionResult = await selectCheckoutSessionById(
           checkoutSession.id,
           transaction
         )
-        expect(finalSession.status).toBe(
+        expect(finalSessionResult.unwrap().status).toBe(
           CheckoutSessionStatus.Succeeded
         )
         return Result.ok(null)

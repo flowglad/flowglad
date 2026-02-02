@@ -212,7 +212,9 @@ export const secretApiKeyInputToUnkeyInput = (
   const secretMeta = secretApiKeyMetadataSchema.parse(unparsedMeta)
 
   return {
-    apiId: core.envVariable('UNKEY_API_ID'),
+    apiId: core.IS_TEST
+      ? 'api_test_mock'
+      : core.envVariable('UNKEY_API_ID'),
     name: `${organization.id} / ${apiEnvironment} / ${pricingModelId} / ${params.name}`,
     expires: params.expiresAt
       ? new Date(params.expiresAt).getTime()
@@ -309,7 +311,8 @@ export const parseUnkeyMeta =
       throw new Error('No unkey metadata provided')
     }
 
-    // First, try to parse with the schema directly
+    // First, try to parse with the discriminated union schema directly
+    // This handles both Secret and CliSession types
     const firstUnkeyMetaResult =
       apiKeyMetadataSchema.safeParse(rawUnkeyMeta)
     if (firstUnkeyMetaResult.success) {
@@ -318,11 +321,20 @@ export const parseUnkeyMeta =
 
     const metaType = (rawUnkeyMeta as { type?: string }).type
 
-    // If there's an explicit type that's not Secret, reject it
-    if (metaType && metaType !== FlowgladApiKeyType.Secret) {
+    // If there's an explicit type that's not a valid type, reject it
+    const validTypes: string[] = [
+      FlowgladApiKeyType.Secret,
+      FlowgladApiKeyType.CliSession,
+    ]
+    if (metaType && !validTypes.includes(metaType)) {
       throw new Error(
-        `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${FlowgladApiKeyType.Secret}`
+        `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${validTypes.join(' or ')}`
       )
+    }
+
+    // If there's an explicit type and it failed validation, don't fallback
+    if (metaType) {
+      throw new Error('Invalid unkey metadata')
     }
 
     // Try adding the Secret type for legacy keys that don't have a type field

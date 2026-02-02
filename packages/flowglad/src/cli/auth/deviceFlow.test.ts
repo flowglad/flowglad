@@ -1,3 +1,9 @@
+/**
+ * Device flow tests.
+ *
+ * Note: These tests use vitest-specific APIs (vi.stubGlobal, vi.useFakeTimers).
+ * Run with `bun run test`, not `bun test` directly.
+ */
 import {
   afterEach,
   beforeEach,

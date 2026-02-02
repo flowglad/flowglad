@@ -9,12 +9,13 @@ import {
 import type { Membership } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
+import { Result } from 'better-result'
 import {
   setupOrg,
   setupUserAndApiKey,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectMemberships,
   updateMembership,
@@ -87,21 +88,24 @@ describe('innerInviteUserToOrganizationHandler', () => {
         inviterName: inviterUser.name ?? undefined,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const [newUser] = await selectUsers({ email }, transaction)
-        expect(newUser.name).toBe(input.name)
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [newUser] = await selectUsers({ email }, transaction)
+          expect(newUser.name).toBe(input.name)
 
-        const newMemberships = await selectMemberships(
-          {
-            userId: newUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(newMemberships).toHaveLength(1)
-        expect(newMemberships[0].focused).toBe(false)
-        expect(newMemberships[0].livemode).toBe(false)
-      })
+          const newMemberships = await selectMemberships(
+            {
+              userId: newUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(newMemberships).toHaveLength(1)
+          expect(newMemberships[0].focused).toBe(false)
+          expect(newMemberships[0].livemode).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'created' })
     })
@@ -138,19 +142,22 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       expect(result).toEqual({ action: 'created' })
 
-      await adminTransaction(async ({ transaction }) => {
-        const [newUser] = await selectUsers({ email }, transaction)
-        expect(newUser.name).toBe('')
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [newUser] = await selectUsers({ email }, transaction)
+          expect(newUser.name).toBe('')
 
-        const newMemberships = await selectMemberships(
-          {
-            userId: newUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(newMemberships).toHaveLength(1)
-      })
+          const newMemberships = await selectMemberships(
+            {
+              userId: newUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(newMemberships).toHaveLength(1)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
@@ -176,18 +183,21 @@ describe('innerInviteUserToOrganizationHandler', () => {
         inviterName: inviterUser.name ?? undefined,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: existingUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-        expect(memberships[0].focused).toBe(false)
-        expect(memberships[0].livemode).toBe(false)
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].focused).toBe(false)
+          expect(memberships[0].livemode).toBe(false)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'created' })
       await teardownOrg({ organizationId: otherOrg.id })
@@ -200,16 +210,19 @@ describe('innerInviteUserToOrganizationHandler', () => {
       })
       const input = { email: existingUser.email! }
 
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: existingUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships.length).toBeGreaterThan(0)
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships.length).toBeGreaterThan(0)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
@@ -220,16 +233,19 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
 
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: existingUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'already_member' })
     })
@@ -245,24 +261,30 @@ describe('innerInviteUserToOrganizationHandler', () => {
         })
 
       // Deactivate the membership
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          { id: membership.id, deactivatedAt: Date.now() },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateMembership(
+            { id: membership.id, deactivatedAt: Date.now() },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify membership is deactivated (not visible in default query)
-      await adminTransaction(async ({ transaction }) => {
-        const activeMemberships = await selectMemberships(
-          {
-            userId: removedUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(activeMemberships).toHaveLength(0)
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const activeMemberships = await selectMemberships(
+            {
+              userId: removedUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(activeMemberships).toHaveLength(0)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const input = { email: removedUser.email! }
 
@@ -281,17 +303,20 @@ describe('innerInviteUserToOrganizationHandler', () => {
       })
 
       // Membership should be reactivated
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: removedUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-        expect(memberships[0].deactivatedAt).toBeNull()
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: removedUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].deactivatedAt).toBeNull()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       expect(result).toEqual({ action: 'reactivated' })
     })
@@ -305,12 +330,15 @@ describe('innerInviteUserToOrganizationHandler', () => {
           livemode: true,
         })
 
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          { id: membership.id, deactivatedAt: Date.now() },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          await updateMembership(
+            { id: membership.id, deactivatedAt: Date.now() },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const input = { email: removedUser.email! }
 
@@ -330,17 +358,20 @@ describe('innerInviteUserToOrganizationHandler', () => {
       )
 
       // Verify reactivation happened
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: removedUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-        expect(memberships[0].deactivatedAt).toBeNull()
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: removedUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].deactivatedAt).toBeNull()
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 })

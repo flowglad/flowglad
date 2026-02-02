@@ -7,8 +7,9 @@ import {
 import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionWithResult } from '@/db/adminTransaction'
 import {
   selectMemberships,
   updateMembership,
@@ -73,14 +74,16 @@ describe('organizationsRouter - notification preferences', () => {
     user = userApiKeySetup.user
 
     // Get the membership that was created
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
-        return selectMemberships(
-          { userId: user.id, organizationId: organization.id },
-          transaction
+    const memberships = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectMemberships(
+            { userId: user.id, organizationId: organization.id },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     membership = memberships[0]
   })
 
@@ -101,22 +104,25 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('returns stored notification preferences merged with defaults', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const [membershipRecord] = await selectMemberships(
-          { userId: user.id, organizationId: organization.id },
-          transaction
-        )
-        await updateMembership(
-          {
-            id: membershipRecord.id,
-            notificationPreferences: {
-              testModeNotifications: true,
-              subscriptionCreated: false,
-            } as Partial<NotificationPreferences>,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransactionWithResult(async ({ transaction }) => {
+          const [membershipRecord] = await selectMemberships(
+            { userId: user.id, organizationId: organization.id },
+            transaction
+          )
+          await updateMembership(
+            {
+              id: membershipRecord.id,
+              notificationPreferences: {
+                testModeNotifications: true,
+                subscriptionCreated: false,
+              } as Partial<NotificationPreferences>,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken, user)
       const result = await caller.getNotificationPreferences()

@@ -1,15 +1,13 @@
 import type { Event } from '@db-core/schema/events'
 import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type {
+  CacheRecomputationContext,
   ComprehensiveAdminTransactionParams,
   ComprehensiveAuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import type {
-  CacheDependencyKey,
-  CacheRecomputationContext,
-} from '@/utils/cache'
+import type { CacheDependencyKey } from '@/utils/cache'
 
 /**
  * No-op callbacks for use in tests that don't need to verify cache invalidation or event emission.
@@ -33,7 +31,6 @@ export const noopEnqueueLedgerCommand = (
 export function createDiscardingEffectsContext(
   transaction: DbTransaction,
   cacheRecomputationContext: CacheRecomputationContext = {
-    type: 'admin',
     livemode: true,
   }
 ): TransactionEffectsContext {
@@ -126,7 +123,6 @@ export function createCapturingCallbacks(): {
 export function createCapturingEffectsContext(
   transaction: DbTransaction,
   cacheRecomputationContext: CacheRecomputationContext = {
-    type: 'admin',
     livemode: true,
   }
 ): {
@@ -200,7 +196,6 @@ export function withAdminCacheContext<
   return {
     ...params,
     cacheRecomputationContext: {
-      type: 'admin',
       livemode: params.livemode,
     },
   }
@@ -232,7 +227,6 @@ export function withDiscardingEffectsContext<
   return {
     ...params,
     cacheRecomputationContext: {
-      type: 'admin',
       livemode: params.livemode,
     },
     invalidateCache: noopInvalidateCache,
