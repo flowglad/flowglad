@@ -68,6 +68,7 @@ import {
   getOrganizationCodebaseMarkdown,
   saveOrganizationCodebaseMarkdown,
 } from '@/utils/textContent'
+import { createDiscordConciergeChannel } from '../mutations/createDiscordConciergeChannel'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 import { removeMemberFromOrganization } from '../mutations/removeMemberFromOrganization'
 import { updateFocusedPricingModelTransaction } from '../mutations/updateFocusedPricingModel'
@@ -803,4 +804,6 @@ export const organizationsRouter = router({
   // Usage volume endpoints for the billing dashboard
   getUsageVolume: getUsageVolume,
   getUsageMetersWithEvents: getUsageMetersWithEventsProcedure,
+  // Discord concierge channel creation
+  createDiscordConciergeChannel: createDiscordConciergeChannel,
 })
