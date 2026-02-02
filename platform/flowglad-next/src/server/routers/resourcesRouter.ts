@@ -16,7 +16,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   insertResource,
@@ -138,7 +138,7 @@ const listPaginatedProcedure = protectedProcedure
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectResourcesPaginated(input, transaction)

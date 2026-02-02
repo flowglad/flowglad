@@ -13,7 +13,7 @@ import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   selectUsageEventById,
@@ -93,7 +93,7 @@ export const getUsageEvent = protectedProcedure
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     const usageEvent = unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             (
@@ -143,7 +143,7 @@ const listUsageEventsProcedure = protectedProcedure
   .output(usageEventPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const result = await selectUsageEventsPaginated(
             input,

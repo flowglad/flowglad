@@ -27,7 +27,7 @@ import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   getMembershipNotificationPreferences,
@@ -637,7 +637,7 @@ const getMembersTableRowData = protectedProcedure
   )
   .query(async (args) => {
     const focusedMembership = (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction, userId }) => {
           return Result.ok(
             await selectFocusedMembershipAndOrganization(

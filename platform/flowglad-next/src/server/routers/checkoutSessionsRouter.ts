@@ -21,7 +21,7 @@ import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   selectCheckoutSessionById,
@@ -96,7 +96,7 @@ export const updateCheckoutSession = protectedProcedure
   .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const organizationId = ctx.organizationId
           if (!organizationId) {
@@ -152,7 +152,7 @@ const getCheckoutSessionProcedure = protectedProcedure
   .output(singleCheckoutSessionOutputSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const checkoutSession = (
             await selectCheckoutSessionById(input.id, transaction)
@@ -175,7 +175,7 @@ const listCheckoutSessionsProcedure = protectedProcedure
   .output(checkoutSessionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectCheckoutSessionsPaginated(input, transaction)

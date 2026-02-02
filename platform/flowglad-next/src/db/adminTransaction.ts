@@ -121,7 +121,7 @@ export async function adminTransactionUnwrap<T>(
   fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
   options?: AdminTransactionOptions
 ): Promise<T> {
-  const result = await adminTransactionWithResult(async (params) => {
+  const result = await adminTransaction(async (params) => {
     const ctx: TransactionEffectsContext = {
       transaction: params.transaction,
       cacheRecomputationContext: params.cacheRecomputationContext,
@@ -162,44 +162,6 @@ export async function adminTransactionUnwrap<T>(
  * ```
  */
 export async function adminTransaction<T>(
-  fn: (params: AdminTransactionParams) => Promise<Result<T, Error>>,
-  options: AdminTransactionOptions = {}
-): Promise<Result<T, Error>> {
-  return adminTransactionWithResult(fn, options)
-}
-
-/**
- * Executes a function within an admin database transaction and returns the Result directly.
- *
- * Callers must explicitly call `.unwrap()` or handle the Result to extract the value.
- *
- * Use this when you need to:
- * - Chain multiple transactions and handle errors between them
- * - Return errors to callers without throwing
- * - Explicit Result handling throughout the codebase
- *
- * @param fn - Function that receives admin transaction parameters and returns a Result
- * @param options - Transaction options including livemode flag
- * @returns Promise resolving to the Result (not unwrapped)
- *
- * @example
- * ```ts
- * const result = await adminTransactionWithResult(async ({ transaction, emitEvent }) => {
- *   // ... perform operations ...
- *   emitEvent(event1)
- *   return Result.ok(someValue)
- * })
- *
- * // At router/API boundary, unwrap to convert to exceptions:
- * return result.unwrap()
- *
- * // Or handle errors explicitly:
- * if (Result.isError(result)) {
- *   // handle error
- * }
- * ```
- */
-export async function adminTransactionWithResult<T>(
   fn: (params: AdminTransactionParams) => Promise<Result<T, Error>>,
   options: AdminTransactionOptions = {}
 ): Promise<Result<T, Error>> {

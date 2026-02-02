@@ -6,7 +6,7 @@ import {
 
 import { idInputSchema } from '@db-core/tableUtils'
 import { Result } from 'better-result'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectInvoiceLineItemById,
   selectInvoiceLineItemsPaginated,
@@ -28,7 +28,7 @@ const listInvoiceLineItemsProcedure = protectedProcedure
   .output(invoiceLineItemsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectInvoiceLineItemsPaginated(input, transaction)
@@ -47,7 +47,7 @@ const getInvoiceLineItemProcedure = protectedProcedure
   .output(invoiceLineItemsClientSelectSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             (

@@ -5,7 +5,7 @@ import type { Subscription } from '@db-core/schema/subscriptions'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-subscription-adjusted'
 import { PaymentError, ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
@@ -56,7 +56,7 @@ export const runSendCustomerSubscriptionAdjustedNotification = async (
   >
   try {
     const data = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await buildNotificationContext(
             {

@@ -26,7 +26,7 @@ import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   selectCustomerByExternalIdAndOrganizationId,
@@ -329,7 +329,7 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customerResult = await authenticatedTransactionWithResult(
+    const customerResult = await authenticatedTransaction(
       async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
@@ -406,7 +406,7 @@ export const getCustomerBilling = protectedProcedure
       purchases,
       subscriptions,
     } = unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction, cacheRecomputationContext }) => {
           return Result.ok(
             await customerBillingTransaction(
@@ -488,7 +488,7 @@ export const getCustomerUsageBalances = protectedProcedure
     }
 
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           // Resolve customer by externalId and organizationId
           const customer =

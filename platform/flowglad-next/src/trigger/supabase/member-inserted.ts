@@ -2,7 +2,7 @@ import type { Membership } from '@db-core/schema/memberships'
 import type { User } from '@db-core/schema/users'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectUserById } from '@/db/tableMethods/userMethods'
 import { NotFoundError, ValidationError } from '@/errors'
 import type { SupabaseInsertPayload } from '@/types'
@@ -37,7 +37,7 @@ export const memberInsertedTask = task({
   ) => {
     const { userId } = payload.record
     const user = (
-      await adminTransactionWithResult(async ({ transaction }) =>
+      await adminTransaction(async ({ transaction }) =>
         selectUserById(userId, transaction)
       )
     ).unwrap()

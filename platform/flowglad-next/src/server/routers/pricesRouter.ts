@@ -20,7 +20,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   ensureUsageMeterHasDefaultPrice,
@@ -51,7 +51,7 @@ export const listPrices = protectedProcedure
   .output(pricesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectPricesPaginated(input, transaction)
@@ -74,7 +74,7 @@ export const createPrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async (transactionCtx) => {
           const { price } = input
 
@@ -111,7 +111,7 @@ export const updatePrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async (transactionCtx) => {
           const { transaction } = transactionCtx
           const { price } = input
@@ -275,7 +275,7 @@ export const getPrice = protectedProcedure
   .output(z.object({ price: pricesClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     const price = unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const result = await selectPriceById(input.id, transaction)
           if (Result.isError(result)) {
@@ -421,7 +421,7 @@ export const replaceUsagePrice = protectedProcedure
   )
   .mutation(async ({ input, ctx }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async (transactionCtx) => {
           const { transaction } = transactionCtx
           // Verify the old price exists and is a usage price

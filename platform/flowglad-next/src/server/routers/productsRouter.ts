@@ -21,7 +21,7 @@ import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
@@ -166,7 +166,7 @@ export const listProducts = protectedProcedure
   .output(productsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectProductsPaginated(input, transaction)
@@ -186,7 +186,7 @@ export const getProduct = protectedProcedure
   .query(async ({ input, ctx }) => {
     try {
       return (
-        await authenticatedTransactionWithResult(
+        await authenticatedTransaction(
           async ({ transaction }) => {
             const result =
               await selectProductPriceAndFeaturesByProductId(
@@ -268,7 +268,7 @@ export const getCountsByStatus = protectedProcedure
   )
   .query(async ({ ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction, userId }) => {
           // Get the user's organization
           const [membership] = await selectMembershipAndOrganizations(

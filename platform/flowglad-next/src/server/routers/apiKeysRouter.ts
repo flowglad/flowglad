@@ -12,7 +12,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   selectApiKeyById,
@@ -41,7 +41,7 @@ const getApiKeyProcedure = protectedProcedure
   .output(z.object({ apiKey: apiKeysClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const apiKey = (
             await selectApiKeyById(input.id, transaction)
@@ -93,7 +93,7 @@ export const createApiKey = protectedProcedure
   .input(createApiKeyInputSchema)
   .mutation(async ({ input }) => {
     const result = (
-      await authenticatedTransactionWithResult(async (params) => {
+      await authenticatedTransaction(async (params) => {
         return Result.ok(
           await createSecretApiKeyTransaction(input, params)
         )
@@ -110,7 +110,7 @@ export const deleteApiKey = protectedProcedure
   .input(idInputSchema)
   .mutation(async ({ input, ctx }) => {
     ;(
-      await authenticatedTransactionWithResult(async (params) => {
+      await authenticatedTransaction(async (params) => {
         await deleteSecretApiKeyTransaction(input, params)
         return Result.ok(undefined)
       })

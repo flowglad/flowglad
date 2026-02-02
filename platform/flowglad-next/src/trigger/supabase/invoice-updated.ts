@@ -2,7 +2,7 @@ import { InvoiceStatus } from '@db-core/enums'
 import type { Invoice } from '@db-core/schema/invoices'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -35,7 +35,7 @@ export const invoiceUpdatedTask = task({
     const { old_record: oldRecord, record: newRecord } = payload
 
     if (invoiceStatusChangedToPaid({ oldRecord, newRecord })) {
-      const transactionResult = await adminTransactionWithResult(
+      const transactionResult = await adminTransaction(
         async ({ transaction }) => {
           const invoiceLineItems = await selectInvoiceLineItems(
             { invoiceId: newRecord.id },

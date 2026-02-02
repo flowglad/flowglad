@@ -20,7 +20,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   safelyUpdatePricingModel,
@@ -86,7 +86,7 @@ const listPricingModelsProcedure = protectedProcedure
   .output(pricingModelsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectPricingModelsPaginated(input, transaction)
@@ -109,7 +109,7 @@ const getPricingModelProcedure = protectedProcedure
   )
   .query(async ({ ctx, input }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const [pricingModel] =
             await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
@@ -230,7 +230,7 @@ const getDefaultPricingModelProcedure = protectedProcedure
     }
     const organizationId = ctx.organizationId
     const pricingModel = unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const [defaultPricingModel] =
             await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
@@ -274,7 +274,7 @@ const clonePricingModelProcedure = protectedProcedure
     // This transaction is just for authorization - it verifies the user can access
     // the source pricing model. We don't need the value, just confirmation it exists.
     unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const pricingModelResult = await selectPricingModelById(
             input.id,
@@ -304,7 +304,7 @@ const clonePricingModelProcedure = protectedProcedure
      * from test to production.
      *
      * Security note: Any authenticated API key (test or live) can clone to either
-     * environment via the destinationEnvironment parameter. The authenticatedTransactionWithResult
+     * environment via the destinationEnvironment parameter. The authenticatedTransaction
      * above ensures the caller has read access to the source pricing model. This is
      * acceptable because:
      * 1. Pricing models contain configuration data, not sensitive customer information
@@ -496,7 +496,7 @@ const getIntegrationGuideProcedure = protectedProcedure
     const organizationId = ctx.organizationId
     // Fetch data within a transaction first
     const { pricingModelData, codebaseContext } = unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const pricingModelData = await getPricingModelSetupData(
             input.id,

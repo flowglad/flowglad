@@ -6,7 +6,7 @@ import type { Subscription } from '@db-core/schema/subscriptions'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
@@ -43,7 +43,7 @@ export const runSendCustomerTrialExpiredNotification =
     >
     try {
       const data = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subscription = (
             await selectSubscriptionById(
               params.subscriptionId,

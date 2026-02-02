@@ -15,7 +15,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   selectPaymentById,
@@ -53,7 +53,7 @@ const listPaymentsProcedure = protectedProcedure
   .output(paymentsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectPaymentsPaginated(input, transaction)
@@ -72,7 +72,7 @@ const getPaymentProcedure = protectedProcedure
   .output(z.object({ payment: paymentsClientSelectSchema }))
   .query(async ({ ctx, input }) => {
     const payment = (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             (await selectPaymentById(input.id, transaction)).unwrap()
@@ -123,7 +123,7 @@ const getCountsByStatusProcedure = protectedProcedure
   )
   .query(async ({ ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectPaymentCountsByStatus(transaction)
@@ -140,7 +140,7 @@ export const retryPayment = protectedProcedure
   .input(z.object({ id: z.string() }))
   .mutation(async ({ ctx, input }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await retryPaymentTransaction(input, transaction)

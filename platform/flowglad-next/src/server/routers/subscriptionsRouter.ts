@@ -37,7 +37,6 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
-  authenticatedTransactionWithResult,
 } from '@/db/authenticatedTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -326,7 +325,7 @@ const previewAdjustSubscriptionProcedure = protectedProcedure
     }
 
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({
           transaction,
         }): Promise<
@@ -451,7 +450,7 @@ const adjustSubscriptionProcedure = protectedProcedure
     // Cache invalidations are handled automatically by the comprehensive transaction
     // Domain errors are automatically converted to TRPCErrors by domainErrorMiddleware
     const adjustmentResult = unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async (transactionCtx) => {
           const result = await adjustSubscription(
             input,
@@ -517,7 +516,7 @@ const adjustSubscriptionProcedure = protectedProcedure
       // The subscription items are now updated by processOutcomeForBillingRun
       // Pass apiKey to maintain authentication context after async wait
       const freshData = unwrapOrThrow(
-        await authenticatedTransactionWithResult(
+        await authenticatedTransaction(
           async ({ transaction }) => {
             const freshSubscription = (
               await selectSubscriptionById(
@@ -641,7 +640,7 @@ const listSubscriptionsProcedure = protectedProcedure
   .output(subscriptionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const result = await selectSubscriptionsPaginated(
             input,
@@ -671,7 +670,7 @@ const getSubscriptionProcedure = protectedProcedure
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const subscription = (
             await selectSubscriptionById(input.id, transaction)
@@ -931,7 +930,7 @@ const getCountsByStatusProcedure = protectedProcedure
   )
   .query(async ({ ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptionCountsByStatus(transaction)
@@ -1144,7 +1143,7 @@ const listDistinctSubscriptionProductNamesProcedure =
     .output(z.array(z.string()))
     .query(async ({ ctx }) => {
       return (
-        await authenticatedTransactionWithResult(
+        await authenticatedTransaction(
           async ({ transaction, organizationId }) => {
             return Result.ok(
               await selectDistinctSubscriptionProductNames(

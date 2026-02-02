@@ -12,7 +12,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   selectPurchaseById,
@@ -35,7 +35,7 @@ const getPurchaseProcedure = protectedProcedure
   .output(z.object({ purchase: purchaseClientSelectSchema }))
   .query(async ({ ctx, input }) => {
     const purchase = (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             (await selectPurchaseById(input.id, transaction)).unwrap()

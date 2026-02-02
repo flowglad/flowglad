@@ -183,7 +183,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
   ) => Promise<Result<TOutput, Error>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
-    const result = await authenticatedTransactionWithResult(
+    const result = await authenticatedTransaction(
       (params) => {
         const transactionCtx: TransactionEffectsContext = {
           transaction: params.transaction,
@@ -237,19 +237,16 @@ export async function authenticatedTransactionUnwrap<T>(
   fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
   options: AuthenticatedTransactionOptions
 ): Promise<T> {
-  const result = await authenticatedTransactionWithResult(
-    async (params) => {
-      const ctx: TransactionEffectsContext = {
-        transaction: params.transaction,
-        cacheRecomputationContext: params.cacheRecomputationContext,
-        invalidateCache: params.invalidateCache,
-        emitEvent: params.emitEvent,
-        enqueueLedgerCommand: params.enqueueLedgerCommand,
-      }
-      return fn(ctx)
-    },
-    options
-  )
+  const result = await authenticatedTransaction(async (params) => {
+    const ctx: TransactionEffectsContext = {
+      transaction: params.transaction,
+      cacheRecomputationContext: params.cacheRecomputationContext,
+      invalidateCache: params.invalidateCache,
+      emitEvent: params.emitEvent,
+      enqueueLedgerCommand: params.enqueueLedgerCommand,
+    }
+    return fn(ctx)
+  }, options)
   // Throw the original error directly to preserve TRPCError type
   // (using .unwrap() would wrap it in a Panic error)
   if (result.status === 'error') {
@@ -281,46 +278,6 @@ export async function authenticatedTransactionUnwrap<T>(
  * ```
  */
 export async function authenticatedTransaction<T>(
-  fn: (
-    params: AuthenticatedTransactionParams
-  ) => Promise<Result<T, Error>>,
-  options?: AuthenticatedTransactionOptions
-): Promise<Result<T, Error>> {
-  return authenticatedTransactionWithResult(fn, options)
-}
-
-/**
- * Executes a function within an authenticated database transaction and returns the Result directly.
- *
- * Callers must explicitly call `.unwrap()` or handle the Result to extract the value.
- *
- * Use this when you need to:
- * - Chain multiple transactions and handle errors between them
- * - Return errors to callers without throwing
- * - Explicit Result handling throughout the codebase
- *
- * @param fn - Function that receives authenticated transaction parameters and returns a Result
- * @param options - Authentication options including apiKey
- * @returns Promise resolving to the Result (not unwrapped)
- *
- * @example
- * ```ts
- * const result = await authenticatedTransactionWithResult(async ({ transaction, emitEvent, organizationId }) => {
- *   // ... perform operations ...
- *   emitEvent(event1)
- *   return Result.ok(someValue)
- * }, { apiKey })
- *
- * // At router/API boundary, unwrap to convert to exceptions:
- * return result.unwrap()
- *
- * // Or handle errors explicitly:
- * if (Result.isError(result)) {
- *   // handle error
- * }
- * ```
- */
-export async function authenticatedTransactionWithResult<T>(
   fn: (
     params: AuthenticatedTransactionParams
   ) => Promise<Result<T, Error>>,

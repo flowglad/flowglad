@@ -14,7 +14,7 @@ import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
   selectCustomerById,
@@ -133,7 +133,7 @@ const getBillingProcedure = customerProtectedProcedure
       purchases,
       subscriptions,
     } = (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction, cacheRecomputationContext }) => {
           return Result.ok(
             await customerBillingTransaction(
@@ -220,7 +220,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
 
     // First transaction: Validate cancellation is allowed (customer-scoped RLS)
     unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           // Verify the subscription belongs to the customer
           const subscription = (
@@ -337,7 +337,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
 
     // First transaction: Validate uncancel is allowed (customer-scoped RLS)
     ;(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           // Verify the subscription belongs to the customer
           const subscription = (
@@ -604,7 +604,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { paymentMethodId } = input
 
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({
           transaction,
           cacheRecomputationContext,
@@ -686,20 +686,18 @@ const getCustomersForUserAndOrganizationProcedure = protectedProcedure
     // Note: Intentionally includes archived customers - they should still be able
     // to access the billing portal to view historical invoices and billing data
     const customers = (
-      await authenticatedTransactionWithResult(
-        async ({ transaction }) => {
-          return Result.ok(
-            await selectCustomers(
-              {
-                userId,
-                organizationId,
-                livemode: true,
-              },
-              transaction
-            )
+      await authenticatedTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectCustomers(
+            {
+              userId,
+              organizationId,
+              livemode: true,
+            },
+            transaction
           )
-        }
-      )
+        )
+      })
     ).unwrap()
     return { customers }
   })

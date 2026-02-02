@@ -7,7 +7,7 @@ import type { User } from '@db-core/schema/users'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
@@ -78,7 +78,7 @@ export const runSendOrganizationSubscriptionAdjustedNotification =
     >
     try {
       const data = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [context, usersAndMemberships, subscriptionRecord] =
             await Promise.all([
               buildNotificationContext(

@@ -18,7 +18,7 @@ import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   deleteDiscount as deleteDiscountMethod,
@@ -49,7 +49,7 @@ export const createDiscount = protectedProcedure
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const discount = (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction, userId, livemode }) => {
           const [{ organization }] =
             await selectMembershipAndOrganizations(
@@ -105,7 +105,7 @@ const listDiscountsProcedure = protectedProcedure
   .output(discountsPaginatedListWithRedemptionsSchema)
   .query(async ({ input, ctx }) => {
     return unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const result = await selectDiscountsPaginated(
             input,
@@ -157,7 +157,7 @@ export const updateDiscount = protectedProcedure
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const discount = (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const updatedDiscount = await updateDiscountDB(
             {
@@ -181,7 +181,7 @@ export const deleteDiscount = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const { id } = input
     ;(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           await deleteDiscountMethod(id, transaction)
           return Result.ok(undefined)
@@ -200,7 +200,7 @@ export const getDiscount = protectedProcedure
   .output(z.object({ discount: discountWithRedemptionsSchema }))
   .query(async ({ input, ctx }) => {
     const discount = unwrapOrThrow(
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           const discountRecord = (
             await selectDiscountById(input.id, transaction)

@@ -7,7 +7,7 @@ import type { Subscription } from '@db-core/schema/subscriptions'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
@@ -53,7 +53,7 @@ export const runSendCustomerSubscriptionUpgradedNotification =
     >
     try {
       const data = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Use buildNotificationContext for new subscription context
           const {
             organization,

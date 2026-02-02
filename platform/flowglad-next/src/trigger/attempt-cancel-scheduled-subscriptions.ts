@@ -1,6 +1,6 @@
 import { idempotencyKeys, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectSubscriptionsToBeCancelled } from '@/db/tableMethods/subscriptionMethods'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { attemptSubscriptionCancellationTask } from './attempt-subscription-cancellation'
@@ -18,7 +18,7 @@ export const attemptCancelScheduledSubscriptionsTask = task({
       testmodeSubscriptionsToCancel,
       livemodeSubscriptionsToCancel,
     } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok({
           testmodeSubscriptionsToCancel:
             await selectSubscriptionsToBeCancelled(

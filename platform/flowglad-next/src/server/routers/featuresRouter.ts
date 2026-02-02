@@ -16,7 +16,7 @@ import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
-  authenticatedTransactionWithResult,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   featuresTableRowOutputSchema,
@@ -77,7 +77,7 @@ const listFeaturesProcedure = protectedProcedure
   .output(featuresPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectFeaturesPaginated(input, transaction)

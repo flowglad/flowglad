@@ -7,7 +7,7 @@ import {
 import { idInputSchema } from '@db-core/tableUtils'
 import { Result } from 'better-result'
 import { z } from 'zod'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectPaymentMethodById,
   selectPaymentMethodsPaginated,
@@ -29,7 +29,7 @@ const listPaymentMethodsProcedure = protectedProcedure
   .output(paymentMethodsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectPaymentMethodsPaginated(input, transaction)
@@ -50,7 +50,7 @@ const getPaymentMethodProcedure = protectedProcedure
   )
   .query(async ({ ctx, input }) => {
     const paymentMethod = (
-      await authenticatedTransactionWithResult(
+      await authenticatedTransaction(
         async ({ transaction }) => {
           return Result.ok(
             (

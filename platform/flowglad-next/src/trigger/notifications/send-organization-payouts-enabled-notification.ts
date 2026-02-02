@@ -4,7 +4,7 @@ import type { User } from '@db-core/schema/users'
 import { NotFoundError } from '@db-core/tableUtils'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
@@ -45,7 +45,7 @@ export const runSendOrganizationPayoutsEnabledNotification =
     >
     try {
       const data = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {

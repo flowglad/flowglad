@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
@@ -25,7 +25,7 @@ const sendCustomerPaymentSucceededNotificationTask = task({
       organization,
       payment,
     } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const payment = (
           await selectPaymentById(payload.paymentId, transaction)
         ).unwrap()
@@ -65,7 +65,7 @@ const sendCustomerPaymentSucceededNotificationTask = task({
     }
     // Fetch the latest invoice after the PDF generation tasks have completed
     const { mostUpToDateInvoice, orgAndFirstMember } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const mostUpToDateInvoice = (
           await selectInvoiceById(invoice.id, transaction)
         ).unwrap()

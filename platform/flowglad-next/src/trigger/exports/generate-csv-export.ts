@@ -5,7 +5,7 @@ import type {
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import { format } from 'date-fns'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomersCursorPaginatedWithTableRowData } from '@/db/tableMethods/customerMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -55,7 +55,7 @@ export const generateCsvExportTask = task({
         organizationName,
         userEmail,
       } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const normalizedFilters: CustomerTableFilters = {
             ...(filters ?? {}),
             organizationId,
