@@ -555,69 +555,66 @@ describe('subscriptionItemHelpers', () => {
               )
             )
           })
-        )
-          .unwrap()(
-            await adminTransaction(async (ctx) => {
-              const { transaction } = ctx
-              // Adjust with completely different items
-              const newPrice = await setupPrice({
-                productId: product.id,
-                name: 'New Price 2',
-                type: PriceType.Subscription,
-                unitPrice: 3000,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                livemode: true,
-                isDefault: false,
-                trialPeriodDays: 0,
-                currency: CurrencyCode.USD,
-              })
+        ).unwrap()
 
-              const newSubscriptionItems: SubscriptionItem.Insert[] =
-                [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'New Plan Item',
-                    quantity: 1,
-                    unitPrice: newPrice.unitPrice,
-                    priceId: newPrice.id,
-                    livemode: true,
-                    addedDate: now,
-                    type: SubscriptionItemType.Static,
-                  },
-                ]
-
-              await handleSubscriptionItemAdjustment(
-                {
-                  subscriptionId: subscription.id,
-                  newSubscriptionItems,
-                  adjustmentDate: now,
-                },
-                ctx
-              )
-
-              // Check that manual item is still active
-              const activeItems =
-                await selectCurrentlyActiveSubscriptionItems(
-                  { subscriptionId: subscription.id },
-                  now,
-                  transaction
-                )
-
-              const stillActiveManualItem = activeItems.find(
-                (item) => item.id === manualItem.id
-              )
-              expect(stillActiveManualItem).toMatchObject({
-                manuallyCreated: true,
-              })
-              expect(stillActiveManualItem!.manuallyCreated).toBe(
-                true
-              )
-              expect(stillActiveManualItem!.expiredAt).toBeNull()
-              return Result.ok(null)
+        ;(
+          await adminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            // Adjust with completely different items
+            const newPrice = await setupPrice({
+              productId: product.id,
+              name: 'New Price 2',
+              type: PriceType.Subscription,
+              unitPrice: 3000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
             })
-          )
-          .unwrap()
+
+            const newSubscriptionItems: SubscriptionItem.Insert[] = [
+              {
+                subscriptionId: subscription.id,
+                name: 'New Plan Item',
+                quantity: 1,
+                unitPrice: newPrice.unitPrice,
+                priceId: newPrice.id,
+                livemode: true,
+                addedDate: now,
+                type: SubscriptionItemType.Static,
+              },
+            ]
+
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems,
+                adjustmentDate: now,
+              },
+              ctx
+            )
+
+            // Check that manual item is still active
+            const activeItems =
+              await selectCurrentlyActiveSubscriptionItems(
+                { subscriptionId: subscription.id },
+                now,
+                transaction
+              )
+
+            const stillActiveManualItem = activeItems.find(
+              (item) => item.id === manualItem.id
+            )
+            expect(stillActiveManualItem).toMatchObject({
+              manuallyCreated: true,
+            })
+            expect(stillActiveManualItem!.manuallyCreated).toBe(true)
+            expect(stillActiveManualItem!.expiredAt).toBeNull()
+            return Result.ok(null)
+          })
+        ).unwrap()
       })
 
       it('should expire old item and create new when client provides item without id', async () => {

@@ -95,19 +95,18 @@ describe('processNonPaymentCheckoutSession', () => {
           )
           return Result.ok(result)
         })
-      )
-        .unwrap()(
-          // Create fee calculation with the discount applied
-          await adminTransaction(async ({ transaction }) => {
-            const result =
-              await createFeeCalculationForCheckoutSession(
-                updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
-                transaction
-              )
-            return Result.ok(result)
-          })
-        )
-        .unwrap()
+      ).unwrap()
+
+      // Create fee calculation with the discount applied
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await createFeeCalculationForCheckoutSession(
+            updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          return Result.ok(result)
+        })
+      ).unwrap()
 
       // Process the non-payment checkout session
       const result = (

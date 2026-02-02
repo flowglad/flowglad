@@ -932,17 +932,17 @@ describe('Ledger Interactions', () => {
           })
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          // execution:
-          await adminTransaction(async (params) =>
-            attemptToTransitionSubscriptionBillingPeriod(
-              pastBillingPeriod,
-              createProcessingEffectsContext(params)
-            )
+      ).unwrap()
+
+      // execution:
+      ;(
+        await adminTransaction(async (params) =>
+          attemptToTransitionSubscriptionBillingPeriod(
+            pastBillingPeriod,
+            createProcessingEffectsContext(params)
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // expects:
       ;(
@@ -1005,17 +1005,17 @@ describe('Ledger Interactions', () => {
           )
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          // execution:
-          await adminTransaction(async (params) =>
-            attemptToTransitionSubscriptionBillingPeriod(
-              pastBillingPeriod,
-              createProcessingEffectsContext(params)
-            )
+      ).unwrap()
+
+      // execution:
+      ;(
+        await adminTransaction(async (params) =>
+          attemptToTransitionSubscriptionBillingPeriod(
+            pastBillingPeriod,
+            createProcessingEffectsContext(params)
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // expects:
       ;(
@@ -1055,17 +1055,17 @@ describe('Ledger Interactions', () => {
           })
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          // execution:
-          await adminTransaction(async (params) =>
-            attemptToTransitionSubscriptionBillingPeriod(
-              pastBillingPeriod,
-              createProcessingEffectsContext(params)
-            )
+      ).unwrap()
+
+      // execution:
+      ;(
+        await adminTransaction(async (params) =>
+          attemptToTransitionSubscriptionBillingPeriod(
+            pastBillingPeriod,
+            createProcessingEffectsContext(params)
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // expects:
       ;(
@@ -1317,17 +1317,17 @@ describe('Ledger Interactions', () => {
           })
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          // execution:
-          await adminTransaction(async (params) =>
-            attemptToTransitionSubscriptionBillingPeriod(
-              pastBillingPeriod,
-              createProcessingEffectsContext(params)
-            )
+      ).unwrap()
+
+      // execution:
+      ;(
+        await adminTransaction(async (params) =>
+          attemptToTransitionSubscriptionBillingPeriod(
+            pastBillingPeriod,
+            createProcessingEffectsContext(params)
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // expects:
       ;(
@@ -1414,17 +1414,17 @@ describe('Ledger Interactions', () => {
           })
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          // execution:
-          await adminTransaction(async (params) =>
-            attemptToTransitionSubscriptionBillingPeriod(
-              pastBillingPeriod,
-              createProcessingEffectsContext(params)
-            )
+      ).unwrap()
+
+      // execution:
+      ;(
+        await adminTransaction(async (params) =>
+          attemptToTransitionSubscriptionBillingPeriod(
+            pastBillingPeriod,
+            createProcessingEffectsContext(params)
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // expects:
       ;(
@@ -1524,17 +1524,17 @@ describe('Ledger Interactions', () => {
           })
           return Result.ok(undefined)
         })
-      )
-        .unwrap()(
-          // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
-          await adminTransaction(async (params) =>
-            attemptToTransitionSubscriptionBillingPeriod(
-              pastBillingPeriod,
-              createProcessingEffectsContext(params)
-            )
+      ).unwrap()
+
+      // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
+      ;(
+        await adminTransaction(async (params) =>
+          attemptToTransitionSubscriptionBillingPeriod(
+            pastBillingPeriod,
+            createProcessingEffectsContext(params)
           )
         )
-        .unwrap()
+      ).unwrap()
 
       // Assertions:
       ;(

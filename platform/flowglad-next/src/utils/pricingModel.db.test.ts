@@ -2968,24 +2968,24 @@ describe('editProductTransaction - Feature Updates', () => {
         },
         { apiKey: apiKeyToken }
       )
-    )
-      .unwrap()(
-        // Then, remove one
-        await authenticatedTransaction(
-          async (params) => {
-            const txResult = await editProductTransaction(
-              {
-                product: { id: product.id },
-                featureIds: [features[0].id],
-              },
-              params
-            )
-            return Result.ok(txResult)
-          },
-          { apiKey: apiKeyToken }
-        )
+    ).unwrap()
+
+    // Then, remove one
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: product.id },
+              featureIds: [features[0].id],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
       )
-      .unwrap()
+    ).unwrap()
 
     const productFeatures = (
       await adminTransaction(async (ctx) => {
@@ -3025,23 +3025,23 @@ describe('editProductTransaction - Feature Updates', () => {
         },
         { apiKey: apiKeyToken }
       )
-    )
-      .unwrap()(
-        // Then, edit product without featureIds
-        await authenticatedTransaction(
-          async (params) => {
-            const txResult = await editProductTransaction(
-              {
-                product: { id: product.id, name: 'New Name' },
-              },
-              params
-            )
-            return Result.ok(txResult)
-          },
-          { apiKey: apiKeyToken }
-        )
+    ).unwrap()
+
+    // Then, edit product without featureIds
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: product.id, name: 'New Name' },
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
       )
-      .unwrap()
+    ).unwrap()
 
     const productFeatures = (
       await adminTransaction(async (ctx) => {
@@ -3827,29 +3827,29 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
             )
           )
         })
-      )
-        .unwrap()(
-          // Update product slug
-          await authenticatedTransaction(
-            async (params) => {
-              const txResult = await editProductTransaction(
-                {
-                  product: {
-                    id: regularProductId,
-                    name: 'Updated Regular Product',
-                    slug: 'new-slug',
-                    active: true,
-                    default: false,
-                  },
+      ).unwrap()
+
+      // Update product slug
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Regular Product',
+                  slug: 'new-slug',
+                  active: true,
+                  default: false,
                 },
-                params
-              )
-              return Result.ok(txResult)
-            },
-            { apiKey: apiKeyToken }
-          )
+              },
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
         )
-        .unwrap()
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (
@@ -4051,29 +4051,29 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
             })
           )
         })
-      )
-        .unwrap()(
-          // Update product slug from null to a value
-          await authenticatedTransaction(
-            async (params) => {
-              const txResult = await editProductTransaction(
-                {
-                  product: {
-                    id: productWithNullSlug.id,
-                    name: 'Product Without Slug',
-                    slug: 'new-product-slug',
-                    active: true,
-                    default: false,
-                  },
+      ).unwrap()
+
+      // Update product slug from null to a value
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: productWithNullSlug.id,
+                  name: 'Product Without Slug',
+                  slug: 'new-product-slug',
+                  active: true,
+                  default: false,
                 },
-                params
-              )
-              return Result.ok(txResult)
-            },
-            { apiKey: apiKeyToken }
-          )
+              },
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
         )
-        .unwrap()
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (

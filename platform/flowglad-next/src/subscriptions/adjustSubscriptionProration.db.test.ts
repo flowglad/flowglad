@@ -547,9 +547,14 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         )
 
         expect(correctionItems).toHaveLength(0) // No proration items for downgrades
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
 
-        // Verify subscription record name remains unchanged when no active items
-        // (The sync logic doesn't update when there are no active items).unwrap()(await adminTransaction(async (ctx) => {
+  it('should calculate proration for upgrades with succeeded payments', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         // Setup: Create payment with Succeeded status (instead of Processing)
         await setupPayment({
