@@ -128,15 +128,19 @@ describe('memberships RLS - notificationPreferences', () => {
   describe('SELECT via authenticatedTransaction (merchant role)', () => {
     it('returns membership with notificationPreferences when authenticated with API key for own membership', async () => {
       // User1 authenticates with their API key and selects their own membership
-      const memberships = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { userId: org1User.id, organizationId: org1.id },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const memberships = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectMemberships(
+                { userId: org1User.id, organizationId: org1.id },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // Should return exactly one membership
       expect(memberships).toHaveLength(1)
@@ -155,15 +159,19 @@ describe('memberships RLS - notificationPreferences', () => {
     it("returns empty when trying to select another organization's membership", async () => {
       // User2 (from org2) tries to select memberships from org1
       // This should return empty because RLS blocks cross-organization access
-      const memberships = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { organizationId: org1.id },
-            transaction
-          )
-        },
-        { apiKey: org2ApiKey.token! }
-      )
+      const memberships = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectMemberships(
+                { organizationId: org1.id },
+                transaction
+              )
+            )
+          },
+          { apiKey: org2ApiKey.token! }
+        )
+      ).unwrap()
 
       // RLS should block - empty result
       expect(memberships).toHaveLength(0)
@@ -173,15 +181,19 @@ describe('memberships RLS - notificationPreferences', () => {
       // User1 (org1) tries to select User2's membership (org2) by ID
       // RLS policy requires both user_id = requesting_user_id() AND organization_id = current_organization_id()
       // This tests that RLS blocks access to other users' memberships
-      const memberships = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { id: org2Membership.id },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const memberships = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectMemberships(
+                { id: org2Membership.id },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // RLS should block - users can only see their own membership
       expect(memberships).toHaveLength(0)
@@ -189,14 +201,21 @@ describe('memberships RLS - notificationPreferences', () => {
 
     it('selectMembershipById returns the membership when user owns it', async () => {
       // User1 selects their own membership by ID
-      const membership = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectMembershipById(org1Membership.id, transaction)
-          ).unwrap()
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const membership = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              (
+                await selectMembershipById(
+                  org1Membership.id,
+                  transaction
+                )
+              ).unwrap()
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       expect(membership.id).toBe(org1Membership.id)
       expect(membership.userId).toBe(org1User.id)
@@ -207,21 +226,25 @@ describe('memberships RLS - notificationPreferences', () => {
   describe('UPDATE via authenticatedTransaction (merchant role)', () => {
     it("updates notificationPreferences on user's own membership", async () => {
       // User1 updates their own membership's notificationPreferences
-      const updatedMembership = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: org1Membership.id,
-              notificationPreferences: {
-                testModeNotifications: true,
-                subscriptionCreated: false,
-              },
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const updatedMembership = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: org1Membership.id,
+                  notificationPreferences: {
+                    testModeNotifications: true,
+                    subscriptionCreated: false,
+                  },
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // Verify the update succeeded
       expect(updatedMembership.id).toBe(org1Membership.id)
@@ -258,20 +281,24 @@ describe('memberships RLS - notificationPreferences', () => {
       ).unwrap()
 
       // Now user updates only testModeNotifications via authenticated transaction
-      const updatedMembership = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: org1Membership.id,
-              notificationPreferences: {
-                testModeNotifications: true,
-              },
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const updatedMembership = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: org1Membership.id,
+                  notificationPreferences: {
+                    testModeNotifications: true,
+                  },
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // Verify the update succeeded and preferences are correctly merged
       const prefs =
@@ -293,20 +320,24 @@ describe('memberships RLS - notificationPreferences', () => {
       // RLS policy requires both user_id = requesting_user_id() AND organization_id = current_organization_id()
       // This tests that RLS blocks updates to other users' memberships
       try {
-        await authenticatedTransaction(
-          async ({ transaction }) => {
-            return updateMembership(
-              {
-                id: org2Membership.id,
-                notificationPreferences: {
-                  testModeNotifications: true,
-                },
-              },
-              transaction
-            )
-          },
-          { apiKey: org1ApiKey.token! }
-        )
+        ;(
+          await authenticatedTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await updateMembership(
+                  {
+                    id: org2Membership.id,
+                    notificationPreferences: {
+                      testModeNotifications: true,
+                    },
+                  },
+                  transaction
+                )
+              )
+            },
+            { apiKey: org1ApiKey.token! }
+          )
+        ).unwrap()
         // If we get here, the update might have "succeeded" but affected 0 rows
         // Check that the membership was NOT actually updated
         const membership = (
@@ -334,20 +365,24 @@ describe('memberships RLS - notificationPreferences', () => {
       // User2 (from org2) tries to update User1's membership in org1
       // RLS policy should block this
       try {
-        await authenticatedTransaction(
-          async ({ transaction }) => {
-            return updateMembership(
-              {
-                id: org1Membership.id,
-                notificationPreferences: {
-                  testModeNotifications: true,
-                },
-              },
-              transaction
-            )
-          },
-          { apiKey: org2ApiKey.token! }
-        )
+        ;(
+          await authenticatedTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await updateMembership(
+                  {
+                    id: org1Membership.id,
+                    notificationPreferences: {
+                      testModeNotifications: true,
+                    },
+                  },
+                  transaction
+                )
+              )
+            },
+            { apiKey: org2ApiKey.token! }
+          )
+        ).unwrap()
         // If we get here, check that the membership was NOT actually updated
         const membership = (
           await adminTransaction(async ({ transaction }) => {
@@ -380,18 +415,22 @@ describe('memberships RLS - notificationPreferences', () => {
         subscriptionAdjusted: false,
       }
 
-      const updatedMembership = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: org1Membership.id,
-              notificationPreferences: newPrefs,
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const updatedMembership = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: org1Membership.id,
+                  notificationPreferences: newPrefs,
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // The returned record should have the updated values
       expect(updatedMembership.id).toBe(org1Membership.id)
@@ -404,50 +443,64 @@ describe('memberships RLS - notificationPreferences', () => {
 
     it('handles multiple sequential updates correctly', async () => {
       // First update: enable testModeNotifications
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: org1Membership.id,
-              notificationPreferences: {
-                testModeNotifications: true,
-              },
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: org1Membership.id,
+                  notificationPreferences: {
+                    testModeNotifications: true,
+                  },
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // Second update: disable subscriptionCreated
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: org1Membership.id,
-              notificationPreferences: { subscriptionCreated: false },
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: org1Membership.id,
+                  notificationPreferences: {
+                    subscriptionCreated: false,
+                  },
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // Third update: toggle testModeNotifications back
-      const finalMembership = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: org1Membership.id,
-              notificationPreferences: {
-                testModeNotifications: false,
-              },
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const finalMembership = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: org1Membership.id,
+                  notificationPreferences: {
+                    testModeNotifications: false,
+                  },
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // Verify the final state
       const prefs =
@@ -460,32 +513,40 @@ describe('memberships RLS - notificationPreferences', () => {
 
     it('can read membership after updating notificationPreferences', async () => {
       // Update the membership
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: org1Membership.id,
-              notificationPreferences: {
-                testModeNotifications: true,
-                subscriptionCreated: false,
-              },
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: org1Membership.id,
+                  notificationPreferences: {
+                    testModeNotifications: true,
+                    subscriptionCreated: false,
+                  },
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       // Read it back in a separate transaction
-      const memberships = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { id: org1Membership.id },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKey.token! }
-      )
+      const memberships = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectMemberships(
+                { id: org1Membership.id },
+                transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKey.token! }
+        )
+      ).unwrap()
 
       expect(memberships).toHaveLength(1)
       const prefs = getMembershipNotificationPreferences(
@@ -557,15 +618,19 @@ describe('memberships RLS - same-org different-user isolation', () => {
       }
 
       // User2 tries to select user1's membership
-      const memberships = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { id: user1Membership.id },
-            transaction
-          )
-        }
-        // No apiKey - uses session-based auth
-      )
+      const memberships = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectMemberships(
+                { id: user1Membership.id },
+                transaction
+              )
+            )
+          }
+          // No apiKey - uses session-based auth
+        )
+      ).unwrap()
 
       // RLS should block - user2 can only see their own membership
       expect(memberships).toHaveLength(0)
@@ -578,15 +643,19 @@ describe('memberships RLS - same-org different-user isolation', () => {
       }
 
       // User1 tries to select user2's membership
-      const memberships = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { id: user2Membership.id },
-            transaction
-          )
-        }
-        // No apiKey - uses session-based auth
-      )
+      const memberships = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectMemberships(
+                { id: user2Membership.id },
+                transaction
+              )
+            )
+          }
+          // No apiKey - uses session-based auth
+        )
+      ).unwrap()
 
       // RLS should block - user1 can only see their own membership
       expect(memberships).toHaveLength(0)
@@ -599,15 +668,19 @@ describe('memberships RLS - same-org different-user isolation', () => {
       }
 
       // User1 selects their own membership
-      const memberships = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships(
-            { id: user1Membership.id },
-            transaction
-          )
-        }
-        // No apiKey - uses session-based auth
-      )
+      const memberships = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectMemberships(
+                { id: user1Membership.id },
+                transaction
+              )
+            )
+          }
+          // No apiKey - uses session-based auth
+        )
+      ).unwrap()
 
       // Should return user1's membership
       expect(memberships).toHaveLength(1)
@@ -625,17 +698,21 @@ describe('memberships RLS - same-org different-user isolation', () => {
 
       try {
         // User2 tries to update user1's membership
-        await authenticatedTransaction(async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: user1Membership.id,
-              notificationPreferences: {
-                testModeNotifications: false,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await authenticatedTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: user1Membership.id,
+                  notificationPreferences: {
+                    testModeNotifications: false,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // If we get here, verify the membership was NOT actually updated
         const membership = (
@@ -666,17 +743,21 @@ describe('memberships RLS - same-org different-user isolation', () => {
 
       try {
         // User1 tries to update user2's membership
-        await authenticatedTransaction(async ({ transaction }) => {
-          return updateMembership(
-            {
-              id: user2Membership.id,
-              notificationPreferences: {
-                testModeNotifications: false,
-              },
-            },
-            transaction
-          )
-        })
+        ;(
+          await authenticatedTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await updateMembership(
+                {
+                  id: user2Membership.id,
+                  notificationPreferences: {
+                    testModeNotifications: false,
+                  },
+                },
+                transaction
+              )
+            )
+          })
+        ).unwrap()
 
         // If we get here, verify the membership was NOT actually updated
         const membership = (

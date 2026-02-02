@@ -27,6 +27,7 @@ import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import type { CacheRecomputationContext } from '@/db/types'
 import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
@@ -36,7 +37,6 @@ import {
   type CoreStripePaymentIntent,
   processPaymentIntentStatusUpdated,
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import * as stripeUtils from '@/utils/stripe'
 import { IntentMetadataType } from '@/utils/stripe'
@@ -208,7 +208,6 @@ describe('Pay as You Go Workflow E2E', () => {
 
         // call @customerBillingTransaction and check state
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         const billingState1 = await customerBillingTransaction(
@@ -259,7 +258,6 @@ describe('Pay as You Go Workflow E2E', () => {
       await adminTransaction(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         const billingState2 = await customerBillingTransaction(
@@ -307,7 +305,6 @@ describe('Pay as You Go Workflow E2E', () => {
       await adminTransaction(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         const billingState2Prime = await customerBillingTransaction(
@@ -461,7 +458,6 @@ describe('Pay as You Go Workflow E2E', () => {
         const { transaction, livemode } = ctx
         // 5. Call @customerBillingTransaction again and assert final state
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         const billingState3 = await customerBillingTransaction(
@@ -520,7 +516,6 @@ describe('Pay as You Go Workflow E2E', () => {
       await adminTransaction(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         const billingState4 = await customerBillingTransaction(

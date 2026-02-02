@@ -165,6 +165,8 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
         expect(updatedProduct.description).toBe(
           'Updated test product description'
         )
+
+        return Result.ok(null)
       },
       { apiKey: org1ApiKeyToken }
     )
@@ -187,9 +189,11 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
             .insert(pricingModels)
             .values(newPricingModelInput)
             .returning()
-          // Should not reach here
-          throw new Error(
-            'PricingModel insert was unexpectedly allowed for another organization'
+          // Should not reach here - return error as Result if RLS doesn't block it
+          return Result.err(
+            new Error(
+              'PricingModel insert was unexpectedly allowed for another organization'
+            )
           )
         },
         { apiKey: org1ApiKeyToken }

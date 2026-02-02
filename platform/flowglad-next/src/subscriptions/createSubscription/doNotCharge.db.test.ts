@@ -9,6 +9,7 @@ import type { Customer } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import type { Product } from '@db-core/schema/products'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -201,6 +202,7 @@ describe('doNotCharge subscription creation', () => {
           params,
           createDiscardingEffectsContext(transaction)
         )
+        return Result.ok(null)
       })
 
       expect(orgNotificationSpy).toHaveBeenCalledTimes(1)
@@ -267,6 +269,7 @@ describe('doNotCharge subscription creation', () => {
       expect(canceledFree.replacedBySubscriptionId).toBe(
         newSubscription.id
       )
+      return Result.ok(null)
     })
   })
 
@@ -486,6 +489,7 @@ describe('doNotCharge subscription creation', () => {
         )
       ).unwrap()
       expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+      return Result.ok(null)
     })
   })
 
@@ -528,6 +532,7 @@ describe('doNotCharge subscription creation', () => {
         await selectSubscriptionById(subscription.id, transaction)
       ).unwrap()
       expect(retrieved.doNotCharge).toBe(true)
+      return Result.ok(null)
     })
   })
 

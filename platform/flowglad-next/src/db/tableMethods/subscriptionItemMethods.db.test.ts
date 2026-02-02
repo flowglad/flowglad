@@ -863,7 +863,7 @@ describe('subscriptionItemMethods', async () => {
             await selectRichSubscriptionsAndActiveItems(
               { organizationId: organization.id },
               transaction,
-              { type: 'admin', livemode }
+              livemode
             )
           expect(richSubscriptions.length).toBe(1)
           const subWithItems = richSubscriptions[0]
@@ -917,7 +917,7 @@ describe('subscriptionItemMethods', async () => {
             await selectRichSubscriptionsAndActiveItems(
               { organizationId: organization.id },
               transaction,
-              { type: 'admin', livemode }
+              livemode
             )
           expect(richSubscriptions.length).toBe(1)
           expect(richSubscriptions[0].current).toBe(false)
@@ -931,61 +931,64 @@ describe('subscriptionItemMethods', async () => {
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
       const futureDate = now + 24 * 60 * 60 * 1000 // tomorrow
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        // Update original item to have addedDate in the past (currently active)
-        await updateSubscriptionItem(
-          {
-            id: subscriptionItem.id,
-            addedDate: pastDate,
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // Update original item to have addedDate in the past (currently active)
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              addedDate: pastDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
 
-        // Create a scheduled future item (simulating a scheduled downgrade)
-        // This item has addedDate in the future, so it shouldn't appear yet
-        const scheduledFutureItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          name: 'Scheduled Future Item',
-          quantity: 1,
-          unitPrice: 500,
-          priceId: price.id,
-          addedDate: futureDate, // This is the key - addedDate is in the future
+          // Create a scheduled future item (simulating a scheduled downgrade)
+          // This item has addedDate in the future, so it shouldn't appear yet
+          const scheduledFutureItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Scheduled Future Item',
+            quantity: 1,
+            unitPrice: 500,
+            priceId: price.id,
+            addedDate: futureDate, // This is the key - addedDate is in the future
+          })
+
+          // Also set up a scenario like a downgrade: current item expires when future item starts
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              expiredAt: futureDate, // Will expire when the scheduled item becomes active
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: organization.id },
+              transaction,
+              livemode
+            )
+
+          expect(richSubscriptions.length).toBe(1)
+          const subWithItems = richSubscriptions[0]
+
+          // The current item should be included (it's still active - expiredAt is in the future)
+          expect(subWithItems.subscriptionItems.length).toBe(1)
+          expect(subWithItems.subscriptionItems[0].id).toBe(
+            subscriptionItem.id
+          )
+
+          // The scheduled future item should NOT be included
+          expect(
+            subWithItems.subscriptionItems.find(
+              (si) => si.id === scheduledFutureItem.id
+            )
+          ).toBeUndefined()
+          return Result.ok(undefined)
         })
-
-        // Also set up a scenario like a downgrade: current item expires when future item starts
-        await updateSubscriptionItem(
-          {
-            id: subscriptionItem.id,
-            expiredAt: futureDate, // Will expire when the scheduled item becomes active
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
-
-        const richSubscriptions =
-          await selectRichSubscriptionsAndActiveItems(
-            { organizationId: organization.id },
-            transaction,
-            { type: 'admin', livemode }
-          )
-
-        expect(richSubscriptions.length).toBe(1)
-        const subWithItems = richSubscriptions[0]
-
-        // The current item should be included (it's still active - expiredAt is in the future)
-        expect(subWithItems.subscriptionItems.length).toBe(1)
-        expect(subWithItems.subscriptionItems[0].id).toBe(
-          subscriptionItem.id
-        )
-
-        // The scheduled future item should NOT be included
-        expect(
-          subWithItems.subscriptionItems.find(
-            (si) => si.id === scheduledFutureItem.id
-          )
-        ).toBeUndefined()
-      })
+      ).unwrap()
     })
 
     it('should only include feature items for active subscription items', async () => {
@@ -1069,7 +1072,7 @@ describe('subscriptionItemMethods', async () => {
             await selectRichSubscriptionsAndActiveItems(
               { organizationId: organization.id },
               transaction,
-              { type: 'admin', livemode }
+              livemode
             )
 
           expect(richSubscriptions.length).toBe(1)
@@ -1171,7 +1174,7 @@ describe('subscriptionItemMethods', async () => {
             await selectRichSubscriptionsAndActiveItems(
               { organizationId: organization.id },
               transaction,
-              { type: 'admin', livemode }
+              livemode
             )
 
           expect(richSubscriptions.length).toBe(1)
@@ -1271,7 +1274,7 @@ describe('subscriptionItemMethods', async () => {
             await selectRichSubscriptionsAndActiveItems(
               { organizationId: scenario1.organization.id },
               transaction,
-              { type: 'admin', livemode }
+              livemode
             )
 
           expect(richSubscriptions.length).toBe(1)
@@ -1335,7 +1338,7 @@ describe('subscriptionItemMethods', async () => {
             await selectRichSubscriptionsAndActiveItems(
               { organizationId: organization.id },
               transaction,
-              { type: 'admin', livemode }
+              livemode
             )
 
           expect(richSubscriptions.length).toBe(2) // Original + new empty subscription

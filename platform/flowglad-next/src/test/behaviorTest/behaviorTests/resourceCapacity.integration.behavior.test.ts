@@ -338,6 +338,7 @@ describe('Resource Capacity Integration Tests', () => {
             },
             transaction
           )
+          return Result.ok(null)
         },
         { livemode }
       )

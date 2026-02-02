@@ -20,6 +20,7 @@
 import { FeatureType } from '@db-core/enums'
 import type { ResourceClaim } from '@db-core/schema/resourceClaims'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import { setupResourceClaim } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -77,37 +78,39 @@ async function findResourceSubscriptionItemFeature(
   subscriptionId: string,
   resourceId: string
 ) {
-  return adminTransaction(
-    async ({ transaction }) => {
-      const subscriptionItems = await selectSubscriptionItems(
-        { subscriptionId },
-        transaction
-      )
-
-      for (const item of subscriptionItems) {
-        const features = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: item.id },
+  return (
+    await adminTransaction(
+      async ({ transaction }) => {
+        const subscriptionItems = await selectSubscriptionItems(
+          { subscriptionId },
           transaction
         )
 
-        const resourceFeature = features.find(
-          (f) =>
-            f.type === FeatureType.Resource &&
-            f.resourceId === resourceId
-        )
+        for (const item of subscriptionItems) {
+          const features = await selectSubscriptionItemFeatures(
+            { subscriptionItemId: item.id },
+            transaction
+          )
 
-        if (resourceFeature) {
-          return {
-            subscriptionItem: item,
-            subscriptionItemFeature: resourceFeature,
+          const resourceFeature = features.find(
+            (f) =>
+              f.type === FeatureType.Resource &&
+              f.resourceId === resourceId
+          )
+
+          if (resourceFeature) {
+            return Result.ok({
+              subscriptionItem: item,
+              subscriptionItemFeature: resourceFeature,
+            })
           }
         }
-      }
 
-      return null
-    },
-    { livemode: true }
-  )
+        return Result.ok(null)
+      },
+      { livemode: true }
+    )
+  ).unwrap()
 }
 
 // ============================================================================
@@ -255,32 +258,38 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
         const resourceId = features.resource.id
 
         // Get all claims (including released ones) to verify release reason
-        claimsAfterCancellation = await adminTransaction(
-          async ({ transaction }) => {
-            // We need to check all claims, not just active ones
-            // to verify the release reason
-            const allClaims = await selectActiveResourceClaims(
-              { subscriptionId: subscription.id },
-              transaction
-            )
-            return allClaims
-          },
-          { livemode }
-        )
+        claimsAfterCancellation = (
+          await adminTransaction(
+            async ({ transaction }) => {
+              // We need to check all claims, not just active ones
+              // to verify the release reason
+              const allClaims = await selectActiveResourceClaims(
+                { subscriptionId: subscription.id },
+                transaction
+              )
+              return Result.ok(allClaims)
+            },
+            { livemode }
+          )
+        ).unwrap()
 
         // Count active claims (should be 0 after cancellation)
-        activeClaimCount = await adminTransaction(
-          async ({ transaction }) => {
-            return countActiveResourceClaims(
-              {
-                subscriptionId: subscription.id,
-                resourceId,
-              },
-              transaction
-            )
-          },
-          { livemode }
-        )
+        activeClaimCount = (
+          await adminTransaction(
+            async ({ transaction }) => {
+              return Result.ok(
+                await countActiveResourceClaims(
+                  {
+                    subscriptionId: subscription.id,
+                    resourceId,
+                  },
+                  transaction
+                )
+              )
+            },
+            { livemode }
+          )
+        ).unwrap()
       }
 
       return {

@@ -40,21 +40,23 @@ describe('updateInvoiceTransaction', () => {
       // but paid invoice ID in the invoice object for the actual update
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return updateInvoiceTransaction(
-            {
-              id: draftInvoice.id, // Use draft invoice ID for terminal check
-              invoice: {
-                id: paidInvoice.id, // But try to update paid invoice
-                type: InvoiceType.Purchase,
-                status: InvoiceStatus.Open,
-                currency: paidInvoice.currency,
-                dueDate: paidInvoice.dueDate,
-                invoiceDate: paidInvoice.invoiceDate,
+          return Result.ok(
+            await updateInvoiceTransaction(
+              {
+                id: draftInvoice.id, // Use draft invoice ID for terminal check
+                invoice: {
+                  id: paidInvoice.id, // But try to update paid invoice
+                  type: InvoiceType.Purchase,
+                  status: InvoiceStatus.Open,
+                  currency: paidInvoice.currency,
+                  dueDate: paidInvoice.dueDate,
+                  invoiceDate: paidInvoice.invoiceDate,
+                },
+                invoiceLineItems: [],
               },
-              invoiceLineItems: [],
-            },
-            true,
-            transaction
+              true,
+              transaction
+            )
           )
         }
       )

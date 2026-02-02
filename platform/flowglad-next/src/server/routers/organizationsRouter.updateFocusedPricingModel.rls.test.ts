@@ -4,6 +4,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { User } from '@db-core/schema/users'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   setupOrg,
   setupUserAndApiKey,
@@ -106,6 +107,7 @@ describe('organizationsRouter - updateFocusedPricingModel', () => {
         },
         transaction
       )
+      return Result.ok(null)
     })
   })
 
@@ -201,6 +203,7 @@ describe('organizationsRouter - updateFocusedPricingModel', () => {
           },
           transaction
         )
+        return Result.ok(null)
       })
 
       const caller = createCaller(organization, apiKeyToken, user)
@@ -245,11 +248,16 @@ describe('organizationsRouter - updateFocusedPricingModel', () => {
       expect(result.pricingModel.livemode).toBe(false)
 
       // Verify in database
-      const [dbMembership] = await adminTransaction(
-        async ({ transaction }) => {
-          return selectMemberships({ id: membership.id }, transaction)
-        }
-      )
+      const [dbMembership] = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectMemberships(
+              { id: membership.id },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
       expect(dbMembership.livemode).toBe(false)
     })
 
@@ -264,6 +272,7 @@ describe('organizationsRouter - updateFocusedPricingModel', () => {
           },
           transaction
         )
+        return Result.ok(null)
       })
 
       const caller = createCaller(

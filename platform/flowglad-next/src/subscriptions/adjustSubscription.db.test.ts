@@ -261,6 +261,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (expiredResult.status === 'error') {
           expect(expiredResult.error._tag).toBe('TerminalStateError')
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -311,6 +312,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'Non-renewing subscriptions cannot be adjusted'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -349,6 +351,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'Cannot adjust doNotCharge subscriptions'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -424,6 +427,7 @@ describe('adjustSubscription Integration Tests', async () => {
             /Only recurring prices can be used in subscriptions/
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -445,6 +449,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (result.status === 'error') {
           expect(result.error._tag).toBe('NotFoundError')
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -494,6 +499,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'quantity must be greater than zero'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -537,6 +543,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'quantity must be greater than zero'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -580,6 +587,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'unit price cannot be negative'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -629,6 +637,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(bpItems.length).toBe(0)
+        return Result.ok(undefined)
       })
     })
   })
@@ -687,6 +696,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
           )
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -769,6 +779,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'Item 1 Updated'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -835,6 +846,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organization,
           ctx
         )
+        return Result.ok(undefined)
       })
     })
 
@@ -929,6 +941,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
           expect(typeof item3Result).toBe('object')
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -992,6 +1005,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.value.subscription.name).toBe(originalName)
           expect(result.value.subscriptionItems.length).toBe(0)
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -1045,6 +1059,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Trigger tasks are routed to mock server - we verify observable state instead
+        return Result.ok(undefined)
       })
     })
 
@@ -1103,6 +1118,7 @@ describe('adjustSubscription Integration Tests', async () => {
             100
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -1166,6 +1182,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(netChargeItems.length).toBe(1)
         expect(netChargeItems[0].unitPrice).toBeGreaterThan(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1218,6 +1235,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Trigger tasks are routed to mock server - we verify observable state instead
+        return Result.ok(undefined)
       })
     })
 
@@ -1312,6 +1330,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (result.status === 'ok') {
           expect(result.value.subscription.name).toBe('Basic Plan')
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -1379,6 +1398,7 @@ describe('adjustSubscription Integration Tests', async () => {
           item.name?.includes('Proration')
         )
         expect(prorationItems.length).toBeGreaterThan(0)
+        return Result.ok(undefined)
       })
     })
 
@@ -1440,6 +1460,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(bpItems.length).toBeGreaterThanOrEqual(
           bpItemsBefore.length
         )
+        return Result.ok(undefined)
       })
     })
   })
@@ -1537,6 +1558,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(typeof futureItem).toBe('object')
         expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
+        return Result.ok(undefined)
       })
     })
 
@@ -1621,6 +1643,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.value.subscription.name).toBe('Current Plan')
           expect(result.value.subscription.priceId).toBe(price.id)
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -1732,6 +1755,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(toMs(newItem!.addedDate)!).toEqual(
           toMs(currentBillingPeriod!.endDate)!
         )
+        return Result.ok(undefined)
       })
     })
   })
@@ -1785,6 +1809,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
         // The result may be null if the subscription was adjusted, or contain items
         // We just verify the operation completed without error
+        return Result.ok(undefined)
       })
     })
 
@@ -1830,6 +1855,7 @@ describe('adjustSubscription Integration Tests', async () => {
             true
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -1883,6 +1909,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (result.status === 'error') {
           expect(result.error._tag).toBe('NotFoundError')
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -1974,6 +2001,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (futureResult.status === 'error') {
           expect(futureResult.error._tag).toBe('NotFoundError')
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -2022,6 +2050,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(synced.name).toBe('Current Plan')
         expect(synced.priceId).toBe(currentItem.priceId!)
+        return Result.ok(undefined)
       })
     })
 
@@ -2071,6 +2100,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Premium Feature')
         expect(synced.priceId).toBe(premiumItem.priceId!)
+        return Result.ok(undefined)
       })
     })
 
@@ -2109,6 +2139,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Enterprise Plan')
         expect(synced.priceId).toBe(expensiveItem.priceId!)
+        return Result.ok(undefined)
       })
     })
 
@@ -2174,6 +2205,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(syncedAfter.name).toBe('Standard Plan')
         expect(syncedAfter.priceId).toBe(secondaryItem.priceId!)
+        return Result.ok(undefined)
       })
     })
 
@@ -2231,6 +2263,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(synced.name).toBe('New Premium')
         expect(synced.priceId).toBe(newPremiumItem.priceId!)
+        return Result.ok(undefined)
       })
     })
 
@@ -2279,6 +2312,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(syncedAfterExpiry.name).toBe('Active Plan')
         expect(syncedAfterExpiry.priceId).toBe(price.id)
         expect(syncedAfterExpiry.id).toBe(subscription.id)
+        return Result.ok(undefined)
       })
     })
 
@@ -2317,6 +2351,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('High Quantity')
         expect(synced.priceId).toBe(highQuantityItem.priceId!)
+        return Result.ok(undefined)
       })
     })
 
@@ -2355,6 +2390,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Newer Item')
         expect(synced.priceId).toBe(newerItem.priceId!)
+        return Result.ok(undefined)
       })
     })
   })
@@ -2464,6 +2500,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (result.status === 'error') {
           expect(result.error._tag).toBe('NotFoundError')
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -2537,6 +2574,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Notifications are routed to mock server - we verify the operation completed
+        return Result.ok(undefined)
       })
     })
 
@@ -2585,6 +2623,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Triggers are routed to mock server - we verify the operation completed
+        return Result.ok(undefined)
       })
     })
   })
@@ -2664,6 +2703,7 @@ describe('adjustSubscription Integration Tests', async () => {
         }
 
         // Billing run is routed to mock server - we verify observable state only
+        return Result.ok(undefined)
       })
     })
 
@@ -2754,6 +2794,7 @@ describe('adjustSubscription Integration Tests', async () => {
         }
 
         // Billing run is routed to mock server - we verify observable state only
+        return Result.ok(undefined)
       })
     })
 
@@ -2830,6 +2871,7 @@ describe('adjustSubscription Integration Tests', async () => {
             SubscriptionAdjustmentTiming.Immediately
           )
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -2893,6 +2935,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Billing run is routed to mock server - we verify the operation completed
+        return Result.ok(undefined)
       })
     })
 
@@ -2942,6 +2985,7 @@ describe('adjustSubscription Integration Tests', async () => {
             'Price not found: nonexistent-slug'
           )
         }
+        return Result.ok(undefined)
       })
     })
 
@@ -3000,6 +3044,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Billing run is routed to mock server - we verify the operation completed
+        return Result.ok(undefined)
       })
     })
 
@@ -3088,6 +3133,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Billing run is routed to mock server - we verify the operation completed
+        return Result.ok(undefined)
       })
     })
 
@@ -3149,6 +3195,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Billing run is routed to mock server - we verify the operation completed
+        return Result.ok(undefined)
       })
     })
   })
@@ -3229,6 +3276,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
+        return Result.ok(undefined)
       })
     })
 
@@ -3289,6 +3337,7 @@ describe('adjustSubscription Integration Tests', async () => {
             SubscriptionAdjustmentTiming.Immediately
           )
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -3356,6 +3405,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.error._tag).toBe('ValidationError')
           expect(result.error.message.toLowerCase()).toContain('free')
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -3680,6 +3730,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (result.status === 'ok') {
           expect(result.value.subscription.name).toBe('Basic Plan')
         }
+        return Result.ok(undefined)
       })
     })
   })
@@ -3743,17 +3794,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 3 resources before adjustment
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -3860,6 +3913,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.capacity).toBe(5) // Still old capacity
           expect(usage.claimed).toBe(3)
           expect(usage.available).toBe(2)
+          return Result.ok(undefined)
         })
       })
 
@@ -3905,17 +3959,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 8 resources
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 8,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 8,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -4007,6 +4063,7 @@ describe('adjustSubscription Integration Tests', async () => {
             transaction
           )
           expect(activeClaims.length).toBe(8)
+          return Result.ok(undefined)
         })
       })
     })
@@ -4063,17 +4120,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 3 resources
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -4171,6 +4230,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.capacity).toBe(10)
           expect(usage.claimed).toBe(3)
           expect(usage.available).toBe(7)
+          return Result.ok(undefined)
         })
       })
 
@@ -4228,17 +4288,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 3 resources (less than new capacity)
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 3,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 3,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -4333,6 +4395,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.capacity).toBe(5)
           expect(usage.claimed).toBe(3)
           expect(usage.available).toBe(2)
+          return Result.ok(undefined)
         })
       })
 
@@ -4390,17 +4453,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 5 resources
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 5,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 5,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -4503,6 +4568,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
           expect(activeItems.length).toBe(1)
           expect(activeItems[0].name).toBe('Premium Plan')
+          return Result.ok(undefined)
         })
       })
     })
@@ -4556,17 +4622,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 5 resources
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 5,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 5,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -4666,6 +4734,7 @@ describe('adjustSubscription Integration Tests', async () => {
             transaction
           )
           expect(activeClaims.length).toBe(5)
+          return Result.ok(undefined)
         })
       })
 
@@ -4711,17 +4780,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 3 resources (less than new capacity)
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -4832,6 +4903,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.capacity).toBe(10) // Still old capacity
           expect(usage.claimed).toBe(3)
           expect(usage.available).toBe(7)
+          return Result.ok(undefined)
         })
       })
     })
@@ -4937,17 +5009,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 4 resources (uses capacity from both items)
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 4,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 4,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -5014,6 +5088,7 @@ describe('adjustSubscription Integration Tests', async () => {
             transaction
           )
           expect(activeClaims.length).toBe(4)
+          return Result.ok(undefined)
         })
       })
 
@@ -5111,17 +5186,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 2 resources (can be satisfied by base plan alone)
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 2,
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 2,
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -5190,6 +5267,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.capacity).toBe(3)
           expect(usage.claimed).toBe(2)
           expect(usage.available).toBe(1)
+          return Result.ok(undefined)
         })
       })
     })
@@ -5243,17 +5321,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 2 resources before adjustment
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2'],
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2'],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -5370,6 +5450,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.capacity).toBe(5)
           expect(usage.claimed).toBe(4)
           expect(usage.available).toBe(1)
+          return Result.ok(undefined)
         })
       })
 
@@ -5415,17 +5496,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Claim 3 resources before adjustment
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2', 'user-3'],
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -5531,6 +5614,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usage.capacity).toBe(5)
           expect(usage.claimed).toBe(2)
           expect(usage.available).toBe(3)
+          return Result.ok(undefined)
         })
       })
     })
@@ -5586,17 +5670,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Step 2: Claim 2 seats
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2'],
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2'],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -5694,21 +5780,25 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageAfterDowngrade.available).toBe(0)
 
           // Step 4: Attempt to claim a 3rd seat - should fail
-          const claimResult = await claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                quantity: 1,
+          try {
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 1,
+                },
               },
-            },
-            transaction
-          )
-          expect(Result.isError(claimResult)).toBe(true)
-          if (Result.isError(claimResult)) {
-            expect(claimResult.error.message).toContain(
+              transaction
+            )
+            expect.unreachable(
+              'Expected claimResourceTransaction to throw'
+            )
+          } catch (error) {
+            expect(error).toBeInstanceOf(Error)
+            expect((error as Error).message).toContain(
               'No available capacity'
             )
           }
@@ -5723,6 +5813,7 @@ describe('adjustSubscription Integration Tests', async () => {
               transaction
             )
           expect(claimsAfterFailedClaim.length).toBe(2)
+          return Result.ok(undefined)
         })
       })
 
@@ -5773,17 +5864,19 @@ describe('adjustSubscription Integration Tests', async () => {
         // Step 2: Claim 2 seats initially
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: resource.slug,
-                subscriptionId: subscription.id,
-                externalIds: ['user-1', 'user-2'],
+          return Result.ok(
+            await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2'],
+                },
               },
-            },
-            transaction
+              transaction
+            )
           )
         })
 
@@ -5923,6 +6016,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageWithThirdClaim.capacity).toBe(3)
           expect(usageWithThirdClaim.claimed).toBe(3)
           expect(usageWithThirdClaim.available).toBe(0)
+          return Result.ok(undefined)
         })
 
         // Step 5: Simulate time passing - transition to new billing period
@@ -5971,6 +6065,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageAfterTransition.claimed).toBe(2)
           // Capacity matches claimed - no excess, no availability
           expect(usageAfterTransition.available).toBe(0)
+          return Result.ok(undefined)
         })
       })
     })

@@ -13,6 +13,7 @@ import type { Price } from '@db-core/schema/prices'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { UsageEvent } from '@db-core/schema/usageEvents'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -245,7 +246,6 @@ describe('usageEventsRouter', () => {
       const result = await caller.list({
         cursor: undefined,
         limit: 10,
-        customerId: customer1.id,
       })
 
       // Should return only the 5 usage events for customer1
@@ -418,7 +418,7 @@ describe('usageEventsRouter', () => {
 
       const result = await caller.getTableRows({
         pageSize: 10,
-        customerId: customer1.id,
+        filters: { customerId: customer1.id },
       })
 
       // Verify by specific IDs - all created events should be in result
@@ -539,14 +539,14 @@ describe('usageEventsRouter', () => {
       // First call with pageSize of 3, filtered by isolated customer
       const firstResult = await caller.getTableRows({
         pageSize: 3,
-        customerId: isolatedCustomer.id,
+        filters: { customerId: isolatedCustomer.id },
       })
 
       // Second call using pageAfter from first result
       const secondResult = await caller.getTableRows({
         pageAfter: firstResult.endCursor ?? undefined,
         pageSize: 3,
-        customerId: isolatedCustomer.id,
+        filters: { customerId: isolatedCustomer.id },
       })
 
       // First call should return first 3 events
@@ -641,6 +641,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )
@@ -875,6 +876,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )
@@ -1029,6 +1031,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )
@@ -1082,6 +1085,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )

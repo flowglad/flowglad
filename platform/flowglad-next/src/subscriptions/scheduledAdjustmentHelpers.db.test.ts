@@ -107,6 +107,7 @@ describe('scheduledAdjustmentHelpers', () => {
 
         expect(sub.scheduledAdjustmentAt).toBeNull()
         expect(hasScheduledAdjustment(sub)).toBe(false)
+        return Result.ok(null)
       })
     })
 
@@ -124,6 +125,7 @@ describe('scheduledAdjustmentHelpers', () => {
 
         expect(updated.scheduledAdjustmentAt).toBe(futureTimestamp)
         expect(hasScheduledAdjustment(updated)).toBe(true)
+        return Result.ok(null)
       })
     })
   })
@@ -140,6 +142,7 @@ describe('scheduledAdjustmentHelpers', () => {
         if (Result.isError(result)) {
           expect(result.error).toBeInstanceOf(NotFoundError)
         }
+        return Result.ok(null)
       })
     })
 
@@ -157,6 +160,7 @@ describe('scheduledAdjustmentHelpers', () => {
             'does not have a scheduled adjustment'
           )
         }
+        return Result.ok(null)
       })
     })
 
@@ -185,6 +189,7 @@ describe('scheduledAdjustmentHelpers', () => {
           ).toBeNull()
           expect(result.value.canceledItemCount).toBe(0)
         }
+        return Result.ok(null)
       })
     })
 
@@ -244,13 +249,14 @@ describe('scheduledAdjustmentHelpers', () => {
           (item) =>
             item.name &&
             item.name.startsWith('Future Item') &&
-            item.expiredAt !== null &&
+            item.expiredAt != null &&
             item.expiredAt <= Date.now()
         )
 
         expect(activeItems.length).toBe(1)
         expect(activeItems[0].name).toBe('Existing Item')
         expect(expiredFutureItems.length).toBe(2)
+        return Result.ok(null)
       })
     })
 
@@ -312,6 +318,7 @@ describe('scheduledAdjustmentHelpers', () => {
         expect(
           activeItems.some((item) => item.name === 'Past Added Item')
         ).toBe(true)
+        return Result.ok(null)
       })
     })
   })

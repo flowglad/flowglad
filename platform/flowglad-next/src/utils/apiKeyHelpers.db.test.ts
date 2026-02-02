@@ -112,15 +112,24 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createSecretApiKeyTransaction(
-            input,
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: false,
-              organizationId: organization.id,
-            })
-          )
+          try {
+            const response = await createSecretApiKeyTransaction(
+              input,
+              withAdminCacheContext({
+                transaction,
+                userId,
+                livemode: false,
+                organizationId: organization.id,
+              })
+            )
+            return Result.ok(response)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -156,15 +165,24 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createSecretApiKeyTransaction(
-            input,
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
-              organizationId: organization.id,
-            })
-          )
+          try {
+            const response = await createSecretApiKeyTransaction(
+              input,
+              withAdminCacheContext({
+                transaction,
+                userId,
+                livemode: true,
+                organizationId: organization.id,
+              })
+            )
+            return Result.ok(response)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -244,15 +262,24 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createSecretApiKeyTransaction(
-            input,
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
-              organizationId: organization.id,
-            })
-          )
+          try {
+            const response = await createSecretApiKeyTransaction(
+              input,
+              withAdminCacheContext({
+                transaction,
+                userId,
+                livemode: true,
+                organizationId: organization.id,
+              })
+            )
+            return Result.ok(response)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -340,15 +367,24 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return deleteSecretApiKeyTransaction(
-            { id: nonExistentId },
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
-              organizationId: organization.id,
-            })
-          )
+          try {
+            await deleteSecretApiKeyTransaction(
+              { id: nonExistentId },
+              withAdminCacheContext({
+                transaction,
+                userId,
+                livemode: true,
+                organizationId: organization.id,
+              })
+            )
+            return Result.ok(undefined)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -377,15 +413,24 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return deleteSecretApiKeyTransaction(
-            { id: publishableApiKey.id },
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
-              organizationId: organization.id,
-            })
-          )
+          try {
+            await deleteSecretApiKeyTransaction(
+              { id: publishableApiKey.id },
+              withAdminCacheContext({
+                transaction,
+                userId,
+                livemode: true,
+                organizationId: organization.id,
+              })
+            )
+            return Result.ok(undefined)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -528,15 +573,24 @@ describe('apiKeyHelpers', () => {
       // Attempt to delete should fail because Unkey deletion will fail
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return deleteSecretApiKeyTransaction(
-            { id: apiKeyWithUnkeyId.id },
-            withAdminCacheContext({
-              transaction,
-              userId,
-              livemode: true,
-              organizationId: organization.id,
-            })
-          )
+          try {
+            await deleteSecretApiKeyTransaction(
+              { id: apiKeyWithUnkeyId.id },
+              withAdminCacheContext({
+                transaction,
+                userId,
+                livemode: true,
+                organizationId: organization.id,
+              })
+            )
+            return Result.ok(undefined)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)

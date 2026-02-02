@@ -1981,13 +1981,13 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return executeBillingRunCalculationAndBookkeepingSteps(
+      const result = await adminTransaction(async ({ transaction }) =>
+        Result.ok(
+          await executeBillingRunCalculationAndBookkeepingSteps(
             billingRun,
             transaction
           )
-        }
+        )
       )
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -2012,13 +2012,13 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return executeBillingRunCalculationAndBookkeepingSteps(
+      const result = await adminTransaction(async ({ transaction }) =>
+        Result.ok(
+          await executeBillingRunCalculationAndBookkeepingSteps(
             billingRun,
             transaction
           )
-        }
+        )
       )
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {

@@ -643,7 +643,7 @@ describeIfStripeKey(
         } as SubscriptionItem.Insert,
       ]
 
-      const result = await executeBillingRun(
+      const resultResult = await executeBillingRun(
         adjustmentBillingRun.id,
         {
           newSubscriptionItems:
@@ -651,6 +651,7 @@ describeIfStripeKey(
           adjustmentDate: new Date(),
         }
       )
+      const result = resultResult.unwrap()
 
       const updatedBillingRun = (
         await adminTransaction(({ transaction }) =>
@@ -692,11 +693,15 @@ describeIfStripeKey(
         } as SubscriptionItem.Insert,
       ]
 
-      const result = await executeBillingRun(completedBillingRun.id, {
-        newSubscriptionItems:
-          newSubscriptionItems as SubscriptionItem.Insert[],
-        adjustmentDate: new Date(),
-      })
+      const resultResult = await executeBillingRun(
+        completedBillingRun.id,
+        {
+          newSubscriptionItems:
+            newSubscriptionItems as SubscriptionItem.Insert[],
+          adjustmentDate: new Date(),
+        }
+      )
+      const result = resultResult.unwrap()
 
       // Should return undefined/early exit without processing
       expect(result).toBeUndefined()

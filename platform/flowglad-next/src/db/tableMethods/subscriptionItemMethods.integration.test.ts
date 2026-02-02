@@ -5,6 +5,7 @@ import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import type { Price } from '@db-core/schema/prices'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -144,6 +145,7 @@ describeIfRedisKey(
         expect(result2[0].subscriptionItem.id).toBe(
           result1[0].subscriptionItem.id
         )
+        return Result.ok(null)
       })
     })
 
@@ -193,6 +195,7 @@ describeIfRedisKey(
             livemode
           )
         expect(result2.length).toBe(2)
+        return Result.ok(null)
       })
     })
 
@@ -213,6 +216,7 @@ describeIfRedisKey(
             livemode
           )
         expect(result).toEqual([])
+        return Result.ok(null)
       })
     })
   }
@@ -315,6 +319,7 @@ describeIfRedisKey(
         const ids = results.map((r) => r.subscriptionItem.id)
         expect(ids).toContain(subscriptionItem1.id)
         expect(ids).toContain(subscriptionItem2.id)
+        return Result.ok(null)
       })
 
       // Verify both subscriptions are cached separately
@@ -337,6 +342,7 @@ describeIfRedisKey(
           transaction,
           livemode
         )
+        return Result.ok(null)
       })
 
       // Verify subscription1 is cached
@@ -356,6 +362,7 @@ describeIfRedisKey(
         const ids = results.map((r) => r.subscriptionItem.id)
         expect(ids).toContain(subscriptionItem1.id)
         expect(ids).toContain(subscriptionItem2.id)
+        return Result.ok(null)
       })
     })
 
@@ -369,6 +376,7 @@ describeIfRedisKey(
           )
 
         expect(results).toEqual([])
+        return Result.ok(null)
       })
     })
 
@@ -432,6 +440,7 @@ describeIfRedisKey(
         )
         expect(sub1Items.length).toBe(2)
         expect(sub2Items.length).toBe(1)
+        return Result.ok(null)
       })
     })
   }

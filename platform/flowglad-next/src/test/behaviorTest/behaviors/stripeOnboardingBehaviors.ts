@@ -41,6 +41,7 @@
  */
 
 import { BusinessOnboardingStatus } from '@db-core/enums'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
@@ -127,6 +128,7 @@ export const initiateStripeConnectBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(null)
       },
       { livemode: true }
     )
@@ -185,6 +187,7 @@ export const finalizeStripeOnboardingBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(null)
       },
       { livemode: true }
     )
@@ -254,6 +257,7 @@ export const completeStripeOnboardingBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(null)
       },
       { livemode: true }
     )

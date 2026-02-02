@@ -45,6 +45,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -61,6 +63,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -101,6 +105,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -119,6 +125,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -154,6 +162,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -170,6 +180,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -227,6 +239,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -243,6 +257,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -304,6 +320,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -320,6 +338,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -375,6 +395,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -391,6 +413,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -432,6 +456,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -452,6 +478,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -484,6 +512,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -501,6 +531,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -529,6 +561,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -548,6 +582,8 @@ describe('createUsageMeterTransaction', () => {
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -577,6 +613,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -596,6 +634,8 @@ describe('createUsageMeterTransaction', () => {
                   organizationId: organization.id,
                   invalidateCache,
                   cacheRecomputationContext,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -626,6 +666,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -642,6 +684,8 @@ describe('createUsageMeterTransaction', () => {
                   organizationId: organization.id,
                   invalidateCache,
                   cacheRecomputationContext,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -659,6 +703,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -675,6 +721,8 @@ describe('createUsageMeterTransaction', () => {
                   organizationId: organization.id,
                   invalidateCache,
                   cacheRecomputationContext,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -697,6 +745,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -713,6 +763,8 @@ describe('createUsageMeterTransaction', () => {
                   organizationId: organization.id,
                   invalidateCache,
                   cacheRecomputationContext,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -732,6 +784,8 @@ describe('createUsageMeterTransaction', () => {
             transaction,
             invalidateCache,
             cacheRecomputationContext,
+            emitEvent,
+            enqueueLedgerCommand,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -748,6 +802,8 @@ describe('createUsageMeterTransaction', () => {
                   organizationId: organization.id,
                   invalidateCache,
                   cacheRecomputationContext,
+                  emitEvent,
+                  enqueueLedgerCommand,
                 }
               )
             return Result.ok(usageMeterResult)

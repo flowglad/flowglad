@@ -121,7 +121,7 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
     // expectation: database constraint violation error returned as Result.err
     const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return insertUsageEvent(
+        const insertResult = await insertUsageEvent(
           {
             customerId: customer.id,
             subscriptionId: subscription.id,
@@ -137,6 +137,7 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
           },
           transaction
         )
+        return Result.ok(insertResult)
       },
       { apiKey: apiKeyToken }
     )
@@ -146,26 +147,30 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
   it('successfully inserts usage event with valid priceId for matching usage meter', async () => {
     // setup: insert usage event with valid priceId that matches the usage meter
     // expectation: success, event created with the specified priceId
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertUsageEvent(
-          {
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            priceId: price.id,
-            billingPeriodId: billingPeriod.id,
-            amount: 100,
-            transactionId: `txn_valid_price_${core.nanoid()}`,
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-          },
-          transaction
-        )
-      },
-      { apiKey: apiKeyToken }
-    )
+    const usageEvent = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await insertUsageEvent(
+              {
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+                priceId: price.id,
+                billingPeriodId: billingPeriod.id,
+                amount: 100,
+                transactionId: `txn_valid_price_${core.nanoid()}`,
+                usageDate: Date.now(),
+                livemode: true,
+                properties: {},
+              },
+              transaction
+            )
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     expect(usageEvent.priceId).toBe(price.id)
     expect(usageEvent.usageMeterId).toBe(usageMeter.id)
@@ -175,47 +180,55 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
   it('successfully inserts usage events with different valid priceIds for different meters', async () => {
     // setup: insert usage events for different meters with their respective prices
     // expectation: each event has the correct priceId for its meter
-    const usageEvent1 = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertUsageEvent(
-          {
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            priceId: price.id,
-            billingPeriodId: billingPeriod.id,
-            amount: 100,
-            transactionId: `txn_meter1_${core.nanoid()}`,
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-          },
-          transaction
-        )
-      },
-      { apiKey: apiKeyToken }
-    )
+    const usageEvent1 = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await insertUsageEvent(
+              {
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+                priceId: price.id,
+                billingPeriodId: billingPeriod.id,
+                amount: 100,
+                transactionId: `txn_meter1_${core.nanoid()}`,
+                usageDate: Date.now(),
+                livemode: true,
+                properties: {},
+              },
+              transaction
+            )
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
-    const usageEvent2 = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertUsageEvent(
-          {
-            customerId: customer.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter2.id,
-            priceId: price2.id,
-            billingPeriodId: billingPeriod.id,
-            amount: 200,
-            transactionId: `txn_meter2_${core.nanoid()}`,
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-          },
-          transaction
-        )
-      },
-      { apiKey: apiKeyToken }
-    )
+    const usageEvent2 = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await insertUsageEvent(
+              {
+                customerId: customer.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter2.id,
+                priceId: price2.id,
+                billingPeriodId: billingPeriod.id,
+                amount: 200,
+                transactionId: `txn_meter2_${core.nanoid()}`,
+                usageDate: Date.now(),
+                livemode: true,
+                properties: {},
+              },
+              transaction
+            )
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     expect(usageEvent1.priceId).toBe(price.id)
     expect(usageEvent1.usageMeterId).toBe(usageMeter.id)

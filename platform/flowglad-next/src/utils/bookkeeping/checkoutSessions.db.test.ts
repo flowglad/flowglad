@@ -340,18 +340,27 @@ describe('Checkout Sessions', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return editCheckoutSession(
-            {
-              checkoutSession: {
-                id: checkoutSession.id,
-                type: CheckoutSessionType.Purchase,
-                priceId: price.id,
-                targetSubscriptionId: null,
-                automaticallyUpdateSubscriptions: null,
+          try {
+            const response = await editCheckoutSession(
+              {
+                checkoutSession: {
+                  id: checkoutSession.id,
+                  type: CheckoutSessionType.Purchase,
+                  priceId: price.id,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                },
               },
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+              createDiscardingEffectsContext(transaction)
+            )
+            return Result.ok(response)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -552,19 +561,28 @@ describe('Checkout Sessions', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return editCheckoutSession(
-            {
-              checkoutSession: {
-                id: checkoutSession.id,
-                type: CheckoutSessionType.Product,
-                priceId: price.id,
-                targetSubscriptionId: null,
-                automaticallyUpdateSubscriptions: null,
+          try {
+            const response = await editCheckoutSession(
+              {
+                checkoutSession: {
+                  id: checkoutSession.id,
+                  type: CheckoutSessionType.Product,
+                  priceId: price.id,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                },
+                purchaseId: purchase.id,
               },
-              purchaseId: purchase.id,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+              createDiscardingEffectsContext(transaction)
+            )
+            return Result.ok(response)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -969,13 +987,21 @@ describe('Checkout Sessions', () => {
       ).unwrap()
 
       const result = await adminTransaction(async (params) => {
-        return processPurchaseBookkeepingForCheckoutSession(
-          {
-            checkoutSession,
-            stripeCustomerId: 'different-stripe-id',
-          },
-          createProcessingEffectsContext(params)
-        )
+        try {
+          const response =
+            await processPurchaseBookkeepingForCheckoutSession(
+              {
+                checkoutSession,
+                stripeCustomerId: 'different-stripe-id',
+              },
+              createProcessingEffectsContext(params)
+            )
+          return Result.ok(response)
+        } catch (error) {
+          return Result.err(
+            error instanceof Error ? error : new Error(String(error))
+          )
+        }
       })
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -1180,13 +1206,21 @@ describe('Checkout Sessions', () => {
       ).unwrap()
 
       const result = await adminTransaction(async (params) => {
-        return processPurchaseBookkeepingForCheckoutSession(
-          {
-            checkoutSession,
-            stripeCustomerId: succeededCharge.customer! as string,
-          },
-          createProcessingEffectsContext(params)
-        )
+        try {
+          const response =
+            await processPurchaseBookkeepingForCheckoutSession(
+              {
+                checkoutSession,
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
+              createProcessingEffectsContext(params)
+            )
+          return Result.ok(response)
+        } catch (error) {
+          return Result.err(
+            error instanceof Error ? error : new Error(String(error))
+          )
+        }
       })
       expect(Result.isError(result)).toBe(true)
     })
@@ -1600,13 +1634,22 @@ describe('editCheckoutSessionBillingAddress', async () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return editCheckoutSessionBillingAddress(
-            {
-              checkoutSessionId: 'non-existent-id',
-              billingAddress,
-            },
-            transaction
-          )
+          try {
+            const response = await editCheckoutSessionBillingAddress(
+              {
+                checkoutSessionId: 'non-existent-id',
+                billingAddress,
+              },
+              transaction
+            )
+            return Result.ok(response)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)
@@ -1640,13 +1683,22 @@ describe('editCheckoutSessionBillingAddress', async () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return editCheckoutSessionBillingAddress(
-            {
-              checkoutSessionId: checkoutSession.id,
-              billingAddress,
-            },
-            transaction
-          )
+          try {
+            const response = await editCheckoutSessionBillingAddress(
+              {
+                checkoutSessionId: checkoutSession.id,
+                billingAddress,
+              },
+              transaction
+            )
+            return Result.ok(response)
+          } catch (error) {
+            return Result.err(
+              error instanceof Error
+                ? error
+                : new Error(String(error))
+            )
+          }
         }
       )
       expect(Result.isError(result)).toBe(true)

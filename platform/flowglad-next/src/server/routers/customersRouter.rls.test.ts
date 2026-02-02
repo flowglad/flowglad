@@ -12,6 +12,7 @@ import {
 } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -143,6 +144,8 @@ describe('customersRouter.archive', () => {
 
       expect(updatedSub2.status).toBe(SubscriptionStatus.Canceled)
       expect(updatedSub2.cancellationReason).toBe('customer_archived')
+
+      return Result.ok(null)
     })
   })
 

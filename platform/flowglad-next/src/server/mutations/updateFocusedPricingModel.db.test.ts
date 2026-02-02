@@ -39,17 +39,20 @@ describe('updateFocusedPricingModelTransaction', () => {
     membership = userSetup.membership
 
     // Set initial focused membership and pricing model
-    await adminTransaction(async ({ transaction }) => {
-      await updateMembership(
-        {
-          id: membership.id,
-          focused: true,
-          focusedPricingModelId: livePricingModel.id,
-          livemode: true,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateMembership(
+          {
+            id: membership.id,
+            focused: true,
+            focusedPricingModelId: livePricingModel.id,
+            livemode: true,
+          },
+          transaction
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   afterEach(async () => {
@@ -58,18 +61,20 @@ describe('updateFocusedPricingModelTransaction', () => {
 
   describe('PM validation', () => {
     it('returns NOT_FOUND error when pricing model does not exist', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateFocusedPricingModelTransaction(
-            {
-              pricingModelId: 'non-existent-pm-id',
-              userId: user.id,
-              organizationId: organization.id,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateFocusedPricingModelTransaction(
+              {
+                pricingModelId: 'non-existent-pm-id',
+                userId: user.id,
+                organizationId: organization.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -84,18 +89,20 @@ describe('updateFocusedPricingModelTransaction', () => {
         await setupOrg()
 
       try {
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return updateFocusedPricingModelTransaction(
-              {
-                pricingModelId: otherPm!.id,
-                userId: user.id,
-                organizationId: organization.id,
-              },
-              transaction
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await updateFocusedPricingModelTransaction(
+                {
+                  pricingModelId: otherPm!.id,
+                  userId: user.id,
+                  organizationId: organization.id,
+                },
+                transaction
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
 
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
@@ -126,18 +133,20 @@ describe('updateFocusedPricingModelTransaction', () => {
         })
       ).unwrap()
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateFocusedPricingModelTransaction(
-            {
-              pricingModelId: testmodePricingModel.id,
-              userId: user.id,
-              organizationId: organization.id,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateFocusedPricingModelTransaction(
+              {
+                pricingModelId: testmodePricingModel.id,
+                userId: user.id,
+                organizationId: organization.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
@@ -166,18 +175,20 @@ describe('updateFocusedPricingModelTransaction', () => {
         // User's focused membership is in otherOrg, but we request using organization.id
         // However, the PM belongs to otherOrg, so PM validation passes
         // The org mismatch comes from the focused membership check
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return updateFocusedPricingModelTransaction(
-              {
-                pricingModelId: otherPm!.id,
-                userId: otherUser.id,
-                organizationId: organization.id, // Different org than user's focused membership
-              },
-              transaction
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await updateFocusedPricingModelTransaction(
+                {
+                  pricingModelId: otherPm!.id,
+                  userId: otherUser.id,
+                  organizationId: organization.id, // Different org than user's focused membership
+                },
+                transaction
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
 
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
@@ -204,32 +215,37 @@ describe('updateFocusedPricingModelTransaction', () => {
         })
 
       // Ensure user is focused on otherOrg
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: otherMembership.id,
-            focused: true,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: otherMembership.id,
+              focused: true,
+            },
+            transaction
+          )
+          return Result.ok(null)
+        })
+      ).unwrap()
 
       try {
         // Request with our org's PM but passing organization.id
         // PM validation passes (livePricingModel belongs to organization)
         // But user's focused membership is in otherOrg, not organization
-        const result = await adminTransaction(
-          async ({ transaction }) => {
-            return updateFocusedPricingModelTransaction(
-              {
-                pricingModelId: livePricingModel.id,
-                userId: otherUser.id,
-                organizationId: organization.id,
-              },
-              transaction
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await updateFocusedPricingModelTransaction(
+                {
+                  pricingModelId: livePricingModel.id,
+                  userId: otherUser.id,
+                  organizationId: organization.id,
+                },
+                transaction
+              )
             )
-          }
-        )
+          })
+        ).unwrap()
 
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
@@ -247,18 +263,20 @@ describe('updateFocusedPricingModelTransaction', () => {
   describe('Successful update', () => {
     it('updates focusedPricingModelId to the requested PM', async () => {
       // Start with live PM, switch to test PM
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateFocusedPricingModelTransaction(
-            {
-              pricingModelId: testmodePricingModel.id,
-              userId: user.id,
-              organizationId: organization.id,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateFocusedPricingModelTransaction(
+              {
+                pricingModelId: testmodePricingModel.id,
+                userId: user.id,
+                organizationId: organization.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isOk(result)).toBe(true)
       if (Result.isOk(result)) {
@@ -269,109 +287,124 @@ describe('updateFocusedPricingModelTransaction', () => {
           testmodePricingModel.id
         )
       }
-
       // Verify in database
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          { id: membership.id },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-        expect(memberships[0].focusedPricingModelId).toBe(
-          testmodePricingModel.id
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            { id: membership.id },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].focusedPricingModelId).toBe(
+            testmodePricingModel.id
+          )
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('auto-syncs membership livemode to match the PM livemode when switching from live to test PM', async () => {
       // Initially livemode=true, switching to test PM should set livemode=false
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateFocusedPricingModelTransaction(
-            {
-              pricingModelId: testmodePricingModel.id,
-              userId: user.id,
-              organizationId: organization.id,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateFocusedPricingModelTransaction(
+              {
+                pricingModelId: testmodePricingModel.id,
+                userId: user.id,
+                organizationId: organization.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isOk(result)).toBe(true)
       if (Result.isOk(result)) {
         expect(result.value.membership.livemode).toBe(false)
         expect(result.value.pricingModel.livemode).toBe(false)
       }
-
       // Verify in database
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          { id: membership.id },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-        expect(memberships[0].livemode).toBe(false)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            { id: membership.id },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].livemode).toBe(false)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('auto-syncs membership livemode to match the PM livemode when switching from test to live PM', async () => {
       // First switch to test mode
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            focusedPricingModelId: testmodePricingModel.id,
-            livemode: false,
-          },
-          transaction
-        )
-      })
-
-      // Now switch back to live PM
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateFocusedPricingModelTransaction(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateMembership(
             {
-              pricingModelId: livePricingModel.id,
-              userId: user.id,
-              organizationId: organization.id,
+              id: membership.id,
+              focusedPricingModelId: testmodePricingModel.id,
+              livemode: false,
             },
             transaction
           )
-        }
-      )
+          return Result.ok(null)
+        })
+      ).unwrap()
+
+      // Now switch back to live PM
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateFocusedPricingModelTransaction(
+              {
+                pricingModelId: livePricingModel.id,
+                userId: user.id,
+                organizationId: organization.id,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       expect(Result.isOk(result)).toBe(true)
       if (Result.isOk(result)) {
         expect(result.value.membership.livemode).toBe(true)
         expect(result.value.pricingModel.livemode).toBe(true)
       }
-
       // Verify in database
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          { id: membership.id },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-        expect(memberships[0].livemode).toBe(true)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            { id: membership.id },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].livemode).toBe(true)
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('returns the updated membership and pricing model records', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateFocusedPricingModelTransaction(
-            {
-              pricingModelId: testmodePricingModel.id,
-              userId: user.id,
-              organizationId: organization.id,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateFocusedPricingModelTransaction(
+              {
+                pricingModelId: testmodePricingModel.id,
+                userId: user.id,
+                organizationId: organization.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isOk(result)).toBe(true)
       if (Result.isOk(result)) {
@@ -398,33 +431,35 @@ describe('updateFocusedPricingModelTransaction', () => {
 
     it('maintains livemode when switching to same-livemode PM (live to live)', async () => {
       // Verify we start in livemode
-      const beforeResult = await adminTransaction(
-        async ({ transaction }) => {
+      const beforeResult = (
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             { id: membership.id },
             transaction
           )
-          return memberships[0]
-        }
-      )
+          return Result.ok(memberships[0])
+        })
+      ).unwrap()
       expect(beforeResult.livemode).toBe(true)
       expect(beforeResult.focusedPricingModelId).toBe(
         livePricingModel.id
       )
 
       // Switch to the same PM (should be a no-op effectively)
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateFocusedPricingModelTransaction(
-            {
-              pricingModelId: livePricingModel.id,
-              userId: user.id,
-              organizationId: organization.id,
-            },
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await updateFocusedPricingModelTransaction(
+              {
+                pricingModelId: livePricingModel.id,
+                userId: user.id,
+                organizationId: organization.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(Result.isOk(result)).toBe(true)
       if (Result.isOk(result)) {

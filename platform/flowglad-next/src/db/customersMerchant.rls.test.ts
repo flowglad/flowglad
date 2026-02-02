@@ -91,70 +91,104 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
   })
 
   it('does not allow selecting customers from another organization by id', async () => {
-    const [accessibleInOrg1] = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCustomers({ id: customerOrg1.id }, transaction)
-      },
-      { apiKey: apiKeyForOrg1.token }
-    )
+    const [accessibleInOrg1] = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectCustomers(
+              { id: customerOrg1.id },
+              transaction
+            )
+          )
+        },
+        { apiKey: apiKeyForOrg1.token }
+      )
+    ).unwrap()
     expect(accessibleInOrg1?.id).toBe(customerOrg1.id)
 
-    const inaccessibleInOrg1 = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCustomers({ id: customerOrg2.id }, transaction)
-      },
-      { apiKey: apiKeyForOrg1.token }
-    )
+    const inaccessibleInOrg1 = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectCustomers(
+              { id: customerOrg2.id },
+              transaction
+            )
+          )
+        },
+        { apiKey: apiKeyForOrg1.token }
+      )
+    ).unwrap()
     expect(inaccessibleInOrg1).toHaveLength(0)
   })
 
   it('does not allow updating customers from another organization', async () => {
     await expect(
-      authenticatedTransaction(
-        async ({ transaction }) => {
-          await updateCustomer(
-            { id: customerOrg2.id, name: 'Blocked update' },
-            transaction
-          )
-        },
-        { apiKey: apiKeyForOrg1.token }
-      )
-    ).rejects.toBeInstanceOf(NotFoundError)
+      (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const updated = await updateCustomer(
+              { id: customerOrg2.id, name: 'Blocked update' },
+              transaction
+            )
+            return Result.ok(updated)
+          },
+          { apiKey: apiKeyForOrg1.token }
+        )
+      ).unwrap()
+    ).toThrow()
   })
 
   it('allows updating a customer in the current organization', async () => {
     const updatedName = 'Updated Customer Name'
-    const updated = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return updateCustomer(
-          { id: customerOrg1.id, name: updatedName },
-          transaction
-        )
-      },
-      { apiKey: apiKeyForOrg1.token }
-    )
+    const updated = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await updateCustomer(
+              { id: customerOrg1.id, name: updatedName },
+              transaction
+            )
+          )
+        },
+        { apiKey: apiKeyForOrg1.token }
+      )
+    ).unwrap()
     expect(updated.name).toBe(updatedName)
 
-    const [selectedAfter] = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectCustomers({ id: customerOrg1.id }, transaction),
-      { apiKey: apiKeyForOrg1.token }
-    )
+    const [selectedAfter] = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          Result.ok(
+            await selectCustomers(
+              { id: customerOrg1.id },
+              transaction
+            )
+          ),
+        { apiKey: apiKeyForOrg1.token }
+      )
+    ).unwrap()
     expect(selectedAfter?.name).toBe(updatedName)
   })
 
   it('switching organization context changes which customers are visible', async () => {
-    const inOrg1 = await authenticatedTransaction(
-      async ({ transaction }) => selectCustomers({}, transaction),
-      { apiKey: apiKeyForOrg1.token }
-    )
+    const inOrg1 = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          Result.ok(await selectCustomers({}, transaction)),
+        { apiKey: apiKeyForOrg1.token }
+      )
+    ).unwrap()
     expect(inOrg1.some((c) => c.id === customerOrg1.id)).toBe(true)
     expect(inOrg1.some((c) => c.id === customerOrg2.id)).toBe(false)
 
-    const inOrg2 = await authenticatedTransaction(
-      async ({ transaction }) => selectCustomers({}, transaction),
-      { apiKey: apiKeyForOrg2.token }
-    )
+    const inOrg2 = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          Result.ok(await selectCustomers({}, transaction)),
+        { apiKey: apiKeyForOrg2.token }
+      )
+    ).unwrap()
     expect(inOrg2.some((c) => c.id === customerOrg2.id)).toBe(true)
     expect(inOrg2.some((c) => c.id === customerOrg1.id)).toBe(false)
   })

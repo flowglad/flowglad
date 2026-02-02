@@ -346,18 +346,25 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     // Attempting to claim more than available should fail
     const claimResult = await adminTransaction(
       async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 4, // More than available (3)
+        try {
+          const result = await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 4, // More than available (3)
+              },
             },
-          },
-          transaction
-        )
+            transaction
+          )
+          return Result.ok(result)
+        } catch (error) {
+          return Result.err(
+            error instanceof Error ? error : new Error(String(error))
+          )
+        }
       }
     )
     expect(Result.isError(claimResult)).toBe(true)
