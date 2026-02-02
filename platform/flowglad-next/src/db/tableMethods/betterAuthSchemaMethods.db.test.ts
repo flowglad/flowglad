@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 import { user } from '@db-core/schema/betterAuthSchema'
-import { adminTransaction } from '@/db/adminTransaction'
+import { Result } from 'better-result'
+import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   selectBetterAuthUserByEmail,
@@ -12,22 +16,28 @@ describe('selectBetterAuthUserById', () => {
     const userId = `bau_${core.nanoid()}`
     const userEmail = `test+${core.nanoid()}@test.com`
     const userName = 'Test User'
-
-    await adminTransaction(async ({ transaction }) => {
-      await transaction.insert(user).values({
-        id: userId,
-        email: userEmail,
-        name: userName,
-        role: 'user',
-        emailVerified: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await transaction.insert(user).values({
+          id: userId,
+          email: userEmail,
+          name: userName,
+          role: 'user',
+          emailVerified: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectBetterAuthUserById(userId, transaction)
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserById(userId, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result.id).toBe(userId)
     expect(result.email).toBe(userEmail)
@@ -41,7 +51,7 @@ describe('selectBetterAuthUserById', () => {
 
     await expect(
       adminTransaction(async ({ transaction }) => {
-        return selectBetterAuthUserById(nonExistentId, transaction)
+        await selectBetterAuthUserById(nonExistentId, transaction)
       })
     ).rejects.toThrow('BetterAuth user not found')
   })
@@ -52,22 +62,28 @@ describe('selectBetterAuthUserByEmail', () => {
     const userId = `bau_${core.nanoid()}`
     const userEmail = `email-test+${core.nanoid()}@test.com`
     const userName = 'Email Test User'
-
-    await adminTransaction(async ({ transaction }) => {
-      await transaction.insert(user).values({
-        id: userId,
-        email: userEmail,
-        name: userName,
-        role: 'merchant',
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await transaction.insert(user).values({
+          id: userId,
+          email: userEmail,
+          name: userName,
+          role: 'merchant',
+          emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        return Result.ok(undefined)
       })
-    })
+    ).unwrap()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectBetterAuthUserByEmail(userEmail, transaction)
-    })
+    const result = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserByEmail(userEmail, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result.id).toBe(userId)
     expect(result.email).toBe(userEmail)
@@ -81,7 +97,7 @@ describe('selectBetterAuthUserByEmail', () => {
 
     await expect(
       adminTransaction(async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(
+        await selectBetterAuthUserByEmail(
           nonExistentEmail,
           transaction
         )
@@ -94,41 +110,47 @@ describe('selectBetterAuthUserByEmail', () => {
     const user1Email = `user1+${core.nanoid()}@test.com`
     const user2Id = `bau_${core.nanoid()}`
     const user2Email = `user2+${core.nanoid()}@test.com`
+    ;(
+      await adminTransactionWithResult(async ({ transaction }) => {
+        await transaction.insert(user).values([
+          {
+            id: user1Id,
+            email: user1Email,
+            name: 'User One',
+            role: 'user',
+            emailVerified: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: user2Id,
+            email: user2Email,
+            name: 'User Two',
+            role: 'merchant',
+            emailVerified: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ])
+        return Result.ok(undefined)
+      })
+    ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      await transaction.insert(user).values([
-        {
-          id: user1Id,
-          email: user1Email,
-          name: 'User One',
-          role: 'user',
-          emailVerified: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: user2Id,
-          email: user2Email,
-          name: 'User Two',
-          role: 'merchant',
-          emailVerified: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ])
-    })
+    const result1 = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserByEmail(user1Email, transaction)
+        )
+      })
+    ).unwrap()
 
-    const result1 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(user1Email, transaction)
-      }
-    )
-
-    const result2 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(user2Email, transaction)
-      }
-    )
+    const result2 = (
+      await adminTransactionWithResult(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserByEmail(user2Email, transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result1.id).toBe(user1Id)
     expect(result1.email).toBe(user1Email)

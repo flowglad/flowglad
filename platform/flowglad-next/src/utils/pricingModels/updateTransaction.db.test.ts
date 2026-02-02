@@ -9,7 +9,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
-  adminTransaction,
+  adminTransactionWithResult,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
@@ -119,18 +119,22 @@ const createBasicPricingModel = async (
     products: finalProducts,
   }
 
-  return adminTransaction(async (ctx) =>
-    (
-      await setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
+  return (
+    await adminTransactionWithResult(async (ctx) => {
+      return Result.ok(
+        await (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
-    ).unwrap()
-  )
+    })
+  ).unwrap()
 }
 
 describe('updatePricingModelTransaction', () => {
@@ -911,12 +915,16 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.resources.deactivated[0].active).toBe(false)
 
       // Verify database state
-      const allResources = await adminTransaction(async (ctx) =>
-        selectResources(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const allResources = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectResources(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activeResources = allResources.filter((r) => r.active)
       expect(activeResources).toHaveLength(1)
       expect(activeResources[0].slug).toBe('seats')
@@ -1105,12 +1113,16 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Get the resource ID
-      const resources = await adminTransaction(async (ctx) =>
-        selectResources(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const resources = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectResources(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const seatsResource = resources.find((r) => r.slug === 'seats')
 
       // Now add a Resource feature referencing the resource
@@ -1256,12 +1268,16 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Get the resource IDs
-      const resources = await adminTransaction(async (ctx) =>
-        selectResources(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const resources = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectResources(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const projectsResource = resources.find(
         (r) => r.slug === 'projects'
       )
@@ -1587,12 +1603,16 @@ describe('updatePricingModelTransaction', () => {
       expect(deactivatedFeature.active).toBe(false)
 
       // Verify database state
-      const allFeatures = await adminTransaction(async (ctx) =>
-        selectFeatures(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const allFeatures = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectFeatures(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const seatGrantFeature = allFeatures.find(
         (f) => f.slug === 'seat-grant'
       )
@@ -3038,12 +3058,16 @@ describe('updatePricingModelTransaction', () => {
       ).toBeGreaterThanOrEqual(1)
 
       // Verify database state
-      const allProducts = await adminTransaction(async (ctx) =>
-        selectProducts(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const allProducts = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectProducts(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activeProducts = allProducts.filter((p) => p.active)
       // 3 active products: enterprise, starter, and the protected free product
       expect(activeProducts).toHaveLength(3)
@@ -3170,37 +3194,46 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state
-      const [usageMeters, features, products, productFeatures] =
+      const [usageMeters, features, products, productFeatures] = (
         await Promise.all([
-          adminTransaction(async (ctx) =>
-            selectUsageMeters(
-              { pricingModelId: setupResult.pricingModel.id },
-              ctx.transaction
+          adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await selectUsageMeters(
+                { pricingModelId: setupResult.pricingModel.id },
+                ctx.transaction
+              )
             )
-          ),
-          adminTransaction(async (ctx) =>
-            selectFeatures(
-              { pricingModelId: setupResult.pricingModel.id },
-              ctx.transaction
+          }),
+          adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await selectFeatures(
+                { pricingModelId: setupResult.pricingModel.id },
+                ctx.transaction
+              )
             )
-          ),
-          adminTransaction(async (ctx) =>
-            selectProducts(
-              { pricingModelId: setupResult.pricingModel.id },
-              ctx.transaction
+          }),
+          adminTransactionWithResult(async (ctx) => {
+            return Result.ok(
+              await selectProducts(
+                { pricingModelId: setupResult.pricingModel.id },
+                ctx.transaction
+              )
             )
-          ),
-          adminTransaction(async (ctx) => {
+          }),
+          adminTransactionWithResult(async (ctx) => {
             const prods = await selectProducts(
               { pricingModelId: setupResult.pricingModel.id },
               ctx.transaction
             )
-            return selectProductFeatures(
-              { productId: prods.map((p) => p.id) },
-              ctx.transaction
+            return Result.ok(
+              await selectProductFeatures(
+                { productId: prods.map((p) => p.id) },
+                ctx.transaction
+              )
             )
           }),
         ])
+      ).map((r) => r.unwrap())
 
       // Verify usage meters
       expect(usageMeters).toHaveLength(1)
@@ -3220,12 +3253,16 @@ describe('updatePricingModelTransaction', () => {
         (p) => p.slug === 'starter'
       )
       // Verify prices
-      const starterPrices = await adminTransaction(async (ctx) =>
-        selectPrices(
-          { productId: starterProduct!.id },
-          ctx.transaction
-        )
-      )
+      const starterPrices = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectPrices(
+              { productId: starterProduct!.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activePrice = starterPrices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(2999)
 
@@ -3345,12 +3382,16 @@ describe('updatePricingModelTransaction', () => {
       expect(freeDeactivated).toBeUndefined()
 
       // Verify database state - default product should still be active
-      const allProducts = await adminTransaction(async (ctx) =>
-        selectProducts(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const allProducts = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectProducts(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activeProducts = allProducts.filter((p) => p.active)
       const freeProduct = activeProducts.find(
         (p) => p.slug === 'free'
@@ -3441,12 +3482,16 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state
-      const allProducts = await adminTransaction(async (ctx) =>
-        selectProducts(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const allProducts = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectProducts(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const freeProduct = allProducts.find((p) => p.slug === 'free')
 
       // Protected fields should be preserved
@@ -3458,9 +3503,16 @@ describe('updatePricingModelTransaction', () => {
       expect(freeProduct!.description).toBe('Updated description')
 
       // Price protected fields should be preserved
-      const prices = await adminTransaction(async (ctx) =>
-        selectPrices({ productId: freeProduct!.id }, ctx.transaction)
-      )
+      const prices = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectPrices(
+              { productId: freeProduct!.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activePrice = prices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(0) // Protected - was not changed to 999
     })
@@ -3570,12 +3622,16 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state
-      const allProducts = await adminTransaction(async (ctx) =>
-        selectProducts(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const allProducts = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectProducts(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const freeProduct = allProducts.find((p) => p.slug === 'free')
 
       // Allowed fields should be updated
@@ -3589,21 +3645,32 @@ describe('updatePricingModelTransaction', () => {
 
       // Features should be updated (features are allowed to change)
       expect(updateResult.productFeatures.added).toHaveLength(1)
-      const productFeatures = await adminTransaction(async (ctx) =>
-        selectProductFeatures(
-          { productId: freeProduct!.id },
-          ctx.transaction
-        )
-      )
+      const productFeatures = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectProductFeatures(
+              { productId: freeProduct!.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activeFeatures = productFeatures.filter(
         (pf) => !pf.expiredAt
       )
       expect(activeFeatures).toHaveLength(2) // feature-a and feature-b
 
       // Price should be unchanged
-      const prices = await adminTransaction(async (ctx) =>
-        selectPrices({ productId: freeProduct!.id }, ctx.transaction)
-      )
+      const prices = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectPrices(
+              { productId: freeProduct!.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activePrice = prices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(0)
       expect(activePrice!.intervalUnit).toBe(IntervalUnit.Month)
@@ -3729,12 +3796,16 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state - should have exactly 2 active products (no duplicates)
-      const allProducts = await adminTransaction(async (ctx) =>
-        selectProducts(
-          { pricingModelId: setupResult.pricingModel.id },
-          ctx.transaction
-        )
-      )
+      const allProducts = (
+        await adminTransactionWithResult(async (ctx) => {
+          return Result.ok(
+            await selectProducts(
+              { pricingModelId: setupResult.pricingModel.id },
+              ctx.transaction
+            )
+          )
+        })
+      ).unwrap()
       const activeProducts = allProducts.filter((p) => p.active)
       expect(activeProducts).toHaveLength(2)
 

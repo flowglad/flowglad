@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
-import type { PackageConfig, RatchetConfig } from './types'
+import type {
+  PackageConfig,
+  RatchetConfig,
+  RatchetRule,
+} from './types'
 
 const DEFAULT_CONFIG_FILENAME = '.lint-ratchet.json'
 
@@ -157,4 +161,30 @@ export const getBaselinePathForPackage = (
 ): string => {
   const repoRoot = findRepoRoot()
   return resolve(repoRoot, packagePath, '.lint-baseline.tsv')
+}
+
+/**
+ * Get the first rule from config with validation.
+ * Currently only one rule is supported at a time.
+ * Throws with a clear error message if no rules are configured.
+ */
+export const getFirstRule = (config: RatchetConfig): RatchetRule => {
+  if (config.rules.length === 0) {
+    throw new Error(
+      'No rules configured in .lint-ratchet.json. ' +
+        'Add a rule to the "rules" array in your config file.'
+    )
+  }
+
+  const rule = config.rules[0]
+
+  // Log if there are multiple rules (only first is used)
+  if (config.rules.length > 1) {
+    console.warn(
+      `Warning: Multiple rules configured (${config.rules.map((r) => r.name).join(', ')}). ` +
+        `Currently only one rule is supported at a time. Using "${rule.name}".`
+    )
+  }
+
+  return rule
 }

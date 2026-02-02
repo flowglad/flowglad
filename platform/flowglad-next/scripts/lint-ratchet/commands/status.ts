@@ -2,6 +2,7 @@ import { readBaseline } from '../baseline'
 import { countViolationsByFile, runBiomeLint } from '../biome'
 import {
   getBaselinePathForPackage,
+  getFirstRule,
   loadConfig,
   resolvePackagePaths,
 } from '../config'
@@ -142,12 +143,19 @@ export const statusCommand = async (): Promise<void> => {
   let config
   try {
     config = loadConfig()
-  } catch {
-    console.log('No .lint-ratchet.json config found.')
-    console.log(
-      'Run "lint:ratchet:init" to set up the ratchet system.'
-    )
-    return
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error)
+    // "Not found" is expected (user hasn't set up ratchet yet) - handle gracefully
+    // Parse/validation errors are real problems - re-throw to fail with exit code 1
+    if (message.includes('not found')) {
+      console.log('No .lint-ratchet.json config found.')
+      console.log(
+        'Run "lint:ratchet:init" to set up the ratchet system.'
+      )
+      return
+    }
+    throw error
   }
 
   const packages = resolvePackagePaths(config)
@@ -157,9 +165,14 @@ export const statusCommand = async (): Promise<void> => {
     return
   }
 
-  const rule = config.rules[0]
-  if (!rule) {
+  let rule
+  try {
+    rule = getFirstRule(config)
+  } catch {
     console.log('No rules configured in .lint-ratchet.json')
+    console.log(
+      'Add a rule to the "rules" array in your config file.'
+    )
     return
   }
 
