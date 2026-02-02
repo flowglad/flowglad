@@ -328,67 +328,74 @@ describe('ledgerCommandForPaymentSucceeded', () => {
   it('fails when usage credit grant amount is zero', async () => {
     // Insert feature with amount: 0 using raw SQL to bypass schema validation
     // We need to ensure the feature is linked to the same product as singlePaymentPrice
-    await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'UM-Z',
-        livemode: true,
-        pricingModelId: product.pricingModelId,
-      })
-
-      const featureId = core.nanoid()
-      const slug = `grant-zero-${core.nanoid(6)}`
-
-      // Insert feature directly using raw SQL to bypass schema validation
-      await transaction.execute(
-        sql`
-          INSERT INTO features (
-            id, organization_id, type, slug, name, description, amount,
-            usage_meter_id, renewal_frequency, pricing_model_id, active,
-            livemode, created_at, updated_at, position
-          ) VALUES (
-            ${featureId},
-            ${organization.id},
-            ${FeatureType.UsageCreditGrant},
-            ${slug},
-            ${'Grant Zero'},
-            ${'Grant Zero description'},
-            ${0},
-            ${usageMeter.id},
-            ${FeatureUsageGrantFrequency.EveryBillingPeriod},
-            ${product.pricingModelId},
-            ${true},
-            ${true},
-            now(),
-            now(),
-            ${0}
-          )
-        `
-      )
-
-      // Ensure the feature is linked to the product that singlePaymentPrice uses.
-      // Single payment prices always have productId.
-      await insertProductFeature(
-        {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const usageMeter = await setupUsageMeter({
           organizationId: organization.id,
+          name: 'UM-Z',
           livemode: true,
-          productId: singlePaymentPrice.productId!,
-          featureId,
-        },
-        ctx
+          pricingModelId: product.pricingModelId,
+        })
+
+        const featureId = core.nanoid()
+        const slug = `grant-zero-${core.nanoid(6)}`
+
+        // Insert feature directly using raw SQL to bypass schema validation
+        await transaction.execute(
+          sql`
+            INSERT INTO features (
+              id, organization_id, type, slug, name, description, amount,
+              usage_meter_id, renewal_frequency, pricing_model_id, active,
+              livemode, created_at, updated_at, position
+            ) VALUES (
+              ${featureId},
+              ${organization.id},
+              ${FeatureType.UsageCreditGrant},
+              ${slug},
+              ${'Grant Zero'},
+              ${'Grant Zero description'},
+              ${0},
+              ${usageMeter.id},
+              ${FeatureUsageGrantFrequency.EveryBillingPeriod},
+              ${product.pricingModelId},
+              ${true},
+              ${true},
+              now(),
+              now(),
+              ${0}
+            )
+          `
+        )
+
+        // Ensure the feature is linked to the product that singlePaymentPrice uses.
+        // Single payment prices always have productId.
+        await insertProductFeature(
+          {
+            organizationId: organization.id,
+            livemode: true,
+            productId: singlePaymentPrice.productId!,
+            featureId,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment },
+        transaction
       )
     })
-
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        return ledgerCommandForPaymentSucceeded(
-          { priceId: singlePaymentPrice.id, payment },
-          transaction
-        )
-      })
-    ).rejects.toThrow('Too small: expected number to be >0')
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Too small: expected number to be >0'
+      )
+    }
   })
 
   it('ensures transaction is passed to all DB methods as last argument', async () => {
@@ -937,7 +944,7 @@ describe('Process payment intent status updated', async () => {
       expect(result.status).toBe('error')
     })
 
-    it('throws an error if the checkout session cannot be found', async () => {
+    it('returns an error if the checkout session cannot be found', async () => {
       const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
@@ -949,17 +956,16 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: 'chckt_session_missing',
         type: IntentMetadataType.CheckoutSession,
       } as StripeIntentMetadata
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: fakeMetadata,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata: fakeMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('correctly maps payment record fields for a product checkout session', async () => {
@@ -1556,26 +1562,29 @@ describe('Process payment intent status updated', async () => {
   })
 
   describe('processPaymentIntentStatusUpdated', () => {
-    it('throws an error when the PaymentIntent has no metadata', async () => {
+    it('returns an error when the PaymentIntent has no metadata', async () => {
       const fakePI: CoreStripePaymentIntent = {
         id: 'pi_test',
         metadata: null as unknown as Stripe.Metadata,
         latest_charge: 'ch_test',
         status: 'succeeded',
       }
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            fakePI,
-            ctx
-          )
-          return res.unwrap()
-        })
-      ).rejects.toThrow(/PaymentIntentMetadata not found/)
+      const result = await adminTransaction(async (ctx) => {
+        const res = await processPaymentIntentStatusUpdated(
+          fakePI,
+          ctx
+        )
+        return res
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(
+          /PaymentIntentMetadata not found/
+        )
+      }
     })
 
-    it('throws an error when the PaymentIntent has no latest_charge', async () => {
+    it('returns an error when the PaymentIntent has no latest_charge', async () => {
       const metadata: StripeIntentMetadata = {
         checkoutSessionId: 'inv_test',
         type: IntentMetadataType.CheckoutSession,
@@ -1586,16 +1595,17 @@ describe('Process payment intent status updated', async () => {
         latest_charge: null,
         status: 'succeeded',
       }
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const res = await processPaymentIntentStatusUpdated(
-            fakePI,
-            ctx
-          )
-          return res.unwrap()
-        })
-      ).rejects.toThrow(/LatestCharge not found/)
+      const result = await adminTransaction(async (ctx) => {
+        const res = await processPaymentIntentStatusUpdated(
+          fakePI,
+          ctx
+        )
+        return res
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/LatestCharge not found/)
+      }
     })
 
     describe('Billing Run Flow', async () => {
@@ -1688,7 +1698,7 @@ describe('Process payment intent status updated', async () => {
         })
         expect(payment).toMatchObject({})
       })
-      it('throws an error when no invoice exists for the billing run', async () => {
+      it('returns an error when no invoice exists for the billing run', async () => {
         const metadata: StripeIntentMetadata = {
           billingRunId: 'br_err',
           billingPeriodId: 'bp_br_err',
@@ -1732,15 +1742,19 @@ describe('Process payment intent status updated', async () => {
 
         // Mock getStripeCharge to return the fake charge so test can proceed to billing run check
         mockGetStripeCharge.mockResolvedValue(fakeCharge as any)
-        await expect(
-          adminTransaction(async (ctx) => {
-            const res = await processPaymentIntentStatusUpdated(
-              fakePI,
-              ctx
-            )
-            return res.unwrap()
-          })
-        ).rejects.toThrow('BillingRun not found: br_err')
+        const result = await adminTransaction(async (ctx) => {
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return res
+        })
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toBe(
+            'BillingRun not found: br_err'
+          )
+        }
       })
     })
 

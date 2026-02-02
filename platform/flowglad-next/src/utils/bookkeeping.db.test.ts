@@ -644,39 +644,41 @@ describe('createCustomerBookkeeping', () => {
       const { organization: otherOrganization } = await setupOrg()
 
       // Attempt to create a customer with mismatched organizationId
-      await expect(
-        comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            await createCustomerBookkeeping(
-              {
-                customer: {
-                  email: `test+${core.nanoid()}@example.com`,
-                  name: 'Cross Org Customer',
-                  organizationId: otherOrganization.id, // Different from auth context
-                  externalId: `ext_${core.nanoid()}`,
-                },
+      const result = await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Cross Org Customer',
+                organizationId: otherOrganization.id, // Different from auth context
+                externalId: `ext_${core.nanoid()}`,
               },
-              withAdminCacheContext({
-                transaction,
-                organizationId: organization.id, // Auth context org
-                livemode,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              })
-            )
-            return Result.ok(null)
-          }
-        )
-      ).rejects.toThrow(
-        'Customer organizationId must match authenticated organizationId'
+            },
+            withAdminCacheContext({
+              transaction,
+              organizationId: organization.id, // Auth context org
+              livemode,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            })
+          )
+          return Result.ok(null)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Customer organizationId must match authenticated organizationId'
+        )
+      }
     })
 
     it('should properly set subscription metadata and name', async () => {

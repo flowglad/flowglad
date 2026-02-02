@@ -1832,28 +1832,28 @@ describe('SubscriptionItemFeatureHelpers', () => {
         livemode: true,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertSubscriptionItem(
-            {
-              subscriptionId: testSubscription.id,
-              name: 'Invalid Item',
-              priceId: null,
-              unitPrice: 0,
-              quantity: 0,
-              addedDate: Date.now(),
-              expiredAt: null,
-              metadata: null,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              manuallyCreated: false,
-              livemode: testSubscription.livemode,
-            },
-            transaction
-          )
-        })
-      ).rejects.toThrow()
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertSubscriptionItem(
+          {
+            subscriptionId: testSubscription.id,
+            name: 'Invalid Item',
+            priceId: null,
+            unitPrice: 0,
+            quantity: 0,
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: false,
+            livemode: testSubscription.livemode,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should reject when unitPrice is not zero', async () => {
@@ -1865,28 +1865,28 @@ describe('SubscriptionItemFeatureHelpers', () => {
         livemode: true,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertSubscriptionItem(
-            {
-              subscriptionId: testSubscription.id,
-              name: 'Invalid Manual Item',
-              priceId: null,
-              unitPrice: 100,
-              quantity: 0,
-              addedDate: Date.now(),
-              expiredAt: null,
-              metadata: null,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              manuallyCreated: true,
-              livemode: testSubscription.livemode,
-            },
-            transaction
-          )
-        })
-      ).rejects.toThrow()
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertSubscriptionItem(
+          {
+            subscriptionId: testSubscription.id,
+            name: 'Invalid Manual Item',
+            priceId: null,
+            unitPrice: 100,
+            quantity: 0,
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: true,
+            livemode: testSubscription.livemode,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should allow valid manual item', async () => {
@@ -1964,28 +1964,28 @@ describe('SubscriptionItemFeatureHelpers', () => {
       ).unwrap()
 
       // Try to create second manual item
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertSubscriptionItem(
-            {
-              subscriptionId: testSubscription.id,
-              name: 'Second Manual Item',
-              priceId: null,
-              unitPrice: 0,
-              quantity: 0,
-              addedDate: Date.now(),
-              expiredAt: null,
-              metadata: null,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              manuallyCreated: true,
-              livemode: testSubscription.livemode,
-            },
-            transaction
-          )
-        })
-      ).rejects.toThrow()
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertSubscriptionItem(
+          {
+            subscriptionId: testSubscription.id,
+            name: 'Second Manual Item',
+            priceId: null,
+            unitPrice: 0,
+            quantity: 0,
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: true,
+            livemode: testSubscription.livemode,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should reject manual item with quantity != 0', async () => {
@@ -1997,28 +1997,28 @@ describe('SubscriptionItemFeatureHelpers', () => {
         livemode: true,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertSubscriptionItem(
-            {
-              subscriptionId: testSubscription.id,
-              name: 'Invalid Manual Item',
-              priceId: null,
-              unitPrice: 0,
-              quantity: 1, // Should be 0
-              addedDate: Date.now(),
-              expiredAt: null,
-              metadata: null,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              manuallyCreated: true,
-              livemode: testSubscription.livemode,
-            },
-            transaction
-          )
-        })
-      ).rejects.toThrow()
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertSubscriptionItem(
+          {
+            subscriptionId: testSubscription.id,
+            name: 'Invalid Manual Item',
+            priceId: null,
+            unitPrice: 0,
+            quantity: 1, // Should be 0
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: true,
+            livemode: testSubscription.livemode,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should reject manual item with priceId != null', async () => {
@@ -2030,28 +2030,28 @@ describe('SubscriptionItemFeatureHelpers', () => {
         livemode: true,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertSubscriptionItem(
-            {
-              subscriptionId: testSubscription.id,
-              name: 'Invalid Manual Item',
-              priceId: priceForFeatures.id, // Should be null
-              unitPrice: 0,
-              quantity: 0,
-              addedDate: Date.now(),
-              expiredAt: null,
-              metadata: null,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              manuallyCreated: true,
-              livemode: testSubscription.livemode,
-            },
-            transaction
-          )
-        })
-      ).rejects.toThrow()
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertSubscriptionItem(
+          {
+            subscriptionId: testSubscription.id,
+            name: 'Invalid Manual Item',
+            priceId: priceForFeatures.id, // Should be null
+            unitPrice: 0,
+            quantity: 0,
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: true,
+            livemode: testSubscription.livemode,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should reject non-manual item with quantity = 0', async () => {
@@ -2063,28 +2063,28 @@ describe('SubscriptionItemFeatureHelpers', () => {
         livemode: true,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertSubscriptionItem(
-            {
-              subscriptionId: testSubscription.id,
-              name: 'Invalid Item',
-              priceId: priceForFeatures.id,
-              unitPrice: 1000,
-              quantity: 0, // Should be > 0
-              addedDate: Date.now(),
-              expiredAt: null,
-              metadata: null,
-              externalId: null,
-              type: SubscriptionItemType.Static,
-              manuallyCreated: false,
-              livemode: testSubscription.livemode,
-            },
-            transaction
-          )
-        })
-      ).rejects.toThrow()
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertSubscriptionItem(
+          {
+            subscriptionId: testSubscription.id,
+            name: 'Invalid Item',
+            priceId: priceForFeatures.id,
+            unitPrice: 1000,
+            quantity: 0, // Should be > 0
+            addedDate: Date.now(),
+            expiredAt: null,
+            metadata: null,
+            externalId: null,
+            type: SubscriptionItemType.Static,
+            manuallyCreated: false,
+            livemode: testSubscription.livemode,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should allow creating new manual item after expiring the old one', async () => {

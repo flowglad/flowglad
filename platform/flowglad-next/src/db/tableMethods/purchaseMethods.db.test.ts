@@ -90,34 +90,31 @@ describe('insertPurchase', () => {
   })
 
   it('should throw an error when priceId does not exist', async () => {
-    ;(
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentPriceId = `price_${core.nanoid()}`
+    const nonExistentPriceId = `price_${core.nanoid()}`
 
-        await expect(
-          insertPurchase(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              priceId: nonExistentPriceId,
-              livemode: true,
-              name: 'Test Purchase',
-              priceType: PriceType.SinglePayment,
-              totalPurchaseValue: 1000,
-              quantity: 1,
-              firstInvoiceValue: 1000,
-              status: PurchaseStatus.Paid,
-              pricePerBillingCycle: null,
-              intervalUnit: null,
-              intervalCount: null,
-              trialPeriodDays: null,
-            },
-            transaction
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async ({ transaction }) => {
+      await insertPurchase(
+        {
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: nonExistentPriceId,
+          livemode: true,
+          name: 'Test Purchase',
+          priceType: PriceType.SinglePayment,
+          totalPurchaseValue: 1000,
+          quantity: 1,
+          firstInvoiceValue: 1000,
+          status: PurchaseStatus.Paid,
+          pricePerBillingCycle: null,
+          intervalUnit: null,
+          intervalCount: null,
+          trialPeriodDays: null,
+        },
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('should use provided pricingModelId without derivation', async () => {
@@ -446,19 +443,16 @@ describe('derivePricingModelIdFromPurchase', () => {
   })
 
   it('should throw error when purchase does not exist', async () => {
-    ;(
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentPurchaseId = `purchase_${core.nanoid()}`
+    const nonExistentPurchaseId = `purchase_${core.nanoid()}`
 
-        await expect(
-          derivePricingModelIdFromPurchase(
-            nonExistentPurchaseId,
-            transaction
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async ({ transaction }) => {
+      await derivePricingModelIdFromPurchase(
+        nonExistentPurchaseId,
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 })
 

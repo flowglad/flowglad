@@ -457,7 +457,7 @@ describe('createOrganizationTransaction', () => {
   it('should reject Platform contract type for MoR-only countries', async () => {
     const organizationName = `org_${core.nanoid()}`
 
-    const promise = adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
       const countryId = await getMoROnlyCountryId(transaction)
       const input: CreateOrganizationInput = {
         organization: {
@@ -478,11 +478,15 @@ describe('createOrganizationTransaction', () => {
         transaction,
         { type: 'admin', livemode: true }
       )
+      return Result.ok(undefined)
     })
 
-    await expect(promise).rejects.toThrow(
-      /The selected payment configuration is not available in .+\. See supported countries/
-    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(
+        /The selected payment configuration is not available in .+\. See supported countries/
+      )
+    }
   })
 
   describe('defaultCurrency enforcement for MoR organizations', () => {

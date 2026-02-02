@@ -81,8 +81,8 @@ describe('createWebhookTransaction', () => {
       const otherOrgSetup = await setupOrg()
       const otherOrgPricingModelId = otherOrgSetup.pricingModel.id
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createWebhookTransaction({
             webhook: {
               name: 'Should Not Create',
@@ -95,15 +95,20 @@ describe('createWebhookTransaction', () => {
             livemode: true,
             transaction,
           })
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model for this organization and mode'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid pricing model for this organization and mode'
+        )
+      }
     })
 
     it('rejects webhook creation when pricingModelId has different livemode than the webhook', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createWebhookTransaction({
             webhook: {
               name: 'Should Not Create',
@@ -116,15 +121,20 @@ describe('createWebhookTransaction', () => {
             livemode: true, // but livemode webhook
             transaction,
           })
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model for this organization and mode'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid pricing model for this organization and mode'
+        )
+      }
     })
 
     it('rejects webhook creation when livemode pricingModelId is used with testmode webhook', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createWebhookTransaction({
             webhook: {
               name: 'Should Not Create',
@@ -137,10 +147,15 @@ describe('createWebhookTransaction', () => {
             livemode: false, // but testmode webhook
             transaction,
           })
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model for this organization and mode'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid pricing model for this organization and mode'
+        )
+      }
     })
   })
 

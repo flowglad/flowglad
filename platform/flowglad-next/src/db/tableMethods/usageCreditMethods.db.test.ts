@@ -112,13 +112,13 @@ describe('Usage Credit Methods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when usageMeterId does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentUsageMeterId = `um_${core.nanoid()}`
+    it('should return an error when usageMeterId does not exist', async () => {
+      const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-          await expect(
-            insertUsageCredit(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          try {
+            await insertUsageCredit(
               {
                 organizationId: organization.id,
                 usageMeterId: nonExistentUsageMeterId,
@@ -137,10 +137,13 @@ describe('Usage Credit Methods', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('no-error' as const)
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {
@@ -201,20 +204,23 @@ describe('Usage Credit Methods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when usage credit does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+    it('should return an error when usage credit does not exist', async () => {
+      const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
-          await expect(
-            derivePricingModelIdFromUsageCredit(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          try {
+            await derivePricingModelIdFromUsageCredit(
               nonExistentUsageCreditId,
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('no-error' as const)
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 

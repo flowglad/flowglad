@@ -228,15 +228,14 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
         usageMeterId: null,
       }
 
-      await expect(
-        authenticatedTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            return insertPrice(priceInsert, ctx)
-          },
-          { apiKey: org2ApiKey.apiKey.token }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(await insertPrice(priceInsert, ctx))
+        },
+        { apiKey: org2ApiKey.apiKey.token }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('denies merchant from inserting a usage price for another organization usage meter', async () => {
@@ -264,15 +263,14 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
         trialPeriodDays: null,
       }
 
-      await expect(
-        authenticatedTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            return insertPrice(priceInsert, ctx)
-          },
-          { apiKey: org2ApiKey.apiKey.token }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          return Result.ok(await insertPrice(priceInsert, ctx))
+        },
+        { apiKey: org2ApiKey.apiKey.token }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -593,11 +591,11 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
 
     // The update should fail because the RLS policy requires the usage meter's
     // pricing_model_id to match the price's pricing_model_id
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          return updatePrice(
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await updatePrice(
             {
               id: usagePrice.id,
               usageMeterId: usageMeterInPM2.id,
@@ -605,10 +603,11 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
             },
             ctx
           )
-        },
-        { apiKey: apiKey.token }
-      )
-    ).rejects.toThrow()
+        )
+      },
+      { apiKey: apiKey.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 })
 

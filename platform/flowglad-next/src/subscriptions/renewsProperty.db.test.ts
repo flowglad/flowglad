@@ -730,34 +730,34 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        // Attempting to transition should throw error for non-renewing subscription
-        await expect(
-          adminTransaction(
-            async ({
+        // Attempting to transition should return error for non-renewing subscription
+        const transitionResult = await adminTransaction(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
               transaction,
               cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }) => {
-              const ctx = {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              }
-              return Result.ok(
-                await attemptToTransitionSubscriptionBillingPeriod(
-                  billingPeriod,
-                  ctx
-                )
-              )
             }
-          ).then((r) => r.unwrap())
-        ).rejects.toThrow(
-          'Non-renewing subscriptions cannot have billing periods'
+            return attemptToTransitionSubscriptionBillingPeriod(
+              billingPeriod,
+              ctx
+            )
+          }
         )
+        expect(Result.isError(transitionResult)).toBe(true)
+        if (Result.isError(transitionResult)) {
+          expect(transitionResult.error.message).toContain(
+            'Non-renewing subscriptions cannot have billing periods'
+          )
+        }
         // Should not create new billing period for non-renewing
         ;(
           await adminTransaction(async (ctx) => {

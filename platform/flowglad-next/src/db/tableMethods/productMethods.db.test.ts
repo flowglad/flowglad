@@ -468,12 +468,14 @@ describe('Database Constraints', () => {
       slug: `another-default-product+${core.nanoid()}`,
     }
 
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await insertProduct(newProductInsert, ctx)
-      })
-    ).rejects.toThrow(/Failed query:/)
+    const result = await adminTransaction(async (ctx) => {
+      await insertProduct(newProductInsert, ctx)
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/Failed query:/)
+    }
   })
 
   it('throws an error when updating a product to be default when another default product exists', async () => {
@@ -484,18 +486,20 @@ describe('Database Constraints', () => {
       default: false,
     })
 
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await updateProduct(
-          {
-            id: nonDefaultProduct.id,
-            default: true,
-          },
-          ctx
-        )
-      })
-    ).rejects.toThrow(/Failed query:/)
+    const result = await adminTransaction(async (ctx) => {
+      await updateProduct(
+        {
+          id: nonDefaultProduct.id,
+          default: true,
+        },
+        ctx
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/Failed query:/)
+    }
   })
 
   it('allows inserting a non-default product when a default product already exists', async () => {
@@ -575,97 +579,98 @@ describe('Slug uniqueness policies', () => {
   })
   it('throws an error when inserting a product with duplicate slug in the same pricingModel', async () => {
     const slug = 'duplicate-slug'
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        // Insert first product with slug
-        await insertProduct(
-          {
-            name: 'First Product',
-            organizationId,
-            pricingModelId,
-            livemode: true,
-            active: true,
-            default: false,
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: null,
-            description: null,
-            imageURL: null,
-            slug,
-          },
-          ctx
-        )
-        // Attempt to insert second product with same slug
-        await insertProduct(
-          {
-            name: 'Second Product',
-            organizationId,
-            pricingModelId,
-            livemode: true,
-            active: true,
-            default: false,
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: null,
-            description: null,
-            imageURL: null,
-            slug,
-          },
-          ctx
-        )
-      })
-    ).rejects.toThrow(/Failed query:/)
+    const result = await adminTransaction(async (ctx) => {
+      // Insert first product with slug
+      await insertProduct(
+        {
+          name: 'First Product',
+          organizationId,
+          pricingModelId,
+          livemode: true,
+          active: true,
+          default: false,
+          singularQuantityLabel: 'unit',
+          pluralQuantityLabel: 'units',
+          externalId: null,
+          description: null,
+          imageURL: null,
+          slug,
+        },
+        ctx
+      )
+      // Attempt to insert second product with same slug
+      await insertProduct(
+        {
+          name: 'Second Product',
+          organizationId,
+          pricingModelId,
+          livemode: true,
+          active: true,
+          default: false,
+          singularQuantityLabel: 'unit',
+          pluralQuantityLabel: 'units',
+          externalId: null,
+          description: null,
+          imageURL: null,
+          slug,
+        },
+        ctx
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/Failed query:/)
+    }
   })
   it('throws an error when updating a product slug to one that already exists in the same pricingModel', async () => {
     const slug1 = 'slug-one'
     const slug2 = 'slug-two'
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        // Insert first product with slug1
-        const firstProduct = await insertProduct(
-          {
-            name: 'First Product',
-            organizationId,
-            pricingModelId,
-            livemode: true,
-            active: true,
-            default: false,
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: null,
-            description: null,
-            imageURL: null,
-            slug: slug1,
-          },
-          ctx
-        )
-        // Insert second product with slug2
-        const secondProduct = await insertProduct(
-          {
-            name: 'Second Product',
-            organizationId,
-            pricingModelId,
-            livemode: true,
-            active: true,
-            default: false,
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: null,
-            description: null,
-            imageURL: null,
-            slug: slug2,
-          },
-          ctx
-        )
-        // Attempt to update second product to slug1
-        await updateProduct(
-          { id: secondProduct.id, slug: slug1 },
-          ctx
-        )
-      })
-    ).rejects.toThrow(/Failed query:/)
+    const result = await adminTransaction(async (ctx) => {
+      // Insert first product with slug1
+      await insertProduct(
+        {
+          name: 'First Product',
+          organizationId,
+          pricingModelId,
+          livemode: true,
+          active: true,
+          default: false,
+          singularQuantityLabel: 'unit',
+          pluralQuantityLabel: 'units',
+          externalId: null,
+          description: null,
+          imageURL: null,
+          slug: slug1,
+        },
+        ctx
+      )
+      // Insert second product with slug2
+      const secondProduct = await insertProduct(
+        {
+          name: 'Second Product',
+          organizationId,
+          pricingModelId,
+          livemode: true,
+          active: true,
+          default: false,
+          singularQuantityLabel: 'unit',
+          pluralQuantityLabel: 'units',
+          externalId: null,
+          description: null,
+          imageURL: null,
+          slug: slug2,
+        },
+        ctx
+      )
+      // Attempt to update second product to slug1
+      await updateProduct({ id: secondProduct.id, slug: slug1 }, ctx)
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/Failed query:/)
+    }
   })
 })
 

@@ -414,10 +414,10 @@ describe('billingRunMethods', () => {
       expect(result.pricingModelId).toBe(pricingModel.id)
     })
 
-    it('should throw error when subscription does not exist during pricingModelId derivation', async () => {
+    it('should return Result.err when subscription does not exist during pricingModelId derivation', async () => {
       const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -429,8 +429,15 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrowError('No subscriptions found with id')
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'No subscriptions found with id'
+        )
+      }
     })
   })
 })

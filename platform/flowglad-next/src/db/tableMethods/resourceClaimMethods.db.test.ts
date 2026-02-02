@@ -358,14 +358,16 @@ describe('resourceClaimMethods', () => {
       ).unwrap()
 
       // Attempting to create another active claim with same external_id should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'user-123' }),
             transaction
           )
-        })
-      ).rejects.toThrow()
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should allow reusing external_id after the claim is released', async () => {

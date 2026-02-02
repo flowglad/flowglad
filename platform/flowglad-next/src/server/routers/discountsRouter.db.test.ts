@@ -63,31 +63,20 @@ describe('validateAndResolvePricingModelId', () => {
   })
 
   it('throws TRPCError with BAD_REQUEST when pricingModelId belongs to a different organization', async () => {
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await validateAndResolvePricingModelId({
-          pricingModelId: org2PricingModelId, // org2's pricing model
-          organizationId: org1Id, // but trying to use in org1's context
-          livemode,
-          transaction,
-        })
+    const result = await adminTransaction(async ({ transaction }) => {
+      await validateAndResolvePricingModelId({
+        pricingModelId: org2PricingModelId, // org2's pricing model
+        organizationId: org1Id, // but trying to use in org1's context
+        livemode,
+        transaction,
       })
-    ).rejects.toThrow(TRPCError)
-
-    // Verify the error details
-    try {
-      await adminTransaction(async ({ transaction }) => {
-        await validateAndResolvePricingModelId({
-          pricingModelId: org2PricingModelId,
-          organizationId: org1Id,
-          livemode,
-          transaction,
-        })
-      })
-    } catch (error) {
-      expect(error).toBeInstanceOf(TRPCError)
-      expect((error as TRPCError).code).toBe('BAD_REQUEST')
-      expect((error as TRPCError).message).toBe(
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error).toBeInstanceOf(TRPCError)
+      expect((result.error as TRPCError).code).toBe('BAD_REQUEST')
+      expect((result.error as TRPCError).message).toBe(
         'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
       )
     }
@@ -96,31 +85,20 @@ describe('validateAndResolvePricingModelId', () => {
   it('throws TRPCError with BAD_REQUEST when pricingModelId does not exist', async () => {
     const nonExistentPricingModelId = 'pricing_model_nonexistent123'
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await validateAndResolvePricingModelId({
-          pricingModelId: nonExistentPricingModelId,
-          organizationId: org1Id,
-          livemode,
-          transaction,
-        })
+    const result = await adminTransaction(async ({ transaction }) => {
+      await validateAndResolvePricingModelId({
+        pricingModelId: nonExistentPricingModelId,
+        organizationId: org1Id,
+        livemode,
+        transaction,
       })
-    ).rejects.toThrow(TRPCError)
-
-    // Verify the error details
-    try {
-      await adminTransaction(async ({ transaction }) => {
-        await validateAndResolvePricingModelId({
-          pricingModelId: nonExistentPricingModelId,
-          organizationId: org1Id,
-          livemode,
-          transaction,
-        })
-      })
-    } catch (error) {
-      expect(error).toBeInstanceOf(TRPCError)
-      expect((error as TRPCError).code).toBe('BAD_REQUEST')
-      expect((error as TRPCError).message).toBe(
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error).toBeInstanceOf(TRPCError)
+      expect((result.error as TRPCError).code).toBe('BAD_REQUEST')
+      expect((result.error as TRPCError).message).toBe(
         'Invalid pricing model: the specified pricing model does not exist or does not belong to this organization'
       )
     }
@@ -180,30 +158,19 @@ describe('validateAndResolvePricingModelId', () => {
     // org1PricingModelId is a livemode pricing model (livemode: true)
     // Attempting to use it in testmode (livemode: false) should fail
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await validateAndResolvePricingModelId({
-          pricingModelId: org1PricingModelId,
-          organizationId: org1Id,
-          livemode: false, // testmode context
-          transaction,
-        })
+    const result = await adminTransaction(async ({ transaction }) => {
+      await validateAndResolvePricingModelId({
+        pricingModelId: org1PricingModelId,
+        organizationId: org1Id,
+        livemode: false, // testmode context
+        transaction,
       })
-    ).rejects.toThrow(TRPCError)
-
-    // Verify the error details
-    try {
-      await adminTransaction(async ({ transaction }) => {
-        await validateAndResolvePricingModelId({
-          pricingModelId: org1PricingModelId,
-          organizationId: org1Id,
-          livemode: false,
-          transaction,
-        })
-      })
-    } catch (error) {
-      expect(error).toBeInstanceOf(TRPCError)
-      expect((error as TRPCError).code).toBe('BAD_REQUEST')
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error).toBeInstanceOf(TRPCError)
+      expect((result.error as TRPCError).code).toBe('BAD_REQUEST')
     }
   })
 
@@ -247,8 +214,8 @@ describe('validateAndResolvePricingModelId', () => {
     })
 
     it('prevents discount creation with cross-tenant pricingModelId through validation', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           // Validation will throw before we can create the discount
           const resolvedPricingModelId =
             await validateAndResolvePricingModelId({
@@ -274,8 +241,13 @@ describe('validateAndResolvePricingModelId', () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(TRPCError)
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(TRPCError)
+      }
     })
   })
 })

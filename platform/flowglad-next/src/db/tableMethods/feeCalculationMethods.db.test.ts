@@ -156,60 +156,58 @@ describe('Fee Calculation Methods', () => {
     })
 
     it('should throw error when neither billingPeriodId nor checkoutSessionId is provided', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          await expect(
-            derivePricingModelIdForFeeCalculation(
-              {
-                billingPeriodId: null,
-                checkoutSessionId: null,
-              },
-              transaction
-            )
-          ).rejects.toThrow(
-            'Cannot derive pricingModelId for fee calculation: no valid parent found'
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await derivePricingModelIdForFeeCalculation(
+            {
+              billingPeriodId: null,
+              checkoutSessionId: null,
+            },
+            transaction
           )
           return Result.ok(undefined)
-        })
-      ).unwrap()
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Cannot derive pricingModelId for fee calculation: no valid parent found'
+        )
+      }
     })
 
     it('should throw error when billingPeriodId does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentBillingPeriodId = `billing_period_${core.nanoid()}`
-
-          await expect(
-            derivePricingModelIdForFeeCalculation(
-              {
-                billingPeriodId: nonExistentBillingPeriodId,
-                checkoutSessionId: null,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
+      const nonExistentBillingPeriodId = `billing_period_${core.nanoid()}`
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await derivePricingModelIdForFeeCalculation(
+            {
+              billingPeriodId: nonExistentBillingPeriodId,
+              checkoutSessionId: null,
+            },
+            transaction
+          )
           return Result.ok(undefined)
-        })
-      ).unwrap()
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should throw error when checkoutSessionId does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentCheckoutSessionId = `chckt_session_${core.nanoid()}`
-
-          await expect(
-            derivePricingModelIdForFeeCalculation(
-              {
-                billingPeriodId: null,
-                checkoutSessionId: nonExistentCheckoutSessionId,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
+      const nonExistentCheckoutSessionId = `chckt_session_${core.nanoid()}`
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await derivePricingModelIdForFeeCalculation(
+            {
+              billingPeriodId: null,
+              checkoutSessionId: nonExistentCheckoutSessionId,
+            },
+            transaction
+          )
           return Result.ok(undefined)
-        })
-      ).unwrap()
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -321,28 +319,30 @@ describe('Fee Calculation Methods', () => {
     })
 
     it('should throw error when neither billingPeriodId nor checkoutSessionId is provided', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          await expect(
-            insertFeeCalculation(
-              {
-                ...baseFeeCalculationData,
-                organizationId: organization.id,
-                billingPeriodId: null,
-                checkoutSessionId: null,
-                priceId: null,
-                purchaseId: null,
-                type: FeeCalculationType.SubscriptionPayment,
-                livemode: true,
-              },
-              transaction
-            )
-          ).rejects.toThrow(
-            'Cannot derive pricingModelId for fee calculation: no valid parent found'
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await insertFeeCalculation(
+            {
+              ...baseFeeCalculationData,
+              organizationId: organization.id,
+              billingPeriodId: null,
+              checkoutSessionId: null,
+              priceId: null,
+              purchaseId: null,
+              type: FeeCalculationType.SubscriptionPayment,
+              livemode: true,
+            },
+            transaction
           )
           return Result.ok(undefined)
-        })
-      ).unwrap()
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Cannot derive pricingModelId for fee calculation: no valid parent found'
+        )
+      }
     })
   })
 })

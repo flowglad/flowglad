@@ -91,20 +91,20 @@ describe('insertFeature uniqueness constraints', () => {
       })
     ).unwrap()
 
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await insertFeature(
-          createToggleFeatureInsert(
-            organization1.id,
-            pricingModel1.id,
-            'unique-slug',
-            'Test Feature 2'
-          ),
-          ctx
-        )
-      })
-    ).rejects.toThrow()
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      await insertFeature(
+        createToggleFeatureInsert(
+          organization1.id,
+          pricingModel1.id,
+          'unique-slug',
+          'Test Feature 2'
+        ),
+        ctx
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('should allow two features with the same slug and organizationId but different pricingModelId', async () => {

@@ -344,9 +344,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     expect(usage.available).toBe(3) // 5 - 2
 
     // Attempting to claim more than available should fail
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await claimResourceTransaction(
+    const claimResult = await adminTransaction(
+      async ({ transaction }) => {
+        return claimResourceTransaction(
           {
             organizationId: organization.id,
             customerId: customer.id,
@@ -358,8 +358,14 @@ describe('executeBillingRun with adjustment and resource claims', () => {
           },
           transaction
         )
-      })
-    ).rejects.toThrow('No available capacity')
+      }
+    )
+    expect(Result.isError(claimResult)).toBe(true)
+    if (Result.isError(claimResult)) {
+      expect(claimResult.error.message).toContain(
+        'No available capacity'
+      )
+    }
   })
 
   it('preserves claims through the full async adjustment lifecycle', async () => {

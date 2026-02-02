@@ -46,11 +46,16 @@ describe('selectBetterAuthUserById', () => {
   it('throws an error when no user exists with the given id', async () => {
     const nonExistentId = `bau_nonexistent_${core.nanoid()}`
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await selectBetterAuthUserById(nonExistentId, transaction)
-      })
-    ).rejects.toThrow('BetterAuth user not found')
+    const result = await adminTransaction(async ({ transaction }) => {
+      await selectBetterAuthUserById(nonExistentId, transaction)
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'BetterAuth user not found'
+      )
+    }
   })
 })
 
@@ -92,14 +97,16 @@ describe('selectBetterAuthUserByEmail', () => {
   it('throws an error when no user exists with the given email', async () => {
     const nonExistentEmail = `nonexistent+${core.nanoid()}@test.com`
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await selectBetterAuthUserByEmail(
-          nonExistentEmail,
-          transaction
-        )
-      })
-    ).rejects.toThrow('BetterAuth user not found')
+    const result = await adminTransaction(async ({ transaction }) => {
+      await selectBetterAuthUserByEmail(nonExistentEmail, transaction)
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'BetterAuth user not found'
+      )
+    }
   })
 
   it('returns the correct user when multiple users exist (email is unique)', async () => {

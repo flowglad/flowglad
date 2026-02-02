@@ -490,21 +490,24 @@ describe('safelyInsertPricingModel', () => {
     // setupOrg already creates a livemode pricing model (existingLivemodeDefaultPricingModel)
     // Attempting to insert another livemode PM should throw an error
 
-    await expect(
-      adminTransaction(async (ctx) => {
-        await safelyInsertPricingModel(
-          {
-            name: 'Second Livemode PricingModel',
-            organizationId: organization.id,
-            isDefault: false,
-            livemode: true, // This should be rejected
-          },
-          ctx
-        )
-      })
-    ).rejects.toThrow(
-      'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
-    )
+    const result = await adminTransaction(async (ctx) => {
+      await safelyInsertPricingModel(
+        {
+          name: 'Second Livemode PricingModel',
+          organizationId: organization.id,
+          isDefault: false,
+          livemode: true, // This should be rejected
+        },
+        ctx
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
+      )
+    }
   })
 })
 
@@ -882,17 +885,20 @@ describe('selectPricingModelForCustomer', () => {
       pricingModelId: fakePricingModelId,
     }
 
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await selectPricingModelForCustomer(
-          customerWithFakeOrgAndPricingModel,
-          transaction
-        )
-      })
-    ).rejects.toThrow(
-      `No default pricing model found for organization ${fakeOrgId}`
-    )
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      await selectPricingModelForCustomer(
+        customerWithFakeOrgAndPricingModel,
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        `No default pricing model found for organization ${fakeOrgId}`
+      )
+    }
   })
 
   it('should handle customers with specific pricing model that has no products', async () => {

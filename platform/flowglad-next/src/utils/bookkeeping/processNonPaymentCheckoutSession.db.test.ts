@@ -154,16 +154,23 @@ describe('processNonPaymentCheckoutSession', () => {
       ).unwrap()
 
       // Attempt to process non-payment checkout should fail
-      await expect(
-        adminTransaction(async (params) => {
-          return Result.ok(
-            await processNonPaymentCheckoutSession(
-              checkoutSession,
-              createProcessingEffectsContext(params)
-            )
+      const result = await adminTransaction(async (params) => {
+        try {
+          await processNonPaymentCheckoutSession(
+            checkoutSession,
+            createProcessingEffectsContext(params)
           )
-        })
-      ).rejects.toThrow('Total due for purchase session')
+          return Result.ok('should have thrown')
+        } catch (error) {
+          return Result.err(error as Error)
+        }
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Total due for purchase session'
+        )
+      }
     })
   })
 })

@@ -1709,19 +1709,16 @@ describe('derivePricingModelIdFromSubscription', () => {
   })
 
   it('should throw error when subscription does not exist', async () => {
-    ;(
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+    const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
-        await expect(
-          derivePricingModelIdFromSubscription(
-            nonExistentSubscriptionId,
-            transaction
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async ({ transaction }) => {
+      await derivePricingModelIdFromSubscription(
+        nonExistentSubscriptionId,
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 })
 

@@ -338,9 +338,9 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await editCheckoutSession(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return editCheckoutSession(
             {
               checkoutSession: {
                 id: checkoutSession.id,
@@ -352,8 +352,14 @@ describe('Checkout Sessions', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('Checkout session is not open')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Checkout session is not open'
+        )
+      }
     })
 
     it('should update checkout session with merged fields from previous and new session', async () => {
@@ -544,9 +550,9 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await editCheckoutSession(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return editCheckoutSession(
             {
               checkoutSession: {
                 id: checkoutSession.id,
@@ -559,8 +565,14 @@ describe('Checkout Sessions', () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('Purchase is not pending')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Purchase is not pending'
+        )
+      }
     })
 
     it('should update purchase with new billing address when purchase is pending', async () => {
@@ -956,19 +968,21 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: 'different-stripe-id',
-              },
-              createProcessingEffectsContext(params)
-            )
-          return bookkeeping
-        })
-      ).rejects.toThrow('Attempting to process checkout session')
+      const result = await adminTransaction(async (params) => {
+        return processPurchaseBookkeepingForCheckoutSession(
+          {
+            checkoutSession,
+            stripeCustomerId: 'different-stripe-id',
+          },
+          createProcessingEffectsContext(params)
+        )
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Attempting to process checkout session'
+        )
+      }
     })
 
     it('should find customer by Stripe customer ID when provided', async () => {
@@ -1165,19 +1179,16 @@ describe('Checkout Sessions', () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async (params) => {
-          const bookkeeping =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              createProcessingEffectsContext(params)
-            )
-          return bookkeeping
-        })
-      ).rejects.toThrow()
+      const result = await adminTransaction(async (params) => {
+        return processPurchaseBookkeepingForCheckoutSession(
+          {
+            checkoutSession,
+            stripeCustomerId: succeededCharge.customer! as string,
+          },
+          createProcessingEffectsContext(params)
+        )
+      })
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -1587,17 +1598,23 @@ describe('editCheckoutSessionBillingAddress', async () => {
         },
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await editCheckoutSessionBillingAddress(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: 'non-existent-id',
               billingAddress,
             },
             transaction
           )
-        })
-      ).rejects.toThrow('No checkout sessions found with id:')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'No checkout sessions found with id:'
+        )
+      }
     })
 
     it("throws 'Checkout session is not open' when checkout session is not open", async () => {
@@ -1621,17 +1638,23 @@ describe('editCheckoutSessionBillingAddress', async () => {
         },
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await editCheckoutSessionBillingAddress(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: checkoutSession.id,
               billingAddress,
             },
             transaction
           )
-        })
-      ).rejects.toThrow('Checkout session is not open')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Checkout session is not open'
+        )
+      }
     })
   })
 })

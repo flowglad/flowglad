@@ -571,15 +571,14 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     const nonExistentId = `pm_${core.nanoid()}`
 
     // Attempt to set a non-existent payment method as default
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await setDefaultPaymentMethodForCustomer(
-          { paymentMethodId: nonExistentId },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
-    ).rejects.toThrow()
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return setDefaultPaymentMethodForCustomer(
+        { paymentMethodId: nonExistentId },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
+    expect(Result.isError(result)).toBe(true)
 
     // Verify existing payment methods remain unchanged
     ;(

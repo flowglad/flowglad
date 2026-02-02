@@ -931,12 +931,12 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when billing period does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const nonExistentBillingPeriodId = `bp_${core.nanoid()}`
 
-          await expect(
-            insertBillingPeriodItem(
+          try {
+            await insertBillingPeriodItem(
               {
                 billingPeriodId: nonExistentBillingPeriodId,
                 quantity: 1,
@@ -948,10 +948,13 @@ describe('pricingModelId derivation', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('should have thrown')
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 

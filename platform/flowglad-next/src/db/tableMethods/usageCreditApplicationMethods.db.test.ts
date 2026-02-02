@@ -144,23 +144,23 @@ describe('Usage Credit Application Methods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when usageCreditId does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          const usageEvent = await setupUsageEvent({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            customerId: customer.id,
-            priceId: usagePrice.id,
-            transactionId: `txn_${core.nanoid()}`,
-            amount: 100,
-            livemode: true,
-          })
-          const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+    it('should return an error when usageCreditId does not exist', async () => {
+      const usageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        customerId: customer.id,
+        priceId: usagePrice.id,
+        transactionId: `txn_${core.nanoid()}`,
+        amount: 100,
+        livemode: true,
+      })
+      const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
-          await expect(
-            insertUsageCreditApplication(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          try {
+            await insertUsageCreditApplication(
               {
                 organizationId: organization.id,
                 usageCreditId: nonExistentUsageCreditId,
@@ -172,10 +172,13 @@ describe('Usage Credit Application Methods', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('no-error' as const)
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {

@@ -94,12 +94,12 @@ describe('Ledger Transaction Methods', () => {
     })
 
     it('should throw an error when subscriptionId does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
-          await expect(
-            insertLedgerTransaction(
+          try {
+            await insertLedgerTransaction(
               {
                 organizationId: organization.id,
                 subscriptionId: nonExistentSubscriptionId,
@@ -110,10 +110,13 @@ describe('Ledger Transaction Methods', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('should have thrown')
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {

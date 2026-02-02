@@ -489,18 +489,18 @@ describe('RLS for selectProducts', () => {
   })
 
   it('cannot update a product in another organization when it is not the current organization', async () => {
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          await updateProduct(
-            { id: product2.id, name: 'Blocked Update' },
-            ctx
-          )
-        },
-        { apiKey: apiKeyAForOrg1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        await updateProduct(
+          { id: product2.id, name: 'Blocked Update' },
+          ctx
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: apiKeyAForOrg1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('can update a product in the current organization', async () => {
@@ -524,31 +524,31 @@ describe('RLS for selectProducts', () => {
   })
 
   it('cannot insert a product for a different organization (other than current_organization_id)', async () => {
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          await insertProduct(
-            {
-              name: 'Cross Org Product',
-              organizationId: prodOrg2.id,
-              pricingModelId: prodPricingModel2.id,
-              default: false,
-              description: null,
-              livemode: false,
-              externalId: null,
-              slug: null,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              active: true,
-            },
-            ctx
-          )
-        },
-        { apiKey: apiKeyAForOrg1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        await insertProduct(
+          {
+            name: 'Cross Org Product',
+            organizationId: prodOrg2.id,
+            pricingModelId: prodPricingModel2.id,
+            default: false,
+            description: null,
+            livemode: false,
+            externalId: null,
+            slug: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            active: true,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: apiKeyAForOrg1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('can insert a product for the current organization', async () => {
@@ -579,16 +579,16 @@ describe('RLS for selectProducts', () => {
   })
 
   it('cannot delete a product from a different organization', async () => {
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          // simulate delete by setting inactive (if hard delete method not available)
-          await updateProduct({ id: product2.id, active: false }, ctx)
-        },
-        { apiKey: apiKeyAForOrg1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        // simulate delete by setting inactive (if hard delete method not available)
+        await updateProduct({ id: product2.id, active: false }, ctx)
+        return Result.ok(undefined)
+      },
+      { apiKey: apiKeyAForOrg1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('respects livemode: live context cannot see test-mode products and vice versa', async () => {
@@ -755,21 +755,21 @@ describe('RLS for selectPricingModels', () => {
   })
 
   it('cannot update a pricingModel in another organization', async () => {
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          await updatePricingModel(
-            {
-              id: pricingModel2.id,
-              name: 'Blocked PricingModel Update',
-            },
-            ctx
-          )
-        },
-        { apiKey: apiKeyCatAOrg1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        await updatePricingModel(
+          {
+            id: pricingModel2.id,
+            name: 'Blocked PricingModel Update',
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: apiKeyCatAOrg1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('can update a pricingModel in the current organization', async () => {
@@ -793,22 +793,22 @@ describe('RLS for selectPricingModels', () => {
   })
 
   it('cannot insert a pricingModel for a different organization', async () => {
-    await expect(
-      authenticatedTransaction(
-        async ({ transaction }) => {
-          await insertPricingModel(
-            {
-              organizationId: catOrg2.id,
-              name: 'Cross Org PricingModel',
-              isDefault: false,
-              livemode: true,
-            },
-            transaction
-          )
-        },
-        { apiKey: apiKeyCatAOrg1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        await insertPricingModel(
+          {
+            organizationId: catOrg2.id,
+            name: 'Cross Org PricingModel',
+            isDefault: false,
+            livemode: true,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: apiKeyCatAOrg1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('can insert a pricingModel for the current organization', async () => {
@@ -829,18 +829,18 @@ describe('RLS for selectPricingModels', () => {
   })
 
   it('cannot delete a pricingModel from a different organization', async () => {
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          await updatePricingModel(
-            { id: pricingModel2.id, isDefault: false, name: 'X' },
-            ctx
-          )
-        },
-        { apiKey: apiKeyCatAOrg1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        await updatePricingModel(
+          { id: pricingModel2.id, isDefault: false, name: 'X' },
+          ctx
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: apiKeyCatAOrg1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('respects livemode: live/test separation for pricingModels', async () => {
@@ -951,18 +951,15 @@ describe('Second-order RLS defense in depth', () => {
         livemode: true,
       })
     ).apiKey
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          await updateProduct(
-            { id: p1.id, organizationId: o2.id },
-            ctx
-          )
-        },
-        { apiKey: k1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        await updateProduct({ id: p1.id, organizationId: o2.id }, ctx)
+        return Result.ok(undefined)
+      },
+      { apiKey: k1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('attempting to insert with mismatched livemode vs app.livemode is denied (if check policies exist)', async () => {
@@ -973,22 +970,22 @@ describe('Second-order RLS defense in depth', () => {
         livemode: true,
       })
     ).apiKey
-    await expect(
-      authenticatedTransaction(
-        async ({ transaction }) => {
-          await insertPricingModel(
-            {
-              organizationId: organization.id,
-              name: 'Wrong Mode',
-              isDefault: false,
-              livemode: false,
-            },
-            transaction
-          )
-        },
-        { apiKey: liveKey.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        await insertPricingModel(
+          {
+            organizationId: organization.id,
+            name: 'Wrong Mode',
+            isDefault: false,
+            livemode: false,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: liveKey.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('no access when user has no membership in the organization', async () => {
@@ -1006,31 +1003,31 @@ describe('Second-order RLS defense in depth', () => {
       { apiKey: onlyOrg2.token }
     )
     expect(prods).toHaveLength(0)
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction, livemode } = ctx
-          await insertProduct(
-            {
-              name: 'X',
-              description: null,
-              imageURL: null,
-              organizationId: o1.id,
-              active: true,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: o2.pricingModel.id,
-              externalId: null,
-              default: false,
-              slug: null,
-              livemode,
-            },
-            ctx
-          )
-        },
-        { apiKey: onlyOrg2.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction, livemode } = ctx
+        await insertProduct(
+          {
+            name: 'X',
+            description: null,
+            imageURL: null,
+            organizationId: o1.id,
+            active: true,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            pricingModelId: o2.pricingModel.id,
+            externalId: null,
+            default: false,
+            slug: null,
+            livemode,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: onlyOrg2.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('API key and session both set RLS context correctly: parity test', async () => {

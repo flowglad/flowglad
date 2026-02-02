@@ -38,9 +38,9 @@ describe('updateInvoiceTransaction', () => {
 
       // Attempt to exploit by passing draft invoice ID for validation
       // but paid invoice ID in the invoice object for the actual update
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await updateInvoiceTransaction(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return updateInvoiceTransaction(
             {
               id: draftInvoice.id, // Use draft invoice ID for terminal check
               invoice: {
@@ -56,8 +56,12 @@ describe('updateInvoiceTransaction', () => {
             true,
             transaction
           )
-        })
-      ).rejects.toThrow(/ID mismatch/)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/ID mismatch/)
+      }
     })
 
     it('should succeed when id parameter matches invoice.id', async () => {

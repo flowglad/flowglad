@@ -487,7 +487,7 @@ describe('Discount Redemption Tracking', () => {
       expect(updatedDiscountRedemption.fullyRedeemed).toBe(false)
     })
 
-    it('throws when discount redemption has neither purchaseId nor subscriptionId', async () => {
+    it('returns an error when discount redemption has neither purchaseId nor subscriptionId', async () => {
       ;(
         await adminTransaction(async ({ transaction }) => {
           discountRedemption = await insertDiscountRedemption(
@@ -521,21 +521,30 @@ describe('Discount Redemption Tracking', () => {
         paymentMethod: PaymentMethodType.Card,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await incrementNumberOfPaymentsForDiscountRedemption(
-            {
-              ...discountRedemption,
-              purchaseId: '',
-              subscriptionId: null,
-            },
-            payment,
-            transaction
-          )
-        })
-      ).rejects.toThrow(
-        'Expected discountRedemption to have purchaseId or subscriptionId'
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          try {
+            await incrementNumberOfPaymentsForDiscountRedemption(
+              {
+                ...discountRedemption,
+                purchaseId: '',
+                subscriptionId: null,
+              },
+              payment,
+              transaction
+            )
+            return Result.ok('no-error' as const)
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Expected discountRedemption to have purchaseId or subscriptionId'
+        )
+      }
     })
   })
 

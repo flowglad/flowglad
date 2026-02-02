@@ -110,13 +110,13 @@ describe('Discount Redemption Methods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when purchaseId does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentPurchaseId = `purch_${core.nanoid()}`
+    it('should return an error when purchaseId does not exist', async () => {
+      const nonExistentPurchaseId = `purch_${core.nanoid()}`
 
-          await expect(
-            insertDiscountRedemption(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          try {
+            await insertDiscountRedemption(
               {
                 discountId: discount.id,
                 discountName: discount.name,
@@ -130,10 +130,13 @@ describe('Discount Redemption Methods', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('no-error' as const)
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {

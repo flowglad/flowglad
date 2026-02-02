@@ -117,7 +117,7 @@ describe('confirmCheckoutSessionTransaction', () => {
   })
 
   describe('Checkout Session Validation', () => {
-    it('should throw an error when checkout session exists but status is not Open', async () => {
+    it('should return an error when checkout session exists but status is not Open', async () => {
       // Update checkout session to a non-Open status
       await adminTransaction(async ({ transaction }) => {
         await updateCheckoutSession(
@@ -127,17 +127,23 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const result = await confirmCheckoutSessionTransaction(
-            { id: checkoutSession.id },
-            ctx
-          )
-          return result.unwrap()
-        })
-      ).rejects.toThrow('Checkout session is not open')
+      const result1 = await adminTransaction(async (ctx) => {
+        const result = await confirmCheckoutSessionTransaction(
+          { id: checkoutSession.id },
+          ctx
+        )
+        return result
+      })
+      expect(Result.isError(result1)).toBe(true)
+      if (Result.isError(result1)) {
+        expect(result1.error.message).toContain(
+          'Checkout session is not open'
+        )
+      }
+
       await adminTransaction(async ({ transaction }) => {
         await updateCheckoutSession(
           {
@@ -146,17 +152,22 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const result = await confirmCheckoutSessionTransaction(
-            { id: checkoutSession.id },
-            ctx
-          )
-          return result.unwrap()
-        })
-      ).rejects.toThrow('Checkout session is not open')
+      const result2 = await adminTransaction(async (ctx) => {
+        const result = await confirmCheckoutSessionTransaction(
+          { id: checkoutSession.id },
+          ctx
+        )
+        return result
+      })
+      expect(Result.isError(result2)).toBe(true)
+      if (Result.isError(result2)) {
+        expect(result2.error.message).toContain(
+          'Checkout session is not open'
+        )
+      }
 
       await adminTransaction(async ({ transaction }) => {
         await updateCheckoutSession(
@@ -166,17 +177,22 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const result = await confirmCheckoutSessionTransaction(
-            { id: checkoutSession.id },
-            ctx
-          )
-          return result.unwrap()
-        })
-      ).rejects.toThrow('Checkout session is not open')
+      const result3 = await adminTransaction(async (ctx) => {
+        const result = await confirmCheckoutSessionTransaction(
+          { id: checkoutSession.id },
+          ctx
+        )
+        return result
+      })
+      expect(Result.isError(result3)).toBe(true)
+      if (Result.isError(result3)) {
+        expect(result3.error.message).toContain(
+          'Checkout session is not open'
+        )
+      }
     })
   })
 
@@ -611,7 +627,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer.name).toEqual('Test Customer')
     })
 
-    it('should throw an error when no customerId, purchaseId, or customerEmail are available', async () => {
+    it('should return an error when no customerId, purchaseId, or customerEmail are available', async () => {
       // Update checkout session to have no customerId, purchaseId, or customerEmail
       await adminTransaction(async ({ transaction }) => {
         await updateCheckoutSession(
@@ -623,18 +639,22 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.ProductRecord,
           transaction
         )
-        return undefined
+        return Result.ok(undefined)
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const result = await confirmCheckoutSessionTransaction(
-            { id: checkoutSession.id },
-            ctx
-          )
-          return result.unwrap()
-        })
-      ).rejects.toThrow('Checkout session has no customer email')
+      const result = await adminTransaction(async (ctx) => {
+        const innerResult = await confirmCheckoutSessionTransaction(
+          { id: checkoutSession.id },
+          ctx
+        )
+        return innerResult
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Checkout session has no customer email'
+        )
+      }
     })
 
     it('should skip Stripe customer creation when customer record has stripeCustomerId', async () => {
@@ -703,14 +723,14 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(mockCreateStripeCustomer).toHaveBeenCalled()
     })
 
-    it('should throw an error if stripeCustomerId is missing and no customerEmail exists', async () => {
+    it('should return an error if stripeCustomerId is missing and no customerEmail exists', async () => {
       // Update customer to have no stripeCustomerId
       await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { ...customer, stripeCustomerId: null },
           transaction
         )
-        return undefined
+        return Result.ok(undefined)
       })
 
       // Update checkout session to have no customerEmail
@@ -719,18 +739,22 @@ describe('confirmCheckoutSessionTransaction', () => {
           { ...checkoutSession, customerEmail: null },
           transaction
         )
-        return undefined
+        return Result.ok(undefined)
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const result = await confirmCheckoutSessionTransaction(
-            { id: checkoutSession.id },
-            ctx
-          )
-          return result.unwrap()
-        })
-      ).rejects.toThrow('Checkout session has no customer email')
+      const result = await adminTransaction(async (ctx) => {
+        const innerResult = await confirmCheckoutSessionTransaction(
+          { id: checkoutSession.id },
+          ctx
+        )
+        return innerResult
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Checkout session has no customer email'
+        )
+      }
     })
   })
 

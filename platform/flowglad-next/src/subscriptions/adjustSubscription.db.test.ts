@@ -5694,20 +5694,24 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(usageAfterDowngrade.available).toBe(0)
 
           // Step 4: Attempt to claim a 3rd seat - should fail
-          await expect(
-            claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: resource.slug,
-                  subscriptionId: subscription.id,
-                  quantity: 1,
-                },
+          const claimResult = await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                quantity: 1,
               },
-              transaction
+            },
+            transaction
+          )
+          expect(Result.isError(claimResult)).toBe(true)
+          if (Result.isError(claimResult)) {
+            expect(claimResult.error.message).toContain(
+              'No available capacity'
             )
-          ).rejects.toThrow('No available capacity')
+          }
 
           // Verify claims unchanged after failed claim attempt
           const claimsAfterFailedClaim =

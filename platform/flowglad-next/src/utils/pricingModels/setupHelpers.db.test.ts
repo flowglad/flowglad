@@ -314,14 +314,17 @@ describe('getPricingModelSetupData', () => {
   })
 
   it('should throw an error if pricing model is not found', async () => {
-    await expect(
-      adminTransaction(async (ctx) => {
-        await await getPricingModelSetupData(
-          'non-existent-id',
-          ctx.transaction
-        ).unwrap()
-      })
-    ).rejects.toThrow()
+    const result = await adminTransaction(async (ctx) => {
+      const data = await getPricingModelSetupData(
+        'non-existent-id',
+        ctx.transaction
+      )
+      if (Result.isError(data)) {
+        return data
+      }
+      return Result.ok(data.value)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('should handle a minimal pricing model with no usage meters or features', async () => {

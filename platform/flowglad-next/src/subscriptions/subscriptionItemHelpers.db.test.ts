@@ -490,7 +490,7 @@ describe('subscriptionItemHelpers', () => {
         ).unwrap()
       })
 
-      it('should throw when provided ID does not exist in current items', async () => {
+      it('should return error when provided ID does not exist in current items', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -513,18 +513,20 @@ describe('subscriptionItemHelpers', () => {
               } as SubscriptionItem.Record,
             ]
 
-            await expect(
-              handleSubscriptionItemAdjustment(
-                {
-                  subscriptionId: subscription.id,
-                  newSubscriptionItems,
-                  adjustmentDate: now,
-                },
-                ctx
-              )
-            ).rejects.toThrow(
-              `Cannot update subscription item with id ${fakeId} because it is non-existent`
+            const result = await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems,
+                adjustmentDate: now,
+              },
+              ctx
             )
+            expect(Result.isError(result)).toBe(true)
+            if (Result.isError(result)) {
+              expect(result.error.message).toContain(
+                `Cannot update subscription item with id ${fakeId} because it is non-existent`
+              )
+            }
             return Result.ok(null)
           })
         ).unwrap()

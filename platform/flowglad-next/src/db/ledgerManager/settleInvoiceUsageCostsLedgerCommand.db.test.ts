@@ -542,16 +542,15 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute & expects:
       // 3. Calling the command processing function a second time should fail.
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          ;(
-            await processSettleInvoiceUsageCostsLedgerCommand(
-              command,
-              transaction
-            )
-          ).unwrap()
-        })
-      ).rejects.toThrow()
+      const secondResult = await adminTransaction(
+        async ({ transaction }) => {
+          return processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        }
+      )
+      expect(Result.isError(secondResult)).toBe(true)
 
       // 4. Query the database to ensure no duplicate records were created.
       const txns = (
@@ -569,7 +568,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(txns).toHaveLength(1) // Only the first transaction should exist.
     })
 
-    it('should throw an error if there is a data scope mismatch', async () => {
+    it('should return an error if there is a data scope mismatch', async () => {
       // setup:
       // The beforeEach creates invoice and line items for the default organization.
       // 1. Create a second, valid organization to use for the mismatch.
@@ -588,18 +587,20 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       }
 
       // execute & expects:
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          ;(
-            await processSettleInvoiceUsageCostsLedgerCommand(
-              command,
-              transaction
-            )
-          ).unwrap()
-        })
-      ).rejects.toThrowError(
-        'Expected 1 ledger accounts for usage line items, but got 0'
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'Expected 1 ledger accounts for usage line items, but got 0'
+        )
+      }
 
       const finalBalance = (
         await adminTransaction(async ({ transaction }) => {

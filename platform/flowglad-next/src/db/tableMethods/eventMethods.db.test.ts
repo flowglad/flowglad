@@ -17,6 +17,7 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Product } from '@db-core/schema/products'
 import type { Purchase } from '@db-core/schema/purchases'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupInvoice,
@@ -375,29 +376,35 @@ describe('derivePricingModelIdFromEventPayload', () => {
   it('throws an error when the payload ID does not exist', async () => {
     const nonExistentId = `cust_${core.nanoid()}`
 
-    await adminTransaction(async ({ transaction }) => {
-      await expect(
-        derivePricingModelIdFromEventPayload(
-          { id: nonExistentId, object: EventNoun.Customer },
-          transaction
-        )
-      ).rejects.toThrow(
+    const result = await adminTransaction(async ({ transaction }) => {
+      await derivePricingModelIdFromEventPayload(
+        { id: nonExistentId, object: EventNoun.Customer },
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
         `Pricing model id not found for event payload ${nonExistentId} (object type: customer)`
       )
-    })
+    }
   })
 
   it('throws an error for unsupported EventNoun types', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await expect(
-        derivePricingModelIdFromEventPayload(
-          { id: 'user_123', object: EventNoun.User },
-          transaction
-        )
-      ).rejects.toThrow(
+    const result = await adminTransaction(async ({ transaction }) => {
+      await derivePricingModelIdFromEventPayload(
+        { id: 'user_123', object: EventNoun.User },
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
         'Pricing model id not found for event payload user_123 (object type: user)'
       )
-    })
+    }
   })
 })
 
@@ -736,30 +743,33 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
     const hash = `hash_${core.nanoid()}`
     const now = Date.now()
 
-    await adminTransaction(async ({ transaction }) => {
-      await expect(
-        bulkInsertOrDoNothingEventsByHash(
-          [
-            {
-              type: FlowgladEventType.CustomerCreated,
-              payload: {
-                id: nonExistentId,
-                object: EventNoun.Customer,
-              },
-              occurredAt: now,
-              submittedAt: now,
-              metadata: {},
-              hash,
-              organizationId: organization.id,
-              livemode: true,
+    const result = await adminTransaction(async ({ transaction }) => {
+      await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: nonExistentId,
+              object: EventNoun.Customer,
             },
-          ],
-          transaction
-        )
-      ).rejects.toThrow(
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
         `Pricing model id not found for event payload ${nonExistentId}`
       )
-    })
+    }
   })
 
   it('inserts events from multiple organizations in a single batch', async () => {

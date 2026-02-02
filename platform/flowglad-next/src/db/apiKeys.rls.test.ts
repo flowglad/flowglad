@@ -661,29 +661,29 @@ describe('API Key RLS', () => {
 
       // Try to use deleteSecretApiKeyTransaction with orgA's context to delete orgB's key
       // This should fail because selectApiKeyById won't find the key (RLS prevents visibility)
-      await expect(
-        authenticatedTransaction(
-          async ({
-            transaction,
-            userId,
-            livemode,
-            organizationId,
-            cacheRecomputationContext,
-          }) => {
-            await deleteSecretApiKeyTransaction(
-              { id: orgBSecretKey.id },
-              {
-                transaction,
-                userId,
-                livemode,
-                organizationId,
-                cacheRecomputationContext,
-              }
-            )
-          },
-          { apiKey: apiKeyOrgA.token }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async ({
+          transaction,
+          userId,
+          livemode,
+          organizationId,
+          cacheRecomputationContext,
+        }) => {
+          await deleteSecretApiKeyTransaction(
+            { id: orgBSecretKey.id },
+            {
+              transaction,
+              userId,
+              livemode,
+              organizationId,
+              cacheRecomputationContext,
+            }
+          )
+          return Result.ok(undefined)
+        },
+        { apiKey: apiKeyOrgA.token }
+      )
+      expect(Result.isError(result)).toBe(true)
 
       // Verify the key still exists
       const remainingKeys = (

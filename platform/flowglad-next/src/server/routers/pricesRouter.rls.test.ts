@@ -659,32 +659,33 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should enforce single default price per product constraint', async () => {
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Try to create another default price for the default product
-          await insertPrice(
-            {
-              productId: defaultProductId,
-              unitPrice: 0,
-              isDefault: true, // Trying to create another default price
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              currency: CurrencyCode.USD,
-              livemode,
-              active: true,
-              name: 'Another Default',
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              usageMeterId: null,
-              externalId: null,
-              slug: null,
-            },
-            ctx
-          )
-        })
-      ).rejects.toThrow() // Database constraint will throw an error
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Try to create another default price for the default product
+        await insertPrice(
+          {
+            productId: defaultProductId,
+            unitPrice: 0,
+            isDefault: true, // Trying to create another default price
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: CurrencyCode.USD,
+            livemode,
+            active: true,
+            name: 'Another Default',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: null,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      // Database constraint will return an error
+      expect(Result.isError(result)).toBe(true)
     })
   })
 

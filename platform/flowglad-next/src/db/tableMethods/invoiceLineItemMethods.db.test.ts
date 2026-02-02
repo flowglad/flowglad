@@ -106,19 +106,24 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when both invoiceId and priceId are null', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          derivePricingModelIdForInvoiceLineItem(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await derivePricingModelIdForInvoiceLineItem(
             {
               invoiceId: null,
               priceId: null,
             },
             transaction
           )
-        ).rejects.toThrow(
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
           'Cannot derive pricingModelId for invoice line item: both invoiceId and priceId are null'
         )
-      })
+      }
     })
   })
 
@@ -187,9 +192,9 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw an error when invoiceId is invalid and priceId is null', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          insertInvoiceLineItem(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await insertInvoiceLineItem(
             {
               invoiceId: 'invalid_invoice_id',
               quantity: 1,
@@ -201,8 +206,10 @@ describe('pricingModelId derivation', () => {
             },
             transaction
           )
-        ).rejects.toThrow()
-      })
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {
@@ -334,9 +341,9 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when one invoice line item has invalid invoiceId and null priceId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          insertInvoiceLineItems(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await insertInvoiceLineItems(
             [
               {
                 invoiceId: invoice.id,
@@ -359,8 +366,10 @@ describe('pricingModelId derivation', () => {
             ],
             transaction
           )
-        ).rejects.toThrow()
-      })
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 })

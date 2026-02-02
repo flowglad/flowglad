@@ -1962,7 +1962,7 @@ describe('billingRunHelpers', async () => {
       )
     })
 
-    it('should throw an error if customer has no stripe customer ID', async () => {
+    it('should return an error if customer has no stripe customer ID', async () => {
       // Update customer to remove stripe customer ID
       ;(
         await adminTransaction(async ({ transaction }) => {
@@ -1977,21 +1977,23 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          Result.ok(
-            await executeBillingRunCalculationAndBookkeepingSteps(
-              billingRun,
-              transaction
-            )
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return executeBillingRunCalculationAndBookkeepingSteps(
+            billingRun,
+            transaction
           )
-        )
-      ).rejects.toThrow(
-        'Cannot run billing for a billing period with a customer that does not have a stripe customer id'
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'Cannot run billing for a billing period with a customer that does not have a stripe customer id'
+        )
+      }
     })
 
-    it('should throw an error if payment method has no stripe payment method ID', async () => {
+    it('should return an error if payment method has no stripe payment method ID', async () => {
       // Update payment method to remove stripe payment method ID
       ;(
         await adminTransaction(async ({ transaction }) => {
@@ -2006,18 +2008,20 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          Result.ok(
-            await executeBillingRunCalculationAndBookkeepingSteps(
-              billingRun,
-              transaction
-            )
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return executeBillingRunCalculationAndBookkeepingSteps(
+            billingRun,
+            transaction
           )
-        )
-      ).rejects.toThrow(
-        'Cannot run billing for a billing period with a payment method that does not have a stripe payment method id'
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'Cannot run billing for a billing period with a payment method that does not have a stripe payment method id'
+        )
+      }
     })
 
     it('should claim outstanding usage costs by associating them with the billing run', async () => {

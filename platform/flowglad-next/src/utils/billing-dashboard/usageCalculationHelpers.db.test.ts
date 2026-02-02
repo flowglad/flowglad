@@ -521,8 +521,8 @@ describe('calculateUsageVolumeByInterval', () => {
       const endDate = new Date('2023-01-07T23:59:59.999Z')
 
       // Request from org2 should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await calculateUsageVolumeByInterval(
             org2.id, // Different org
             {
@@ -534,8 +534,15 @@ describe('calculateUsageVolumeByInterval', () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow('Usage meter not found')
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Usage meter not found'
+        )
+      }
     })
 
     it('returns zeros when product belongs to different org (cross-tenant protection)', async () => {

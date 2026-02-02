@@ -651,26 +651,27 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when subscription item does not exist', async () => {
-      ;(
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
 
-          await expect(
-            insertSubscriptionItemFeature(
-              {
-                subscriptionItemId: nonExistentSubscriptionItemId,
-                featureId: feature.id,
-                productFeatureId: productFeature.id,
-                type: FeatureType.Toggle,
-                livemode: true,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+        try {
+          await insertSubscriptionItemFeature(
+            {
+              subscriptionItemId: nonExistentSubscriptionItemId,
+              featureId: feature.id,
+              productFeatureId: productFeature.id,
+              type: FeatureType.Toggle,
+              livemode: true,
+            },
+            transaction
+          )
+          return Result.ok('should have thrown')
+        } catch (error) {
+          return Result.err(error as Error)
+        }
+      })
+      expect(Result.isError(result)).toBe(true)
     })
   })
 

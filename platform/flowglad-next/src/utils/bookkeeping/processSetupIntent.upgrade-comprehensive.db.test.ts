@@ -1873,17 +1873,24 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         },
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const res = await processSetupIntentSucceeded(
             setupIntentNoPM,
             createDiscardingEffectsContext(transaction)
           )
-          return Result.ok(res.unwrap())
-        }).then((r) => r.unwrap())
-      ).rejects.toThrow(
-        /Payment method required for subscription activation/
+          if (Result.isError(res)) {
+            return Result.err(res.error)
+          }
+          return Result.ok(res.value)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(
+          /Payment method required for subscription activation/
+        )
+      }
     })
   })
 

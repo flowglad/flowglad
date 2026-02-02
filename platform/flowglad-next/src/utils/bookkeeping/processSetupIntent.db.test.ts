@@ -243,14 +243,15 @@ describe('Process setup intent', async () => {
         metadata: null,
       } as CoreSripeSetupIntent
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return checkoutSessionFromSetupIntent(
             invalidSetupIntent,
             transaction
           )
-        })
-      ).rejects.toThrow()
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('throws an error when metadata type is not CheckoutSession', async () => {
@@ -267,14 +268,20 @@ describe('Process setup intent', async () => {
         metadata,
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return checkoutSessionFromSetupIntent(
             invalidSetupIntent,
             transaction
           )
-        })
-      ).rejects.toThrow('Metadata type is not checkout_session')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Metadata type is not checkout_session'
+        )
+      }
     })
 
     it('throws an error when setup intent status is not succeeded', async () => {
@@ -283,14 +290,18 @@ describe('Process setup intent', async () => {
         customer.stripeCustomerId!
       )
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return checkoutSessionFromSetupIntent(
             processingSetupIntent,
             transaction
           )
-        })
-      ).rejects.toThrow('Setup intent')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain('Setup intent')
+      }
     })
 
     it('returns the checkout session when all conditions are met', async () => {
@@ -330,16 +341,20 @@ describe('Process setup intent', async () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
             succeededSetupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${checkoutSession.id})`
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${checkoutSession.id})`
+        )
+      }
     })
 
     it('throws an error when checkout session type is AddPaymentMethod', async () => {
@@ -860,19 +875,20 @@ describe('Process setup intent', async () => {
         metadata: null,
       } as CoreSripeSetupIntent
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return processSetupIntentSucceeded(
             invalidSetupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow()
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('returns an error when setup intent status is not succeeded', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return processSetupIntentSucceeded(
             mockProcessingSetupIntent(
               checkoutSession.id,
@@ -880,8 +896,9 @@ describe('Process setup intent', async () => {
             ),
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow()
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('returns an error when metadata type is not CheckoutSession', async () => {
@@ -930,18 +947,24 @@ describe('Process setup intent', async () => {
         checkoutSessionId: newCheckoutSession.id,
         stripeCustomerId: 'newcust_' + core.nanoid(),
       })
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             newCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-          await processSetupIntentSucceeded(
+          return processSetupIntentSucceeded(
             newSetupIntentSucceeded,
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow(/^Attempting to process checkout session/)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(
+          /^Attempting to process checkout session/
+        )
+      }
     })
     it('throws an error when product is not found for non-AddPaymentMethod checkout session', async () => {
       // This is a bit tricky to test directly, so we'll mock the selectPriceProductAndOrganizationByPriceWhere function
@@ -1547,14 +1570,15 @@ describe('Process setup intent', async () => {
           })
         ).unwrap()
 
-        await expect(
-          adminTransaction(async ({ transaction }) => {
-            await processSetupIntentSucceeded(
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return processSetupIntentSucceeded(
               succeededSetupIntent,
               createDiscardingEffectsContext(transaction)
             )
-          })
-        ).rejects.toThrow()
+          }
+        )
+        expect(Result.isError(result)).toBe(true)
       })
 
       it('handles cases where payment method is missing', async () => {
@@ -1567,14 +1591,15 @@ describe('Process setup intent', async () => {
           payment_method: null,
         } as CoreSripeSetupIntent
 
-        await expect(
-          adminTransaction(async ({ transaction }) => {
-            await processSetupIntentSucceeded(
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return processSetupIntentSucceeded(
               invalidSetupIntent,
               createDiscardingEffectsContext(transaction)
             )
-          })
-        ).rejects.toThrow()
+          }
+        )
+        expect(Result.isError(result)).toBe(true)
       })
 
       it('handles cases where price has no trial period', async () => {

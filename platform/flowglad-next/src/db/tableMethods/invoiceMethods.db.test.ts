@@ -771,21 +771,19 @@ describe('selectInvoicesTableRowData', () => {
       })
 
       it('should throw error when customer does not exist', async () => {
-        ;(
-          await adminTransaction(async ({ transaction }) => {
-            const nonExistentCustomerId = `cust_${core.nanoid()}`
-
-            await expect(
-              derivePricingModelIdForInvoice(
-                {
-                  customerId: nonExistentCustomerId,
-                },
-                transaction
-              )
-            ).rejects.toThrow()
+        const nonExistentCustomerId = `cust_${core.nanoid()}`
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            await derivePricingModelIdForInvoice(
+              {
+                customerId: nonExistentCustomerId,
+              },
+              transaction
+            )
             return Result.ok(undefined)
-          })
-        ).unwrap()
+          }
+        )
+        expect(Result.isError(result)).toBe(true)
       })
     })
 
@@ -884,31 +882,29 @@ describe('selectInvoicesTableRowData', () => {
       })
 
       it('should throw error when customer does not exist', async () => {
-        ;(
-          await adminTransaction(async ({ transaction }) => {
-            const nonExistentCustomerId = `cust_${core.nanoid()}`
-
-            await expect(
-              insertInvoice(
-                {
-                  customerId: nonExistentCustomerId,
-                  organizationId: customer.organizationId,
-                  status: InvoiceStatus.Draft,
-                  type: InvoiceType.Standalone,
-                  livemode: true,
-                  invoiceNumber: `TEST-${core.nanoid()}`,
-                  currency: CurrencyCode.USD,
-                  billingPeriodId: null,
-                  purchaseId: null,
-                  subscriptionId: null,
-                  invoiceDate: Date.now(),
-                },
-                transaction
-              )
-            ).rejects.toThrow()
+        const nonExistentCustomerId = `cust_${core.nanoid()}`
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            await insertInvoice(
+              {
+                customerId: nonExistentCustomerId,
+                organizationId: customer.organizationId,
+                status: InvoiceStatus.Draft,
+                type: InvoiceType.Standalone,
+                livemode: true,
+                invoiceNumber: `TEST-${core.nanoid()}`,
+                currency: CurrencyCode.USD,
+                billingPeriodId: null,
+                purchaseId: null,
+                subscriptionId: null,
+                invoiceDate: Date.now(),
+              },
+              transaction
+            )
             return Result.ok(undefined)
-          })
-        ).unwrap()
+          }
+        )
+        expect(Result.isError(result)).toBe(true)
       })
     })
   })

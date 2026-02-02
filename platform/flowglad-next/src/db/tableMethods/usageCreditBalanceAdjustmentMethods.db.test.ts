@@ -115,13 +115,13 @@ describe('Usage Credit Balance Adjustment Methods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when adjustedUsageCreditId does not exist', async () => {
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+    it('should return an error when adjustedUsageCreditId does not exist', async () => {
+      const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
-          await expect(
-            insertUsageCreditBalanceAdjustment(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          try {
+            await insertUsageCreditBalanceAdjustment(
               {
                 organizationId: organization.id,
                 adjustedUsageCreditId: nonExistentUsageCreditId,
@@ -133,10 +133,13 @@ describe('Usage Credit Balance Adjustment Methods', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('no-error' as const)
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {

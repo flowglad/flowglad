@@ -1422,8 +1422,8 @@ describe('Pricing Model Migration Test Suite', async () => {
     })
 
     it('should throw UNAUTHORIZED when organizationId is missing', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await migrateCustomerPricingModelProcedureTransaction({
             input: {
               externalId: customer.externalId,
@@ -1441,13 +1441,20 @@ describe('Pricing Model Migration Test Suite', async () => {
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }),
           })
-        })
-      ).rejects.toThrow('Organization ID is required')
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Organization ID is required'
+        )
+      }
     })
 
     it('should throw NOT_FOUND when customer does not exist', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await migrateCustomerPricingModelProcedureTransaction({
             input: {
               externalId: 'non-existent-customer',
@@ -1465,15 +1472,20 @@ describe('Pricing Model Migration Test Suite', async () => {
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }),
           })
-        })
-      ).rejects.toThrow(
-        'Customer with external ID non-existent-customer not found'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Customer with external ID non-existent-customer not found'
+        )
+      }
     })
 
     it('should throw NOT_FOUND when new pricing model does not exist', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await migrateCustomerPricingModelProcedureTransaction({
             input: {
               externalId: customer.externalId,
@@ -1491,10 +1503,15 @@ describe('Pricing Model Migration Test Suite', async () => {
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }),
           })
-        })
-      ).rejects.toThrow(
-        'Pricing model non-existent-pricing-model not found'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Pricing model non-existent-pricing-model not found'
+        )
+      }
     })
 
     it('should throw FORBIDDEN when pricing model belongs to different organization', async () => {
@@ -1505,8 +1522,8 @@ describe('Pricing Model Migration Test Suite', async () => {
         name: 'Other Org Pricing Model',
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await migrateCustomerPricingModelProcedureTransaction({
             input: {
               externalId: customer.externalId,
@@ -1524,16 +1541,21 @@ describe('Pricing Model Migration Test Suite', async () => {
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }),
           })
-        })
-      ).rejects.toThrow(
-        'Pricing model does not belong to your organization'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Pricing model does not belong to your organization'
+        )
+      }
     })
 
     it('should throw BAD_REQUEST when customer livemode does not match pricing model livemode', async () => {
       // customer.livemode is false, orgLivePricingModel.livemode is true
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await migrateCustomerPricingModelProcedureTransaction({
             input: {
               externalId: customer.externalId,
@@ -1551,10 +1573,15 @@ describe('Pricing Model Migration Test Suite', async () => {
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
             }),
           })
-        })
-      ).rejects.toThrow(
-        'Pricing model livemode must match customer livemode'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Pricing model livemode must match customer livemode'
+        )
+      }
     })
   })
 

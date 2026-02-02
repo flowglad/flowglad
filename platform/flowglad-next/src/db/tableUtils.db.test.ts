@@ -1809,17 +1809,22 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should enforce maximum limit of 100', async () => {
-    await expect(
-      adminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await selectCustomersPaginated(
-          {
-            limit: 101,
-          },
-          transaction
-        )
-      })
-    ).rejects.toThrow('limit must be less than or equal to 100')
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      await selectCustomersPaginated(
+        {
+          limit: 101,
+        },
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'limit must be less than or equal to 100'
+      )
+    }
   })
 
   it('should return hasMore=false when on last page', async () => {

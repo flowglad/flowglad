@@ -32,7 +32,7 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
@@ -1656,22 +1656,23 @@ describe('clonePricingModelTransaction', () => {
       // setupOrg creates a livemode pricing model, so attempting to clone
       // another pricing model to livemode should fail with the expected error
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          await clonePricingModelTransaction(
-            {
-              id: sourcePricingModel.id,
-              name: 'Attempted Livemode Clone',
-              destinationEnvironment: DestinationEnvironment.Livemode,
-            },
-            ctx
-          )
-        })
-      ).rejects.toThrow(
-        'Cannot clone to livemode: Your organization already has a livemode pricing model. ' +
-          'Each organization can have at most one livemode pricing model. ' +
-          'To clone this pricing model, please select "Test mode" as the destination environment instead.'
-      )
+      const result = await adminTransaction(async (ctx) => {
+        await clonePricingModelTransaction(
+          {
+            id: sourcePricingModel.id,
+            name: 'Attempted Livemode Clone',
+            destinationEnvironment: DestinationEnvironment.Livemode,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Cannot clone to livemode: Your organization already has a livemode pricing model.'
+        )
+      }
     })
   })
 
@@ -2155,34 +2156,37 @@ describe('createPriceTransaction', () => {
   })
 
   it('rejects creating additional prices for a default product', async () => {
-    await expect(
-      adminTransaction(async (ctx) => {
-        await createPriceTransaction(
-          {
-            price: {
-              name: 'Disallowed Additional Price',
-              productId: defaultProduct.id,
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              unitPrice: 3000,
-              trialPeriodDays: 0,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              isDefault: false,
-              slug: `disallowed-price-${core.nanoid()}`,
-            },
+    const result = await adminTransaction(async (ctx) => {
+      await createPriceTransaction(
+        {
+          price: {
+            name: 'Disallowed Additional Price',
+            productId: defaultProduct.id,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 3000,
+            trialPeriodDays: 0,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            isDefault: false,
+            slug: `disallowed-price-${core.nanoid()}`,
           },
-          {
-            ...ctx,
-            livemode: true,
-            organizationId: organization.id,
-          }
-        )
-      })
-    ).rejects.toThrow(
-      'Cannot create additional prices for the default plan'
-    )
+        },
+        {
+          ...ctx,
+          livemode: true,
+          organizationId: organization.id,
+        }
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot create additional prices for the default plan'
+      )
+    }
   })
 
   it('allows creating an additional price with the same type', async () => {
@@ -2299,34 +2303,37 @@ describe('createPriceTransaction', () => {
       })
     ).unwrap()
 
-    await expect(
-      adminTransaction(async (ctx) => {
-        await createPriceTransaction(
-          {
-            price: {
-              name: 'Mismatched Type Price',
-              productId: nonDefaultProduct.id,
-              type: PriceType.SinglePayment,
-              unitPrice: 3500,
-              intervalUnit: null,
-              intervalCount: null,
-              trialPeriodDays: null,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              isDefault: false,
-              slug: `mismatched-type-price-${core.nanoid()}`,
-            },
+    const result = await adminTransaction(async (ctx) => {
+      await createPriceTransaction(
+        {
+          price: {
+            name: 'Mismatched Type Price',
+            productId: nonDefaultProduct.id,
+            type: PriceType.SinglePayment,
+            unitPrice: 3500,
+            intervalUnit: null,
+            intervalCount: null,
+            trialPeriodDays: null,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            isDefault: false,
+            slug: `mismatched-type-price-${core.nanoid()}`,
           },
-          {
-            ...ctx,
-            livemode: true,
-            organizationId: organization.id,
-          }
-        )
-      })
-    ).rejects.toThrow(
-      'Cannot create price of a different type than the existing prices for the product'
-    )
+        },
+        {
+          ...ctx,
+          livemode: true,
+          organizationId: organization.id,
+        }
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot create price of a different type than the existing prices for the product'
+      )
+    }
   })
 })
 
@@ -2571,50 +2578,52 @@ describe('createProductTransaction', () => {
     const featureIds = features.map((f) => f.id)
 
     // Test: Attempting to create a usage price with featureIds should throw
-    await expect(
-      comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await createProductTransaction(
-            {
-              product: {
-                name: 'Test Product Usage Price with Features',
-                description: 'Test Description',
-                active: true,
-                imageURL: null,
-                singularQuantityLabel: 'singular',
-                pluralQuantityLabel: 'plural',
-                pricingModelId: sourcePricingModel.id,
-                default: false,
-                slug: `flowglad-test-product-price+${core.nanoid()}`,
-              },
-              prices: [
-                {
-                  name: 'Usage Price',
-                  type: PriceType.Usage,
-                  intervalCount: 1,
-                  intervalUnit: IntervalUnit.Month,
-                  unitPrice: 100,
-                  trialPeriodDays: null,
-                  active: true,
-                  usageMeterId: usageMeter.id,
-                  usageEventsPerUnit: 1,
-                  isDefault: true,
-                  slug: `flowglad-test-usage-price+${core.nanoid()}`,
-                },
-              ],
-              featureIds, // This should cause an error
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const txResult = await createProductTransaction(
+          {
+            product: {
+              name: 'Test Product Usage Price with Features',
+              description: 'Test Description',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'singular',
+              pluralQuantityLabel: 'plural',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        {
-          apiKey: org1ApiKeyToken,
-        }
-      )
-    ).rejects.toThrow(
-      'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+            prices: [
+              {
+                name: 'Usage Price',
+                type: PriceType.Usage,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 100,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: usageMeter.id,
+                usageEventsPerUnit: 1,
+                isDefault: true,
+                slug: `flowglad-test-usage-price+${core.nanoid()}`,
+              },
+            ],
+            featureIds, // This should cause an error
+          },
+          params
+        )
+        return Result.ok(txResult)
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
     )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+      )
+    }
   })
 
   it('should create a product with a usage price when there are no featureIds', async () => {
@@ -2730,50 +2739,52 @@ describe('createProductTransaction', () => {
       livemodeToggleFeatureB.id,
     ]
 
-    await expect(
-      comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await createProductTransaction(
-            {
-              product: {
-                name: 'Single Payment Product with Toggle Features',
-                description: 'Test Description',
-                active: true,
-                imageURL: null,
-                singularQuantityLabel: 'singular',
-                pluralQuantityLabel: 'plural',
-                pricingModelId: sourcePricingModel.id,
-                default: false,
-                slug: `flowglad-test-product+${core.nanoid()}`,
-              },
-              prices: [
-                {
-                  name: 'One-time Payment',
-                  type: PriceType.SinglePayment,
-                  intervalCount: null,
-                  intervalUnit: null,
-                  unitPrice: 9900,
-                  trialPeriodDays: null,
-                  active: true,
-                  usageMeterId: null,
-                  usageEventsPerUnit: null,
-                  isDefault: true,
-                  slug: `flowglad-test-price+${core.nanoid()}`,
-                },
-              ],
-              featureIds: toggleFeatureIds,
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const txResult = await createProductTransaction(
+          {
+            product: {
+              name: 'Single Payment Product with Toggle Features',
+              description: 'Test Description',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'singular',
+              pluralQuantityLabel: 'plural',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-test-product+${core.nanoid()}`,
             },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        {
-          apiKey: org1ApiKeyToken,
-        }
-      )
-    ).rejects.toThrow(
-      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+            prices: [
+              {
+                name: 'One-time Payment',
+                type: PriceType.SinglePayment,
+                intervalCount: null,
+                intervalUnit: null,
+                unitPrice: 9900,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                isDefault: true,
+                slug: `flowglad-test-price+${core.nanoid()}`,
+              },
+            ],
+            featureIds: toggleFeatureIds,
+          },
+          params
+        )
+        return Result.ok(txResult)
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
     )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+      )
+    }
   })
 
   it('should allow creating a SinglePayment product with usage credit grant features', async () => {
@@ -3067,23 +3078,25 @@ describe('editProductTransaction - Feature Updates', () => {
 
     const toggleFeatureIds = [features[0].id]
 
-    await expect(
-      comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: { id: singlePaymentProduct.id },
-              featureIds: toggleFeatureIds,
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
-    ).rejects.toThrow(
-      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const txResult = await editProductTransaction(
+          {
+            product: { id: singlePaymentProduct.id },
+            featureIds: toggleFeatureIds,
+          },
+          params
+        )
+        return Result.ok(txResult)
+      },
+      { apiKey: apiKeyToken }
     )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+      )
+    }
   })
 
   it('should allow adding usage credit grant features to a SinglePayment product', async () => {
@@ -3903,26 +3916,25 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       ).unwrap()
 
       // Try to update product slug to conflict with existing price slug
-      await expect(
-        comprehensiveAuthenticatedTransaction(
-          async (params) => {
-            const txResult = await editProductTransaction(
-              {
-                product: {
-                  id: regularProductId,
-                  name: 'Updated Regular Product',
-                  slug: 'target-slug', // This conflicts with other product's price slug
-                  active: true,
-                  default: false,
-                },
+      const result = await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                slug: 'target-slug', // This conflicts with other product's price slug
+                active: true,
+                default: false,
               },
-              params
-            )
-            return Result.ok(txResult)
-          },
-          { apiKey: apiKeyToken }
-        )
-      ).rejects.toThrow()
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+      expect(Result.isError(result)).toBe(true)
 
       // Verify product slug was not updated
       const updatedProduct = (
@@ -3955,26 +3967,25 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should not sync slug for default products', async () => {
       // Use the default product from setupOrg (already exists in beforeEach)
       // Try to update default product slug (should be blocked by existing validation)
-      await expect(
-        comprehensiveAuthenticatedTransaction(
-          async (params) => {
-            const txResult = await editProductTransaction(
-              {
-                product: {
-                  id: defaultProductId,
-                  name: 'Updated Default Product',
-                  slug: 'new-default-slug',
-                  active: true,
-                  default: true,
-                },
+      const result = await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: defaultProductId,
+                name: 'Updated Default Product',
+                slug: 'new-default-slug',
+                active: true,
+                default: true,
               },
-              params
-            )
-            return Result.ok(txResult)
-          },
-          { apiKey: apiKeyToken }
-        )
-      ).rejects.toThrow()
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+      expect(Result.isError(result)).toBe(true)
 
       // Verify product slug was not updated
       const updatedProduct = (

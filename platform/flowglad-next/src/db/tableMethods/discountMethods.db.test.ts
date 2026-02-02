@@ -55,8 +55,8 @@ describe('insertDiscount uniqueness constraints', () => {
       })
     ).unwrap()
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      try {
         await insertDiscount(
           {
             organizationId: organization1.id,
@@ -72,8 +72,12 @@ describe('insertDiscount uniqueness constraints', () => {
           },
           transaction
         )
-      })
-    ).rejects.toThrow()
+        return Result.ok('no-error' as const)
+      } catch (error) {
+        return Result.err(error as Error)
+      }
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('should allow two discounts with the same code but different pricingModelId', async () => {

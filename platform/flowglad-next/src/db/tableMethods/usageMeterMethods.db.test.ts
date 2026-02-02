@@ -121,16 +121,15 @@ describe('usageMeterMethods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when updating a non-existent usage meter', async () => {
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updateUsageMeter(
-            { id: 'non-existent-id', name: 'Name' },
-            ctx
-          )
-        })
-      ).rejects.toThrow()
+    it('should return Result.err when updating a non-existent usage meter', async () => {
+      const result = await adminTransaction(async (ctx) => {
+        await updateUsageMeter(
+          { id: 'non-existent-id', name: 'Name' },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -280,26 +279,26 @@ describe('usageMeterMethods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when inserting a usage meter with a non-existent pricingModelId', async () => {
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertUsageMeter(
-            {
-              organizationId,
-              name: 'Bad',
-              livemode: true,
-              pricingModelId: 'fake',
-              slug: 'bad',
-            },
-            ctx
-          )
-          await selectUsageMetersCursorPaginated({
-            input: { pageSize: 10 },
-            transaction,
-          })
+    it('should return Result.err when inserting a usage meter with a non-existent pricingModelId', async () => {
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertUsageMeter(
+          {
+            organizationId,
+            name: 'Bad',
+            livemode: true,
+            pricingModelId: 'fake',
+            slug: 'bad',
+          },
+          ctx
+        )
+        await selectUsageMetersCursorPaginated({
+          input: { pageSize: 10 },
+          transaction,
         })
-      ).rejects.toThrow()
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -381,24 +380,27 @@ describe('usageMeterMethods', () => {
 
       // Insert this fake customer record to make selectCustomerById work
       // but with a pricingModelId that doesn't exist
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Note: selectUsageMeterBySlugAndCustomerId internally looks up the customer
-          // and then their pricing model. We're testing the case where both:
-          // - the customer's pricingModelId doesn't exist
-          // - no default pricing model exists for the org
-          // To properly test this, we need to mock or override the customer lookup
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Note: selectUsageMeterBySlugAndCustomerId internally looks up the customer
+        // and then their pricing model. We're testing the case where both:
+        // - the customer's pricingModelId doesn't exist
+        // - no default pricing model exists for the org
+        // To properly test this, we need to mock or override the customer lookup
 
-          // For now, we test by directly calling selectPricingModelForCustomer with the fake data
-          await selectPricingModelForCustomer(
-            customerWithInvalidPricingModel,
-            transaction
-          )
-        })
-      ).rejects.toThrow(
-        `No default pricing model found for organization ${fakeOrgId}`
-      )
+        // For now, we test by directly calling selectPricingModelForCustomer with the fake data
+        await selectPricingModelForCustomer(
+          customerWithInvalidPricingModel,
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          `No default pricing model found for organization ${fakeOrgId}`
+        )
+      }
     })
   })
 

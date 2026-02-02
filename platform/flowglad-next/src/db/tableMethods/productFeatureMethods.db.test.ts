@@ -1340,24 +1340,21 @@ describe('insertProductFeature', () => {
   })
 
   it('should throw an error when productId does not exist', async () => {
-    ;(
-      await adminTransaction(async (ctx) => {
-        const nonExistentProductId = `prod_${core.nanoid()}`
+    const nonExistentProductId = `prod_${core.nanoid()}`
 
-        await expect(
-          insertProductFeature(
-            {
-              productId: nonExistentProductId,
-              featureId: featureA.id,
-              organizationId: organization.id,
-              livemode: true,
-            },
-            ctx
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async (ctx) => {
+      await insertProductFeature(
+        {
+          productId: nonExistentProductId,
+          featureId: featureA.id,
+          organizationId: organization.id,
+          livemode: true,
+        },
+        ctx
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 })
 
@@ -1442,26 +1439,23 @@ describe('bulkInsertProductFeatures', () => {
   })
 
   it('should throw an error if a product does not exist for derivation', async () => {
-    ;(
-      await adminTransaction(async (ctx) => {
-        const nonExistentProductId = `prod_${core.nanoid()}`
+    const nonExistentProductId = `prod_${core.nanoid()}`
 
-        await expect(
-          bulkInsertProductFeatures(
-            [
-              {
-                productId: nonExistentProductId,
-                featureId: featureA.id,
-                organizationId: organization.id,
-                livemode: true,
-              },
-            ],
-            ctx
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async (ctx) => {
+      await bulkInsertProductFeatures(
+        [
+          {
+            productId: nonExistentProductId,
+            featureId: featureA.id,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        ctx
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 })
 
