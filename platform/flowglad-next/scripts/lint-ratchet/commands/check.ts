@@ -133,12 +133,19 @@ const checkPackageForRule = async (
   }
 }
 
+interface PrintOptions {
+  verbose: boolean
+}
+
+const MAX_FILES_TO_SHOW = 5
+
 /**
  * Print results for a single package
  */
 const printPackageResult = (
   result: PackageCheckResult,
-  ruleName: string
+  ruleName: string,
+  options: PrintOptions
 ): void => {
   const status = result.passed ? '✓' : '✗'
   console.log(`\n${status} ${result.packagePath}`)
@@ -157,28 +164,57 @@ const printPackageResult = (
 
   if (result.filesAtLimit.length > 0) {
     console.log(`\n  At baseline limit (warnings):`)
-    for (const file of result.filesAtLimit) {
+    const filesToShow = options.verbose
+      ? result.filesAtLimit
+      : result.filesAtLimit.slice(0, MAX_FILES_TO_SHOW)
+    for (const file of filesToShow) {
       console.log(`    ⚠ ${file.path}: ${file.count} violations`)
+    }
+    if (
+      !options.verbose &&
+      result.filesAtLimit.length > MAX_FILES_TO_SHOW
+    ) {
+      console.log(
+        `    ... and ${result.filesAtLimit.length - MAX_FILES_TO_SHOW} more files at limit`
+      )
     }
   }
 
   if (result.filesImproved.length > 0) {
     console.log(`\n  Improved:`)
-    for (const file of result.filesImproved) {
+    const filesToShow = options.verbose
+      ? result.filesImproved
+      : result.filesImproved.slice(0, MAX_FILES_TO_SHOW)
+    for (const file of filesToShow) {
       console.log(
         `    ↓ ${file.path}: ${file.baseline} → ${file.current}`
+      )
+    }
+    if (
+      !options.verbose &&
+      result.filesImproved.length > MAX_FILES_TO_SHOW
+    ) {
+      console.log(
+        `    ... and ${result.filesImproved.length - MAX_FILES_TO_SHOW} more files improved`
       )
     }
   }
 }
 
+export interface CheckCommandOptions {
+  verbose?: boolean
+}
+
 /**
  * Main check command - compares current violations to baseline across all packages
  */
-export const checkCommand = async (): Promise<{
+export const checkCommand = async (
+  options: CheckCommandOptions = {}
+): Promise<{
   passed: boolean
   summary: CheckSummary
 }> => {
+  const { verbose = false } = options
   const config = loadConfig()
   const packages = resolvePackagePaths(config)
 
@@ -214,7 +250,7 @@ export const checkCommand = async (): Promise<{
       config.exclude
     )
     packageResults.push(result)
-    printPackageResult(result, rule.name)
+    printPackageResult(result, rule.name, { verbose })
   }
 
   // Calculate totals
