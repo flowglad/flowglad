@@ -56,14 +56,13 @@ import {
 import core from '@/utils/core'
 import {
   getCustomerBillingPortalEmail,
-  getCustomerBillingPortalOrganizationId,
   setCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
 import { maskEmail } from '@/utils/email'
 import {
   customerProtectedProcedure,
-  protectedProcedure,
+  customerSessionProcedure,
   publicProcedure,
   router,
 } from '../trpc'
@@ -645,50 +644,44 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     ).unwrap()
   })
 
-// Get all customers for an email at an organization
-// Uses protectedProcedure instead of customerProtectedProcedure because
-// this is called before a customer is selected (on the select-customer page)
-const getCustomersForUserAndOrganizationProcedure = protectedProcedure
-  .input(z.object({}))
-  .output(
-    z.object({
-      customers: customerClientSelectSchema.array(),
-    })
-  )
-  .query(async ({ ctx }) => {
-    if (!ctx.user) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'User is required',
+/**
+ * Get all customers for the authenticated user at the organization.
+ *
+ * Uses customerSessionProcedure instead of customerProtectedProcedure because
+ * this is called before a customer is selected (on the select-customer page).
+ * The organizationId is read from the customer session's contextOrganizationId,
+ * which was set during OTP/magic-link verification.
+ */
+const getCustomersForUserAndOrganizationProcedure =
+  customerSessionProcedure
+    .input(z.object({}))
+    .output(
+      z.object({
+        customers: customerClientSelectSchema.array(),
       })
-    }
-
-    const userId = ctx.user.id
-    const organizationId =
-      await getCustomerBillingPortalOrganizationId()
-    if (!organizationId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'organizationId is required',
-      })
-    }
-
-    // Note: Intentionally includes archived customers - they should still be able
-    // to access the billing portal to view historical invoices and billing data
-    const customers = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          {
-            userId,
-            organizationId,
-            livemode: true,
-          },
-          transaction
-        )
-      }
     )
-    return { customers }
-  })
+    .query(async ({ ctx }) => {
+      const userId = ctx.user.id
+      // organizationId comes from customer session's contextOrganizationId
+      // (set during OTP verification, validated by customerSessionProcedure)
+      const { organizationId } = ctx
+
+      // Note: Intentionally includes archived customers - they should still be able
+      // to access the billing portal to view historical invoices and billing data
+      const customers = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomers(
+            {
+              userId,
+              organizationId,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+      return { customers }
+    })
 
 const createCheckoutSessionWithPriceProcedure =
   customerProtectedProcedure

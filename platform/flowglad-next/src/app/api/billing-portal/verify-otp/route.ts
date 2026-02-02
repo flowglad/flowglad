@@ -1,8 +1,14 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
+  adminTransaction,
+  adminTransactionWithResult,
+} from '@/db/adminTransaction'
+import { updateSessionContextOrganizationId } from '@/db/tableMethods/betterAuthSchemaMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { CUSTOMER_COOKIE_PREFIX } from '@/utils/auth/constants'
+import {
+  clearCustomerBillingPortalEmail,
   getCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
@@ -134,14 +140,57 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Forward all Set-Cookie headers from BetterAuth's response
+    const setCookieHeaders = authResponse.headers.getSetCookie()
+
+    // Extract the session token from Set-Cookie headers to update session context
+    // Cookie format: customer.session_token=<token>; ...
+    const sessionTokenCookieName = `${CUSTOMER_COOKIE_PREFIX}.session_token`
+    let sessionToken: string | null = null
+
+    for (const cookie of setCookieHeaders) {
+      if (cookie.startsWith(`${sessionTokenCookieName}=`)) {
+        // Extract the token value (before the first semicolon)
+        const tokenMatch = cookie.match(
+          new RegExp(`^${sessionTokenCookieName}=([^;]+)`)
+        )
+        if (tokenMatch) {
+          sessionToken = decodeURIComponent(tokenMatch[1])
+        }
+        break
+      }
+    }
+
+    // Update the session's contextOrganizationId in the database
+    // This makes the organization context authoritative from the session, not cookies
+    if (sessionToken) {
+      try {
+        await adminTransaction(async ({ transaction }) => {
+          return updateSessionContextOrganizationId(
+            sessionToken,
+            organizationId,
+            transaction
+          )
+        })
+      } catch (error) {
+        // Log but don't fail the request - session will work without context
+        // and fallback to cookie-based context
+        console.error(
+          'Failed to set contextOrganizationId on session:',
+          error
+        )
+      }
+    }
+
+    // Clear the transient email cookie after successful verification
+    await clearCustomerBillingPortalEmail()
+
     // Create success response and forward Set-Cookie headers from BetterAuth
     const response = NextResponse.json({
       success: true,
       redirectUrl: `/billing-portal/${organizationId}/${customerId}`,
     })
 
-    // Forward all Set-Cookie headers from BetterAuth's response
-    const setCookieHeaders = authResponse.headers.getSetCookie()
     for (const cookie of setCookieHeaders) {
       response.headers.append('Set-Cookie', cookie)
     }

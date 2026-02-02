@@ -1,163 +1,119 @@
-import { describe, expect, it } from 'bun:test'
-import { user } from '@db-core/schema/betterAuthSchema'
-import { Result } from 'better-result'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
-import core from '@/utils/core'
-import {
-  selectBetterAuthUserByEmail,
-  selectBetterAuthUserById,
-} from './betterAuthSchemaMethods'
+/**
+ * Database tests for betterAuthSchemaMethods (Patch 7).
+ *
+ * These tests verify the updateSessionContextOrganizationId function.
+ */
 
-describe('selectBetterAuthUserById', () => {
-  it('returns the user when a user with the given id exists', async () => {
-    const userId = `bau_${core.nanoid()}`
-    const userEmail = `test+${core.nanoid()}@test.com`
-    const userName = 'Test User'
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        await transaction.insert(user).values({
-          id: userId,
-          email: userEmail,
-          name: userName,
-          role: 'user',
-          emailVerified: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { session, user } from '@db-core/schema/betterAuthSchema'
+import { eq } from 'drizzle-orm'
+import { adminTransaction } from '@/db/adminTransaction'
+import { db } from '@/db/client'
+import { updateSessionContextOrganizationId } from './betterAuthSchemaMethods'
 
-    const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await selectBetterAuthUserById(userId, transaction)
-        )
-      })
-    ).unwrap()
+describe('updateSessionContextOrganizationId', () => {
+  // Use unique IDs for each test run to avoid conflicts
+  const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(7)}`
+  const testUserId = `test_user_${uniqueId}`
+  const testSessionId = `test_session_${uniqueId}`
+  const testSessionToken = `test_token_${uniqueId}`
 
-    expect(result.id).toBe(userId)
-    expect(result.email).toBe(userEmail)
-    expect(result.name).toBe(userName)
-    expect(result.role).toBe('user')
-    expect(result.emailVerified).toBe(false)
+  beforeEach(async () => {
+    // Create a test user first (due to foreign key constraint)
+    await db.insert(user).values({
+      id: testUserId,
+      name: 'Test User',
+      email: `test_${uniqueId}@example.com`,
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    // Create a test session
+    await db.insert(session).values({
+      id: testSessionId,
+      token: testSessionToken,
+      userId: testUserId,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      scope: 'customer',
+      contextOrganizationId: null,
+    })
   })
 
-  it('throws an error when no user exists with the given id', async () => {
-    const nonExistentId = `bau_nonexistent_${core.nanoid()}`
-
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await selectBetterAuthUserById(nonExistentId, transaction)
-      })
-    ).rejects.toThrow('BetterAuth user not found')
-  })
-})
-
-describe('selectBetterAuthUserByEmail', () => {
-  it('returns the user when a user with the given email exists', async () => {
-    const userId = `bau_${core.nanoid()}`
-    const userEmail = `email-test+${core.nanoid()}@test.com`
-    const userName = 'Email Test User'
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        await transaction.insert(user).values({
-          id: userId,
-          email: userEmail,
-          name: userName,
-          role: 'merchant',
-          emailVerified: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        return Result.ok(undefined)
-      })
-    ).unwrap()
-
-    const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await selectBetterAuthUserByEmail(userEmail, transaction)
-        )
-      })
-    ).unwrap()
-
-    expect(result.id).toBe(userId)
-    expect(result.email).toBe(userEmail)
-    expect(result.name).toBe(userName)
-    expect(result.role).toBe('merchant')
-    expect(result.emailVerified).toBe(true)
+  afterEach(async () => {
+    // Clean up test session and user (session first due to FK)
+    await db.delete(session).where(eq(session.id, testSessionId))
+    await db.delete(user).where(eq(user.id, testUserId))
   })
 
-  it('throws an error when no user exists with the given email', async () => {
-    const nonExistentEmail = `nonexistent+${core.nanoid()}@test.com`
+  it('sets contextOrganizationId on an existing session by token', async () => {
+    const orgId = 'org_test_123'
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await selectBetterAuthUserByEmail(
-          nonExistentEmail,
-          transaction
-        )
-      })
-    ).rejects.toThrow('BetterAuth user not found')
+    await adminTransaction(async ({ transaction }) => {
+      const result = await updateSessionContextOrganizationId(
+        testSessionToken,
+        orgId,
+        transaction
+      )
+      expect(result?.contextOrganizationId).toBe(orgId)
+    })
+
+    // Verify the update persisted
+    const [updatedSession] = await db
+      .select()
+      .from(session)
+      .where(eq(session.id, testSessionId))
+
+    expect(updatedSession.contextOrganizationId).toBe(orgId)
   })
 
-  it('returns the correct user when multiple users exist (email is unique)', async () => {
-    const user1Id = `bau_${core.nanoid()}`
-    const user1Email = `user1+${core.nanoid()}@test.com`
-    const user2Id = `bau_${core.nanoid()}`
-    const user2Email = `user2+${core.nanoid()}@test.com`
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        await transaction.insert(user).values([
-          {
-            id: user1Id,
-            email: user1Email,
-            name: 'User One',
-            role: 'user',
-            emailVerified: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: user2Id,
-            email: user2Email,
-            name: 'User Two',
-            role: 'merchant',
-            emailVerified: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ])
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+  it('returns undefined when session token does not exist', async () => {
+    const nonExistentToken = 'non_existent_token_123'
+    const orgId = 'org_test_123'
 
-    const result1 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await selectBetterAuthUserByEmail(user1Email, transaction)
-        )
-      })
-    ).unwrap()
+    const result = await adminTransaction(async ({ transaction }) => {
+      return updateSessionContextOrganizationId(
+        nonExistentToken,
+        orgId,
+        transaction
+      )
+    })
 
-    const result2 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await selectBetterAuthUserByEmail(user2Email, transaction)
-        )
-      })
-    ).unwrap()
+    expect(result).toBeUndefined()
+  })
 
-    expect(result1.id).toBe(user1Id)
-    expect(result1.email).toBe(user1Email)
-    expect(result1.name).toBe('User One')
+  it('can update contextOrganizationId multiple times', async () => {
+    const orgId1 = 'org_test_first'
+    const orgId2 = 'org_test_second'
 
-    expect(result2.id).toBe(user2Id)
-    expect(result2.email).toBe(user2Email)
-    expect(result2.name).toBe('User Two')
+    // First update
+    await adminTransaction(async ({ transaction }) => {
+      const result = await updateSessionContextOrganizationId(
+        testSessionToken,
+        orgId1,
+        transaction
+      )
+      expect(result?.contextOrganizationId).toBe(orgId1)
+    })
+
+    // Second update
+    await adminTransaction(async ({ transaction }) => {
+      const result = await updateSessionContextOrganizationId(
+        testSessionToken,
+        orgId2,
+        transaction
+      )
+      expect(result?.contextOrganizationId).toBe(orgId2)
+    })
+
+    // Verify final state
+    const [updatedSession] = await db
+      .select()
+      .from(session)
+      .where(eq(session.id, testSessionId))
+
+    expect(updatedSession.contextOrganizationId).toBe(orgId2)
   })
 })

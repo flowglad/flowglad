@@ -274,6 +274,72 @@ export const devOnlyProcedure = baseProcedure
 export const customerProtectedProcedure =
   baseProcedure.use(isCustomerAuthed)
 
+/**
+ * Authentication middleware for customer billing portal operations that don't require customerId.
+ * This is for operations like listing customers where the user has a valid customer session
+ * but hasn't yet selected which customer profile to view.
+ *
+ * This middleware:
+ * - Rejects API key authentication (customer routes are user-only)
+ * - Requires a logged-in user with customer session (scope='customer')
+ * - Gets the organization ID from the customer session's contextOrganizationId
+ * - Does NOT require customerId in the input
+ *
+ * @returns Context with user, organization, and authScope='customer'
+ * @throws {TRPCError} UNAUTHORIZED if no user or wrong session scope
+ */
+const isCustomerSessionAuthed = t.middleware(
+  async ({ next, ctx }) => {
+    // API keys are merchant-only; reject them for customer procedures
+    const { isApi } = ctx as TRPCApiContext
+    if (isApi) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' })
+    }
+
+    // Verify session scope is 'customer' (customer context only accepts customer sessions)
+    const customerCtx = ctx as TRPCCustomerContext
+    const authScope = customerCtx.authScope
+    if (authScope !== 'customer') {
+      throw new TRPCError({ code: 'UNAUTHORIZED' })
+    }
+
+    const user = customerCtx.user
+    if (!user) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' })
+    }
+
+    // Get organizationId from customer session's contextOrganizationId
+    const organizationId = customerCtx.organizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Customer session missing organizationId context',
+      })
+    }
+
+    return next({
+      ctx: {
+        user,
+        organization: customerCtx.organization,
+        path: customerCtx.path,
+        environment: 'live' as const,
+        organizationId,
+        livemode: true,
+        authScope: 'customer' as const,
+      },
+    })
+  }
+)
+
+/**
+ * Protected procedure for customer operations that don't require a specific customerId.
+ * Use this for operations like listing customers for a user within an organization.
+ * For operations on a specific customer, use customerProtectedProcedure instead.
+ */
+export const customerSessionProcedure = baseProcedure.use(
+  isCustomerSessionAuthed
+)
+
 export const featureFlaggedProcedure = (featureFlag: FeatureFlag) => {
   return protectedProcedure.use(({ next, ctx }) => {
     const { organization } = ctx
