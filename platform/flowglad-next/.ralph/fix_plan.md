@@ -1,3 +1,0 @@
-# Ralph Fix Plan
-
-
