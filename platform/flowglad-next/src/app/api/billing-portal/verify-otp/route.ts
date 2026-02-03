@@ -167,10 +167,16 @@ export async function POST(request: NextRequest) {
     // CRITICAL: This is required for proper authorization - customer procedures read from session context
     if (sessionToken) {
       try {
+        // BetterAuth stores the raw token in the database, but the cookie contains
+        // a signed token (rawToken.signature). Extract just the raw token part.
+        const rawToken = sessionToken.includes('.')
+          ? sessionToken.split('.')[0]
+          : sessionToken
+
         const updatedSession = await adminTransaction(
           async ({ transaction }) => {
             return updateSessionContextOrganizationId(
-              sessionToken,
+              rawToken,
               organizationId,
               transaction
             )

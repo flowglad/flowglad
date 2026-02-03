@@ -12,7 +12,7 @@ import type { User } from 'better-auth'
 import { and, desc, eq, isNull, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
 import { z } from 'zod'
-import { getSession } from '@/utils/auth'
+import { getCustomerSession, getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { parseUnkeyMeta, unkey } from '@/utils/unkey'
@@ -440,13 +440,39 @@ export async function getDatabaseAuthenticationInfo(params: {
     )
   }
 
-  const sessionResult = await getSession()
-  if (!sessionResult) {
-    throw new Error('No user found for a non-API key transaction')
+  // Try merchant session first
+  const merchantSession = await getSession()
+  if (merchantSession) {
+    return await databaseAuthenticationInfoForWebappRequest(
+      merchantSession.user as User,
+      __testOnlyOrganizationId,
+      customerId
+    )
   }
-  return await databaseAuthenticationInfoForWebappRequest(
-    sessionResult.user as User,
-    __testOnlyOrganizationId,
-    customerId
-  )
+
+  // If no merchant session, try customer session for billing portal
+  const customerSession = await getCustomerSession()
+  if (customerSession) {
+    // Customer session - use the customer billing portal flow
+    // Get organizationId from customer session's contextOrganizationId
+    const customerOrganizationId = (
+      customerSession.session as
+        | { contextOrganizationId?: string }
+        | undefined
+    )?.contextOrganizationId
+
+    if (!customerOrganizationId) {
+      throw new Error(
+        'Customer session missing contextOrganizationId for authenticated transaction'
+      )
+    }
+
+    return await dbInfoForCustomerBillingPortal({
+      betterAuthId: customerSession.user.id,
+      organizationId: customerOrganizationId,
+      customerId,
+    })
+  }
+
+  throw new Error('No user found for a non-API key transaction')
 }

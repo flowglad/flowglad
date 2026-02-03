@@ -30,6 +30,12 @@ const publicRoutes = [
    */
   '/api/trpc/customerBillingPortal.requestMagicLink',
   '/api/trpc/customerBillingPortal.sendOTPToCustomer',
+  /**
+   * Customer TRPC routes are served at /api/trpc/customer/*
+   * These public procedures need to be accessible without customer session
+   */
+  '/api/trpc/customer/customerBillingPortal.requestMagicLink',
+  '/api/trpc/customer/customerBillingPortal.sendOTPToCustomer',
   '/api/trpc/checkoutSessions.public.(.*)',
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/utils.logout',

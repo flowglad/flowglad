@@ -1,4 +1,8 @@
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import {
+  CUSTOMER_COOKIE_PREFIX,
+  MERCHANT_COOKIE_PREFIX,
+} from '@/utils/auth/constants'
 import { customerAuth } from '@/utils/auth/customerAuth'
 import { merchantAuth } from '@/utils/auth/merchantAuth'
 import { clearCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
@@ -13,6 +17,10 @@ export const logoutMerchant = publicProcedure.mutation(async () => {
   await merchantAuth.api.signOut({
     headers: await headers(),
   })
+  // Explicitly clear merchant session cookies since TRPC can't forward Set-Cookie headers
+  const cookieStore = await cookies()
+  cookieStore.delete(`${MERCHANT_COOKIE_PREFIX}.session_token`)
+  cookieStore.delete(`${MERCHANT_COOKIE_PREFIX}.session_data`)
   return { success: true }
 })
 
@@ -26,6 +34,10 @@ export const logoutCustomer = publicProcedure.mutation(async () => {
   await customerAuth.api.signOut({
     headers: await headers(),
   })
+  // Explicitly clear customer session cookies since TRPC can't forward Set-Cookie headers
+  const cookieStore = await cookies()
+  cookieStore.delete(`${CUSTOMER_COOKIE_PREFIX}.session_token`)
+  cookieStore.delete(`${CUSTOMER_COOKIE_PREFIX}.session_data`)
   return { success: true }
 })
 

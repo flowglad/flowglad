@@ -23,11 +23,14 @@ interface MiddlewareLogicParams {
 /**
  * Determines whether a route is a billing portal route.
  * Billing portal routes are under /billing-portal/* or are customerBillingPortal TRPC routes.
+ * Customer TRPC routes are served at both /api/trpc/customerBillingPortal.* (legacy)
+ * and /api/trpc/customer/customerBillingPortal.* (new dual-scope endpoint).
  */
 const isBillingPortalRoute = (pathName: string): boolean => {
   return (
     pathName.startsWith('/billing-portal/') ||
-    pathName.startsWith('/api/trpc/customerBillingPortal.')
+    pathName.startsWith('/api/trpc/customerBillingPortal.') ||
+    pathName.startsWith('/api/trpc/customer/')
   )
 }
 
