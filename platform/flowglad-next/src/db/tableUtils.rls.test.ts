@@ -197,9 +197,9 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
           )
         },
         { apiKey: org1ApiKeyToken }
-      )
-    } catch (error: any) {
-      expect(error.message).toContain(
+      ).then((r) => r.unwrap())
+    } catch (error: unknown) {
+      expect((error as Error).message).toContain(
         'Failed query: insert into "pricing_models"'
       )
     }

@@ -117,21 +117,23 @@ export const initiateStripeConnectBehavior = defineBehavior({
   ): Promise<InitiateStripeConnectResult> => {
     const stripeAccountId = `acct_test_${core.nanoid()}`
 
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            stripeAccountId,
-            onboardingStatus:
-              BusinessOnboardingStatus.PartiallyOnboarded,
-          },
-          transaction
-        )
-        return Result.ok(null)
-      },
-      { livemode: true }
-    )
+    ;(
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: prev.organization.id,
+              stripeAccountId,
+              onboardingStatus:
+                BusinessOnboardingStatus.PartiallyOnboarded,
+            },
+            transaction
+          )
+          return Result.ok(null)
+        },
+        { livemode: true }
+      )
+    ).unwrap()
 
     return {
       ...prev,

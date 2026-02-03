@@ -97,18 +97,20 @@ describe('organizationsRouter - updateFocusedPricingModel', () => {
     membership = userApiKeySetup.membership
 
     // Set initial focused membership and pricing model
-    await adminTransaction(async ({ transaction }) => {
-      await updateMembership(
-        {
-          id: membership.id,
-          focused: true,
-          focusedPricingModelId: livePricingModel.id,
-          livemode: true,
-        },
-        transaction
-      )
-      return Result.ok(null)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateMembership(
+          {
+            id: membership.id,
+            focused: true,
+            focusedPricingModelId: livePricingModel.id,
+            livemode: true,
+          },
+          transaction
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   afterEach(async () => {

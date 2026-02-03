@@ -1109,8 +1109,7 @@ const retryBillingRunProcedure = protectedProcedure
             },
             transaction
           )
-          // Unwrap the Result from createBillingRun and wrap in Result.ok
-          return Result.ok(billingRunResult.unwrap())
+          return billingRunResult
         },
         { apiKey: ctx.apiKey }
       )

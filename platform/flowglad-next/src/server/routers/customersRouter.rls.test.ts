@@ -131,22 +131,28 @@ describe('customersRouter.archive', () => {
     expect(result.customer.archived).toBe(true)
 
     // Assert: both subscriptions are canceled
-    await adminTransaction(async ({ transaction }) => {
-      const updatedSub1 = (
-        await selectSubscriptionById(subscription1.id, transaction)
-      ).unwrap()
-      const updatedSub2 = (
-        await selectSubscriptionById(subscription2.id, transaction)
-      ).unwrap()
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const updatedSub1 = (
+          await selectSubscriptionById(subscription1.id, transaction)
+        ).unwrap()
+        const updatedSub2 = (
+          await selectSubscriptionById(subscription2.id, transaction)
+        ).unwrap()
 
-      expect(updatedSub1.status).toBe(SubscriptionStatus.Canceled)
-      expect(updatedSub1.cancellationReason).toBe('customer_archived')
+        expect(updatedSub1.status).toBe(SubscriptionStatus.Canceled)
+        expect(updatedSub1.cancellationReason).toBe(
+          'customer_archived'
+        )
 
-      expect(updatedSub2.status).toBe(SubscriptionStatus.Canceled)
-      expect(updatedSub2.cancellationReason).toBe('customer_archived')
+        expect(updatedSub2.status).toBe(SubscriptionStatus.Canceled)
+        expect(updatedSub2.cancellationReason).toBe(
+          'customer_archived'
+        )
 
-      return Result.ok(null)
-    })
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   /**
