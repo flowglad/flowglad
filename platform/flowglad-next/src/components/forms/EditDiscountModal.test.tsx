@@ -191,12 +191,12 @@ describe('EditDiscountModal', () => {
 
   beforeEach(() => {
     mockMutateAsync.mockClear()
-    ;(useAuthenticatedContext as Mock).mockReturnValue({
+    ;(useAuthenticatedContext as Mock<any>).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,
     })
-    ;(trpc.discounts.update.useMutation as Mock).mockReturnValue(
+    ;(trpc.discounts.update.useMutation as Mock<any>).mockReturnValue(
       mockEditDiscount as any
     )
   })
@@ -256,7 +256,7 @@ describe('EditDiscountModal', () => {
           rawStringAmountToCountableCurrencyAmount
         ).toHaveBeenCalledWith('USD', '15.75')
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0][0]
+        const callArgs = mockMutateAsync.mock.calls[0]![0]
         expect(callArgs.discount.amountType).toBe(
           DiscountAmountType.Fixed
         )
@@ -276,7 +276,9 @@ describe('EditDiscountModal', () => {
       const mutateSpy = mock(() => {}).mockResolvedValue({
         success: true,
       })
-      ;(trpc.discounts.update.useMutation as Mock).mockReturnValue({
+      ;(
+        trpc.discounts.update.useMutation as Mock<any>
+      ).mockReturnValue({
         mutateAsync: mutateSpy,
       } as any)
 
@@ -293,7 +295,7 @@ describe('EditDiscountModal', () => {
 
       await waitFor(() => {
         expect(mutateSpy).toHaveBeenCalledTimes(1)
-        const payload = mutateSpy.mock.calls[0][0]
+        const payload = mutateSpy.mock.calls[0]![0]
         expect(payload.discount.amountType).toBe(
           DiscountAmountType.Percent
         )

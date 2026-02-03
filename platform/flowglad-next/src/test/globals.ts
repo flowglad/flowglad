@@ -10,6 +10,8 @@
  * Do not modify them directly in test code unless documented.
  */
 
+/// <reference path="../../../../node_modules/@testing-library/jest-dom/types/bun.d.ts" />
+
 declare global {
   // eslint-disable-next-line no-var
   /**

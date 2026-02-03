@@ -244,7 +244,7 @@ describe('scheduledAdjustmentHelpers', () => {
           (item) =>
             item.name &&
             item.name.startsWith('Future Item') &&
-            item.expiredAt !== null &&
+            item.expiredAt != null &&
             item.expiredAt <= Date.now()
         )
 
