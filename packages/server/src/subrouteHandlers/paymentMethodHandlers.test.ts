@@ -1,4 +1,4 @@
-import { describe, it } from 'bun:test'
+import { describe, it } from 'vitest'
 
 describe('getPaymentMethods handler', () => {
   it.skip('returns 405 for GET request', () => {

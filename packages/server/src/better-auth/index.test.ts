@@ -334,6 +334,7 @@ describe('flowgladPlugin', () => {
       'listResourceClaims',
       'getUsageMeterBalances',
       'getFeatureAccess',
+      'getPaymentMethods',
       'getPricingModel',
     ]
 
