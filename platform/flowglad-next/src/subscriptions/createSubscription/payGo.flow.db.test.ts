@@ -28,7 +28,7 @@ import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { CacheRecomputationContext } from '@/db/types'
-import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
+import { withDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
@@ -164,7 +164,7 @@ describe('Pay as You Go Workflow E2E', () => {
                 email: 'test@test.com',
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
               livemode: true,

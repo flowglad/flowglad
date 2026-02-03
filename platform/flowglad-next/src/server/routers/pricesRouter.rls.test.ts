@@ -30,6 +30,7 @@ import { productsRouter } from './productsRouter'
 
 describe('pricesRouter - Default Price Constraints', () => {
   let organizationId: string
+  let organization: import('@db-core/schema/organizations').Organization.Record
   let pricingModelId: string
   let defaultProductId: string
   let defaultPriceId: string
@@ -41,7 +42,7 @@ describe('pricesRouter - Default Price Constraints', () => {
     // Set up organization and pricing model with default product and price
     const result = (
       await adminTransaction(async (ctx) => {
-        const { organization } = await setupOrg()
+        const { organization: org } = await setupOrg()
 
         // Create pricing model with default product using the new bookkeeping function
         const bookkeepingResult = await createPricingModelBookkeeping(
@@ -53,7 +54,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           },
           {
             ...ctx,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
           }
         )
@@ -71,7 +72,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             externalId: null,
             pricingModelId:
               bookkeepingResult.unwrap().pricingModel.id,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
             active: true,
           },
@@ -86,7 +87,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             type: PriceType.Subscription,
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
-            currency: organization.defaultCurrency,
+            currency: org.defaultCurrency,
             livemode,
             active: true,
             name: 'Regular Price',
@@ -100,7 +101,8 @@ describe('pricesRouter - Default Price Constraints', () => {
         )
 
         return Result.ok({
-          organizationId: organization.id,
+          organization: org,
+          organizationId: org.id,
           pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
           defaultProductId:
             bookkeepingResult.unwrap().defaultProduct.id,
@@ -111,6 +113,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
     ).unwrap()
 
+    organization = result.organization
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
     defaultProductId = result.defaultProductId
@@ -330,6 +333,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -356,6 +360,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const apiCtx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -570,6 +575,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -606,6 +612,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1133,6 +1140,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
 
 describe('pricesRouter - API Contract Updates', () => {
   let organizationId: string
+  let organization: import('@db-core/schema/organizations').Organization.Record
   let pricingModelId: string
   let usageMeterId: string
   let regularProductId: string
@@ -1141,7 +1149,7 @@ describe('pricesRouter - API Contract Updates', () => {
   beforeEach(async () => {
     const result = (
       await adminTransaction(async (ctx) => {
-        const { organization } = await setupOrg()
+        const { organization: org } = await setupOrg()
 
         // Create pricing model with default product
         const bookkeepingResult = await createPricingModelBookkeeping(
@@ -1153,7 +1161,7 @@ describe('pricesRouter - API Contract Updates', () => {
           },
           {
             ...ctx,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
           }
         )
@@ -1166,7 +1174,7 @@ describe('pricesRouter - API Contract Updates', () => {
           {
             name: 'API Calls',
             slug: 'api-calls',
-            organizationId: organization.id,
+            organizationId: org.id,
             pricingModelId,
             livemode,
             aggregationType: UsageMeterAggregationType.Sum,
@@ -1186,7 +1194,7 @@ describe('pricesRouter - API Contract Updates', () => {
             pluralQuantityLabel: null,
             externalId: null,
             pricingModelId,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
             active: true,
           },
@@ -1194,7 +1202,8 @@ describe('pricesRouter - API Contract Updates', () => {
         )
 
         return Result.ok({
-          organizationId: organization.id,
+          organization: org,
+          organizationId: org.id,
           pricingModelId,
           usageMeterId: usageMeter.id,
           regularProductId: regularProduct.id,
@@ -1202,6 +1211,7 @@ describe('pricesRouter - API Contract Updates', () => {
       })
     ).unwrap()
 
+    organization = result.organization
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
     usageMeterId = result.usageMeterId
@@ -1217,6 +1227,7 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1254,6 +1265,7 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1294,6 +1306,7 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1334,6 +1347,7 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1753,6 +1767,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
 
 describe('pricesRouter - Reserved Slug Validation', () => {
   let organizationId: string
+  let organization: import('@db-core/schema/organizations').Organization.Record
   let pricingModelId: string
   let usageMeterId: string
   let regularProductId: string
@@ -1762,7 +1777,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
   beforeEach(async () => {
     const result = (
       await adminTransaction(async (ctx) => {
-        const { organization } = await setupOrg()
+        const { organization: org } = await setupOrg()
 
         // Create pricing model with default product
         const bookkeepingResult = await createPricingModelBookkeeping(
@@ -1774,7 +1789,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           },
           {
             ...ctx,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
           }
         )
@@ -1787,7 +1802,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           {
             name: 'API Calls Reserved Test',
             slug: 'api-calls-reserved-test',
-            organizationId: organization.id,
+            organizationId: org.id,
             pricingModelId,
             livemode,
             aggregationType: UsageMeterAggregationType.Sum,
@@ -1807,7 +1822,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
             pluralQuantityLabel: null,
             externalId: null,
             pricingModelId,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
             active: true,
           },
@@ -1824,7 +1839,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
             type: PriceType.Usage,
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
-            currency: organization.defaultCurrency,
+            currency: org.defaultCurrency,
             livemode,
             active: true,
             name: 'Existing Usage Price',
@@ -1838,7 +1853,8 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         )
 
         return Result.ok({
-          organizationId: organization.id,
+          organization: org,
+          organizationId: org.id,
           pricingModelId,
           usageMeterId: usageMeter.id,
           regularProductId: regularProduct.id,
@@ -1847,6 +1863,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
     ).unwrap()
 
+    organization = result.organization
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
     usageMeterId = result.usageMeterId
@@ -1863,6 +1880,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1900,6 +1918,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1936,6 +1955,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
@@ -1971,6 +1991,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,

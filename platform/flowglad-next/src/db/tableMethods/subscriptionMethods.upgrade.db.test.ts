@@ -1755,7 +1755,6 @@ describe('Subscription Upgrade Selection Logic', () => {
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
-                type: 'admin',
                 livemode,
               }
             // Mark free as upgraded
@@ -1839,7 +1838,6 @@ describe('Subscription Upgrade Selection Logic', () => {
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
-                type: 'admin',
                 livemode,
               }
             await updateSubscription(
@@ -1935,7 +1933,6 @@ describe('Subscription Upgrade Selection Logic', () => {
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
-                type: 'admin',
                 livemode,
               }
             // Get billing details multiple times

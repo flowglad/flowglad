@@ -189,8 +189,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
       role: 'merchant',
     } as unknown as BetterAuthUserWithRole
     const result = await databaseAuthenticationInfoForWebappRequest(
-      mockBetterAuthUser,
-      undefined
+      mockBetterAuthUser
     )
     expect(result.userId).toEqual(webMemB.userId)
     expect(result.livemode).toEqual(true)

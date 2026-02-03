@@ -50,6 +50,7 @@ import {
   createTestStripeCustomer,
   describeIfStripeKey,
 } from '@/test/stripeIntegrationHelpers'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { executeBillingRun } from './billingRunHelpers'
 
 /**
@@ -228,30 +229,16 @@ describeIfStripeKey(
 
       // Remove Stripe payment method ID
       ;(
-        await adminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            await safelyUpdatePaymentMethod(
-              {
-                id: paymentMethod.id,
-                stripePaymentMethodId: null,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache: invalidateCache!,
-                emitEvent: emitEvent!,
-                enqueueLedgerCommand: enqueueLedgerCommand!,
-              }
-            )
-            return Result.ok(undefined)
-          }
-        )
+        await adminTransaction(async (params) => {
+          await safelyUpdatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            createProcessingEffectsContext(params)
+          )
+          return Result.ok(undefined)
+        })
       ).unwrap()
 
       const newSubscriptionItems = [

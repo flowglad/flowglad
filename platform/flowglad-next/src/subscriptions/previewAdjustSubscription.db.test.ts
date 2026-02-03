@@ -61,8 +61,6 @@ describe('previewAdjustSubscription', () => {
       organizationId: organization.id,
       customerId: customer.id,
       priceId: price.id,
-      productId: product.id,
-      pricingModelId: pricingModel.id,
       status: SubscriptionStatus.Active,
       defaultPaymentMethodId: paymentMethod.id,
     })
@@ -74,7 +72,6 @@ describe('previewAdjustSubscription', () => {
 
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
-      organizationId: organization.id,
       status: BillingPeriodStatus.Active,
       startDate: periodStart,
       endDate: periodEnd,
@@ -83,9 +80,9 @@ describe('previewAdjustSubscription', () => {
     await setupSubscriptionItem({
       subscriptionId: subscription.id,
       priceId: price.id,
+      name: price.name ?? 'Test Price',
       quantity: 1,
       unitPrice: price.unitPrice,
-      pricingModelId: pricingModel.id,
     })
   })
 
@@ -108,6 +105,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -144,6 +142,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -181,6 +180,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -218,6 +218,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -261,6 +262,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: higherPrice.id,
@@ -358,6 +360,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: higherPrice.id,
@@ -401,6 +404,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: lowerPrice.id,
@@ -445,6 +449,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceSlug: 'slugged-plan-test',
@@ -502,6 +507,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: higherPrice.id,
@@ -597,6 +603,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -636,6 +643,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,

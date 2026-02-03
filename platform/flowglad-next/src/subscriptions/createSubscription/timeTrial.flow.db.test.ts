@@ -38,6 +38,7 @@ import type { CacheRecomputationContext } from '@/db/types'
 import {
   createDiscardingEffectsContext,
   noopEmitEvent,
+  noopEnqueueTriggerTask,
   noopInvalidateCache,
 } from '@/test-utils/transactionCallbacks'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
@@ -141,6 +142,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               invalidateCache,
               emitEvent: () => {},
               enqueueLedgerCommand: () => {},
+              enqueueTriggerTask: noopEnqueueTriggerTask,
             }
           )
           return Result.ok(result)
