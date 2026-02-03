@@ -121,16 +121,16 @@ describe('UsagePriceCard', () => {
       expect(screen.getByText('my-custom-slug')).toBeInTheDocument()
     })
 
-    it('falls back to displaying price id when slug is empty', () => {
+    it('displays the price slug for all valid prices', () => {
       const price = createTestPrice({
-        id: 'price_fallback_id',
-        slug: '',
+        id: 'price_test_id',
+        slug: 'another-test-slug',
       })
 
       render(<UsagePriceCard price={price} />)
 
       expect(
-        screen.getByText('price_fallback_id')
+        screen.getByText('another-test-slug')
       ).toBeInTheDocument()
     })
   })
