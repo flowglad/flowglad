@@ -127,7 +127,7 @@ describe('login command', () => {
     it('returns default URL when FLOWGLAD_API_URL is not set', () => {
       delete process.env.FLOWGLAD_API_URL
 
-      expect(getBaseUrl()).toBe('https://flowglad.com')
+      expect(getBaseUrl()).toBe('https://app.flowglad.com')
     })
   })
 
