@@ -199,10 +199,13 @@ describe('doNotCharge subscription creation', () => {
 
       ;(
         await adminTransaction(async ({ transaction }) => {
-          await createSubscriptionWorkflow(
+          const result = await createSubscriptionWorkflow(
             params,
             createDiscardingEffectsContext(transaction)
           )
+          if (result.status === 'error') {
+            return Result.err(result.error)
+          }
           return Result.ok(null)
         })
       ).unwrap()
