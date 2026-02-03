@@ -9,6 +9,7 @@ import {
   emailOTP,
   magicLink,
 } from 'better-auth/plugins'
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
@@ -39,8 +40,8 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
 }) => {
   const { email, url, organizationId } = params
   // Get organization and customer info for the email
-  const { organization, customer } = await adminTransaction(
-    async ({ transaction }) => {
+  const { organization, customer } = (
+    await adminTransaction(async ({ transaction }) => {
       const org = (
         await selectOrganizationById(organizationId, transaction)
       ).unwrap()
@@ -49,12 +50,12 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
         { email, organizationId, livemode: true },
         transaction
       )
-      return {
+      return Result.ok({
         organization: org,
         customer: customers[0] || null,
-      }
-    }
-  )
+      })
+    })
+  ).unwrap()
 
   // Send the magic link email
   await sendCustomerBillingPortalMagicLink({
@@ -77,8 +78,8 @@ const handleSendVerificationOTP = async (params: {
   const { email, otp, organizationId } = params
 
   // Get organization and customer info for the email
-  const { organization, customer } = await adminTransaction(
-    async ({ transaction }) => {
+  const { organization, customer } = (
+    await adminTransaction(async ({ transaction }) => {
       const org = (
         await selectOrganizationById(organizationId, transaction)
       ).unwrap()
@@ -87,12 +88,12 @@ const handleSendVerificationOTP = async (params: {
         { email, organizationId, livemode: true },
         transaction
       )
-      return {
+      return Result.ok({
         organization: org,
         customer: customers[0] || null,
-      }
-    }
-  )
+      })
+    })
+  ).unwrap()
 
   // Send OTP email using the proper email template
   await sendCustomerBillingPortalOTP({
