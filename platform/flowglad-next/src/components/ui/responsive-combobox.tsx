@@ -14,7 +14,6 @@ import {
   Drawer,
   DrawerContent,
   DrawerTitle,
-  DrawerTrigger,
 } from '@/components/ui/drawer'
 import {
   Popover,
@@ -67,11 +66,39 @@ export function ResponsiveCombobox({
   const [open, setOpen] = React.useState(false)
   const isMobile = useIsMobile(BREAKPOINT_SM)
 
+  // Refs for iOS Safari keyboard workaround
+  const commandInputRef = React.useRef<HTMLInputElement>(null)
+  const hiddenInputRef = React.useRef<HTMLInputElement>(null)
+
   const selectedOption = options.find((opt) => opt.value === value)
 
   const handleSelect = (selectedValue: string) => {
     onValueChange(selectedValue)
     setOpen(false)
+  }
+
+  /**
+   * iOS Safari only allows programmatic focus that triggers the keyboard
+   * when the focus happens in direct response to a user gesture (tap/click).
+   * When a drawer opens, the animation delay breaks this "user gesture chain".
+   *
+   * Workaround: Focus a hidden input immediately on tap (opens keyboard),
+   * then transfer focus to the real input after the drawer renders.
+   */
+  const handleMobileTriggerClick = () => {
+    // Step 1: Focus hidden input immediately during user gesture - this opens the keyboard
+    hiddenInputRef.current?.focus()
+
+    // Step 2: Open the drawer
+    setOpen(true)
+
+    // Step 3: Transfer focus to the real CommandInput after drawer renders
+    // Use double RAF to ensure we're after the drawer's render cycle
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        commandInputRef.current?.focus()
+      })
+    })
   }
 
   const TriggerButton = (
@@ -123,17 +150,40 @@ export function ResponsiveCombobox({
   // This avoids the keyboard repositioning issues with Popover
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>{TriggerButton}</DrawerTrigger>
-        <DrawerContent className="px-1 pb-1 bg-input-bg [&>div:first-child]:bg-foreground [&>div:first-child]:h-1.5 [&>div:first-child]:my-2">
-          {/* Visually hidden title for accessibility */}
-          <DrawerTitle className="sr-only">{placeholder}</DrawerTitle>
-          <Command className="bg-input-bg [&_[cmdk-input-wrapper]]:-mx-2 [&_[cmdk-input-wrapper]]:px-5">
-            <CommandInput placeholder={searchPlaceholder} />
-            {OptionsList}
-          </Command>
-        </DrawerContent>
-      </Drawer>
+      <>
+        {/*
+         * Hidden input for iOS Safari keyboard workaround.
+         * Must be always rendered (not inside drawer) so it's available
+         * immediately when the user taps the trigger.
+         * Position absolute + opacity 0 keeps it invisible but focusable.
+         */}
+        <input
+          ref={hiddenInputRef}
+          type="text"
+          aria-hidden="true"
+          tabIndex={-1}
+          className="absolute opacity-0 pointer-events-none h-0 w-0"
+          // Prevent any value from persisting
+          readOnly
+        />
+        {/* Custom trigger that handles focus before opening drawer */}
+        <div onClick={handleMobileTriggerClick}>{TriggerButton}</div>
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerContent className="px-1 pb-1 bg-input-bg [&>div:first-child]:bg-foreground [&>div:first-child]:h-1.5 [&>div:first-child]:my-2">
+            {/* Visually hidden title for accessibility */}
+            <DrawerTitle className="sr-only">
+              {placeholder}
+            </DrawerTitle>
+            <Command className="bg-input-bg [&_[cmdk-input-wrapper]]:-mx-2 [&_[cmdk-input-wrapper]]:px-5">
+              <CommandInput
+                ref={commandInputRef}
+                placeholder={searchPlaceholder}
+              />
+              {OptionsList}
+            </Command>
+          </DrawerContent>
+        </Drawer>
+      </>
     )
   }
 
