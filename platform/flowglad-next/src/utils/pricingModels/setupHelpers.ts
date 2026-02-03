@@ -36,7 +36,7 @@ export const createProductPriceInsert = (
   const { productId, currency, livemode } = options
   const base = {
     name: price.name ?? null,
-    slug: price.slug ?? null,
+    slug: price.slug,
     unitPrice: price.unitPrice,
     isDefault: price.isDefault,
     active: price.active,
