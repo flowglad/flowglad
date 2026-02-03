@@ -77,20 +77,29 @@ describe('GET /api/cli/list-organizations', () => {
     expect(response.status).toBe(200)
     expect(data.organizations).toHaveLength(2)
 
-    const orgIds = data.organizations.map((o) => o.id)
-    expect(orgIds).toContain(organization1.id)
-    expect(orgIds).toContain(organization2.id)
+    // Verify both organizations are returned with correct data
+    const org1Response = data.organizations.find(
+      (o) => o.id === organization1.id
+    )
+    const org2Response = data.organizations.find(
+      (o) => o.id === organization2.id
+    )
 
-    // Verify each organization has the expected fields
-    for (const org of data.organizations) {
-      expect(typeof org.id).toBe('string')
-      expect(typeof org.name).toBe('string')
-      expect(typeof org.createdAt).toBe('string')
-      // Verify createdAt is a valid ISO date
-      expect(new Date(org.createdAt).toISOString()).toBe(
-        org.createdAt
-      )
-    }
+    expect(org1Response).toMatchObject({
+      id: organization1.id,
+      name: organization1.name,
+    })
+    expect(new Date(org1Response!.createdAt).toISOString()).toBe(
+      org1Response!.createdAt
+    )
+
+    expect(org2Response).toMatchObject({
+      id: organization2.id,
+      name: organization2.name,
+    })
+    expect(new Date(org2Response!.createdAt).toISOString()).toBe(
+      org2Response!.createdAt
+    )
   })
 
   it('excludes deactivated memberships from the organizations list', async () => {
