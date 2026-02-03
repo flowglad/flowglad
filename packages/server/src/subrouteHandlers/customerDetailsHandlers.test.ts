@@ -40,6 +40,9 @@ const createMockFlowgladServer = () => {
 
 describe('Customer details subroute handlers', () => {
   describe('getCustomerDetails handler', () => {
+    // Note: 405 tests intentionally use invalid methods (GET/PUT instead of POST)
+    // to verify the handler rejects non-POST requests. The `as unknown as` cast
+    // is required because GetCustomerDetailsParams expects method: HTTPMethod.POST.
     it('returns 405 for GET request', async () => {
       const { server } = createMockFlowgladServer()
       const result = await getCustomerDetails(
@@ -66,14 +69,19 @@ describe('Customer details subroute handlers', () => {
 
     it('returns customer profile via FlowgladServer', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      mocks.getCustomerDetails.mockResolvedValue(mockCustomerDetails)
+      mocks.getCustomerDetails.mockResolvedValue({
+        customer: mockCustomerDetails,
+      })
 
       const result = await getCustomerDetails(
-        { method: HTTPMethod.POST, data: {} },
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        } satisfies GetCustomerDetailsParams,
         server
       )
 
-      assert200Success(result, mockCustomerDetails)
+      assert200Success(result, { customer: mockCustomerDetails })
       expect(mocks.getCustomerDetails).toHaveBeenCalledTimes(1)
     })
 
@@ -84,7 +92,10 @@ describe('Customer details subroute handlers', () => {
       )
 
       const result = await getCustomerDetails(
-        { method: HTTPMethod.POST, data: {} },
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        } satisfies GetCustomerDetailsParams,
         server
       )
 
