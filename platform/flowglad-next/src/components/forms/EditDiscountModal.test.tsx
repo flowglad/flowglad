@@ -283,10 +283,10 @@ describe('EditDiscountModal', () => {
         success: true,
       })
       ;(
-        trpc.discounts.update.useMutation as Mock<any>
+        trpc.discounts.update.useMutation as Mock<() => unknown>
       ).mockReturnValue({
         mutateAsync: mutateSpy,
-      } as any)
+      })
 
       render(
         <EditDiscountModal

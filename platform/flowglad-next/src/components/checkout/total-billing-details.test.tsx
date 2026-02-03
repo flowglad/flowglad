@@ -16,6 +16,7 @@ import type { FeeCalculation } from '@db-core/schema/feeCalculations'
 import type { InvoiceLineItem } from '@db-core/schema/invoiceLineItems'
 import type { Invoice } from '@db-core/schema/invoices'
 import type { Price } from '@db-core/schema/prices'
+import type { Purchase } from '@db-core/schema/purchases'
 import { render } from '@testing-library/react'
 // Import types and non-mocked exports from the original module
 import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
@@ -25,12 +26,76 @@ import { dummyOrganization } from '@/stubs/organizationStubs'
 import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import { dummyProduct } from '@/stubs/productStubs'
 import { subscriptionWithTrialDummyPurchase } from '@/stubs/purchaseStubs'
-import { CheckoutFlowType } from '@/types'
-import core from '@/utils/core'
+import { CheckoutFlowType, type Nullish } from '@/types'
 import {
   calculateTotalBillingDetails,
   TotalBillingDetails,
 } from './total-billing-details'
+
+/**
+ * Type for price flow test params.
+ */
+interface PriceFlowParams {
+  type: 'price'
+  price: Price.ClientRecord
+  invoice: undefined
+  purchase?: Purchase.ClientRecord
+  feeCalculation?: Nullish<FeeCalculation.CustomerRecord>
+  discount?: Nullish<Discount.ClientRecord>
+  quantity?: number
+}
+
+/**
+ * Type for invoice flow test params.
+ */
+interface InvoiceFlowParams {
+  type: 'invoice'
+  invoice: Invoice.ClientRecord
+  invoiceLineItems: InvoiceLineItem.ClientRecord[]
+  price: undefined
+  purchase: undefined
+  feeCalculation?: Nullish<FeeCalculation.CustomerRecord>
+  discount?: Nullish<Discount.ClientRecord>
+}
+
+type TotalBillingParams = PriceFlowParams | InvoiceFlowParams
+
+/**
+ * Helper to create price flow test params with proper typing.
+ * Uses unknown assertion to allow partial mock data while maintaining type safety.
+ */
+const createPriceParams = (overrides: {
+  price: unknown
+  purchase?: unknown
+  feeCalculation?: Nullish<FeeCalculation.CustomerRecord>
+  discount?: Nullish<Discount.ClientRecord>
+  quantity?: number
+}): TotalBillingParams =>
+  ({
+    type: 'price',
+    invoice: undefined,
+    feeCalculation: null,
+    discount: null,
+    ...overrides,
+  }) as unknown as TotalBillingParams
+
+/**
+ * Helper to create invoice flow test params with proper typing.
+ */
+const createInvoiceParams = (overrides: {
+  invoice: unknown
+  invoiceLineItems: unknown[]
+  feeCalculation?: Nullish<FeeCalculation.CustomerRecord>
+  discount?: Nullish<Discount.ClientRecord>
+}): TotalBillingParams =>
+  ({
+    type: 'invoice',
+    price: undefined,
+    purchase: undefined,
+    feeCalculation: null,
+    discount: null,
+    ...overrides,
+  }) as unknown as TotalBillingParams
 
 const baseMockContext = {
   checkoutSession: stubbedCheckoutSession,
@@ -56,7 +121,7 @@ const baseMockContext = {
 }
 
 const createMockCheckoutContext = (
-  overrides: Partial<CheckoutPageContextValues>
+  overrides: Record<string, unknown>
 ): CheckoutPageContextValues => {
   return {
     ...baseMockContext,
@@ -68,23 +133,6 @@ const createMockCheckoutContext = (
     feeCalculation: null,
     editCheckoutSessionLoading: false,
     ...overrides,
-  } as unknown as CheckoutPageContextValues
-}
-
-const mockCheckoutPageContext = (): CheckoutPageContextValues => {
-  return {
-    ...baseMockContext,
-    flowType: CheckoutFlowType.Subscription,
-    purchase: subscriptionWithTrialDummyPurchase,
-    price: subscriptionDummyPrice,
-    subscriptionDetails: {
-      trialPeriodDays: 30,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      pricePerBillingCycle: 100,
-      currency: CurrencyCode.USD,
-      type: PriceType.Subscription,
-    },
   } as unknown as CheckoutPageContextValues
 }
 
@@ -217,6 +265,7 @@ const mockInvoiceLineItems = [
 describe('calculateTotalBillingDetails', () => {
   it('should throw error when neither price nor invoice is provided', () => {
     // Arrange: params with type inconsistent and both price and invoice undefined
+    // Testing error guard requires intentionally invalid params
     const params = {
       type: 'price' as const,
       price: undefined,
@@ -224,16 +273,17 @@ describe('calculateTotalBillingDetails', () => {
       purchase: undefined,
       feeCalculation: null,
       discount: null,
-    } as any // Type assertion needed for invalid params to test guard
+    } as unknown as TotalBillingParams
 
     // Act & Expect: should throw error 'Either price or invoice is required'
-    expect(() => calculateTotalBillingDetails(params as any)).toThrow(
+    expect(() => calculateTotalBillingDetails(params)).toThrow(
       'Either price or invoice is required'
     )
   })
 
   it('should throw error when both price and invoice are provided', () => {
     // Arrange: params includes both price and invoice non-null
+    // Testing error guard requires intentionally invalid params
     const params = {
       type: 'price' as const,
       price: mockPrice,
@@ -241,10 +291,10 @@ describe('calculateTotalBillingDetails', () => {
       purchase: undefined,
       feeCalculation: null,
       discount: null,
-    } as any // Type assertion needed for invalid params to test guard
+    } as unknown as TotalBillingParams
 
     // Act & Expect: should throw error 'Only one of price or invoice is permitted. Received both'
-    expect(() => calculateTotalBillingDetails(params as any)).toThrow(
+    expect(() => calculateTotalBillingDetails(params)).toThrow(
       'Only one of price or invoice is permitted. Received both'
     )
   })
@@ -253,17 +303,10 @@ describe('calculateTotalBillingDetails', () => {
 describe('price flow', () => {
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'price', price with non-usage type, purchase optional/undefined
-    const params = {
-      type: 'price' as const,
-      price: mockPrice,
-      invoice: undefined,
-      purchase: undefined,
-      feeCalculation: null,
-      discount: null,
-    }
+    const params = createPriceParams({ price: mockPrice })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect:
     expect(result.baseAmount).toBe(100)
@@ -275,17 +318,13 @@ describe('price flow', () => {
 
   it('should handle with discount but no feeCalculation', async () => {
     // Arrange: as A3 but with discount such that calculateDiscountAmount returns 200
-    const params = {
-      type: 'price' as const,
+    const params = createPriceParams({
       price: mockPrice,
-      invoice: undefined,
-      purchase: undefined,
-      feeCalculation: null,
       discount: mockDiscount,
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect:
     expect(result.baseAmount).toBe(100)
@@ -297,17 +336,10 @@ describe('price flow', () => {
 
   it('should handle PriceType.Usage forces totalDueAmount 0', async () => {
     // Arrange: price.type = Usage, calculatePriceBaseAmount returns 1500, discount null
-    const params = {
-      type: 'price' as const,
-      price: mockUsagePrice,
-      invoice: undefined,
-      purchase: undefined,
-      feeCalculation: null,
-      discount: null,
-    }
+    const params = createPriceParams({ price: mockUsagePrice })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect:
     expect(result.baseAmount).toBe(100)
@@ -319,17 +351,13 @@ describe('price flow', () => {
 
   it('should handle with feeCalculation overrides', async () => {
     // Arrange: feeCalculation present with specific fields
-    const params = {
-      type: 'price' as const,
+    const params = createPriceParams({
       price: mockPrice,
-      invoice: undefined,
-      purchase: undefined,
       feeCalculation: mockFeeCalculation,
-      discount: null,
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect:
     expect(result.baseAmount).toBe(100) // equals the computed base from price flow
@@ -341,18 +369,13 @@ describe('price flow', () => {
 
   it('should multiply base amount by quantity when quantity is greater than 1', async () => {
     // Arrange: price with unitPrice of 100, quantity of 5
-    const params = {
-      type: 'price' as const,
-      price: mockPrice, // unitPrice: 100
-      invoice: undefined,
-      purchase: undefined,
-      feeCalculation: null,
-      discount: null,
+    const params = createPriceParams({
+      price: mockPrice,
       quantity: 5,
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect: base amount should be 100 * 5 = 500
     expect(result.baseAmount).toBe(500)
@@ -364,18 +387,10 @@ describe('price flow', () => {
 
   it('should default quantity to 1 when not provided', async () => {
     // Arrange: price without quantity specified
-    const params = {
-      type: 'price' as const,
-      price: mockPrice, // unitPrice: 100
-      invoice: undefined,
-      purchase: undefined,
-      feeCalculation: null,
-      discount: null,
-      // quantity not provided
-    }
+    const params = createPriceParams({ price: mockPrice })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect: base amount should be 100 * 1 = 100
     expect(result.baseAmount).toBe(100)
@@ -385,18 +400,14 @@ describe('price flow', () => {
 
   it('should apply discount to quantity-multiplied base amount', async () => {
     // Arrange: price with unitPrice of 100, quantity of 3, fixed discount of 200
-    const params = {
-      type: 'price' as const,
-      price: mockPrice, // unitPrice: 100
-      invoice: undefined,
-      purchase: undefined,
-      feeCalculation: null,
+    const params = createPriceParams({
+      price: mockPrice,
       discount: mockDiscount, // fixed 200 discount
       quantity: 3,
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect: base amount should be 100 * 3 = 300, total due = 300 - 200 = 100
     expect(result.baseAmount).toBe(300)
@@ -415,18 +426,15 @@ describe('price flow', () => {
       quantity: 5,
     }
 
-    const params = {
-      type: 'price' as const,
-      price: mockPrice, // unitPrice: 100
-      invoice: undefined,
-      purchase: purchaseWithQuantityIncluded,
-      feeCalculation: null,
-      discount: null,
+    const params = createPriceParams({
+      price: mockPrice,
+      purchase:
+        purchaseWithQuantityIncluded as unknown as Purchase.ClientRecord,
       quantity: 5, // Same quantity, but should not be multiplied again
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect: base amount should be 500 (from purchase.pricePerBillingCycle), NOT 2500
     // calculatePriceBaseAmount returns pricePerBillingCycle when purchase exists,
@@ -440,18 +448,13 @@ describe('price flow', () => {
 describe('invoice flow', () => {
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'invoice', invoice provided, invoiceLineItems provided
-    const params = {
-      type: 'invoice' as const,
+    const params = createInvoiceParams({
       invoice: mockInvoice,
       invoiceLineItems: mockInvoiceLineItems,
-      price: undefined,
-      purchase: undefined,
-      feeCalculation: null,
-      discount: null,
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect:
     expect(result.baseAmount).toBe(2000)
@@ -463,18 +466,14 @@ describe('invoice flow', () => {
 
   it('should handle with discount, no feeCalculation', async () => {
     // Arrange: as A7 but with discount such that discount becomes 250
-    const params = {
-      type: 'invoice' as const,
+    const params = createInvoiceParams({
       invoice: mockInvoice,
       invoiceLineItems: mockInvoiceLineItems,
-      price: undefined,
-      purchase: undefined,
-      feeCalculation: null,
       discount: mockDiscount,
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect: totalDueAmount = 1750 and other fields updated accordingly
     expect(result.baseAmount).toBe(2000)
@@ -486,18 +485,14 @@ describe('invoice flow', () => {
 
   it('should handle with feeCalculation overrides', async () => {
     // Arrange: feeCalculation present as in A6; calculateTotalDueAmount returns 950
-    const params = {
-      type: 'invoice' as const,
+    const params = createInvoiceParams({
       invoice: mockInvoice,
       invoiceLineItems: mockInvoiceLineItems,
-      price: undefined,
-      purchase: undefined,
       feeCalculation: mockFeeCalculation,
-      discount: null,
-    }
+    })
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params as any)
+    const result = calculateTotalBillingDetails(params)
 
     // Expect: same override semantics as in price flow
     expect(result.baseAmount).toBe(2000) // base from invoice calculation
@@ -707,15 +702,20 @@ describe('TotalBillingDetails', () => {
       }
 
       // Derive subscriptionDetails using the actual function - this should set trialPeriodDays to null
+      // Use unknown assertion since checkoutInfo has partial mock data
       const subscriptionDetails =
-        subscriptionDetailsFromCheckoutInfoCore(checkoutInfo as any)
+        subscriptionDetailsFromCheckoutInfoCore(
+          checkoutInfo as unknown as Parameters<
+            typeof subscriptionDetailsFromCheckoutInfoCore
+          >[0]
+        )
 
       // Assert: The function correctly sets trialPeriodDays to null when not eligible
       expect(subscriptionDetails?.trialPeriodDays).toBeNull()
 
       globalThis.__mockedCheckoutContext = createMockCheckoutContext({
-        purchase: purchase as any,
-        price: price as any,
+        purchase: purchase as unknown as Purchase.ClientRecord,
+        price: price as unknown as Price.ClientRecord,
         isEligibleForTrial: false,
         subscriptionDetails,
       })
