@@ -58,6 +58,7 @@ export async function GET(): Promise<NextResponse> {
 
       return Result.ok(organizations)
     },
+    // Organizations are mode-agnostic; testmode is used for the transaction context only
     { livemode: false }
   )
 
