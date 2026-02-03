@@ -24,6 +24,7 @@
     "src/server/trpc*.ts",
     "src/trigger/**",
     "src/scripts/**",
+    "src/test/**",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",

@@ -4,6 +4,7 @@ src/components/forms/EditPriceModal.test.tsx	no-explicit-any-in-tests	6
 src/db/authenticatedTransaction.rls.test.ts	no-explicit-any-in-tests	4
 src/db/createZodSchemas.db.test.ts	no-explicit-any-in-tests	73
 src/db/databaseAuthentication.db.test.ts	no-explicit-any-in-tests	33
+src/db/databaseAuthentication.ts	no-unwrap-outside-boundaries	1
 src/db/ledgerManager/billingPeriodTransitionLedgerCommand/grantEntitlementUsageCredits.db.test.ts	no-explicit-any-in-tests	2
 src/db/ledgerManager/billingPeriodTransitionLedgerCommand/grantEntitlementUsageCredits.ts	no-unwrap-outside-boundaries	1
 src/db/ledgerManager/billingPeriodTransitionLedgerCommand/index.db.test.ts	no-explicit-any-in-tests	9
