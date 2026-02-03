@@ -150,6 +150,7 @@ const getBillingProcedure = customerProtectedProcedure
       {
         apiKey: ctx.apiKey,
         customerId: customer.id,
+        authScope: 'customer',
       }
     )
 
@@ -274,6 +275,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
       {
         apiKey: ctx.apiKey,
         customerId: customer.id,
+        authScope: 'customer',
       }
     )
 
@@ -368,6 +370,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
       {
         apiKey: ctx.apiKey,
         customerId: customer.id,
+        authScope: 'customer',
       }
     )
 
@@ -639,6 +642,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
         {
           apiKey: ctx.apiKey,
           customerId: customer.id,
+          authScope: 'customer',
         }
       )
     ).unwrap()

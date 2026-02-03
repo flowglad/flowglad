@@ -2,8 +2,6 @@
 
 import { LogOut, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
 
 interface BillingPortalHeaderProps {
@@ -21,15 +19,14 @@ export function BillingPortalHeader({
   loading,
 }: BillingPortalHeaderProps) {
   const router = useRouter()
-  const logoutMutation = trpc.utils.logout.useMutation()
 
   const handleLogout = async () => {
     const currentPath = window.location.pathname
     const pathSegments = currentPath.split('/')
     const organizationId = pathSegments[2] // Should be org_xxx
-    const billingPortalPath = `/billing-portal/${organizationId}`
+    const billingPortalSignInPath = `/billing-portal/${organizationId}/sign-in`
     router.push(
-      `/logout?redirect=${encodeURIComponent(billingPortalPath)}`
+      `/billing-portal/logout?redirect=${encodeURIComponent(billingPortalSignInPath)}`
     )
   }
   return (
@@ -74,7 +71,6 @@ export function BillingPortalHeader({
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2"
-                  disabled={logoutMutation.isPending}
                 >
                   <LogOut className="h-4 w-4" />
                   <span className="hidden sm:inline">Logout</span>

@@ -27,6 +27,12 @@ interface AuthenticatedTransactionOptions {
    * Customer context for customer billing portal requests.
    */
   customerId?: string
+  /**
+   * Auth scope to determine which session to use for authentication.
+   * - 'merchant': Use merchant session (default for backward compatibility)
+   * - 'customer': Use customer session for billing portal
+   */
+  authScope?: 'merchant' | 'customer'
 }
 
 /**
@@ -62,7 +68,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   processedEventsCount: number
   processedLedgerCommandsCount: number
 }> => {
-  const { apiKey, __testOnlyOrganizationId, customerId } =
+  const { apiKey, __testOnlyOrganizationId, customerId, authScope } =
     options ?? {}
   if (!core.IS_TEST && __testOnlyOrganizationId) {
     throw new Error(
@@ -74,6 +80,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       apiKey,
       __testOnlyOrganizationId,
       customerId,
+      authScope,
     })
 
   // Create effects accumulator and callbacks
@@ -190,7 +197,11 @@ export async function comprehensiveAuthenticatedTransaction<T>(
 export type AuthenticatedProcedureResolver<
   TInput,
   TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
+  TContext extends {
+    apiKey?: string
+    customerId?: string
+    authScope?: 'merchant' | 'customer'
+  },
 > = (input: TInput, ctx: TContext) => Promise<TOutput>
 
 /**
@@ -199,7 +210,11 @@ export type AuthenticatedProcedureResolver<
  */
 export type AuthenticatedProcedureTransactionParams<
   TInput,
-  TContext extends { apiKey?: string; customerId?: string },
+  TContext extends {
+    apiKey?: string
+    customerId?: string
+    authScope?: 'merchant' | 'customer'
+  },
 > = {
   input: TInput
   ctx: TContext
@@ -213,7 +228,11 @@ export type AuthenticatedProcedureTransactionParams<
 export const authenticatedProcedureTransaction = <
   TInput,
   TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
+  TContext extends {
+    apiKey?: string
+    customerId?: string
+    authScope?: 'merchant' | 'customer'
+  },
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<TInput, TContext>
@@ -232,7 +251,11 @@ export const authenticatedProcedureTransaction = <
 export const authenticatedProcedureComprehensiveTransaction = <
   TInput,
   TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
+  TContext extends {
+    apiKey?: string
+    customerId?: string
+    authScope?: 'merchant' | 'customer'
+  },
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<TInput, TContext>
@@ -257,6 +280,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
       {
         apiKey: opts.ctx.apiKey,
         customerId: opts.ctx.customerId,
+        authScope: opts.ctx.authScope,
       }
     )
   }
