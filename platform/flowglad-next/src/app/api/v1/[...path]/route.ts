@@ -1120,14 +1120,37 @@ const withLocalVerification = (
             'auth.mode': 'local_playground',
           })
 
-          // Look up the API key in the local database
-          const apiKeyRecords = await selectApiKeys(
-            { token: apiKey, active: true },
-            db
-          )
-          const apiKeyRecord = apiKeyRecords[0]
+          // Look up the API key and membership in the local database
+          const localAuthResult = await db.transaction(async (tx) => {
+            const apiKeyRecords = await selectApiKeys(
+              { token: apiKey, active: true },
+              tx
+            )
+            const apiKeyRecord = apiKeyRecords[0]
 
-          if (!apiKeyRecord) {
+            if (!apiKeyRecord) {
+              return {
+                success: false as const,
+                error: 'not_found' as const,
+              }
+            }
+
+            // Look up a userId from the organization's memberships
+            // This is needed because the API key metadata schema requires userId
+            const membershipRecords = await selectMemberships(
+              { organizationId: apiKeyRecord.organizationId },
+              tx
+            )
+            const membership = membershipRecords[0]
+
+            return {
+              success: true as const,
+              apiKeyRecord,
+              userId: membership?.userId ?? 'local_playground_user',
+            }
+          })
+
+          if (!localAuthResult.success) {
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
               message: 'API key not found in local database',
@@ -1147,15 +1170,7 @@ const withLocalVerification = (
             )
           }
 
-          // Look up a userId from the organization's memberships
-          // This is needed because the API key metadata schema requires userId
-          const membershipRecords = await selectMemberships(
-            { organizationId: apiKeyRecord.organizationId },
-            db
-          )
-          const membership = membershipRecords[0]
-
-          const userId = membership?.userId ?? 'local_playground_user'
+          const { apiKeyRecord, userId } = localAuthResult
 
           // Construct a result object similar to what Unkey returns
           const environment = apiKeyRecord.livemode ? 'live' : 'test'
