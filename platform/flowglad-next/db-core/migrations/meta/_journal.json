@@ -2066,6 +2066,13 @@
       "when": 1770000000001,
       "tag": "0295_add-product-slug-notnull",
       "breakpoints": true
+    },
+    {
+      "idx": 296,
+      "version": "7",
+      "when": 1770000000002,
+      "tag": "0296_drop-broken-products-enable-all-policy",
+      "breakpoints": true
     }
   ]
 }
