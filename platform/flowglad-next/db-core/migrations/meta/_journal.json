@@ -2066,6 +2066,13 @@
       "when": 1770145534300,
       "tag": "0295_tidy_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 296,
+      "version": "7",
+      "when": 1770156133000,
+      "tag": "0296_backfill-price-slugs",
+      "breakpoints": true
     }
   ]
 }
