@@ -101,7 +101,9 @@ const omitProductId = {
 const priceOptionalFieldSchema = {
   currency: currencyCodeSchema.optional(),
   name: safeZodSanitizedString.optional(),
-  slug: safeZodSanitizedString.optional(),
+  slug: safeZodSanitizedString.describe(
+    'Unique identifier for the price within its parent (product or usage meter)'
+  ),
 } as const
 
 /**
@@ -404,17 +406,24 @@ export const validateSetupPricingModelInput = (
 
       // Validate each price in the meter
       for (const price of prices) {
-        if (price.slug) {
-          if (allPriceSlugs.has(price.slug)) {
-            return yield* Result.err(
-              new ValidationError(
-                'price.slug',
-                `Price with slug ${price.slug} already exists`
-              )
+        // Slug is required for all prices
+        if (!price.slug) {
+          return yield* Result.err(
+            new ValidationError(
+              'price.slug',
+              `Price slug is required for usage meter "${meterWithPrices.usageMeter.slug}". Received ${JSON.stringify(price)}`
             )
-          }
-          allPriceSlugs.add(price.slug)
+          )
         }
+        if (allPriceSlugs.has(price.slug)) {
+          return yield* Result.err(
+            new ValidationError(
+              'price.slug',
+              `Price with slug ${price.slug} already exists`
+            )
+          )
+        }
+        allPriceSlugs.add(price.slug)
       }
 
       // Validate at most one price per usage meter has isDefault: true
