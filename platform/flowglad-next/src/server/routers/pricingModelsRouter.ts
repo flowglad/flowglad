@@ -489,9 +489,12 @@ const exportPricingModelProcedure = protectedProcedure
         'JSON structure of the pricing model configuration'
       ),
       updatedAt: z
-        .string()
+        .number()
+        .int()
+        .min(-9007199254740991)
+        .max(9007199254740991)
         .describe(
-          'ISO date string of when the pricing model was last updated'
+          'Epoch milliseconds timestamp of when the pricing model was last updated'
         ),
     })
   )
@@ -527,7 +530,7 @@ const exportPricingModelProcedure = protectedProcedure
 
         return {
           pricingModel: data.unwrap(),
-          updatedAt: new Date(pricingModel.updatedAt).toISOString(),
+          updatedAt: pricingModel.updatedAt,
         }
       }
     )

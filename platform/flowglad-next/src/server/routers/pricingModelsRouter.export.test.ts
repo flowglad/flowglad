@@ -102,7 +102,7 @@ describe('pricingModels.export', () => {
 
           return Result.ok({
             pricingModel: data.unwrap(),
-            updatedAt: new Date(pricingModel.updatedAt).toISOString(),
+            updatedAt: pricingModel.updatedAt,
           })
         },
         { livemode: false }
@@ -145,9 +145,8 @@ describe('pricingModels.export', () => {
       })
     )
 
-    // Verify updatedAt is an ISO string matching the PM's updatedAt
-    expect(result.updatedAt).toBe(
-      new Date(pricingModelUpdatedAt).toISOString()
-    )
+    // Verify updatedAt is an epoch milliseconds number matching the PM's updatedAt
+    expect(typeof result.updatedAt).toBe('number')
+    expect(result.updatedAt).toBe(pricingModelUpdatedAt)
   })
 })
