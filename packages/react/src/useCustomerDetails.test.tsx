@@ -5,7 +5,6 @@ import {
   expect,
   it,
   mock,
-  spyOn,
 } from 'bun:test'
 import {
   QueryClient,
@@ -324,13 +323,36 @@ describe('subscription mutations', () => {
     mockFetch.mockReset()
   })
 
-  it('invalidate customer details query key', async () => {
+  it('refetches customer details after invalidateCustomerData is called', async () => {
     const { wrapper, queryClient } = createWrapperWithQueryClient()
 
-    // Mock fetch to return customer details data
-    mockFetch.mockResolvedValue({
+    // Initial response
+    const initialCustomer = {
+      id: 'cust_123',
+      livemode: false,
+      email: 'initial@example.com',
+      name: 'Initial Customer',
+      externalId: 'ext_123',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    }
+
+    // Updated response after invalidation triggers refetch
+    const updatedCustomer = {
+      id: 'cust_123',
+      livemode: false,
+      email: 'updated@example.com',
+      name: 'Updated Customer',
+      externalId: 'ext_123',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-02T00:00:00.000Z',
+    }
+
+    // Mock first fetch (initial load)
+    mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve(mockCustomerDetailsResponse),
+      json: () =>
+        Promise.resolve({ data: { customer: initialCustomer } }),
     })
 
     // Render the hook to populate the cache
@@ -338,31 +360,37 @@ describe('subscription mutations', () => {
       wrapper,
     })
 
-    // Wait for the query to succeed
+    // Wait for the initial query to succeed
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
 
     expect(result.current.customer?.id).toBe('cust_123')
+    expect(result.current.customer?.email).toBe('initial@example.com')
+    expect(result.current.customer?.name).toBe('Initial Customer')
 
-    // Spy on invalidateQueries to verify it was called
-    const invalidateQueriesSpy = spyOn(
-      queryClient,
-      'invalidateQueries'
-    )
+    // Mock second fetch (refetch after invalidation)
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({ data: { customer: updatedCustomer } }),
+    })
 
     // Call the invalidation helper (simulating a subscription mutation)
     await act(async () => {
       await invalidateCustomerData(queryClient)
     })
 
-    // Verify that invalidateQueries was called with CUSTOMER_DETAILS_QUERY_KEY
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: [CUSTOMER_DETAILS_QUERY_KEY],
+    // Wait for the refetch to complete with updated data
+    await waitFor(() => {
+      expect(result.current.customer?.email).toBe(
+        'updated@example.com'
+      )
     })
 
-    // Cleanup
-    invalidateQueriesSpy.mockRestore()
+    expect(result.current.customer?.id).toBe('cust_123')
+    expect(result.current.customer?.name).toBe('Updated Customer')
+    expect(mockFetch).toHaveBeenCalledTimes(2)
   })
 })
 
