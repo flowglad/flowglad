@@ -62,7 +62,30 @@ const nextConfig = {
     // restrictions rather than using a global wildcard.
     //
     // Reference: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing
-    return []
+    return [
+      {
+        // Apply security headers to all routes
+        source: '/:path*',
+        headers: [
+          {
+            // SECURITY: Prevent clickjacking attacks by disallowing iframe embedding.
+            // X-Frame-Options is supported by older browsers that don't support CSP frame-ancestors.
+            // Reference: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/09-Testing_for_Clickjacking
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            // SECURITY: Modern clickjacking protection via CSP frame-ancestors directive.
+            // 'none' prevents embedding in any iframe, including same-origin.
+            // This is the CSP equivalent of X-Frame-Options: DENY and takes precedence
+            // in modern browsers that support it.
+            // Reference: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'none'",
+          },
+        ],
+      },
+    ]
   },
   experimental: {
     webpackMemoryOptimizations: true,

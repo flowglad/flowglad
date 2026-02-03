@@ -14,6 +14,7 @@ import {
   updateCustomer,
 } from './customerHandlers'
 import { getFeatureAccessItems } from './featureHandlers'
+import { getPaymentMethods } from './paymentMethodHandlers'
 import { getPricingModel } from './pricingModelHandlers'
 import {
   claimResource,
@@ -65,14 +66,7 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
   [FlowgladActionKey.GetUsageMeterBalances]: getUsageMeterBalances,
   [FlowgladActionKey.GetFeatureAccess]: getFeatureAccessItems,
-  [FlowgladActionKey.GetPaymentMethods]: async () => ({
-    data: {},
-    status: 501,
-    error: {
-      code: 'Not Implemented',
-      json: {},
-    },
-  }),
+  [FlowgladActionKey.GetPaymentMethods]: getPaymentMethods,
 }
 
 export const hybridRouteToHandlerMap: {

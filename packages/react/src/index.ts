@@ -33,6 +33,11 @@ export {
   useResources,
 } from './useResources'
 export {
+  SUBSCRIPTIONS_QUERY_KEY,
+  type UseSubscriptionsResult,
+  useSubscriptions,
+} from './useSubscriptions'
+export {
   USAGE_METERS_QUERY_KEY,
   type UseUsageMeterResult,
   type UseUsageMetersResult,
