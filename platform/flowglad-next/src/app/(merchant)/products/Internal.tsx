@@ -21,7 +21,7 @@ function Internal() {
       <PageContainer>
         <PageHeaderNew title="Products" hideBorder className="pb-2" />
         <ProductsDataTable
-          filters={{ pricingModelId: focusedPricingModelId }}
+          externalFilters={{ pricingModelId: focusedPricingModelId }}
           onCreateProduct={() => setIsCreateProductOpen(true)}
           hiddenColumns={['productId']}
         />

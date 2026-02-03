@@ -83,13 +83,13 @@ function InnerPricingModelDetailsPage({
   const productFilterOptions = [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
+    { value: 'archived', label: 'Archived' },
   ]
 
   const featureFilterOptions = [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
+    { value: 'archived', label: 'Archived' },
   ]
 
   const getProductFilterForTab = (tab: string) => {
@@ -102,6 +102,7 @@ function InnerPricingModelDetailsPage({
       return baseFilter
     }
 
+    // Map 'archived' to active: false, 'active' to active: true
     return {
       ...baseFilter,
       active: tab === 'active',
@@ -115,6 +116,7 @@ function InnerPricingModelDetailsPage({
       return baseFilter
     }
 
+    // Map 'archived' to active: false, 'active' to active: true
     return {
       ...baseFilter,
       active: tab === 'active',

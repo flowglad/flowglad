@@ -96,7 +96,7 @@ function InternalProductDetailsPage(
               strokeWidth={3}
             />
           ),
-          label: 'Inactive',
+          label: 'Archived',
           variant: 'muted' as const,
         },
     ...(product.default
@@ -111,29 +111,37 @@ function InternalProductDetailsPage(
       : []),
   ]
 
+  const isArchived = !product.active
+
   // Build actions array
   const actions = [
     {
       label: 'Edit',
       onClick: () => setIsEditOpen(true),
+      disabled: isArchived,
+      disabledTooltip: isArchived
+        ? 'Cannot edit archived products'
+        : undefined,
       variant: 'secondary' as const,
     },
     {
-      label: product.active ? 'Archive' : 'Reactivate',
+      label: product.active ? 'Archive' : 'Restore',
       onClick: () => setIsArchiveOpen(true),
       disabled: product.default,
       disabledTooltip: product.default
-        ? `Cannot ${product.active ? 'archive' : 'reactivate'} default products.`
+        ? `Cannot ${product.active ? 'archive' : 'restore'} default products.`
         : undefined,
       variant: 'secondary' as const,
     },
     {
       label: 'Preview',
       onClick: () => previewProductHandler(),
-      disabled: product.default,
-      disabledTooltip: product.default
-        ? 'Cannot preview checkout for default products.'
-        : undefined,
+      disabled: product.default || isArchived,
+      disabledTooltip: isArchived
+        ? 'Cannot preview archived products'
+        : product.default
+          ? 'Cannot preview checkout for default products.'
+          : undefined,
       variant: 'secondary' as const,
     },
   ]

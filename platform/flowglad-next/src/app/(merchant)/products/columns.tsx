@@ -11,26 +11,21 @@ import {
   Copy,
   Lock,
   Pencil,
-  Plus,
 } from 'lucide-react'
 // Other imports
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
-import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import DeleteProductModal from '@/components/forms/DeleteProductModal'
 import EditProductModal from '@/components/forms/EditProductModal'
 import PricingCellView from '@/components/PricingCellView'
+import { Badge } from '@/components/ui/badge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import {
-  ActiveStatusTag,
-  booleanToActiveStatus,
-} from '@/components/ui/status-tag'
 import {
   Tooltip,
   TooltipContent,
@@ -53,8 +48,6 @@ function ProductActionsMenu({
   const [isArchiveOpen, setIsArchiveOpen] = React.useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false)
   const [isEditOpen, setIsEditOpen] = React.useState(false)
-  const [isCreatePriceOpen, setIsCreatePriceOpen] =
-    React.useState(false)
 
   const purchaseLink =
     typeof window !== 'undefined'
@@ -67,43 +60,45 @@ function ProductActionsMenu({
 
   // Check if product has any usage type prices
   const hasUsagePrice = prices.some((price) => price.type === 'usage')
+  const isArchived = !product.active
 
   const actionItems: ActionMenuItem[] = [
     {
       label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
+      disabled: isArchived,
+      helperText: isArchived
+        ? 'Cannot edit archived products'
+        : undefined,
     },
     {
       label: 'Copy purchase link',
       icon: <Copy className="h-4 w-4" />,
       handler: copyPurchaseLinkHandler,
-      disabled: product.default || hasUsagePrice,
-      helperText: product.default
-        ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
-        : hasUsagePrice
-          ? 'Cannot copy checkout link for products with usage-based pricing.'
-          : undefined,
-    },
-    {
-      label: product.active ? 'Deactivate' : 'Activate',
-      icon: product.active ? (
-        <Archive className="h-4 w-4" />
-      ) : (
-        <ArchiveRestore className="h-4 w-4" />
-      ),
-      handler: () => setIsArchiveOpen(true),
-      disabled: product.default,
+      disabled: product.default || hasUsagePrice || isArchived,
+      helperText: isArchived
+        ? 'Cannot copy purchase link for archived products'
+        : product.default
+          ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
+          : hasUsagePrice
+            ? 'Cannot copy checkout link for products with usage-based pricing.'
+            : undefined,
     },
   ]
 
-  if (product.active) {
-    actionItems.push({
-      label: 'New price',
-      icon: <Plus className="h-4 w-4" />,
-      handler: () => setIsCreatePriceOpen(true),
-    })
-  }
+  // Archive option always at the bottom
+  actionItems.push({
+    label: product.active ? 'Archive' : 'Restore',
+    icon: product.active ? (
+      <Archive className="h-4 w-4" />
+    ) : (
+      <ArchiveRestore className="h-4 w-4" />
+    ),
+    handler: () => setIsArchiveOpen(true),
+    disabled: product.default,
+    destructive: product.active,
+  })
 
   return (
     <EnhancedDataTableActionsMenu items={actionItems}>
@@ -117,12 +112,6 @@ function ProductActionsMenu({
         onDelete={async () => {}}
         isOpen={isDeleteOpen}
         setIsOpen={setIsDeleteOpen}
-      />
-      <CreatePriceModal
-        isOpen={isCreatePriceOpen}
-        setIsOpen={setIsCreatePriceOpen}
-        productId={product.id}
-        previousPrice={prices[prices.length - 1]}
       />
       <ArchiveProductModal
         isOpen={isArchiveOpen}
@@ -145,15 +134,24 @@ export const columns: ColumnDef<ProductRow>[] = [
     cell: ({ row }) => {
       const productName = row.getValue('name') as string
       const isDefault = row.original.product.default
+      const isArchived = !row.original.product.active
 
       return (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className="font-normal text-sm truncate"
+            className={`font-normal text-sm truncate ${isArchived ? 'text-muted-foreground' : ''}`}
             title={productName}
           >
             {productName}
           </span>
+          {isArchived && (
+            <Badge
+              variant="secondary"
+              className="text-xs flex-shrink-0"
+            >
+              Archived
+            </Badge>
+          )}
           {isDefault && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -186,21 +184,6 @@ export const columns: ColumnDef<ProductRow>[] = [
     size: 110,
     minSize: 105,
     maxSize: 120,
-  },
-  {
-    id: 'status',
-    accessorFn: (row) => row.product.active,
-    header: 'Status',
-    cell: ({ row }) => (
-      <div className="min-w-0">
-        <ActiveStatusTag
-          status={booleanToActiveStatus(row.getValue('status'))}
-        />
-      </div>
-    ),
-    size: 110,
-    minSize: 105,
-    maxSize: 115,
   },
   {
     id: 'slug',
