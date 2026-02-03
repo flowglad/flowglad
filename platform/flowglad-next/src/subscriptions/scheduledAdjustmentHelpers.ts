@@ -1,3 +1,4 @@
+import { SubscriptionStatus } from '@db-core/enums'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
@@ -20,6 +21,17 @@ export const hasScheduledAdjustment = (
   subscription: Subscription.Record
 ): boolean => {
   return subscription.scheduledAdjustmentAt !== null
+}
+
+/**
+ * Checks if a subscription has a scheduled cancellation pending.
+ */
+export const hasScheduledCancellation = (
+  subscription: Subscription.Record
+): boolean => {
+  return (
+    subscription.status === SubscriptionStatus.CancellationScheduled
+  )
 }
 
 export interface CancelScheduledAdjustmentResult {

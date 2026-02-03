@@ -24,6 +24,7 @@ import {
   type FeatureAccessItem,
   type GetFeatureAccessParams,
   type GetFeatureAccessResponse,
+  type GetPaymentMethodsResponse,
   type GetSubscriptionsParams,
   type GetSubscriptionsResponse,
   type GetUsageMeterBalancesParams,
@@ -154,6 +155,30 @@ export class FlowgladServer {
       currentSubscription: currentSubscriptions[0] ?? null,
     }
   }
+
+  /**
+   * Get payment methods for the authenticated customer.
+   *
+   * Returns payment methods and the billing portal URL.
+   * This is a read-only endpoint; adding payment methods goes through createAddPaymentMethodCheckoutSession.
+   *
+   * @returns A promise that resolves to an object containing payment methods and billing portal URL
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all payment methods for the customer
+   * const { paymentMethods, billingPortalUrl } = await flowglad.getPaymentMethods()
+   */
+  public getPaymentMethods =
+    async (): Promise<GetPaymentMethodsResponse> => {
+      const billing = await this.getBilling()
+
+      return {
+        paymentMethods: billing.paymentMethods ?? [],
+        billingPortalUrl: billing.billingPortalUrl ?? null,
+      }
+    }
 
   public findOrCreateCustomer = async (): Promise<
     FlowgladNode.Customers.CustomerRetrieveResponse['customer']

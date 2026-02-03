@@ -213,6 +213,29 @@ export const log = Sentry.captureMessage
 
 export const error = IS_PROD ? Sentry.captureException : console.error
 
+/**
+ * Captures an exception to Sentry and returns the event ID for correlation.
+ * In non-production environments, logs to console.error and returns undefined.
+ *
+ * Use this when you need to correlate Better Stack logs with Sentry events:
+ * ```typescript
+ * const sentryEventId = captureError(error)
+ * logger.error('Something went wrong', { sentry_event_id: sentryEventId })
+ * ```
+ */
+export const captureError = (
+  exception: Error | unknown,
+  captureContext?: Parameters<typeof Sentry.captureException>[1]
+): string | undefined => {
+  if (IS_PROD) {
+    const eventId = Sentry.captureException(exception, captureContext)
+    return eventId
+  }
+  // In non-prod, log to console but don't send to Sentry
+  console.error('[captureError]', exception)
+  return undefined
+}
+
 export const noOp = () => {}
 
 export const isNil = (value: unknown): value is null | undefined =>
@@ -544,6 +567,7 @@ export const core = {
   devPrefixString,
   log,
   error,
+  captureError,
   noOp,
   isNil,
   groupBy,
