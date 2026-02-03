@@ -384,6 +384,7 @@ export const setupPaymentMethod = async (params: {
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
+        enqueueTriggerTask,
       }) => {
         const ctx = {
           transaction,
@@ -391,6 +392,7 @@ export const setupPaymentMethod = async (params: {
           invalidateCache: invalidateCache!,
           emitEvent: emitEvent!,
           enqueueLedgerCommand: enqueueLedgerCommand!,
+          enqueueTriggerTask: enqueueTriggerTask!,
         }
         return Result.ok(
           await safelyInsertPaymentMethod(
@@ -2806,6 +2808,7 @@ export const setupProductFeature = async (
         emitEvent,
         enqueueLedgerCommand,
         cacheRecomputationContext,
+        enqueueTriggerTask,
       }) => {
         return Result.ok(
           await insertProductFeature(
@@ -2820,6 +2823,7 @@ export const setupProductFeature = async (
               emitEvent,
               enqueueLedgerCommand,
               cacheRecomputationContext,
+              enqueueTriggerTask,
             }
           )
         )

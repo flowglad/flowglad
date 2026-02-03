@@ -60,6 +60,7 @@ async function executeComprehensiveAdminTransaction<T>(
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = createEffectsAccumulator()
 
   let processedEventsCount = 0
@@ -84,6 +85,7 @@ async function executeComprehensiveAdminTransaction<T>(
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
+      enqueueTriggerTask,
     }
 
     const output = await fn(paramsForFn)
@@ -199,6 +201,7 @@ export async function adminTransactionUnwrap<T>(
       invalidateCache: params.invalidateCache,
       emitEvent: params.emitEvent,
       enqueueLedgerCommand: params.enqueueLedgerCommand,
+      enqueueTriggerTask: params.enqueueTriggerTask,
     }
     return fn(ctx)
   }, options)

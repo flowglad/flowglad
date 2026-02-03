@@ -4,7 +4,12 @@ import { invalidateDependencies } from '@/utils/cache.internal'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-import type { DbTransaction, TransactionEffects } from './types'
+import type {
+  DbTransaction,
+  EnqueueTriggerTaskCallback,
+  QueuedTriggerTask,
+  TransactionEffects,
+} from './types'
 
 /**
  * Creates a fresh effects accumulator and the callback functions that push to it.
@@ -14,6 +19,7 @@ export function createEffectsAccumulator() {
     cacheInvalidations: [],
     eventsToInsert: [],
     ledgerCommands: [],
+    triggerTasks: [],
   }
 
   const invalidateCache = (...keys: CacheDependencyKey[]) => {
@@ -25,12 +31,26 @@ export function createEffectsAccumulator() {
   const enqueueLedgerCommand = (...commands: LedgerCommand[]) => {
     effects.ledgerCommands.push(...commands)
   }
+  const enqueueTriggerTask: EnqueueTriggerTaskCallback = (
+    key,
+    task,
+    payload,
+    options
+  ) => {
+    effects.triggerTasks.push({
+      key,
+      task,
+      payload,
+      options,
+    } as QueuedTriggerTask)
+  }
 
   return {
     effects,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   }
 }
 

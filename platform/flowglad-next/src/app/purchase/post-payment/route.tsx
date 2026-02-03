@@ -158,6 +158,7 @@ const processCheckoutSession = async ({
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,
+          enqueueTriggerTask: params.enqueueTriggerTask,
         })
       return Result.ok({
         checkoutSession,
