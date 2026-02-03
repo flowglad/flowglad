@@ -157,7 +157,12 @@ export const columns: ColumnDef<ProductRow>[] = [
               <TooltipTrigger asChild>
                 <Lock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent
+                side="bottom"
+                align="start"
+                variant="muted"
+                className="max-w-xs px-3 py-2 text-sm font-medium"
+              >
                 <p>
                   Default products are automatically assigned to
                   customers and cannot be archived.
