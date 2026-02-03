@@ -6,6 +6,7 @@ import {
   it,
   mock,
 } from 'bun:test'
+import type { CustomerBillingDetails } from '@flowglad/shared'
 import { FlowgladActionKey } from '@flowglad/shared'
 import {
   QueryClient,
@@ -48,47 +49,46 @@ const mockEmptySubscriptionsResponse = {
 }
 
 // Create mock billing data for dev mode
-const createMockBillingData = () => ({
-  customer: {
-    id: 'cust_123',
-    email: 'test@example.com',
-    name: 'Test Customer',
-    externalId: 'ext_123',
-    livemode: false,
-    organizationId: 'org_123',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    catalog: null,
-  },
-  subscriptions: [mockSubscription1],
-  currentSubscription: mockSubscription1,
-  currentSubscriptions: [mockSubscription1],
-  purchases: [],
-  invoices: [],
-  paymentMethods: [],
-  billingPortalUrl: 'https://billing.example.com',
-  pricingModel: {
-    id: 'pm_123',
-    products: [],
-    prices: [],
-    usageMeters: [],
-    features: [],
-    resources: [],
-  },
-  catalog: {
-    id: 'pm_123',
-    products: [],
-    prices: [],
-    usageMeters: [],
-    features: [],
-    resources: [],
-  },
-})
+// Uses type assertion since test mocks only need partial data
+const createMockBillingData = () =>
+  ({
+    customer: {
+      id: 'cust_123',
+      email: 'test@example.com',
+      name: 'Test Customer',
+      externalId: 'ext_123',
+      livemode: false,
+      organizationId: 'org_123',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    },
+    subscriptions: [mockSubscription1],
+    currentSubscription: mockSubscription1,
+    currentSubscriptions: [mockSubscription1],
+    purchases: [],
+    invoices: [],
+    paymentMethods: [],
+    billingPortalUrl: 'https://billing.example.com',
+    pricingModel: {
+      id: 'pm_123',
+      products: [],
+      usageMeters: [],
+      features: [],
+      resources: [],
+    },
+    catalog: {
+      id: 'pm_123',
+      products: [],
+      usageMeters: [],
+      features: [],
+      resources: [],
+    },
+  }) as unknown as CustomerBillingDetails
 
 // Create wrapper for hooks
 const createWrapper = (
   devMode = false,
-  billingMocks?: ReturnType<typeof createMockBillingData>
+  billingMocks?: CustomerBillingDetails
 ) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -103,7 +103,7 @@ const createWrapper = (
       <FlowgladConfigProvider
         baseURL="https://test.example.com"
         __devMode={devMode}
-        billingMocks={billingMocks as never}
+        billingMocks={billingMocks}
       >
         {children}
       </FlowgladConfigProvider>
@@ -118,7 +118,12 @@ describe('useSubscription', () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch
     mockFetch = mock()
-    globalThis.fetch = mockFetch as unknown as typeof fetch
+    // Create a fetch proxy that preserves the original preconnect method
+    const fetchProxy = Object.assign(
+      (...args: Parameters<typeof fetch>) => mockFetch(...args),
+      { preconnect: originalFetch.preconnect }
+    ) as typeof fetch
+    globalThis.fetch = fetchProxy
   })
 
   afterEach(() => {
