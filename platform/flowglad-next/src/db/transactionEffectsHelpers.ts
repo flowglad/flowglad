@@ -32,7 +32,7 @@ import type {
  * - If you pass a SyncDependency without context, it won't match overload 1 (type mismatch)
  *   and overload 2 requires context as the first argument
  */
-export interface InvalidateCacheFunction {
+interface InvalidateCacheFunction {
   /**
    * Invalidate cache-only dependencies. No sync events will be emitted.
    */
