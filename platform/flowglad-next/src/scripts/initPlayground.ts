@@ -486,6 +486,7 @@ function printSummary(playgroundName: string, apiKey: string): void {
 
 /**
  * Start all playground services in background with log files.
+ * Includes cleanup logic to kill processes and close file descriptors on failure.
  */
 async function startServices(playgroundName: string): Promise<void> {
   const playgroundPath = path.join(PLAYGROUND_DIR, playgroundName)
@@ -504,86 +505,176 @@ async function startServices(playgroundName: string): Promise<void> {
   fs.writeFileSync(playgroundLogFile, '')
   fs.writeFileSync(triggerLogFile, '')
 
+  // Track started processes and file descriptors for cleanup on failure
+  let platformProcess: ReturnType<typeof spawn> | null = null
+  let playgroundProcess: ReturnType<typeof spawn> | null = null
+  let triggerProcess: ReturnType<typeof spawn> | null = null
+  let platformOut: number | null = null
+  let playgroundOut: number | null = null
+  let triggerOut: number | null = null
+
   const pids: {
     platform?: number
     playground?: number
     trigger?: number
   } = {}
 
-  // Start platform
-  // Explicitly set DATABASE_URL to local Supabase to prevent inheriting
-  // a remote DATABASE_URL from the user's environment (safety check blocks remote DBs)
-  const PLATFORM_DATABASE_URL =
-    'postgresql://postgres:postgres@localhost:54322/postgres'
-  logInfo('Starting platform...')
-  const platformOut = fs.openSync(platformLogFile, 'a')
-  const platformProcess = spawn('bun', ['run', 'dev'], {
-    cwd: PLATFORM_DIR,
-    env: {
-      ...process.env,
-      FLOWGLAD_LOCAL_PLAYGROUND: 'true',
-      DATABASE_URL: PLATFORM_DATABASE_URL,
-    },
-    stdio: ['ignore', platformOut, platformOut],
-    detached: true,
-  })
-  platformProcess.unref()
+  /**
+   * Cleanup function to kill processes, close file descriptors,
+   * and remove PID file on startup failure.
+   */
+  function cleanup(): void {
+    logInfo('Cleaning up after startup failure...')
 
-  // Validate platform PID - spawn can fail and return undefined pid
-  if (platformProcess.pid === undefined) {
-    logError('Failed to start platform: spawn returned no PID')
-    throw new Error('Platform process failed to start')
+    // Kill any started processes
+    if (triggerProcess?.pid !== undefined) {
+      try {
+        triggerProcess.kill()
+        logDim(
+          `  Killed trigger.dev process (PID: ${triggerProcess.pid})`
+        )
+      } catch {
+        // Process may have already exited
+      }
+    }
+    if (playgroundProcess?.pid !== undefined) {
+      try {
+        playgroundProcess.kill()
+        logDim(
+          `  Killed playground process (PID: ${playgroundProcess.pid})`
+        )
+      } catch {
+        // Process may have already exited
+      }
+    }
+    if (platformProcess?.pid !== undefined) {
+      try {
+        platformProcess.kill()
+        logDim(
+          `  Killed platform process (PID: ${platformProcess.pid})`
+        )
+      } catch {
+        // Process may have already exited
+      }
+    }
+
+    // Close any opened file descriptors
+    if (triggerOut !== null) {
+      try {
+        fs.closeSync(triggerOut)
+      } catch {
+        // File descriptor may already be closed
+      }
+    }
+    if (playgroundOut !== null) {
+      try {
+        fs.closeSync(playgroundOut)
+      } catch {
+        // File descriptor may already be closed
+      }
+    }
+    if (platformOut !== null) {
+      try {
+        fs.closeSync(platformOut)
+      } catch {
+        // File descriptor may already be closed
+      }
+    }
+
+    // Remove partially-written PID file if it exists
+    if (fs.existsSync(PIDS_FILE)) {
+      try {
+        fs.unlinkSync(PIDS_FILE)
+        logDim('  Removed partial PID file')
+      } catch {
+        // File may not exist or be inaccessible
+      }
+    }
   }
-  pids.platform = platformProcess.pid
 
-  // Wait a bit for platform to start
-  await new Promise((resolve) => setTimeout(resolve, 2000))
+  try {
+    // Start platform
+    // Explicitly set DATABASE_URL to local Supabase to prevent inheriting
+    // a remote DATABASE_URL from the user's environment (safety check blocks remote DBs)
+    const PLATFORM_DATABASE_URL =
+      'postgresql://postgres:postgres@localhost:54322/postgres'
+    logInfo('Starting platform...')
+    platformOut = fs.openSync(platformLogFile, 'a')
+    platformProcess = spawn('bun', ['run', 'dev'], {
+      cwd: PLATFORM_DIR,
+      env: {
+        ...process.env,
+        FLOWGLAD_LOCAL_PLAYGROUND: 'true',
+        DATABASE_URL: PLATFORM_DATABASE_URL,
+      },
+      stdio: ['ignore', platformOut, platformOut],
+      detached: true,
+    })
+    platformProcess.unref()
 
-  // Start playground
-  // Explicitly set DATABASE_URL to prevent inheriting platform's DATABASE_URL
-  // (Next.js prioritizes process.env over .env.local)
-  const dbConfig =
-    PLAYGROUND_DB[playgroundName as keyof typeof PLAYGROUND_DB]
-  logInfo('Starting playground...')
-  const playgroundOut = fs.openSync(playgroundLogFile, 'a')
-  const playgroundProcess = spawn('bun', ['run', 'dev'], {
-    cwd: playgroundPath,
-    env: { ...process.env, DATABASE_URL: dbConfig.databaseUrl },
-    stdio: ['ignore', playgroundOut, playgroundOut],
-    detached: true,
-  })
-  playgroundProcess.unref()
+    // Validate platform PID - spawn can fail and return undefined pid
+    if (platformProcess.pid === undefined) {
+      throw new Error(
+        'Failed to start platform: spawn returned no PID'
+      )
+    }
+    pids.platform = platformProcess.pid
 
-  // Validate playground PID
-  if (playgroundProcess.pid === undefined) {
-    logError('Failed to start playground: spawn returned no PID')
-    throw new Error('Playground process failed to start')
+    // Wait a bit for platform to start
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    // Start playground
+    // Explicitly set DATABASE_URL to prevent inheriting platform's DATABASE_URL
+    // (Next.js prioritizes process.env over .env.local)
+    const dbConfig =
+      PLAYGROUND_DB[playgroundName as keyof typeof PLAYGROUND_DB]
+    logInfo('Starting playground...')
+    playgroundOut = fs.openSync(playgroundLogFile, 'a')
+    playgroundProcess = spawn('bun', ['run', 'dev'], {
+      cwd: playgroundPath,
+      env: { ...process.env, DATABASE_URL: dbConfig.databaseUrl },
+      stdio: ['ignore', playgroundOut, playgroundOut],
+      detached: true,
+    })
+    playgroundProcess.unref()
+
+    // Validate playground PID
+    if (playgroundProcess.pid === undefined) {
+      throw new Error(
+        'Failed to start playground: spawn returned no PID'
+      )
+    }
+    pids.playground = playgroundProcess.pid
+
+    // Start trigger.dev
+    // Also set DATABASE_URL to local Supabase for trigger.dev
+    logInfo('Starting trigger.dev...')
+    triggerOut = fs.openSync(triggerLogFile, 'a')
+    triggerProcess = spawn('bun', ['run', 'trigger:dev'], {
+      cwd: PLATFORM_DIR,
+      env: { ...process.env, DATABASE_URL: PLATFORM_DATABASE_URL },
+      stdio: ['ignore', triggerOut, triggerOut],
+      detached: true,
+    })
+    triggerProcess.unref()
+
+    // Validate trigger.dev PID
+    if (triggerProcess.pid === undefined) {
+      throw new Error(
+        'Failed to start trigger.dev: spawn returned no PID'
+      )
+    }
+    pids.trigger = triggerProcess.pid
+
+    // Save PIDs for stop script (only written after all PIDs are validated)
+    fs.writeFileSync(PIDS_FILE, JSON.stringify(pids, null, 2))
+
+    logSuccess('All services started')
+  } catch (error) {
+    // Clean up any started processes and resources before rethrowing
+    cleanup()
+    throw error
   }
-  pids.playground = playgroundProcess.pid
-
-  // Start trigger.dev
-  // Also set DATABASE_URL to local Supabase for trigger.dev
-  logInfo('Starting trigger.dev...')
-  const triggerOut = fs.openSync(triggerLogFile, 'a')
-  const triggerProcess = spawn('bun', ['run', 'trigger:dev'], {
-    cwd: PLATFORM_DIR,
-    env: { ...process.env, DATABASE_URL: PLATFORM_DATABASE_URL },
-    stdio: ['ignore', triggerOut, triggerOut],
-    detached: true,
-  })
-  triggerProcess.unref()
-
-  // Validate trigger.dev PID
-  if (triggerProcess.pid === undefined) {
-    logError('Failed to start trigger.dev: spawn returned no PID')
-    throw new Error('Trigger.dev process failed to start')
-  }
-  pids.trigger = triggerProcess.pid
-
-  // Save PIDs for stop script (only written if all PIDs are valid)
-  fs.writeFileSync(PIDS_FILE, JSON.stringify(pids, null, 2))
-
-  logSuccess('All services started')
 }
 
 /**
