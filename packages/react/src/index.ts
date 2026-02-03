@@ -11,6 +11,7 @@ export {
   usePricingModel,
 } from './FlowgladContext'
 export { FlowgladProvider } from './FlowgladProvider'
+export { invalidateCustomerData } from './lib/invalidation'
 export { humanReadableCurrencyAmount } from './lib/utils'
 export {
   FEATURES_QUERY_KEY,
@@ -27,6 +28,10 @@ export {
   useResource,
   useResources,
 } from './useResources'
+export {
+  type UseSubscriptionResult,
+  useSubscription,
+} from './useSubscription'
 export {
   SUBSCRIPTIONS_QUERY_KEY,
   type UseSubscriptionsResult,
