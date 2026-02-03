@@ -8,6 +8,7 @@ import {
   createAddPaymentMethodCheckoutSession,
   createCheckoutSession,
 } from './checkoutSessionHandlers'
+import { getCustomerDetails } from './customerDetailsHandlers'
 import {
   findOrCreateCustomer,
   getCustomerBilling,
@@ -67,16 +68,7 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.GetUsageMeterBalances]: getUsageMeterBalances,
   [FlowgladActionKey.GetFeatureAccess]: getFeatureAccessItems,
   [FlowgladActionKey.GetPaymentMethods]: getPaymentMethods,
-  [FlowgladActionKey.GetCustomerDetails]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {},
-      },
-    }
-  },
+  [FlowgladActionKey.GetCustomerDetails]: getCustomerDetails,
 }
 
 export const hybridRouteToHandlerMap: {
