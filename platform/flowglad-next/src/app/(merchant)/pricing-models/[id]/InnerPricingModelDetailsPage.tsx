@@ -25,7 +25,6 @@ import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
-import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
 import { MoreIcon } from '@/components/icons/MoreIcon'
 import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
@@ -52,7 +51,6 @@ function InnerPricingModelDetailsPage({
   const router = useRouter()
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCloneOpen, setIsCloneOpen] = useState(false)
-  const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
@@ -169,18 +167,6 @@ function InnerPricingModelDetailsPage({
       },
       icon: <Sparkles className="h-4 w-4" />,
     },
-    ...(!pricingModel.isDefault
-      ? [
-          {
-            label: 'Set as Default',
-            handler: () => {
-              setIsMoreMenuOpen(false)
-              setIsSetDefaultOpen(true)
-            },
-            icon: <Check className="h-4 w-4" />,
-          },
-        ]
-      : []),
     {
       label: 'Duplicate',
       handler: () => {
@@ -389,11 +375,6 @@ function InnerPricingModelDetailsPage({
       <ClonePricingModelModal
         isOpen={isCloneOpen}
         setIsOpen={setIsCloneOpen}
-        pricingModel={pricingModel}
-      />
-      <SetPricingModelAsDefaultModal
-        isOpen={isSetDefaultOpen}
-        setIsOpen={setIsSetDefaultOpen}
         pricingModel={pricingModel}
       />
     </PageContainer>
