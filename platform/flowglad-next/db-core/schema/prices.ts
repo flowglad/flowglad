@@ -156,7 +156,7 @@ export const prices = pgTable(
      * from external processors onto Flowglad
      */
     externalId: text('external_id'),
-    slug: text('slug'),
+    slug: text('slug').notNull(),
     usageMeterId: nullableStringForeignKey(
       'usage_meter_id',
       usageMeters
