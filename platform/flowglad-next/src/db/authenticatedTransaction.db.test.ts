@@ -1039,3 +1039,31 @@ describe('authenticatedTransaction', () => {
     expect(() => result.unwrap()).toThrow(errorMessage)
   })
 })
+
+describe('enqueueTriggerTask', () => {
+  it.skip('should not dispatch tasks if transaction rolls back', async () => {
+    // Setup: create a transaction that will roll back
+    // Action: enqueue a trigger task, then throw to cause rollback
+    // Expectation: the trigger task is NOT dispatched
+  })
+
+  it.skip('should dispatch tasks after commit and return handles', async () => {
+    // Setup: create a transaction that commits successfully
+    // Action: enqueue a trigger task
+    // Expectation: task is dispatched after commit, handle is returned
+  })
+
+  it.skip('should return handles keyed by user-provided key', async () => {
+    // Setup: create a transaction with multiple trigger tasks
+    // Action: enqueue tasks with different keys
+    // Expectation: triggerHandles map contains all keys with correct handles
+  })
+})
+
+describe('comprehensiveAuthenticatedTransaction triggerHandles', () => {
+  it.skip('should return result and triggerHandles at same level', async () => {
+    // Setup: create a comprehensive transaction
+    // Action: return a value and enqueue a trigger task
+    // Expectation: returned object has { result, triggerHandles } structure
+  })
+})
