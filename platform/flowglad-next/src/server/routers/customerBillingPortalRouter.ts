@@ -667,7 +667,13 @@ const getCustomersForUserAndOrganizationProcedure =
       const { organizationId } = ctx
 
       // Note: Intentionally includes archived customers - they should still be able
-      // to access the billing portal to view historical invoices and billing data
+      // to access the billing portal to view historical invoices and billing data.
+      //
+      // Uses adminTransaction because customer billing portal users don't have
+      // merchant RLS context (authenticatedTransaction relies on merchant sessions
+      // and membership-based JWT claims). Security is enforced at the procedure
+      // level by customerSessionProcedure (validates user session + organizationId)
+      // and the query filter (userId + organizationId + livemode).
       const customers = await adminTransaction(
         async ({ transaction }) => {
           return selectCustomers(

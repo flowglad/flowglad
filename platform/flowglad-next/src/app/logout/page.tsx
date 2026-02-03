@@ -44,12 +44,24 @@ export default function Logout() {
 
       isLoggingOut.current = true
 
-      // Use the appropriate logout mutation based on context
+      // Use the appropriate logout mutation based on context.
+      // Even if logout fails (network error, server error), redirect anyway.
+      // The user's intent is to log out and navigate - if session clearing
+      // failed server-side, re-authenticating will either work normally
+      // (session was actually cleared) or create a fresh session.
       if (isBillingPortal) {
-        await logoutCustomerMutation.mutateAsync()
+        try {
+          await logoutCustomerMutation.mutateAsync()
+        } catch (error) {
+          console.error('Customer logout failed:', error)
+        }
         router.replace(redirectParam)
       } else {
-        await logoutMerchantMutation.mutateAsync()
+        try {
+          await logoutMerchantMutation.mutateAsync()
+        } catch (error) {
+          console.error('Merchant logout failed:', error)
+        }
         router.replace('/sign-in')
       }
     }
