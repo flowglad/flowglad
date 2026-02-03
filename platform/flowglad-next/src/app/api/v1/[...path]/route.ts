@@ -1,6 +1,4 @@
 import { FlowgladApiKeyType } from '@db-core/enums'
-import { apiKeys } from '@db-core/schema/apiKeys'
-import { memberships } from '@db-core/schema/memberships'
 import {
   context,
   SpanKind,
@@ -13,7 +11,6 @@ import {
   fetchRequestHandler,
 } from '@trpc/server/adapters/fetch'
 import type { NextRequestWithUnkeyContext } from '@unkey/nextjs'
-import { and, eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { routes } from '@/app/api/v1/[...path]/restRoutes'
