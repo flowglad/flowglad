@@ -32,7 +32,6 @@ import type {
   SetupPricingModelProductPriceInput,
   SetupUsageMeterPriceInput,
 } from './setupSchemas'
-import { buildSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * A resource with a slug identifier.
@@ -249,11 +248,9 @@ export const diffUsageMeters = (
       const proposed = proposedMeter as unknown as UsageMeterDiffInput
 
       // Diff the prices within this usage meter
-      // Pass the meter slug for globally unique synthetic price slugs
       const priceDiff = diffUsageMeterPrices(
         existing.prices,
-        proposed.prices,
-        existing.usageMeter.slug
+        proposed.prices
       )
 
       return {
@@ -330,37 +327,17 @@ export type UsageMeterDiffResult = {
 }
 
 /**
- * Extracts the slug from a usage price for slug-based diffing.
- * Falls back to generating a synthetic slug if the price has no real slug.
- *
- * @param price - The usage price input
- * @param meterSlug - The slug of the usage meter this price belongs to (for global uniqueness)
- */
-const getUsagePriceSlug = (
-  price: SetupUsageMeterPriceInput,
-  meterSlug: string
-): string => {
-  // Use real slug if present
-  if (price.slug) {
-    return price.slug
-  }
-  // Fallback: use shared synthetic slug generator for consistency with updateHelpers.ts
-  return buildSyntheticUsagePriceSlug(price, meterSlug)
-}
-
-/**
  * Converts usage prices to a format compatible with diffSluggedResources.
+ * Prices must have a slug - this is enforced by input validation.
  *
- * @param prices - The usage price inputs
- * @param meterSlug - The slug of the usage meter these prices belong to
+ * @param prices - The usage price inputs (all must have slugs)
  */
 const toSluggedUsagePrices = (
-  prices: SetupUsageMeterPriceInput[],
-  meterSlug: string
+  prices: SetupUsageMeterPriceInput[]
 ): SluggedResource<SetupUsageMeterPriceInput>[] => {
   return prices.map((p) => ({
     ...p,
-    slug: getUsagePriceSlug(p, meterSlug),
+    slug: p.slug,
   }))
 }
 
@@ -369,20 +346,18 @@ const toSluggedUsagePrices = (
  *
  * @param existingPrices - Array of existing usage prices (or undefined/empty)
  * @param proposedPrices - Array of proposed usage prices (or undefined/empty)
- * @param meterSlug - The slug of the usage meter (for global uniqueness of synthetic slugs)
  * @returns A UsageMeterPriceDiffResult containing prices to remove, create, and update
  */
 export const diffUsageMeterPrices = (
   existingPrices: SetupUsageMeterPriceInput[] | undefined,
-  proposedPrices: SetupUsageMeterPriceInput[] | undefined,
-  meterSlug: string
+  proposedPrices: SetupUsageMeterPriceInput[] | undefined
 ): UsageMeterPriceDiffResult => {
   const existing = existingPrices || []
   const proposed = proposedPrices || []
 
   // Convert to slugged format for generic diffing
-  const sluggedExisting = toSluggedUsagePrices(existing, meterSlug)
-  const sluggedProposed = toSluggedUsagePrices(proposed, meterSlug)
+  const sluggedExisting = toSluggedUsagePrices(existing)
+  const sluggedProposed = toSluggedUsagePrices(proposed)
 
   // Use generic diffing
   const baseDiff = diffSluggedResources(
