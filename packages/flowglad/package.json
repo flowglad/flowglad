@@ -30,6 +30,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@clack/prompts": "^0.9.1",
     "cac": "^6.7.14",
     "js-yaml": "^4.1.0",
     "open": "^10.1.0"
