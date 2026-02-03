@@ -9,14 +9,10 @@
     "dev": "bun run --watch src/index.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "check": "biome check . && bun run typecheck",
-    "docker:build": "bun run src/scripts/docker-build-push.ts",
-    "docker:push": "bun run src/scripts/docker-build-push.ts --push",
-    "ghcr:login": "bun run src/scripts/ghcr-login.ts"
+    "check": "biome check . && bun run typecheck"
   },
   "dependencies": {
-    "nanoid": "^3.3.11",
-    "postgres": "^3.4.7"
+    "nanoid": "^3.3.11"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6",
