@@ -451,7 +451,7 @@ export const sendCustomerBillingPortalMagicLink = async ({
       }),
       to: to.map(safeTo),
       subject: formatEmailSubject(
-        `Sign in to your ${organizationName} billing portal`,
+        `Log in to your ${organizationName} billing portal`,
         livemode
       ),
       react: await CustomerBillingPortalMagicLinkEmail({

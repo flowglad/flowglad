@@ -7,7 +7,7 @@
  *
  * Authentication is the entry point for all user journeys. Flowglad uses
  * Better Auth for identity management, which creates user records via
- * database hooks when users sign up or sign in.
+ * database hooks when users sign up or log in.
  *
  * ## User Journey
  *

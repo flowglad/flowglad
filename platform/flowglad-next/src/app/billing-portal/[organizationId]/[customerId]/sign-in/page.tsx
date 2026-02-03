@@ -220,7 +220,7 @@ export default function CustomerBillingPortalOTPSignIn() {
         <Card className="max-w-lg lg:w-96 w-full">
           <CardHeader>
             <CardTitle className="text-lg md:text-xl">
-              Sign In to Billing Portal
+              Log In to Billing Portal
             </CardTitle>
             <CardDescription>
               Enter your email to receive a magic link
@@ -278,7 +278,7 @@ export default function CustomerBillingPortalOTPSignIn() {
       <Card className="max-w-lg lg:w-96 w-full">
         <CardHeader>
           <CardTitle className="text-lg md:text-xl">
-            Sign In to Billing Portal
+            Log In to Billing Portal
           </CardTitle>
           <CardDescription>{getCardDescription()}</CardDescription>
         </CardHeader>

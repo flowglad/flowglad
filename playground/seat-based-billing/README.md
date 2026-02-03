@@ -116,7 +116,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 ├── src/
 │   ├── app/                 # Next.js App Router pages and routes
 │   │   ├── api/            # API routes (BetterAuth, Flowglad)
-│   │   ├── sign-in/        # Sign in page
+│   │   ├── sign-in/        # Log in page
 │   │   └── sign-up/        # Sign up page
 │   ├── components/         # React components
 │   │   └── ui/            # shadcn/ui components
@@ -133,7 +133,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## Authentication
 
-This project uses BetterAuth for authentication. Users can sign up and sign in with email/password. The authentication state is managed server-side with secure cookies.
+This project uses BetterAuth for authentication. Users can sign up and log in with email/password. The authentication state is managed server-side with secure cookies.
 
 ## Billing
 
