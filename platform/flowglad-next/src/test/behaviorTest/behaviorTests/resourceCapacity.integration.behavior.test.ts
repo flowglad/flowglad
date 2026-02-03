@@ -12,6 +12,7 @@
  * 4. Resource Amount Zero Edge Case - Verify claim operations fail
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   BillingPeriodStatus,
   IntervalUnit,
@@ -20,7 +21,6 @@ import {
 } from '@db-core/enums'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupCustomer,

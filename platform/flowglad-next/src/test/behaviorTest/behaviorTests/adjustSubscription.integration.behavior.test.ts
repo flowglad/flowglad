@@ -20,10 +20,10 @@
  * - Downgrade when resource claims exceed new capacity
  */
 
+import { afterAll, describe, expect, it } from 'bun:test'
 import { PriceType, SubscriptionStatus } from '@db-core/enums'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
-import { afterAll, describe, expect, it } from 'vitest'
 import {
   setupPrice,
   setupResourceClaim,
