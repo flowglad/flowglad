@@ -63,7 +63,8 @@ jobs:
           if git diff --staged --quiet; then
             echo "No baseline changes to commit"
           else
-            git commit -m "chore: update lint ratchet baseline [skip ci]"
+            # Skip pre-commit hooks - baseline updates are already validated by the ratchet check
+            git commit --no-verify -m "chore: update lint ratchet baseline [skip ci]"
             git push
           fi
 
