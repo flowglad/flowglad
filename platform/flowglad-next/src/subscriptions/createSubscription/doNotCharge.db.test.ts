@@ -197,13 +197,15 @@ describe('doNotCharge subscription creation', () => {
         doNotCharge: true,
       }
 
-      await adminTransaction(async ({ transaction }) => {
-        await createSubscriptionWorkflow(
-          params,
-          createDiscardingEffectsContext(transaction)
-        )
-        return Result.ok(null)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createSubscriptionWorkflow(
+            params,
+            createDiscardingEffectsContext(transaction)
+          )
+          return Result.ok(null)
+        })
+      ).unwrap()
 
       expect(orgNotificationSpy).toHaveBeenCalledTimes(1)
       expect(customerNotificationSpy).toHaveBeenCalledTimes(1)
@@ -255,22 +257,24 @@ describe('doNotCharge subscription creation', () => {
       })
     ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      const canceledFree = (
-        await selectSubscriptionById(
-          existingFreeSubscription.id,
-          transaction
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const canceledFree = (
+          await selectSubscriptionById(
+            existingFreeSubscription.id,
+            transaction
+          )
+        ).unwrap()
+        expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+        expect(canceledFree.cancellationReason).toBe(
+          CancellationReason.UpgradedToPaid
         )
-      ).unwrap()
-      expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
-      expect(canceledFree.cancellationReason).toBe(
-        CancellationReason.UpgradedToPaid
-      )
-      expect(canceledFree.replacedBySubscriptionId).toBe(
-        newSubscription.id
-      )
-      return Result.ok(null)
-    })
+        expect(canceledFree.replacedBySubscriptionId).toBe(
+          newSubscription.id
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should set subscription item unitPrice to price.unitPrice when doNotCharge is false', async () => {
@@ -481,16 +485,18 @@ describe('doNotCharge subscription creation', () => {
     expect(subscription.isFreePlan).toBe(false)
 
     // Should cancel existing free subscription (paid plan behavior)
-    await adminTransaction(async ({ transaction }) => {
-      const canceledFree = (
-        await selectSubscriptionById(
-          existingFreeSubscription.id,
-          transaction
-        )
-      ).unwrap()
-      expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
-      return Result.ok(null)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const canceledFree = (
+          await selectSubscriptionById(
+            existingFreeSubscription.id,
+            transaction
+          )
+        ).unwrap()
+        expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should create subscription as Active when doNotCharge is true and no payment method is provided', async () => {
@@ -527,13 +533,15 @@ describe('doNotCharge subscription creation', () => {
     expect(subscription.doNotCharge).toBe(true)
 
     // Verify it persists when queried later
-    await adminTransaction(async ({ transaction }) => {
-      const retrieved = (
-        await selectSubscriptionById(subscription.id, transaction)
-      ).unwrap()
-      expect(retrieved.doNotCharge).toBe(true)
-      return Result.ok(null)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const retrieved = (
+          await selectSubscriptionById(subscription.id, transaction)
+        ).unwrap()
+        expect(retrieved.doNotCharge).toBe(true)
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should create subscription as Incomplete when doNotCharge is false and no payment method is provided', async () => {

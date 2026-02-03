@@ -25,7 +25,7 @@ import { setupResourceClaim } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   countActiveResourceClaims,
-  selectActiveResourceClaims,
+  selectResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
@@ -263,7 +263,7 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
             async ({ transaction }) => {
               // We need to check all claims, not just active ones
               // to verify the release reason
-              const allClaims = await selectActiveResourceClaims(
+              const allClaims = await selectResourceClaims(
                 { subscriptionId: subscription.id },
                 transaction
               )
