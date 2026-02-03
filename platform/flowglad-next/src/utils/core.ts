@@ -154,9 +154,14 @@ export const IS_TEST =
  * locally-seeded API keys.
  *
  * Set FLOWGLAD_LOCAL_PLAYGROUND=true to enable.
+ *
+ * IMPORTANT: This flag is automatically disabled in production environments
+ * (VERCEL_ENV === 'production') to prevent misconfiguration from bypassing
+ * Unkey API key validation.
  */
 export const IS_LOCAL_PLAYGROUND =
-  process.env.FLOWGLAD_LOCAL_PLAYGROUND === 'true'
+  process.env.FLOWGLAD_LOCAL_PLAYGROUND === 'true' &&
+  process.env.VERCEL_ENV !== 'production'
 
 /**
  * Test database URL used by both local docker-compose and CI service containers.
