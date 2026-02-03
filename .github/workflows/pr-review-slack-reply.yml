@@ -21,7 +21,7 @@ jobs:
           SLACK_GITHUB_MAPPING: ${{ secrets.SLACK_GITHUB_MAPPING }}
           STATE: ${{ github.event.review.state }}
           TITLE: ${{ github.event.pull_request.title }}
-          URL: ${{ github.event.pull_request.html_url }}
+          URL: ${{ github.event.review.html_url }}
           AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
