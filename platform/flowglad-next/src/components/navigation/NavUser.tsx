@@ -184,7 +184,7 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="w-56"
                   data-testid="nav-user-org-submenu"
                 >
-                  <div className="max-h-64 overflow-y-auto">
+                  <div className="max-h-64 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
                     {organizations.map((org) => (
                       <DropdownMenuItem
                         key={org.id}
@@ -249,7 +249,7 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="w-64"
                   data-testid="nav-user-pricing-submenu"
                 >
-                  <div className="max-h-64 overflow-y-auto">
+                  <div className="max-h-64 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
                     {pricingModels.map(({ pricingModel: pm }) => {
                       const isSelected =
                         currentPricingModelId === pm.id
