@@ -1,6 +1,6 @@
 'use client'
 
-import { type CurrencyCode } from '@db-core/enums'
+import { CurrencyCode } from '@db-core/enums'
 import type { Price } from '@db-core/schema/prices'
 import { useFormContext } from 'react-hook-form'
 import {
@@ -53,7 +53,7 @@ const timingOptions = [
 export const AdjustSubscriptionFormFields = ({
   availablePrices,
   currentPriceId,
-  currency = 'usd' as CurrencyCode,
+  currency = CurrencyCode.USD,
 }: AdjustSubscriptionFormFieldsProps) => {
   const form = useFormContext<AdjustSubscriptionFormValues>()
   const selectedTiming = form.watch('timing')
@@ -198,8 +198,8 @@ export const AdjustSubscriptionFormFields = ({
               <div className="space-y-0.5">
                 <FormLabel>Prorate charges</FormLabel>
                 <FormDescription>
-                  Charge/credit the customer for time remaining in the
-                  current billing period
+                  Charge the customer for the price difference in the
+                  remaining billing period
                 </FormDescription>
               </div>
               <FormControl>

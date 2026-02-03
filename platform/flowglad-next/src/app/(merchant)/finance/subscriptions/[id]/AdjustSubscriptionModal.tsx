@@ -1,12 +1,13 @@
 'use client'
 
-import { PriceType } from '@db-core/enums'
+import { CurrencyCode, PriceType } from '@db-core/enums'
 import type { Price } from '@db-core/schema/prices'
 import { encodeCursor } from '@db-core/tableUtils'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
+import { useDebounce } from '@/app/hooks/useDebounce'
 import FormModal, {
   type ModalInterfaceProps,
 } from '@/components/forms/FormModal'
@@ -26,6 +27,45 @@ interface AdjustSubscriptionModalProps extends ModalInterfaceProps {
 }
 
 /**
+ * Builds the adjustment payload from form values.
+ * Shared between preview and submit to avoid duplication.
+ */
+function buildAdjustmentPayload(
+  priceId: string,
+  quantity: number,
+  timing: SubscriptionAdjustmentTiming,
+  prorateCurrentBillingPeriod: boolean
+) {
+  const newSubscriptionItems = [{ priceId, quantity }]
+
+  if (timing === SubscriptionAdjustmentTiming.Immediately) {
+    return {
+      timing: SubscriptionAdjustmentTiming.Immediately as const,
+      newSubscriptionItems,
+      prorateCurrentBillingPeriod,
+    }
+  }
+
+  if (
+    timing ===
+    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+  ) {
+    return {
+      timing:
+        SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod as const,
+      newSubscriptionItems,
+    }
+  }
+
+  // Auto timing
+  return {
+    timing: SubscriptionAdjustmentTiming.Auto as const,
+    newSubscriptionItems,
+    prorateCurrentBillingPeriod,
+  }
+}
+
+/**
  * Inner component that has access to the form context for watching values
  * and triggering preview requests.
  */
@@ -33,10 +73,12 @@ const AdjustSubscriptionModalContent = ({
   subscription,
   availablePrices,
   isLoadingPrices,
+  onPreviewStateChange,
 }: {
   subscription: RichSubscription
   availablePrices: Price.ClientRecord[]
   isLoadingPrices: boolean
+  onPreviewStateChange: (canAdjust: boolean | undefined) => void
 }) => {
   const form = useFormContext<AdjustSubscriptionFormValues>()
   const priceId = form.watch('priceId')
@@ -46,78 +88,46 @@ const AdjustSubscriptionModalContent = ({
     'prorateCurrentBillingPeriod'
   )
 
-  // Debounce preview requests
-  const debounceTimerRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null)
-
   const previewMutation =
-    trpc.subscriptions.previewAdjust.useMutation()
+    trpc.subscriptions.previewAdjust.useMutation({
+      onSuccess: (data) => {
+        onPreviewStateChange(data.canAdjust)
+      },
+      onError: () => {
+        onPreviewStateChange(false)
+      },
+    })
 
-  // Store the mutate function in a ref to avoid dependency issues
-  const mutateRef = useRef(previewMutation.mutate)
-  mutateRef.current = previewMutation.mutate
+  // Debounced preview function using the shared hook
+  const debouncedPreview = useDebounce(() => {
+    if (!priceId) return
+
+    previewMutation.mutate({
+      id: subscription.id,
+      adjustment: buildAdjustmentPayload(
+        priceId,
+        quantity,
+        timing,
+        prorateCurrentBillingPeriod
+      ),
+    })
+  }, 300)
 
   // Trigger preview when form values change
   useEffect(() => {
-    // Clear any pending debounce
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-    }
-
-    // Only fetch preview if we have a valid price selected
-    if (!priceId) {
-      return
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      const buildAdjustment = () => {
-        const newSubscriptionItems = [{ priceId, quantity }]
-
-        if (timing === SubscriptionAdjustmentTiming.Immediately) {
-          return {
-            timing: SubscriptionAdjustmentTiming.Immediately as const,
-            newSubscriptionItems,
-            prorateCurrentBillingPeriod,
-          }
-        }
-
-        if (
-          timing ===
-          SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
-        ) {
-          return {
-            timing:
-              SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod as const,
-            newSubscriptionItems,
-          }
-        }
-
-        // Auto timing
-        return {
-          timing: SubscriptionAdjustmentTiming.Auto as const,
-          newSubscriptionItems,
-          prorateCurrentBillingPeriod,
-        }
-      }
-
-      mutateRef.current({
-        id: subscription.id,
-        adjustment: buildAdjustment(),
-      })
-    }, 300) // 300ms debounce
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
+    if (priceId) {
+      debouncedPreview()
+    } else {
+      // Reset canAdjust state when no price selected
+      onPreviewStateChange(undefined)
     }
   }, [
     priceId,
     quantity,
     timing,
     prorateCurrentBillingPeriod,
-    subscription.id,
+    debouncedPreview,
+    onPreviewStateChange,
   ])
 
   // Get current price ID from subscription items
@@ -125,7 +135,8 @@ const AdjustSubscriptionModalContent = ({
 
   // Get currency from current subscription item price
   const currency =
-    subscription.subscriptionItems[0]?.price.currency ?? 'usd'
+    subscription.subscriptionItems[0]?.price.currency ??
+    CurrencyCode.USD
 
   if (isLoadingPrices) {
     return (
@@ -153,6 +164,7 @@ const AdjustSubscriptionModalContent = ({
       <AdjustmentPreview
         preview={previewMutation.data}
         isLoading={previewMutation.isPending}
+        error={previewMutation.error?.message}
         currency={currency}
       />
     </div>
@@ -166,6 +178,9 @@ export const AdjustSubscriptionModal = ({
   pricingModelId,
 }: AdjustSubscriptionModalProps) => {
   const adjustMutation = trpc.subscriptions.adjust.useMutation()
+  const [previewCanAdjust, setPreviewCanAdjust] = useState<
+    boolean | undefined
+  >(undefined)
 
   // Fetch prices for the pricing model
   const { data: pricesData, isLoading: isLoadingPrices } =
@@ -195,12 +210,15 @@ export const AdjustSubscriptionModal = ({
     )
   }, [pricesData])
 
-  // Get current price ID from subscription items
-  const currentPriceId = subscription.subscriptionItems[0]?.price.id
+  // Get current subscription item details for defaults
+  const currentSubscriptionItem = subscription.subscriptionItems[0]
+  const currentPriceId = currentSubscriptionItem?.price.id
+  const currentQuantity = currentSubscriptionItem?.quantity ?? 1
 
   const getDefaultValues = (): AdjustSubscriptionFormValues => ({
-    priceId: '',
-    quantity: subscription.subscriptionItems[0]?.quantity ?? 1,
+    // Pre-select current price so users can easily change just quantity
+    priceId: currentPriceId ?? '',
+    quantity: currentQuantity,
     timing: SubscriptionAdjustmentTiming.Auto,
     prorateCurrentBillingPeriod: true,
   })
@@ -209,45 +227,14 @@ export const AdjustSubscriptionModal = ({
     values: AdjustSubscriptionFormValues
   ) => {
     try {
-      const buildAdjustment = () => {
-        const newSubscriptionItems = [
-          { priceId: values.priceId, quantity: values.quantity },
-        ]
-
-        if (
-          values.timing === SubscriptionAdjustmentTiming.Immediately
-        ) {
-          return {
-            timing: SubscriptionAdjustmentTiming.Immediately as const,
-            newSubscriptionItems,
-            prorateCurrentBillingPeriod:
-              values.prorateCurrentBillingPeriod,
-          }
-        }
-
-        if (
-          values.timing ===
-          SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
-        ) {
-          return {
-            timing:
-              SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod as const,
-            newSubscriptionItems,
-          }
-        }
-
-        // Auto timing
-        return {
-          timing: SubscriptionAdjustmentTiming.Auto as const,
-          newSubscriptionItems,
-          prorateCurrentBillingPeriod:
-            values.prorateCurrentBillingPeriod,
-        }
-      }
-
       const result = await adjustMutation.mutateAsync({
         id: subscription.id,
-        adjustment: buildAdjustment(),
+        adjustment: buildAdjustmentPayload(
+          values.priceId,
+          values.quantity,
+          values.timing,
+          values.prorateCurrentBillingPeriod
+        ),
       })
 
       const timingLabel =
@@ -269,9 +256,14 @@ export const AdjustSubscriptionModal = ({
     }
   }
 
-  // Disable submit if no price is selected or if it's the same as current
+  // Disable submit if:
+  // - No available prices
+  // - Mutation is pending
+  // - Preview explicitly says canAdjust: false
   const submitDisabled =
-    !availablePrices.length || adjustMutation.isPending
+    !availablePrices.length ||
+    adjustMutation.isPending ||
+    previewCanAdjust === false
 
   return (
     <FormModal
@@ -288,6 +280,7 @@ export const AdjustSubscriptionModal = ({
         subscription={subscription}
         availablePrices={availablePrices}
         isLoadingPrices={isLoadingPrices}
+        onPreviewStateChange={setPreviewCanAdjust}
       />
     </FormModal>
   )

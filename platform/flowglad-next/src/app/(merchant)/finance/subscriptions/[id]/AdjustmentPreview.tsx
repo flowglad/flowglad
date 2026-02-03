@@ -1,6 +1,6 @@
 'use client'
 
-import { type CurrencyCode } from '@db-core/enums'
+import { CurrencyCode } from '@db-core/enums'
 import { ArrowRight, CreditCard } from 'lucide-react'
 import type { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -10,6 +10,7 @@ import type {
   PreviewSubscriptionItem,
   previewAdjustSubscriptionOutputSchema,
 } from '@/subscriptions/schemas'
+import { SubscriptionAdjustmentTiming } from '@/types'
 import core from '@/utils/core'
 import { getCurrencyParts } from '@/utils/stripe'
 
@@ -20,13 +21,15 @@ type PreviewAdjustSubscriptionOutput = z.infer<
 interface AdjustmentPreviewProps {
   preview: PreviewAdjustSubscriptionOutput | undefined
   isLoading: boolean
+  error?: string
   currency?: CurrencyCode
 }
 
 export const AdjustmentPreview = ({
   preview,
   isLoading,
-  currency = 'usd' as CurrencyCode,
+  error,
+  currency = CurrencyCode.USD,
 }: AdjustmentPreviewProps) => {
   if (isLoading) {
     return (
@@ -35,6 +38,20 @@ export const AdjustmentPreview = ({
         <Skeleton className="h-6 w-full" />
         <Skeleton className="h-4 w-48" />
       </div>
+    )
+  }
+
+  // Handle preview fetch error
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          <span className="font-medium">
+            Failed to load preview:{' '}
+          </span>
+          {error}
+        </AlertDescription>
+      </Alert>
     )
   }
 
@@ -66,6 +83,13 @@ export const AdjustmentPreview = ({
   const formatDate = (epochMs: number) => {
     return core.formatDate(new Date(epochMs))
   }
+
+  const isImmediateTiming =
+    preview.resolvedTiming ===
+    SubscriptionAdjustmentTiming.Immediately
+  const isEndOfPeriodTiming =
+    preview.resolvedTiming ===
+    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
 
   return (
     <div className="border rounded-lg bg-muted/30 overflow-hidden">
@@ -133,7 +157,7 @@ export const AdjustmentPreview = ({
               When
             </p>
             <p className="text-sm font-medium">
-              {preview.resolvedTiming === 'immediately'
+              {isImmediateTiming
                 ? 'Immediately'
                 : 'End of billing period'}
             </p>
@@ -190,8 +214,7 @@ export const AdjustmentPreview = ({
           )}
 
         {/* No charge for end-of-period adjustments */}
-        {preview.resolvedTiming ===
-          'at_end_of_current_billing_period' && (
+        {isEndOfPeriodTiming && (
           <Alert>
             <AlertDescription className="text-sm">
               No charge today. The new plan will take effect on{' '}
