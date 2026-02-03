@@ -28,7 +28,7 @@ import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { CacheRecomputationContext } from '@/db/types'
-import { withDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
@@ -153,6 +153,7 @@ describe('Pay as You Go Workflow E2E', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           const result = await createCustomerBookkeeping(
             {
@@ -164,13 +165,14 @@ describe('Pay as You Go Workflow E2E', () => {
                 email: 'test@test.com',
               },
             },
-            withDiscardingEffectsContext({
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode: true,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             })
           )
           return Result.ok(result)
