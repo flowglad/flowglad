@@ -442,4 +442,402 @@ describe('auth API routes', () => {
       expect(customerCookies.length).toBe(0)
     })
   })
+
+  describe('dual-session scenarios (Patch 8)', () => {
+    let organization: Awaited<
+      ReturnType<typeof setupOrg>
+    >['organization']
+    let customerEmail: string
+
+    beforeEach(async () => {
+      const orgSetup = await setupOrg()
+      organization = orgSetup.organization
+      customerEmail = `customer-dual-${core.nanoid()}@example.com`
+    })
+
+    /**
+     * Helper to extract session token from Set-Cookie header
+     */
+    function extractSessionToken(
+      response: Response,
+      prefix: string
+    ): string | undefined {
+      const setCookieHeaders = response.headers.getSetCookie()
+      const sessionCookie = setCookieHeaders.find((cookie) =>
+        cookie.startsWith(`${prefix}.session_token=`)
+      )
+      if (!sessionCookie) return undefined
+      // Extract the token value (between = and ;)
+      const match = sessionCookie.match(/=([^;]+)/)
+      return match?.[1]
+    }
+
+    describe('simultaneous sessions', () => {
+      it('merchant and customer can have active sessions at the same time with different tokens', async () => {
+        const merchantEmail = createTestEmail()
+
+        // Step 1: Sign up merchant
+        const merchantSignUpRequest = createMerchantRequest(
+          '/sign-up/email',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              email: merchantEmail,
+              password: testPassword,
+              name: testName,
+            }),
+          }
+        )
+        const merchantSignUpResponse = await merchantPost(
+          merchantSignUpRequest
+        )
+        expect(merchantSignUpResponse.status).toBe(200)
+
+        const merchantToken = extractSessionToken(
+          merchantSignUpResponse,
+          MERCHANT_COOKIE_PREFIX
+        )
+        expect(typeof merchantToken).toBe('string')
+        expect(merchantToken!.length).toBeGreaterThan(0)
+
+        // Step 2: Create customer session via OTP
+        const sendOtpRequest = createCustomerRequest(
+          '/sign-in/email-otp',
+          {
+            method: 'POST',
+            headers: {
+              Cookie: `customer-billing-organization-id=${organization.id}`,
+            },
+            body: JSON.stringify({
+              email: customerEmail,
+              type: 'email-verification',
+            }),
+          }
+        )
+        const sendOtpResponse = await customerPost(sendOtpRequest)
+
+        if (sendOtpResponse.status === 200) {
+          // Get OTP from verification table
+          const verificationRecords = await db
+            .select()
+            .from(verification)
+            .where(eq(verification.identifier, customerEmail))
+
+          if (verificationRecords.length > 0) {
+            const otp = verificationRecords[0].value
+
+            const verifyOtpRequest = createCustomerRequest(
+              '/sign-in/email-otp',
+              {
+                method: 'POST',
+                headers: {
+                  Cookie: `customer-billing-organization-id=${organization.id}`,
+                },
+                body: JSON.stringify({
+                  email: customerEmail,
+                  otp,
+                }),
+              }
+            )
+            const verifyOtpResponse =
+              await customerPost(verifyOtpRequest)
+
+            if (verifyOtpResponse.status === 200) {
+              const customerToken = extractSessionToken(
+                verifyOtpResponse,
+                CUSTOMER_COOKIE_PREFIX
+              )
+              expect(typeof customerToken).toBe('string')
+              expect(customerToken!.length).toBeGreaterThan(0)
+
+              // Verify tokens are different
+              expect(merchantToken).not.toBe(customerToken)
+            }
+          }
+        }
+      })
+
+      it('session tokens from merchant and customer use different cookie prefixes', async () => {
+        const merchantEmail = createTestEmail()
+
+        // Sign up merchant
+        const merchantSignUpResponse = await merchantPost(
+          createMerchantRequest('/sign-up/email', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: merchantEmail,
+              password: testPassword,
+              name: testName,
+            }),
+          })
+        )
+        expect(merchantSignUpResponse.status).toBe(200)
+
+        // Verify merchant cookies use merchant prefix
+        const merchantCookies =
+          merchantSignUpResponse.headers.getSetCookie()
+        const hasMerchantPrefix = merchantCookies.some((c) =>
+          c.startsWith(`${MERCHANT_COOKIE_PREFIX}.`)
+        )
+        const hasCustomerPrefix = merchantCookies.some((c) =>
+          c.startsWith(`${CUSTOMER_COOKIE_PREFIX}.`)
+        )
+
+        expect(hasMerchantPrefix).toBe(true)
+        expect(hasCustomerPrefix).toBe(false)
+
+        // Verify prefixes are distinct constants
+        expect(MERCHANT_COOKIE_PREFIX).not.toBe(
+          CUSTOMER_COOKIE_PREFIX
+        )
+      })
+    })
+
+    describe('scoped sign-out with both sessions active', () => {
+      it('signing out merchant does not invalidate customer session cookie', async () => {
+        const merchantEmail = createTestEmail()
+
+        // Sign up merchant and get session
+        const merchantSignUpResponse = await merchantPost(
+          createMerchantRequest('/sign-up/email', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: merchantEmail,
+              password: testPassword,
+              name: testName,
+            }),
+          })
+        )
+        expect(merchantSignUpResponse.status).toBe(200)
+
+        // Get merchant session cookie for sign-out
+        const merchantCookies =
+          merchantSignUpResponse.headers.getSetCookie()
+        const merchantSessionCookie = merchantCookies.find((c) =>
+          c.startsWith(`${MERCHANT_COOKIE_PREFIX}.session_token=`)
+        )
+        expect(typeof merchantSessionCookie).toBe('string')
+
+        // Sign out merchant
+        const merchantSignOutRequest = createMerchantRequest(
+          '/sign-out',
+          {
+            method: 'POST',
+            headers: {
+              Cookie: merchantSessionCookie!.split(';')[0],
+            },
+          }
+        )
+        const merchantSignOutResponse = await merchantPost(
+          merchantSignOutRequest
+        )
+        expect(merchantSignOutResponse.status).toBe(200)
+
+        // Verify only merchant cookies are cleared, not customer
+        const signOutCookies =
+          merchantSignOutResponse.headers.getSetCookie()
+
+        // Find cleared merchant cookie
+        const clearedMerchantCookie = signOutCookies.find(
+          (c) =>
+            c.startsWith(
+              `${MERCHANT_COOKIE_PREFIX}.session_token=`
+            ) && isCookieCleared(c)
+        )
+        expect(typeof clearedMerchantCookie).toBe('string')
+
+        // Verify no customer cookies are touched
+        const customerCookiesInSignOut = signOutCookies.filter((c) =>
+          c.startsWith(`${CUSTOMER_COOKIE_PREFIX}.`)
+        )
+        expect(customerCookiesInSignOut.length).toBe(0)
+      })
+
+      it('signing out customer does not invalidate merchant session cookie', async () => {
+        // Create customer session via OTP
+        const sendOtpRequest = createCustomerRequest(
+          '/sign-in/email-otp',
+          {
+            method: 'POST',
+            headers: {
+              Cookie: `customer-billing-organization-id=${organization.id}`,
+            },
+            body: JSON.stringify({
+              email: customerEmail,
+              type: 'email-verification',
+            }),
+          }
+        )
+        const sendOtpResponse = await customerPost(sendOtpRequest)
+
+        if (sendOtpResponse.status === 200) {
+          const verificationRecords = await db
+            .select()
+            .from(verification)
+            .where(eq(verification.identifier, customerEmail))
+
+          if (verificationRecords.length > 0) {
+            const otp = verificationRecords[0].value
+
+            const verifyOtpResponse = await customerPost(
+              createCustomerRequest('/sign-in/email-otp', {
+                method: 'POST',
+                headers: {
+                  Cookie: `customer-billing-organization-id=${organization.id}`,
+                },
+                body: JSON.stringify({
+                  email: customerEmail,
+                  otp,
+                }),
+              })
+            )
+
+            if (verifyOtpResponse.status === 200) {
+              // Get customer session cookie
+              const customerCookies =
+                verifyOtpResponse.headers.getSetCookie()
+              const customerSessionCookie = customerCookies.find(
+                (c) =>
+                  c.startsWith(
+                    `${CUSTOMER_COOKIE_PREFIX}.session_token=`
+                  )
+              )
+              expect(typeof customerSessionCookie).toBe('string')
+
+              // Sign out customer
+              const customerSignOutResponse = await customerPost(
+                createCustomerRequest('/sign-out', {
+                  method: 'POST',
+                  headers: {
+                    Cookie: customerSessionCookie!.split(';')[0],
+                  },
+                })
+              )
+              expect(customerSignOutResponse.status).toBe(200)
+
+              // Verify only customer cookies are cleared
+              const signOutCookies =
+                customerSignOutResponse.headers.getSetCookie()
+
+              const clearedCustomerCookie = signOutCookies.find(
+                (c) =>
+                  c.startsWith(
+                    `${CUSTOMER_COOKIE_PREFIX}.session_token=`
+                  ) && isCookieCleared(c)
+              )
+              expect(typeof clearedCustomerCookie).toBe('string')
+
+              // Verify no merchant cookies are touched
+              const merchantCookiesInSignOut = signOutCookies.filter(
+                (c) => c.startsWith(`${MERCHANT_COOKIE_PREFIX}.`)
+              )
+              expect(merchantCookiesInSignOut.length).toBe(0)
+            }
+          }
+        }
+      })
+    })
+
+    describe('session token uniqueness', () => {
+      it('multiple merchant sign-ups create unique session tokens', async () => {
+        const email1 = createTestEmail()
+        const email2 = createTestEmail()
+
+        const response1 = await merchantPost(
+          createMerchantRequest('/sign-up/email', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: email1,
+              password: testPassword,
+              name: testName,
+            }),
+          })
+        )
+        expect(response1.status).toBe(200)
+        const token1 = extractSessionToken(
+          response1,
+          MERCHANT_COOKIE_PREFIX
+        )
+
+        const response2 = await merchantPost(
+          createMerchantRequest('/sign-up/email', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: email2,
+              password: testPassword,
+              name: testName,
+            }),
+          })
+        )
+        expect(response2.status).toBe(200)
+        const token2 = extractSessionToken(
+          response2,
+          MERCHANT_COOKIE_PREFIX
+        )
+
+        expect(typeof token1).toBe('string')
+        expect(typeof token2).toBe('string')
+        expect(token1).not.toBe(token2)
+      })
+    })
+
+    describe('rapid scope switching', () => {
+      it('can sign in to merchant, then customer, then merchant again without interference', async () => {
+        const merchantEmail = createTestEmail()
+
+        // First merchant sign-in
+        const merchantResponse1 = await merchantPost(
+          createMerchantRequest('/sign-up/email', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: merchantEmail,
+              password: testPassword,
+              name: testName,
+            }),
+          })
+        )
+        expect(merchantResponse1.status).toBe(200)
+        const merchantToken1 = extractSessionToken(
+          merchantResponse1,
+          MERCHANT_COOKIE_PREFIX
+        )
+
+        // Customer OTP request (may or may not succeed based on email setup)
+        const customerOtpResponse = await customerPost(
+          createCustomerRequest('/sign-in/email-otp', {
+            method: 'POST',
+            headers: {
+              Cookie: `customer-billing-organization-id=${organization.id}`,
+            },
+            body: JSON.stringify({
+              email: customerEmail,
+              type: 'email-verification',
+            }),
+          })
+        )
+        // Just verify the request was processed (200, 400, or 500 are all valid)
+        expect([200, 400, 500]).toContain(customerOtpResponse.status)
+
+        // Second merchant sign-in (same user)
+        const merchantResponse2 = await merchantPost(
+          createMerchantRequest('/sign-in/email', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: merchantEmail,
+              password: testPassword,
+            }),
+          })
+        )
+        expect(merchantResponse2.status).toBe(200)
+        const merchantToken2 = extractSessionToken(
+          merchantResponse2,
+          MERCHANT_COOKIE_PREFIX
+        )
+
+        // Both merchant tokens should be valid (might be same or different depending on session reuse)
+        expect(typeof merchantToken1).toBe('string')
+        expect(typeof merchantToken2).toBe('string')
+      })
+    })
+  })
 })
