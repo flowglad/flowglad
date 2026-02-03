@@ -1,9 +1,10 @@
 'use client'
 
-import { SubscriptionStatus } from '@db-core/enums'
+import { PriceType, SubscriptionStatus } from '@db-core/enums'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { ColumnDef } from '@tanstack/react-table'
-import { X } from 'lucide-react'
+import { Settings2, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
@@ -16,15 +17,30 @@ import { formatDate } from '@/utils/core'
 
 function SubscriptionActionsMenu({
   subscription,
+  price,
 }: {
   subscription: Subscription.ClientRecord
+  price: { type: string }
 }) {
+  const router = useRouter()
   const [isCancelOpen, setIsCancelOpen] = React.useState(false)
 
   const isCanceled =
     subscription.status === SubscriptionStatus.Canceled
   const isFreePlan = subscription.isFreePlan === true
+  const isUsageBased = price.type === PriceType.Usage
+  const hasPendingCancellation =
+    subscription.status === SubscriptionStatus.CancellationScheduled
+  const hasPendingAdjustment =
+    subscription.scheduledAdjustmentAt !== null
+
   const cannotCancel = isCanceled || isFreePlan
+  const cannotAdjust =
+    isCanceled ||
+    isFreePlan ||
+    isUsageBased ||
+    hasPendingCancellation ||
+    hasPendingAdjustment
 
   // Get the appropriate helper text for why cancel is disabled
   const getCancelHelperText = (): string | undefined => {
@@ -37,7 +53,35 @@ function SubscriptionActionsMenu({
     return undefined
   }
 
+  // Get the appropriate helper text for why adjust is disabled
+  const getAdjustHelperText = (): string | undefined => {
+    if (isCanceled) {
+      return 'Cannot adjust a canceled subscription'
+    }
+    if (isFreePlan) {
+      return 'Free plans cannot be adjusted'
+    }
+    if (isUsageBased) {
+      return 'Usage-based subscriptions cannot be adjusted'
+    }
+    if (hasPendingCancellation) {
+      return 'Cannot adjust while a cancellation is scheduled'
+    }
+    if (hasPendingAdjustment) {
+      return 'A scheduled adjustment is already pending'
+    }
+    return undefined
+  }
+
   const actionItems: ActionMenuItem[] = [
+    {
+      label: 'Adjust Plan',
+      icon: <Settings2 className="h-4 w-4" />,
+      handler: () =>
+        router.push(`/finance/subscriptions/${subscription.id}`),
+      disabled: cannotAdjust,
+      helperText: getAdjustHelperText(),
+    },
     {
       label: 'Cancel Subscription',
       icon: <X className="h-4 w-4" />,
@@ -140,12 +184,16 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     enableResizing: false,
     cell: ({ row }) => {
       const subscription = row.original.subscription
+      const price = row.original.price
       return (
         <div
           className="w-8 flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
-          <SubscriptionActionsMenu subscription={subscription} />
+          <SubscriptionActionsMenu
+            subscription={subscription}
+            price={price}
+          />
         </div>
       )
     },

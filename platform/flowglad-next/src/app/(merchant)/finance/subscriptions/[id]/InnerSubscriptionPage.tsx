@@ -127,11 +127,18 @@ const InnerSubscriptionPage = ({
     subscription.status === SubscriptionStatus.CancellationScheduled
   const hasPendingAdjustment =
     subscription.scheduledAdjustmentAt !== null
+  // Check if all subscription items are usage-based (nothing to adjust to)
+  const isUsageOnlySubscription =
+    subscription.subscriptionItems.length > 0 &&
+    subscription.subscriptionItems.every(
+      (item) => item.price.type === PriceType.Usage
+    )
   const cannotAdjust =
     isTerminal ||
     isFreePlan ||
     hasPendingCancellation ||
     hasPendingAdjustment ||
+    isUsageOnlySubscription ||
     !pricingModel
 
   // Get the appropriate tooltip message for why adjust is disabled
@@ -147,6 +154,9 @@ const InnerSubscriptionPage = ({
     }
     if (hasPendingAdjustment) {
       return 'A scheduled adjustment is already pending. Cancel it first.'
+    }
+    if (isUsageOnlySubscription) {
+      return 'Usage-based subscriptions cannot be adjusted.'
     }
     if (!pricingModel) {
       return 'No pricing model associated with this subscription.'
