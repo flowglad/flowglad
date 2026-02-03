@@ -3,6 +3,7 @@
 import { CurrencyCode, PriceType } from '@db-core/enums'
 import type { Price } from '@db-core/schema/prices'
 import { encodeCursor } from '@db-core/tableUtils'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -177,6 +178,7 @@ export const AdjustSubscriptionModal = ({
   subscription,
   pricingModelId,
 }: AdjustSubscriptionModalProps) => {
+  const router = useRouter()
   const adjustMutation = trpc.subscriptions.adjust.useMutation()
   const [previewCanAdjust, setPreviewCanAdjust] = useState<
     boolean | undefined
@@ -246,6 +248,9 @@ export const AdjustSubscriptionModal = ({
       toast.success(
         `Subscription ${result.isUpgrade ? 'upgraded' : 'adjusted'} ${timingLabel}`
       )
+
+      // Refresh page data to show updated subscription state
+      router.refresh()
     } catch (error) {
       toast.error(
         error instanceof Error
