@@ -28,6 +28,12 @@ const pricingModelWithStructureFieldsSchema =
       resources: setupPricingModelSchema.shape.resources.optional(),
     })
     .superRefine((data, ctx) => {
+      const structureFieldNames = [
+        'features',
+        'products',
+        'usageMeters',
+        'resources',
+      ] as const
       const structureFields = [
         data.features,
         data.products,
@@ -39,10 +45,12 @@ const pricingModelWithStructureFieldsSchema =
 
       // Either no structure fields (metadata-only) or all structure fields (full replacement)
       if (hasAny && !hasAll) {
+        const missingFields = structureFieldNames.filter(
+          (name) => data[name] === undefined
+        )
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message:
-            'Full structure update requires all structure fields (features, products, usageMeters, resources) to be provided. For metadata-only updates, omit all structure fields.',
+          message: `Full structure update requires all structure fields to be provided. Missing: ${missingFields.join(', ')}. For metadata-only updates, omit all structure fields.`,
         })
       }
     })
@@ -88,5 +96,40 @@ export const hasStructureFields = (
     pricingModel.products ||
     pricingModel.usageMeters ||
     pricingModel.resources
+  )
+}
+
+/**
+ * Type predicate that returns true when all structure fields are present.
+ * When this returns true, TypeScript narrows the input type to guarantee
+ * all structure fields are defined (not undefined).
+ *
+ * Use this instead of hasStructureFields when you need type narrowing
+ * to avoid non-null assertions on the structure fields.
+ */
+export const hasAllStructureFields = (
+  input: EditPricingModelWithStructureInput
+): input is EditPricingModelWithStructureInput & {
+  pricingModel: EditPricingModelWithStructureInput['pricingModel'] & {
+    features: NonNullable<
+      EditPricingModelWithStructureInput['pricingModel']['features']
+    >
+    products: NonNullable<
+      EditPricingModelWithStructureInput['pricingModel']['products']
+    >
+    usageMeters: NonNullable<
+      EditPricingModelWithStructureInput['pricingModel']['usageMeters']
+    >
+    resources: NonNullable<
+      EditPricingModelWithStructureInput['pricingModel']['resources']
+    >
+  }
+} => {
+  const { pricingModel } = input
+  return (
+    pricingModel.features !== undefined &&
+    pricingModel.products !== undefined &&
+    pricingModel.usageMeters !== undefined &&
+    pricingModel.resources !== undefined
   )
 }

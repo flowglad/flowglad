@@ -402,9 +402,9 @@ describe('pricingModels.update (extended)', () => {
     }
   })
 
-  it('is backward compatible with metadata-only updates', async () => {
-    // This test verifies that when only metadata fields are provided,
-    // the existing behavior is preserved (no structure changes)
+  it('preserves structure when updated with identical structure', async () => {
+    // This test verifies that when the same structure is provided,
+    // only the name changes and the structure remains intact
     const result = (
       await adminTransaction(
         async (ctx) => {

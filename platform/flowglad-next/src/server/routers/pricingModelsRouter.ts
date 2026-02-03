@@ -38,7 +38,7 @@ import {
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import {
   editPricingModelWithStructureSchema,
-  hasStructureFields,
+  hasAllStructureFields,
 } from '@/utils/pricingModels/editSchemas'
 import {
   constructIntegrationGuide,
@@ -215,7 +215,8 @@ const updatePricingModelProcedure = protectedProcedure
     const pricingModelId = input.id
 
     // If no structure fields provided, use simple metadata update (existing behavior)
-    if (!hasStructureFields(input)) {
+    // hasAllStructureFields is a type predicate that narrows the input type
+    if (!hasAllStructureFields(input)) {
       return unwrapOrThrow(
         await authenticatedTransaction(
           async (transactionCtx) => {
@@ -238,6 +239,7 @@ const updatePricingModelProcedure = protectedProcedure
 
     // Full structure update: schema validation ensures ALL structure fields are provided
     // to prevent accidental data loss. This enforces PUT (full replacement) semantics.
+    // After the type predicate check above, TypeScript knows all structure fields are defined.
 
     // Authorization pre-check: verify the user can access this pricing model via RLS
     // before proceeding with the admin-level update
@@ -267,15 +269,14 @@ const updatePricingModelProcedure = protectedProcedure
     // Uses adminTransaction to bypass RLS policies for cross-resource updates
     const result = await adminTransaction(async (transactionCtx) => {
       // Build the proposed input from the request
-      // All structure fields are guaranteed to be defined by the validation above
-      // Using non-null assertions since TypeScript doesn't narrow across the throw
+      // Type predicate hasAllStructureFields guarantees all structure fields are defined
       const proposedInput = {
-        name: pricingModelInput.name,
-        isDefault: pricingModelInput.isDefault ?? false,
-        features: pricingModelInput.features!,
-        products: pricingModelInput.products!,
-        usageMeters: pricingModelInput.usageMeters!,
-        resources: pricingModelInput.resources!,
+        name: input.pricingModel.name,
+        isDefault: input.pricingModel.isDefault ?? false,
+        features: input.pricingModel.features,
+        products: input.pricingModel.products,
+        usageMeters: input.pricingModel.usageMeters,
+        resources: input.pricingModel.resources,
       }
 
       const updateResult = await updatePricingModelTransaction(
