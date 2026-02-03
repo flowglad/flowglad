@@ -63,7 +63,9 @@ function InternalProductDetailsPage(
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
 
   const productURL = `${
-    window ? window.location.origin : 'https://app.flowglad.com'
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://app.flowglad.com'
   }/product/${product.id}/purchase`
 
   const previewProductHandler = () => {
@@ -71,7 +73,7 @@ function InternalProductDetailsPage(
   }
 
   const handleBreadcrumbClick = () => {
-    router.push(`/pricing-models/${pricingModel.id}`)
+    router.push('/products')
   }
 
   // Build badges array
@@ -141,7 +143,7 @@ function InternalProductDetailsPage(
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={product.name}
-          breadcrumb={pricingModel.name}
+          breadcrumb="Products"
           onBreadcrumbClick={handleBreadcrumbClick}
           className="pb-4"
           badges={badges}
