@@ -39,13 +39,20 @@ describe('GET /api/cli/list-organizations', () => {
     testmodePricingModel2 = orgSetup2.testmodePricingModel
 
     // Setup user with membership in first org
+    // Use forceNewUser to ensure we get a fresh user with a new betterAuthId
     const userSetup = await setupUserAndApiKey({
       organizationId: organization1.id,
       livemode: false,
       pricingModelId: testmodePricingModel1.id,
+      forceNewUser: true,
     })
 
-    betterAuthUserId = userSetup.betterAuthId!
+    if (!userSetup.betterAuthId) {
+      throw new Error(
+        'Expected betterAuthId to be defined for new user'
+      )
+    }
+    betterAuthUserId = userSetup.betterAuthId
     user = userSetup.user
 
     // Add user membership to second organization
