@@ -21,7 +21,7 @@ import { appRouter } from '@/server'
 import { createApiContext } from '@/server/trpcContext'
 import { type ApiEnvironment } from '@/types'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
-import core from '@/utils/core'
+import core, { captureError } from '@/utils/core'
 import { logger } from '@/utils/logger'
 import {
   type PaginationParams,
@@ -50,6 +50,84 @@ const parseErrorMessage = (rawMessage: string) => {
     return rawMessage
   }
   return parsedMessage
+}
+
+/**
+ * Helper to get current trace ID from active span.
+ */
+function getTraceId(): string | undefined {
+  const span = trace.getActiveSpan()
+  return span?.spanContext().traceId
+}
+
+/**
+ * Creates response helpers with request ID and trace context baked in.
+ * These helpers ensure all responses include correlation headers for Better Stack.
+ */
+function createResponseHelpers(requestId: string) {
+  const getHeaders = (): HeadersInit => ({
+    'X-Request-Id': requestId,
+    ...(getTraceId() && { 'X-Trace-Id': getTraceId()! }),
+  })
+
+  return {
+    /**
+     * JSON response with correlation headers
+     */
+    json: <T>(
+      data: T,
+      init?: { status?: number; headers?: HeadersInit }
+    ): NextResponse<T> => {
+      return NextResponse.json(data, {
+        ...init,
+        headers: {
+          ...getHeaders(),
+          ...init?.headers,
+        },
+      })
+    },
+
+    /**
+     * Error response with trace context in body for Better Stack correlation.
+     * Includes request_id, trace_id, and sentry_event_id so monitors can link to logs/traces/Sentry.
+     */
+    error: (
+      errorMessage: string | object,
+      init: {
+        status: number
+        code?: string
+        sentryEventId?: string
+      }
+    ): NextResponse => {
+      const traceId = getTraceId()
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          ...(init.code && { code: init.code }),
+          // Include correlation IDs in error responses for Better Stack
+          request_id: requestId,
+          ...(traceId && { trace_id: traceId }),
+          ...(init.sentryEventId && {
+            sentry_event_id: init.sentryEventId,
+          }),
+        },
+        {
+          status: init.status,
+          headers: getHeaders(),
+        }
+      )
+    },
+
+    /**
+     * Plain text response with correlation headers
+     */
+    text: (body: string, init?: { status?: number }): Response => {
+      return new Response(body, {
+        ...init,
+        headers: getHeaders(),
+      })
+    },
+  }
 }
 
 // NOTE: consolidated REST route mapping lives in `restRoutes.ts` so it can be unit-tested
@@ -85,6 +163,7 @@ const innerHandler = async (
   const tracer = trace.getTracer('rest-api')
   const requestId = crypto.randomUUID().slice(0, 8)
   const requestStartTime = Date.now()
+  const respond = createResponseHelpers(requestId)
 
   return tracer.startActiveSpan(
     `REST ${req.method}`,
@@ -121,7 +200,7 @@ const innerHandler = async (
             method: req.method,
             url: req.url,
           })
-          return new Response('Unauthorized', { status: 401 })
+          return respond.text('Unauthorized', { status: 401 })
         }
 
         const path = (await params).path.join('/')
@@ -193,7 +272,7 @@ const innerHandler = async (
         const routeMatchingStartTime = Date.now()
         const matchingRoute = Object.entries(routes).find(
           ([key, config]) => {
-            const [routeMethod, routePath] = key.split(' ')
+            const [routeMethod] = key.split(' ')
             return (
               req.method === routeMethod && config.pattern.test(path)
             )
@@ -225,7 +304,7 @@ const innerHandler = async (
             available_routes: Object.keys(routes).length,
           })
 
-          return new Response('Not Found', { status: 404 })
+          return respond.text('Not Found', { status: 404 })
         }
 
         const [routeKey, route] = matchingRoute
@@ -307,10 +386,9 @@ const innerHandler = async (
                 }
               )
 
-              return NextResponse.json(
-                { error: 'Invalid JSON in request body' },
-                { status: 400 }
-              )
+              return respond.error('Invalid JSON in request body', {
+                status: 400,
+              })
             }
           }
         }
@@ -420,10 +498,9 @@ const innerHandler = async (
               }
             )
 
-            return NextResponse.json(
-              { error: (error as Error).message },
-              { status: 400 }
-            )
+            return respond.error((error as Error).message, {
+              status: 400,
+            })
           }
         }
 
@@ -497,6 +574,33 @@ const innerHandler = async (
 
           const totalDuration = Date.now() - requestStartTime
 
+          // Capture to Sentry only for 5xx server errors (not client errors)
+          let sentryEventId: string | undefined
+          if (httpStatus >= 500) {
+            sentryEventId = captureError(
+              new Error(
+                typeof errorMessage === 'string'
+                  ? errorMessage
+                  : JSON.stringify(errorMessage)
+              ),
+              {
+                tags: {
+                  request_id: requestId,
+                  error_code: errorCode,
+                  error_category: errorCategory,
+                  procedure: route.procedure,
+                },
+                extra: {
+                  path,
+                  method: req.method,
+                  organization_id: organizationId,
+                  http_status: httpStatus,
+                  stack: responseJson.error.json.data.stack,
+                },
+              }
+            )
+          }
+
           parentSpan.setStatus({
             code: SpanStatusCode.ERROR,
             message: errorMessage as string,
@@ -510,6 +614,9 @@ const innerHandler = async (
             'perf.total_duration_ms': totalDuration,
             'perf.response_serialization_duration_ms':
               responseSerializationDuration,
+            ...(sentryEventId && {
+              'sentry.event_id': sentryEventId,
+            }),
           })
 
           logger.error(`[${requestId}] REST API Error`, {
@@ -527,17 +634,14 @@ const innerHandler = async (
             pricing_model_id: pricingModelId,
             total_duration_ms: totalDuration,
             stack: responseJson.error.json.data.stack,
+            sentry_event_id: sentryEventId,
           })
 
-          return NextResponse.json(
-            {
-              error: errorMessage,
-              code: errorCode,
-            },
-            {
-              status: httpStatus,
-            }
-          )
+          return respond.error(errorMessage, {
+            status: httpStatus,
+            code: errorCode,
+            sentryEventId,
+          })
         }
 
         // Success response
@@ -592,10 +696,22 @@ const innerHandler = async (
           span: parentSpan, // Pass span explicitly for trace correlation
         })
 
-        return NextResponse.json(responseData)
+        return respond.json(responseData)
       } catch (error) {
         // Catch any unexpected errors
         const totalDuration = Date.now() - requestStartTime
+
+        // Capture to Sentry and get event ID for correlation
+        const sentryEventId = captureError(error, {
+          tags: {
+            request_id: requestId,
+            method: req.method,
+          },
+          extra: {
+            url: req.url,
+            total_duration_ms: totalDuration,
+          },
+        })
 
         parentSpan.recordException(error as Error)
         parentSpan.setStatus({
@@ -608,6 +724,7 @@ const innerHandler = async (
           'error.message': (error as Error).message,
           'http.status_code': 500,
           'perf.total_duration_ms': totalDuration,
+          ...(sentryEventId && { 'sentry.event_id': sentryEventId }),
         })
 
         const errorApiEnvironment = req.unkey
@@ -624,12 +741,13 @@ const innerHandler = async (
           total_duration_ms: totalDuration,
           rest_sdk_version: sdkVersion,
           span: parentSpan, // Pass span explicitly for trace correlation
+          sentry_event_id: sentryEventId,
         })
 
-        return NextResponse.json(
-          { error: 'Internal server error' },
-          { status: 500 }
-        )
+        return respond.error('Internal server error', {
+          status: 500,
+          sentryEventId,
+        })
       } finally {
         parentSpan.end()
       }
