@@ -30,9 +30,13 @@ export const CancelScheduledAdjustmentButton = ({
     trpc.subscriptions.cancelScheduledAdjustment.useMutation({
       onSuccess: (data) => {
         const itemCount = data.canceledItemCount
-        toast.success(
-          `Scheduled adjustment canceled${itemCount > 0 ? ` (${itemCount} item${itemCount === 1 ? '' : 's'} removed)` : ''}`
-        )
+        let itemSuffix: string
+        if (itemCount > 0) {
+          itemSuffix = ` (${itemCount} item${itemCount === 1 ? '' : 's'} removed)`
+        } else {
+          itemSuffix = ''
+        }
+        toast.success(`Scheduled adjustment canceled${itemSuffix}`)
         router.refresh()
         setIsOpen(false)
       },
