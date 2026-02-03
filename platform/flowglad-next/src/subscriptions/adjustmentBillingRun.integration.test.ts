@@ -648,11 +648,11 @@ describeIfStripeKey(
       )
 
       // Verify invoice was created
-      expect(typeof (result as any)?.invoice?.id).toBe('string')
-      expect(typeof (result as any)?.invoice?.status).toBe('string')
+      expect(result?.invoice.id).toMatch(/^invoice_/)
+      expect(result?.invoice.status).toMatch(/^[a-z_]+$/)
 
       // Verify payment was created
-      expect(typeof (result as any)?.payment?.id).toBe('string')
+      expect(result?.payment?.id).toMatch(/^payment_/)
     })
 
     it('should not run billing when billing run is not in Scheduled status', async () => {
