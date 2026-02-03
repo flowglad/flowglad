@@ -177,7 +177,7 @@ const buildUsagePriceInserts = (
         usagePriceInserts.push({
           type: PriceType.Usage as const,
           name: price.name ?? null,
-          slug: price.slug ?? null,
+          slug: price.slug,
           unitPrice: price.unitPrice,
           isDefault: price.isDefault,
           active: price.active,
