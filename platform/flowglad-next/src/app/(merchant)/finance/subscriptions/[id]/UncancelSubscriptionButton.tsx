@@ -64,7 +64,10 @@ export const UncancelSubscriptionButton = ({
             Go Back
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleConfirm}
+            onClick={(e) => {
+              e.preventDefault()
+              handleConfirm()
+            }}
             disabled={uncancelMutation.isPending}
           >
             {uncancelMutation.isPending ? 'Reverting...' : 'Confirm'}

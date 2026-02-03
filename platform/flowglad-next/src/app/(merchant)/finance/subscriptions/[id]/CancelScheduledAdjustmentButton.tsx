@@ -72,7 +72,10 @@ export const CancelScheduledAdjustmentButton = ({
             Go Back
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleConfirm}
+            onClick={(e) => {
+              e.preventDefault()
+              handleConfirm()
+            }}
             disabled={cancelScheduledAdjustmentMutation.isPending}
           >
             {cancelScheduledAdjustmentMutation.isPending
