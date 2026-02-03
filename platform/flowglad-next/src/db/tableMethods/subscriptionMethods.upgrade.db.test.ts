@@ -23,10 +23,10 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { CacheRecomputationContext } from '@/db/types'
 import { CancellationReason } from '@/types'
 import { calculateSubscriberBreakdown } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { selectActiveBillingPeriodsForDateRange } from './billingPeriodMethods'
 import {
