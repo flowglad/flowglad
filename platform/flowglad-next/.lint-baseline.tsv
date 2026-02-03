@@ -23,7 +23,7 @@ src/subscriptions/renewsProperty.db.test.ts	no-explicit-any-in-tests	4
 src/utils/billing-dashboard/analytics-upgrade.db.test.ts	no-explicit-any-in-tests	1
 src/utils/bookkeeping.db.test.ts	no-explicit-any-in-tests	1
 src/utils/bookkeeping/customerBilling.db.test.ts	no-explicit-any-in-tests	3
-src/utils/bookkeeping/processPaymentIntentStatusUpdated.stripe.test.ts	no-explicit-any-in-tests	36
+src/utils/bookkeeping/processPaymentIntentStatusUpdated.stripe.test.ts	no-explicit-any-in-tests	35
 src/utils/bookkeeping/processSetupIntent.db.test.ts	no-explicit-any-in-tests	3
 src/utils/bookkeeping/processSetupIntent.upgrade-comprehensive.db.test.ts	no-explicit-any-in-tests	2
 src/utils/bookkeeping/processSetupIntent.upgrade.db.test.ts	no-explicit-any-in-tests	2
