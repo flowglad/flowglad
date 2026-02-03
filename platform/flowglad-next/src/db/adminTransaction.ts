@@ -201,3 +201,9 @@ export async function adminTransaction<T>(
     )
   }
 }
+
+/**
+ * Alias for adminTransactionUnwrap for compatibility.
+ * Executes a function within an admin database transaction and unwraps the result.
+ */
+export const comprehensiveAdminTransaction = adminTransactionUnwrap

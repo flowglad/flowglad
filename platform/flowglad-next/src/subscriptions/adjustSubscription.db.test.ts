@@ -46,7 +46,10 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import {
   selectCurrentBillingPeriodForSubscription,

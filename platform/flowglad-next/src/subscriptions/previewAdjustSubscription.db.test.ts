@@ -582,7 +582,7 @@ describe('previewAdjustSubscription', () => {
       const futureTimestamp = Date.now() + 86400000 // 1 day from now
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -620,7 +620,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false when a cancellation is scheduled', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,

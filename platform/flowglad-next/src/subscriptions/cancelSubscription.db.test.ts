@@ -1460,7 +1460,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
     it('returns ValidationError when a scheduled adjustment is pending', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const futureTimestamp = Date.now() + 86400000 // 1 day from now
           const subscription = await setupSubscription({
@@ -1923,7 +1923,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
     it('returns ValidationError when a scheduled adjustment is pending', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const futureTimestamp = Date.now() + 86400000 // 1 day from now
           const subscription = await setupSubscription({
