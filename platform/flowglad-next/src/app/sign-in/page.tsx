@@ -168,7 +168,7 @@ export default function SignIn() {
     <div className="w-full max-w-sm">
       {/* Title */}
       <h1 className="text-2xl font-semibold text-center mb-6">
-        Sign in to Flowglad
+        Log in to Flowglad
       </h1>
 
       {/* Social login buttons */}
@@ -246,7 +246,7 @@ export default function SignIn() {
             {loading || isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
-              'Sign in'
+              'Log in'
             )}
           </Button>
         </div>

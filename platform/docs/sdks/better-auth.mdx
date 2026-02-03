@@ -132,7 +132,7 @@ export function BillingPage() {
   const billing = useBilling()
 
   if (!billing.loaded) return <div>Loading...</div>
-  if (!billing.customer) return <div>Please sign in</div>
+  if (!billing.customer) return <div>Please log in</div>
 
   return (
     <div>

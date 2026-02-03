@@ -236,7 +236,7 @@ export default function SignUp() {
           href="/sign-in"
           className="text-primary hover:underline"
         >
-          Sign in
+          Log in
         </Link>
       </div>
     </div>

@@ -125,7 +125,7 @@ This product slug already exists in this pricing model. Please choose a differen
 
 | Error Type | User Message |
 |------------|--------------|
-| Duplicate email | "This email address is already registered. Please use a different email or sign in to your existing account." |
+| Duplicate email | "This email address is already registered. Please use a different email or log in to your existing account." |
 | Invalid subscription status | "Invalid subscription status transition. Active subscriptions can only be canceled or paused." |
 | Missing customer | "Cannot create subscription: The specified customer does not exist. Please create the customer first." |
 | RLS violation | "You don't have permission to perform this action. Please contact your administrator if you believe this is an error." |

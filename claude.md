@@ -7,6 +7,13 @@ Examples:
 - Run scripts: `bun run <script-name>`
 - Build: `bun run build`
 
+## Related Files
+
+- `AGENTS.md` - High-level overview and code quality standards
+- `.cursor/rules/` - File-specific patterns for AI assistance
+- `platform/flowglad-next/llm-prompts/` - Reusable prompt templates for common workflows
+- `.agents/` - AI context (gameplans, research, troubleshooting guides)
+
 ## Init
 Run the following command EVERY TIME you are in a new context:
 ```bash
@@ -117,7 +124,7 @@ Then edit the generated SQL file with your data migration logic.
 Please use the following guidelines when implementing new tests:
 
 - No mocking functions, unless the mocked function makes a network call whose response needs to be controlled for this test
-- No .spyOn
+- No direct `.spyOn()` - use `spyTracker` helper for controlled cleanup (see Parallel-Safe Test Patterns below)
 - No dynamic imports
 - No stubbed-out tests
 - No usage of type "any"
@@ -330,5 +337,6 @@ return Result.err(new ConflictError('Resource', 'conflict description'))
 
 It is extremely recommended to run the following command(s) and examine the output to ensure everything is working as expected:
 <finishing-edits-commands>
-1. `bun run check` - this is our linting/formatting and typechecking command, make sure to carefully examine the output and make any changes to fix the errors. Keep in mind that you may need to run it a few times to fix all the errors.
+1. `bun run check` - linting/formatting and typechecking
+2. `bun run test` - run tests (if changes affect tested code)
 </finishing-edits-commands>
