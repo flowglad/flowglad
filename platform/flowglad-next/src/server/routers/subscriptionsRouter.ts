@@ -795,6 +795,7 @@ const createSubscriptionProcedure = protectedProcedure
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         } = transactionCtx
         if (!ctx.organization) {
           throw new TRPCError({
@@ -873,6 +874,7 @@ const createSubscriptionProcedure = protectedProcedure
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }
         )
         const outputValue = output.unwrap()

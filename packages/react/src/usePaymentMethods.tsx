@@ -21,6 +21,81 @@ type PaymentMethodsRouteResponse =
   | undefined
 
 /**
+ * Runtime type guard for PaymentMethodsRouteResponse.
+ * Validates that the parsed JSON response matches the expected shape.
+ */
+export const isPaymentMethodsRouteResponse = (
+  value: unknown
+): value is PaymentMethodsRouteResponse => {
+  // undefined is valid
+  if (value === undefined) {
+    return true
+  }
+
+  if (value === null) {
+    return false
+  }
+
+  // Must be an object
+  if (typeof value !== 'object') {
+    return false
+  }
+
+  const obj = value as Record<string, unknown>
+
+  // If data exists, it must be an object with expected fields or null
+  if ('data' in obj && obj.data !== null && obj.data !== undefined) {
+    if (typeof obj.data !== 'object') {
+      return false
+    }
+    const data = obj.data as Record<string, unknown>
+    // paymentMethods should be an array if present
+    if (
+      'paymentMethods' in data &&
+      data.paymentMethods !== null &&
+      data.paymentMethods !== undefined &&
+      !Array.isArray(data.paymentMethods)
+    ) {
+      return false
+    }
+    // billingPortalUrl should be a string or null if present
+    if (
+      'billingPortalUrl' in data &&
+      data.billingPortalUrl !== null &&
+      typeof data.billingPortalUrl !== 'string'
+    ) {
+      return false
+    }
+  }
+
+  // If error exists, validate its shape
+  if (
+    'error' in obj &&
+    obj.error !== null &&
+    obj.error !== undefined
+  ) {
+    if (typeof obj.error !== 'object') {
+      return false
+    }
+    const error = obj.error as Record<string, unknown>
+    // code should be a string if present
+    if ('code' in error && typeof error.code !== 'string') {
+      return false
+    }
+    // json should be an object if present
+    if (
+      'json' in error &&
+      error.json !== null &&
+      typeof error.json !== 'object'
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+/**
  * Result type for the usePaymentMethods hook.
  */
 export interface UsePaymentMethodsResult {
@@ -124,8 +199,13 @@ export const usePaymentMethods = (): UsePaymentMethodsResult => {
         )
       }
 
-      const json = await response.json()
-      return json as PaymentMethodsRouteResponse
+      const json: unknown = await response.json()
+      if (!isPaymentMethodsRouteResponse(json)) {
+        throw new Error(
+          `Invalid payment methods response format: ${JSON.stringify(json)}`
+        )
+      }
+      return json
     },
   })
 

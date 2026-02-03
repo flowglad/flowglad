@@ -60,6 +60,7 @@ export const createUsageEvent = protectedProcedure
           emitEvent,
           invalidateCache,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         } = transactionCtx
         const resolvedInputResult = await resolveUsageEventInput(
           input,
@@ -78,6 +79,7 @@ export const createUsageEvent = protectedProcedure
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }
         )
       }

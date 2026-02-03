@@ -42,6 +42,7 @@ export const createUsageMeterTransaction = async (
     cacheRecomputationContext,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   }: Omit<AuthenticatedTransactionParams, 'userId'> &
     Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
 ): Promise<{
@@ -70,6 +71,9 @@ export const createUsageMeterTransaction = async (
     enqueueLedgerCommand:
       enqueueLedgerCommand ??
       noopTransactionCallbacks.enqueueLedgerCommand,
+    enqueueTriggerTask:
+      enqueueTriggerTask ??
+      noopTransactionCallbacks.enqueueTriggerTask,
   }
 
   const usageMeter = await insertUsageMeter(

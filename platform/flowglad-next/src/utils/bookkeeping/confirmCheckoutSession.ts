@@ -147,6 +147,7 @@ export const confirmCheckoutSessionTransaction = async (
         invalidateCache: ctx.invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
+        enqueueTriggerTask: ctx.enqueueTriggerTask,
       }
     )
 

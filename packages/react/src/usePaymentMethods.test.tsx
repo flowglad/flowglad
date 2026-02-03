@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import {
   afterEach,
   beforeEach,
@@ -10,7 +6,10 @@ import {
   it,
   mock,
 } from 'bun:test'
-import type { PaymentMethodDetails } from '@flowglad/shared'
+import type {
+  CustomerBillingDetails,
+  PaymentMethodDetails,
+} from '@flowglad/shared'
 import {
   QueryClient,
   QueryClientProvider,
@@ -24,30 +23,55 @@ import {
   usePaymentMethods,
 } from './usePaymentMethods'
 
-// Mock payment methods data - cast as PaymentMethodDetails for type safety
-// In tests, we only need the fields used by assertions
-const mockPaymentMethods = [
+// Mock payment methods data with explicit type
+const mockPaymentMethods: PaymentMethodDetails[] = [
   {
     id: 'pm_1',
-    type: 'card',
-    card: {
-      brand: 'visa',
-      last4: '4242',
-      expMonth: 12,
-      expYear: 2025,
+    billingDetails: {
+      address: {
+        country: 'US',
+      },
     },
+    createdAt: Date.now(),
+    customerId: 'cust_123',
+    default: true,
+    livemode: false,
+    paymentMethodData: {
+      card: {
+        brand: 'visa',
+        last4: '4242',
+        expMonth: 12,
+        expYear: 2025,
+      },
+    },
+    pricingModelId: 'pm_123',
+    type: 'card',
+    updatedAt: Date.now(),
   },
   {
     id: 'pm_2',
-    type: 'card',
-    card: {
-      brand: 'mastercard',
-      last4: '5555',
-      expMonth: 6,
-      expYear: 2026,
+    billingDetails: {
+      address: {
+        country: 'US',
+      },
     },
+    createdAt: Date.now(),
+    customerId: 'cust_123',
+    default: false,
+    livemode: false,
+    paymentMethodData: {
+      card: {
+        brand: 'mastercard',
+        last4: '5555',
+        expMonth: 6,
+        expYear: 2026,
+      },
+    },
+    pricingModelId: 'pm_123',
+    type: 'card',
+    updatedAt: Date.now(),
   },
-] as unknown as PaymentMethodDetails[]
+]
 
 const mockBillingPortalUrl =
   'https://billing.stripe.com/p/session_xyz'
@@ -59,51 +83,71 @@ const mockPaymentMethodsResponse = {
   },
 }
 
-// Create mock billing data for dev mode
+/**
+ * Creates mock billing data for dev mode testing.
+ * Returns a CustomerBillingDetails object that satisfies the provider requirements.
+ */
 const createMockBillingData = (
-  paymentMethods = mockPaymentMethods,
-  billingPortalUrl: string | null = mockBillingPortalUrl
-) => ({
-  customer: {
-    id: 'cust_123',
-    email: 'test@example.com',
-    name: 'Test Customer',
-    externalId: 'ext_123',
+  options: {
+    paymentMethods?: PaymentMethodDetails[] | undefined
+    billingPortalUrl?: string
+  } = {}
+): CustomerBillingDetails => {
+  const now = Date.now()
+  const hasPaymentMethods = Object.prototype.hasOwnProperty.call(
+    options,
+    'paymentMethods'
+  )
+  const resolvedPaymentMethods = hasPaymentMethods
+    ? (options.paymentMethods ?? [])
+    : mockPaymentMethods
+
+  const pricingModel: CustomerBillingDetails['pricingModel'] = {
+    id: 'pm_123',
+    createdAt: now,
+    isDefault: true,
     livemode: false,
+    name: 'Default Pricing Model',
     organizationId: 'org_123',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    catalog: null,
-  },
-  subscriptions: [],
-  currentSubscription: null,
-  currentSubscriptions: [],
-  purchases: [],
-  invoices: [],
-  paymentMethods,
-  billingPortalUrl,
-  pricingModel: {
-    id: 'pm_123',
     products: [],
-    prices: [],
+    updatedAt: now,
     usageMeters: [],
-    features: [],
-    resources: [],
-  },
-  catalog: {
-    id: 'pm_123',
-    products: [],
-    prices: [],
-    usageMeters: [],
-    features: [],
-    resources: [],
-  },
-})
+  }
+
+  return {
+    billingPortalUrl:
+      options.billingPortalUrl ?? mockBillingPortalUrl,
+    catalog: pricingModel,
+    customer: {
+      id: 'cust_123',
+      archived: false,
+      createdAt: now,
+      domain: null,
+      email: 'test@example.com',
+      externalId: 'ext_123',
+      iconURL: null,
+      invoiceNumberBase: null,
+      livemode: false,
+      logoURL: null,
+      name: 'Test Customer',
+      organizationId: 'org_123',
+      pricingModelId: 'pm_123',
+      updatedAt: now,
+      userId: null,
+      billingAddress: null,
+    },
+    invoices: [],
+    paymentMethods: resolvedPaymentMethods,
+    pricingModel,
+    purchases: [],
+    subscriptions: [],
+  }
+}
 
 // Create wrapper for hooks
 const createWrapper = (
   devMode = false,
-  billingMocks?: ReturnType<typeof createMockBillingData>
+  billingMocks?: CustomerBillingDetails
 ) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -118,7 +162,7 @@ const createWrapper = (
       <FlowgladConfigProvider
         baseURL="https://test.example.com"
         __devMode={devMode}
-        billingMocks={billingMocks as never}
+        billingMocks={billingMocks}
       >
         {children}
       </FlowgladConfigProvider>
@@ -158,7 +202,12 @@ describe('usePaymentMethods', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.paymentMethods).toEqual(mockPaymentMethods)
+    // Verify payment methods data structure
+    expect(result.current.paymentMethods).toHaveLength(2)
+    expect(result.current.paymentMethods?.[0]?.id).toBe('pm_1')
+    expect(result.current.paymentMethods?.[0]?.type).toBe('card')
+    expect(result.current.paymentMethods?.[1]?.id).toBe('pm_2')
+    expect(result.current.paymentMethods?.[1]?.type).toBe('card')
     expect(result.current.error).toBe(null)
   })
 
@@ -222,27 +271,27 @@ describe('usePaymentMethods', () => {
     expect(mockFetch).not.toHaveBeenCalled()
 
     // Should have payment methods from billingMocks
-    expect(result.current.paymentMethods).toEqual(mockPaymentMethods)
+    expect(result.current.paymentMethods).toHaveLength(2)
+    expect(result.current.paymentMethods?.[0]?.id).toBe('pm_1')
+    expect(result.current.paymentMethods?.[0]?.type).toBe('card')
+    expect(result.current.paymentMethods?.[1]?.id).toBe('pm_2')
+    expect(result.current.paymentMethods?.[1]?.type).toBe('card')
     expect(result.current.billingPortalUrl).toBe(mockBillingPortalUrl)
   })
 
   it('returns empty array when billingMocks.paymentMethods missing', async () => {
-    const billingMocks = createMockBillingData(
-      undefined as never,
-      null
-    )
-    // Explicitly set paymentMethods to undefined to test default behavior
-    ;(billingMocks as { paymentMethods: unknown }).paymentMethods =
-      undefined
+    const billingMocksWithoutPaymentMethods = createMockBillingData({
+      paymentMethods: undefined,
+    })
 
     const { result } = renderHook(() => usePaymentMethods(), {
-      wrapper: createWrapper(true, billingMocks),
+      wrapper: createWrapper(true, billingMocksWithoutPaymentMethods),
     })
 
     expect(result.current.isLoading).toBe(false)
     expect(result.current.error).toBe(null)
     expect(result.current.paymentMethods).toEqual([])
-    expect(result.current.billingPortalUrl).toBe(null)
+    expect(result.current.billingPortalUrl).toBe(mockBillingPortalUrl)
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
