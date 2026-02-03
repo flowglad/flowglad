@@ -23,6 +23,17 @@ export enum FlowgladActionKey {
   GetUsageMeterBalances = 'usage-meters/balances',
   GetFeatureAccess = 'features/access',
   GetPaymentMethods = 'payment-methods/list',
+  GetCustomerDetails = 'customerDetails',
+}
+
+export interface CustomerDetails {
+  id: string
+  livemode: boolean
+  email: string
+  name: string | null
+  externalId: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 /**

@@ -67,6 +67,16 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.GetUsageMeterBalances]: getUsageMeterBalances,
   [FlowgladActionKey.GetFeatureAccess]: getFeatureAccessItems,
   [FlowgladActionKey.GetPaymentMethods]: getPaymentMethods,
+  [FlowgladActionKey.GetCustomerDetails]: async () => {
+    return {
+      data: {},
+      status: 501,
+      error: {
+        code: 'Not Implemented',
+        json: {},
+      },
+    }
+  },
 }
 
 export const hybridRouteToHandlerMap: {
