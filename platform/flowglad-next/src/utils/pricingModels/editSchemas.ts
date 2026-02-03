@@ -24,7 +24,7 @@ export const editPricingModelWithStructureSchema = z.object({
     features: setupPricingModelSchema.shape.features.optional(),
     products: setupPricingModelSchema.shape.products.optional(),
     usageMeters: setupPricingModelSchema.shape.usageMeters.optional(),
-    resources: setupPricingModelSchema.shape.resources,
+    resources: setupPricingModelSchema.shape.resources.optional(),
   }),
 })
 
