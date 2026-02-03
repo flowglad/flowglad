@@ -4,6 +4,7 @@ import {
   FeatureAccessItem,
   FlowgladActionKey,
   HTTPMethod,
+  type PaymentMethodDetails,
   UsageMeterBalance,
 } from './types/sdk'
 import type { SubscriptionDetails } from './types/subscription'
@@ -617,6 +618,22 @@ export type GetFeatureAccessResponse = {
 }
 
 /**
+ * Schema for fetching payment methods for a customer.
+ * Returns payment methods and the billing portal URL.
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getPaymentMethodsSchema = z.object({}).strict()
+
+export type GetPaymentMethodsParams = z.infer<
+  typeof getPaymentMethodsSchema
+>
+
+export type GetPaymentMethodsResponse = {
+  paymentMethods: PaymentMethodDetails[]
+  billingPortalUrl: string | null
+}
+
+/**
  * Schema for fetching subscriptions for a customer.
  * Returns subscriptions, currentSubscriptions, and currentSubscription.
  * The customer externalId is derived server-side from the authenticated session.
@@ -721,5 +738,9 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.GetSubscriptions]: {
     method: HTTPMethod.POST,
     inputValidator: getSubscriptionsSchema,
+  },
+  [FlowgladActionKey.GetPaymentMethods]: {
+    method: HTTPMethod.POST,
+    inputValidator: getPaymentMethodsSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

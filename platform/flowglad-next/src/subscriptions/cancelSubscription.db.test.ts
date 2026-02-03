@@ -1457,6 +1457,53 @@ describe('Subscription Cancellation Test Suite', async () => {
         })
       ).unwrap()
     })
+
+    it('returns ValidationError when a scheduled adjustment is pending', async () => {
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const futureTimestamp = Date.now() + 86400000 // 1 day from now
+          const subscription = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: price.id,
+          })
+
+          // Set scheduledAdjustmentAt after creation since setupSubscription doesn't support it
+          const updatedSubscription = await updateSubscription(
+            {
+              id: subscription.id,
+              scheduledAdjustmentAt: futureTimestamp,
+              renews: subscription.renews,
+            },
+            transaction
+          )
+
+          await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: Date.now() - 60 * 60 * 1000,
+            endDate: Date.now() + 60 * 60 * 1000,
+          })
+
+          const result = await cancelSubscriptionImmediately(
+            {
+              subscription: updatedSubscription,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
+            expect(result.error).toBeInstanceOf(ValidationError)
+            expect(result.error.message).toContain(
+              'scheduled adjustment is pending'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
   })
 
   /* --------------------------------------------------------------------------
@@ -1872,6 +1919,58 @@ describe('Subscription Cancellation Test Suite', async () => {
       } finally {
         notificationSpy.mockRestore()
       }
+    })
+
+    it('returns ValidationError when a scheduled adjustment is pending', async () => {
+      ;(
+        await adminTransactionWithResult(async (ctx) => {
+          const { transaction } = ctx
+          const futureTimestamp = Date.now() + 86400000 // 1 day from now
+          const subscription = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: price.id,
+          })
+
+          // Set scheduledAdjustmentAt after creation since setupSubscription doesn't support it
+          await updateSubscription(
+            {
+              id: subscription.id,
+              scheduledAdjustmentAt: futureTimestamp,
+              renews: subscription.renews,
+            },
+            transaction
+          )
+
+          await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: Date.now() - 60 * 60 * 1000,
+            endDate: Date.now() + 60 * 60 * 1000,
+          })
+
+          const params: ScheduleSubscriptionCancellationParams = {
+            id: subscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+            },
+          }
+          const result = await scheduleSubscriptionCancellation(
+            params,
+            createDiscardingEffectsContext(transaction)
+          )
+
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
+            expect(result.error).toBeInstanceOf(ValidationError)
+            expect(result.error.message).toContain(
+              'scheduled adjustment is pending'
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     })
   })
 
