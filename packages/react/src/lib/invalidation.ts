@@ -1,5 +1,6 @@
 import { FlowgladActionKey } from '@flowglad/shared'
 import type { QueryClient } from '@tanstack/react-query'
+import { CUSTOMER_DETAILS_QUERY_KEY } from '../useCustomerDetails'
 import { FEATURES_QUERY_KEY } from '../useFeatures'
 import { PAYMENT_METHODS_QUERY_KEY } from '../usePaymentMethods'
 import { SUBSCRIPTIONS_QUERY_KEY } from '../useSubscriptions'
@@ -28,6 +29,9 @@ export const invalidateCustomerData = async (
     }),
     queryClient.invalidateQueries({
       queryKey: [FlowgladActionKey.GetCustomerBilling],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: [CUSTOMER_DETAILS_QUERY_KEY],
     }),
   ])
 }
