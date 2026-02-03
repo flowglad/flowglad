@@ -43,21 +43,33 @@ export const getProjectConfigPath = (): string =>
   join(getProjectConfigDir(), 'config.json')
 
 /**
+ * Safely gets a property value from an object using Object.getOwnPropertyDescriptor.
+ * Returns undefined if the property doesn't exist.
+ */
+const getProperty = (obj: object, key: string): unknown =>
+  Object.getOwnPropertyDescriptor(obj, key)?.value
+
+/**
  * Type guard to validate the shape of project config.
  */
 const isProjectConfig = (obj: unknown): obj is ProjectConfig => {
   if (typeof obj !== 'object' || obj === null) {
     return false
   }
-  const record = obj as Record<string, unknown>
+  const organizationId = getProperty(obj, 'organizationId')
+  const organizationName = getProperty(obj, 'organizationName')
+  const pricingModelId = getProperty(obj, 'pricingModelId')
+  const pricingModelName = getProperty(obj, 'pricingModelName')
+  const livemode = getProperty(obj, 'livemode')
+  const updatedAt = getProperty(obj, 'updatedAt')
+
   return (
-    typeof record.organizationId === 'string' &&
-    typeof record.organizationName === 'string' &&
-    typeof record.pricingModelId === 'string' &&
-    typeof record.pricingModelName === 'string' &&
-    typeof record.livemode === 'boolean' &&
-    (record.updatedAt === undefined ||
-      typeof record.updatedAt === 'string')
+    typeof organizationId === 'string' &&
+    typeof organizationName === 'string' &&
+    typeof pricingModelId === 'string' &&
+    typeof pricingModelName === 'string' &&
+    typeof livemode === 'boolean' &&
+    (updatedAt === undefined || typeof updatedAt === 'string')
   )
 }
 

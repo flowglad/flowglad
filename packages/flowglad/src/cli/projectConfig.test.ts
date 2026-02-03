@@ -200,8 +200,6 @@ describe('CLI project configuration', () => {
 
     it('returns config when updatedAt is not present', async () => {
       const config = createTestConfig()
-      // Ensure no updatedAt field
-      delete (config as Partial<ProjectConfig>).updatedAt
 
       await saveProjectConfig(config)
 
