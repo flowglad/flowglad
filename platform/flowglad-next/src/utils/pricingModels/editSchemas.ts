@@ -1,5 +1,6 @@
 import { pricingModelsClientUpdateSchema } from '@db-core/schema/pricingModels'
 import { z } from 'zod'
+import { safeZodSanitizedString } from '@/utils/core'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 
 /**
@@ -16,12 +17,14 @@ import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 export const editPricingModelWithStructureSchema = z.object({
   id: z.string(),
   pricingModel: pricingModelsClientUpdateSchema.extend({
-    name: z.string().min(1, 'Name is required'),
+    name: safeZodSanitizedString.describe(
+      'The name of the pricing model'
+    ),
     // Optional full structure fields for CLI sync
     features: setupPricingModelSchema.shape.features.optional(),
     products: setupPricingModelSchema.shape.products.optional(),
     usageMeters: setupPricingModelSchema.shape.usageMeters.optional(),
-    resources: setupPricingModelSchema.shape.resources.optional(),
+    resources: setupPricingModelSchema.shape.resources,
   }),
 })
 
