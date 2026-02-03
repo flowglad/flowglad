@@ -19,7 +19,6 @@ import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import { nulledPriceColumns } from '@db-core/schema/prices'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
-import { core } from '@flowglad/shared'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 // These seed methods (and the clearDatabase helper) come from our test support code.
@@ -82,6 +81,7 @@ import {
 } from '@/subscriptions/adjustSubscription'
 import type { TerseSubscriptionItem } from '@/subscriptions/schemas'
 import { SubscriptionAdjustmentTiming } from '@/types'
+import core from '@/utils/core'
 
 // Helper to normalize Date | number into milliseconds since epoch
 const toMs = (d: Date | number | null | undefined): number | null => {
