@@ -457,6 +457,199 @@ describe('adjustSubscription Integration Tests', async () => {
         return Result.ok(null)
       })
     })
+
+    it('should throw error when a scheduled adjustment already exists', async () => {
+      const futureTimestamp = Date.now() + 86400000 // 1 day from now
+      const subscriptionWithScheduledAdjustment =
+        await setupSubscription({
+          status: SubscriptionStatus.Active,
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          paymentMethodId: paymentMethod.id,
+        })
+
+      await setupBillingPeriod({
+        subscriptionId: subscriptionWithScheduledAdjustment.id,
+        startDate: Date.now() - 3600000,
+        endDate: Date.now() + 3600000,
+        status: BillingPeriodStatus.Active,
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: subscriptionWithScheduledAdjustment.id,
+        name: 'Existing Item',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Set the scheduled adjustment after creation since setupSubscription doesn't support it
+        await updateSubscription(
+          {
+            id: subscriptionWithScheduledAdjustment.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: subscriptionWithScheduledAdjustment.renews,
+          },
+          transaction
+        )
+
+        const result = await adjustSubscription(
+          {
+            id: subscriptionWithScheduledAdjustment.id,
+            adjustment: {
+              newSubscriptionItems: [
+                {
+                  priceId: price.id,
+                  quantity: 2,
+                },
+              ],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          ctx
+        )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'scheduled adjustment'
+          )
+          expect(result.error.message).toContain('already pending')
+        }
+        return Result.ok(null)
+      })
+    })
+
+    it('should throw error when a cancellation is scheduled', async () => {
+      const subscriptionWithScheduledCancellation =
+        await setupSubscription({
+          status: SubscriptionStatus.CancellationScheduled,
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          paymentMethodId: paymentMethod.id,
+          cancelScheduledAt: Date.now() + 86400000, // 1 day from now
+        })
+
+      await setupBillingPeriod({
+        subscriptionId: subscriptionWithScheduledCancellation.id,
+        startDate: Date.now() - 3600000,
+        endDate: Date.now() + 3600000,
+        status: BillingPeriodStatus.Active,
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: subscriptionWithScheduledCancellation.id,
+        name: 'Existing Item',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const result = await adjustSubscription(
+          {
+            id: subscriptionWithScheduledCancellation.id,
+            adjustment: {
+              newSubscriptionItems: [
+                {
+                  priceId: price.id,
+                  quantity: 2,
+                },
+              ],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          ctx
+        )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'cancellation is scheduled'
+          )
+          expect(result.error.message).toContain('Uncancel')
+        }
+        return Result.ok(null)
+      })
+    })
+
+    it('should succeed after canceling a scheduled adjustment', async () => {
+      const futureTimestamp = Date.now() + 86400000 // 1 day from now
+      const subscriptionWithScheduledAdjustment =
+        await setupSubscription({
+          status: SubscriptionStatus.Active,
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          paymentMethodId: paymentMethod.id,
+        })
+
+      await setupBillingPeriod({
+        subscriptionId: subscriptionWithScheduledAdjustment.id,
+        startDate: Date.now() - 3600000,
+        endDate: Date.now() + 3600000,
+        status: BillingPeriodStatus.Active,
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: subscriptionWithScheduledAdjustment.id,
+        name: 'Existing Item',
+        quantity: 1,
+        unitPrice: 1000,
+        priceId: price.id,
+      })
+
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // First set the scheduled adjustment (setupSubscription doesn't support it)
+        await updateSubscription(
+          {
+            id: subscriptionWithScheduledAdjustment.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: subscriptionWithScheduledAdjustment.renews,
+          },
+          transaction
+        )
+
+        // Then clear the scheduled adjustment to simulate canceling it
+        await updateSubscription(
+          {
+            id: subscriptionWithScheduledAdjustment.id,
+            scheduledAdjustmentAt: null,
+            renews: subscriptionWithScheduledAdjustment.renews,
+          },
+          transaction
+        )
+
+        const result = await adjustSubscription(
+          {
+            id: subscriptionWithScheduledAdjustment.id,
+            adjustment: {
+              newSubscriptionItems: [
+                {
+                  priceId: price.id,
+                  quantity: 2,
+                },
+              ],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          ctx
+        )
+        expect(Result.isOk(result)).toBe(true)
+        return Result.ok(null)
+      })
+    })
   })
 
   /* ==========================================================================
