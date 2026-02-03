@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@db-core/*": ["./db-core/*"],
+      "@/*": ["./src/*"],
+      "@/../*": ["./*"]
+    }
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/test/**/*",
+    "seedDatabase.ts",
+    "db-core/**/*",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "slow-tests/**/*"]
+}
