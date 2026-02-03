@@ -165,7 +165,7 @@ export default function SignIn() {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full">
       {/* Title */}
       <h1 className="text-2xl font-semibold text-center mb-6">
         Log in to Flowglad
@@ -288,7 +288,7 @@ export default function SignIn() {
         </button>
         <Link
           href="/sign-up"
-          className="hover:text-foreground transition-colors"
+          className="text-[hsl(var(--brownstone-foreground))] hover:text-[hsl(var(--citrine-foreground))] hover:underline hover:decoration-dashed transition-colors"
         >
           Sign up
         </Link>

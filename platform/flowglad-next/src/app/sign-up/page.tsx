@@ -108,7 +108,7 @@ export default function SignUp() {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full">
       {/* Title */}
       <h1 className="text-2xl font-semibold text-center mb-6">
         Sign up for Flowglad
@@ -234,7 +234,7 @@ export default function SignUp() {
         <span>Already have an account?</span>
         <Link
           href="/sign-in"
-          className="text-primary hover:underline"
+          className="text-[hsl(var(--brownstone-foreground))] hover:text-[hsl(var(--citrine-foreground))] hover:underline hover:decoration-dashed transition-colors"
         >
           Log in
         </Link>
