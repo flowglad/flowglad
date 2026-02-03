@@ -1,5 +1,9 @@
 import type { Event } from '@db-core/schema/events'
 import type { CacheDependencyKey } from '@/utils/cache'
+import type {
+  SyncDependency,
+  SyncEmissionContext,
+} from '@/utils/dependency'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 
 /**
@@ -36,6 +40,17 @@ export interface QueuedTriggerTask<TPayload = unknown> {
 export interface TriggerTaskHandle {
   /** The Trigger.dev run ID */
   id: string
+}
+
+/**
+ * A sync invalidation to be processed after transaction commit.
+ * Combines the structured dependency with the organization context.
+ */
+export interface SyncInvalidation {
+  /** The sync-enabled dependency that was invalidated */
+  dependency: SyncDependency
+  /** The organization context for this invalidation */
+  context: SyncEmissionContext
 }
 
 /**
@@ -105,6 +120,7 @@ import type { DbTransaction } from '@db-core/schemaTypes'
  *
  * **After commit (outside transaction):**
  * - `cacheInvalidations` - Cache keys are invalidated after commit to avoid stale reads
+ * - `syncInvalidations` - Sync events are emitted after commit for data replication
  */
 export interface TransactionEffects {
   /** Cache keys to invalidate. Processed AFTER commit (fire-and-forget). */
@@ -115,6 +131,8 @@ export interface TransactionEffects {
   ledgerCommands: LedgerCommand[]
   /** Trigger tasks to dispatch after commit. */
   triggerTasks: QueuedTriggerTask[]
+  /** Sync invalidations to process after commit for data replication. */
+  syncInvalidations: SyncInvalidation[]
 }
 
 /**

@@ -1,6 +1,13 @@
 import type { Event } from '@db-core/schema/events'
 import type { CacheDependencyKey } from '@/utils/cache'
 import { invalidateDependencies } from '@/utils/cache.internal'
+import {
+  type AnyDependency,
+  type CacheDependency,
+  dependencyToCacheKey,
+  isSyncDependency,
+  type SyncEmissionContext,
+} from '@/utils/dependency'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
@@ -8,8 +15,41 @@ import type {
   DbTransaction,
   EnqueueTriggerTaskCallback,
   QueuedTriggerTask,
+  SyncInvalidation,
   TransactionEffects,
 } from './types'
+
+/**
+ * Overloaded invalidateCache function type.
+ *
+ * Overload 1: Cache-only dependencies - no context required
+ * Overload 2: Any dependencies with context - required when any sync-enabled dependency is present
+ *
+ * The compile-time enforcement works because:
+ * - CacheDependency has { syncEnabled: false }
+ * - SyncDependency has { syncEnabled: true }
+ * - TypeScript will pick the first matching overload
+ * - If you pass a SyncDependency without context, it won't match overload 1 (type mismatch)
+ *   and overload 2 requires context as the first argument
+ */
+export interface InvalidateCacheFunction {
+  /**
+   * Invalidate cache-only dependencies. No sync events will be emitted.
+   */
+  (...deps: CacheDependency[]): void
+
+  /**
+   * Invalidate any dependencies with context. Sync-enabled dependencies will
+   * be queued for sync event emission after commit.
+   */
+  (context: SyncEmissionContext, ...deps: AnyDependency[]): void
+
+  /**
+   * Invalidate using legacy string-based cache keys.
+   * @deprecated Use structured dependencies instead
+   */
+  (...keys: CacheDependencyKey[]): void
+}
 
 /**
  * Creates a fresh effects accumulator and the callback functions that push to it.
@@ -20,11 +60,67 @@ export function createEffectsAccumulator() {
     eventsToInsert: [],
     ledgerCommands: [],
     triggerTasks: [],
+    syncInvalidations: [],
   }
 
-  const invalidateCache = (...keys: CacheDependencyKey[]) => {
-    effects.cacheInvalidations.push(...keys)
+  /**
+   * Overloaded invalidateCache implementation.
+   * Handles three cases:
+   * 1. Cache-only dependencies (no context)
+   * 2. Any dependencies with context (sync-enabled deps queued for sync)
+   * 3. Legacy string-based cache keys
+   */
+  const invalidateCache: InvalidateCacheFunction = (
+    contextOrDepOrKey:
+      | SyncEmissionContext
+      | AnyDependency
+      | CacheDependencyKey,
+    ...rest: (AnyDependency | CacheDependencyKey)[]
+  ): void => {
+    // Check if first argument is a SyncEmissionContext (has organizationId)
+    const hasContext =
+      typeof contextOrDepOrKey === 'object' &&
+      contextOrDepOrKey !== null &&
+      'organizationId' in contextOrDepOrKey &&
+      !('type' in contextOrDepOrKey)
+
+    if (hasContext) {
+      // Context-based path: first arg is context, rest are dependencies
+      const context = contextOrDepOrKey as SyncEmissionContext
+      for (const dep of rest as AnyDependency[]) {
+        // Always invalidate cache
+        effects.cacheInvalidations.push(dependencyToCacheKey(dep))
+
+        // If sync-enabled, also queue sync invalidation
+        if (isSyncDependency(dep)) {
+          effects.syncInvalidations.push({
+            dependency: dep,
+            context,
+          } satisfies SyncInvalidation)
+        }
+      }
+    } else if (
+      typeof contextOrDepOrKey === 'object' &&
+      contextOrDepOrKey !== null &&
+      'type' in contextOrDepOrKey
+    ) {
+      // Structured dependency path (no context)
+      const firstDep = contextOrDepOrKey as AnyDependency
+      effects.cacheInvalidations.push(dependencyToCacheKey(firstDep))
+      for (const dep of rest as AnyDependency[]) {
+        effects.cacheInvalidations.push(dependencyToCacheKey(dep))
+      }
+    } else {
+      // Legacy string-based cache key path
+      effects.cacheInvalidations.push(
+        contextOrDepOrKey as CacheDependencyKey
+      )
+      for (const key of rest as CacheDependencyKey[]) {
+        effects.cacheInvalidations.push(key)
+      }
+    }
   }
+
   const emitEvent = (...events: Event.Insert[]) => {
     effects.eventsToInsert.push(...events)
   }

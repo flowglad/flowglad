@@ -138,24 +138,24 @@ export type SyncDependencyType = SyncDependency['type']
 // ============================================================================
 
 /**
- * Context passed to sync emission handlers when dependencies are invalidated.
- * Contains information needed to compute which sync events to emit.
+ * Context required when invalidating sync-enabled dependencies.
+ * Contains organization context needed to determine if sync webhooks should be emitted.
  */
 export interface SyncEmissionContext {
   /**
-   * The dependency that was invalidated.
+   * The organization whose data is being invalidated.
    */
-  readonly dependency: SyncDependency
+  readonly organizationId: string
 
   /**
-   * Timestamp when the invalidation occurred.
+   * The pricing model context for this invalidation.
    */
-  readonly invalidatedAt: Date
+  readonly pricingModelId: string
 
   /**
-   * Optional transaction ID for correlation.
+   * Whether this is a live (production) or test mode operation.
    */
-  readonly transactionId?: string
+  readonly livemode: boolean
 }
 
 // ============================================================================
