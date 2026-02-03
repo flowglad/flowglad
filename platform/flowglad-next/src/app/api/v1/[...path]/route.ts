@@ -1121,34 +1121,73 @@ const withLocalVerification = (
           })
 
           // Look up the API key and membership in the local database
-          const localAuthResult = await db.transaction(async (tx) => {
-            const apiKeyRecords = await selectApiKeys(
-              { token: apiKey, active: true },
-              tx
-            )
-            const apiKeyRecord = apiKeyRecords[0]
-
-            if (!apiKeyRecord) {
-              return {
-                success: false as const,
-                error: 'not_found' as const,
+          // Wrap in try-catch to return clear auth errors instead of 500s
+          let localAuthResult:
+            | { success: false; error: 'not_found' | 'db_error' }
+            | {
+                success: true
+                apiKeyRecord: NonNullable<
+                  Awaited<ReturnType<typeof selectApiKeys>>[0]
+                >
+                userId: string
               }
-            }
 
-            // Look up a userId from the organization's memberships
-            // This is needed because the API key metadata schema requires userId
-            const membershipRecords = await selectMemberships(
-              { organizationId: apiKeyRecord.organizationId },
-              tx
+          try {
+            localAuthResult = await db.transaction(async (tx) => {
+              const apiKeyRecords = await selectApiKeys(
+                { token: apiKey, active: true },
+                tx
+              )
+              const apiKeyRecord = apiKeyRecords[0]
+
+              if (!apiKeyRecord) {
+                return {
+                  success: false as const,
+                  error: 'not_found' as const,
+                }
+              }
+
+              // Look up a userId from the organization's memberships
+              // This is needed because the API key metadata schema requires userId
+              const membershipRecords = await selectMemberships(
+                { organizationId: apiKeyRecord.organizationId },
+                tx
+              )
+              const membership = membershipRecords[0]
+
+              return {
+                success: true as const,
+                apiKeyRecord,
+                userId: membership?.userId ?? 'local_playground_user',
+              }
+            })
+          } catch (dbError) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Database error during local auth',
+            })
+            authSpan.setAttributes({
+              'auth.error': 'db_error',
+              'auth.error_message':
+                dbError instanceof Error
+                  ? dbError.message
+                  : String(dbError),
+            })
+            logger.error(
+              'REST API Local Auth Failed: Database error',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+                error: dbError as Error,
+              }
             )
-            const membership = membershipRecords[0]
-
-            return {
-              success: true as const,
-              apiKeyRecord,
-              userId: membership?.userId ?? 'local_playground_user',
-            }
-          })
+            return new Response(
+              'Authentication failed. Unable to verify API key.',
+              { status: 401 }
+            )
+          }
 
           if (!localAuthResult.success) {
             authSpan.setStatus({
@@ -1171,6 +1210,29 @@ const withLocalVerification = (
           }
 
           const { apiKeyRecord, userId } = localAuthResult
+
+          // Explicit guard for apiKeyRecord - this should never happen after
+          // the success check above, but provides defense-in-depth and satisfies
+          // TypeScript narrowing in case of any edge cases
+          if (!apiKeyRecord) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'API key record missing after validation',
+            })
+            logger.error(
+              'REST API Local Auth Failed: Unexpected missing apiKeyRecord',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+              }
+            )
+            return new Response(
+              'Authentication failed. Invalid API key state.',
+              { status: 401 }
+            )
+          }
 
           // Construct a result object similar to what Unkey returns
           const environment = apiKeyRecord.livemode ? 'live' : 'test'
