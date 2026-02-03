@@ -218,8 +218,8 @@ const OnboardingPage = async () => {
               <p className="text-sm text-foreground">
                 Complete these steps to start accepting payments.
               </p>
-              <DiscordConciergeLink />
             </div>
+            <DiscordConciergeLink />
             <OnboardingStatusTable
               onboardingChecklistItems={onboardingChecklistItems}
               secretApiKey={secretApiKey.token}
