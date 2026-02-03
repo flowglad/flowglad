@@ -5,14 +5,16 @@ import {
   expect,
   it,
   mock,
+  spyOn,
 } from 'bun:test'
 import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
+import { invalidateCustomerData } from './lib/invalidation'
 import {
   CUSTOMER_DETAILS_QUERY_KEY,
   useCustomerDetails,
@@ -94,6 +96,27 @@ const createWrapper = (devMode = false, billingMocks?: unknown) => {
       </FlowgladConfigProvider>
     </QueryClientProvider>
   )
+}
+
+// Create wrapper that exposes the query client for testing invalidation
+const createWrapperWithQueryClient = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <FlowgladConfigProvider baseURL="https://test.example.com">
+        {children}
+      </FlowgladConfigProvider>
+    </QueryClientProvider>
+  )
+
+  return { wrapper, queryClient }
 }
 
 describe('useCustomerDetails', () => {
@@ -287,8 +310,59 @@ describe('useCustomerDetails', () => {
 })
 
 describe('subscription mutations', () => {
-  it.skip('invalidate customer details query key', async () => {
-    // TODO: Implement in Patch 4
+  let originalFetch: typeof fetch
+  let mockFetch: ReturnType<typeof mock>
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch
+    mockFetch = mock()
+    globalThis.fetch = mockFetch as unknown as typeof fetch
+  })
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+    mockFetch.mockReset()
+  })
+
+  it('invalidate customer details query key', async () => {
+    const { wrapper, queryClient } = createWrapperWithQueryClient()
+
+    // Mock fetch to return customer details data
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockCustomerDetailsResponse),
+    })
+
+    // Render the hook to populate the cache
+    const { result } = renderHook(() => useCustomerDetails(), {
+      wrapper,
+    })
+
+    // Wait for the query to succeed
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.customer?.id).toBe('cust_123')
+
+    // Spy on invalidateQueries to verify it was called
+    const invalidateQueriesSpy = spyOn(
+      queryClient,
+      'invalidateQueries'
+    )
+
+    // Call the invalidation helper (simulating a subscription mutation)
+    await act(async () => {
+      await invalidateCustomerData(queryClient)
+    })
+
+    // Verify that invalidateQueries was called with CUSTOMER_DETAILS_QUERY_KEY
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: [CUSTOMER_DETAILS_QUERY_KEY],
+    })
+
+    // Cleanup
+    invalidateQueriesSpy.mockRestore()
   })
 })
 
