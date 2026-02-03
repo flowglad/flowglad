@@ -291,6 +291,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           const ctx = {
             transaction,
@@ -298,6 +299,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }
           const subscriptionResult =
             await scheduleSubscriptionCancellation(input, ctx)
@@ -387,6 +389,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           const ctx = {
             transaction,
@@ -394,6 +397,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }
           const subscription = (
             await selectSubscriptionById(input.id, transaction)
@@ -611,6 +615,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           // Verify ownership BEFORE making any mutations
           const existingPaymentMethod = (
@@ -633,6 +638,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }
           const { paymentMethod } =
             await setDefaultPaymentMethodForCustomer(

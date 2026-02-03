@@ -66,6 +66,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = createEffectsAccumulator()
 
   let processedEventsCount = 0
@@ -97,6 +98,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
+        enqueueTriggerTask,
       }
 
       const output = await fn(paramsForFn)
@@ -191,6 +193,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,
+          enqueueTriggerTask: params.enqueueTriggerTask,
         }
         return handler({
           input: opts.input,
@@ -244,6 +247,7 @@ export async function authenticatedTransactionUnwrap<T>(
       invalidateCache: params.invalidateCache,
       emitEvent: params.emitEvent,
       enqueueLedgerCommand: params.enqueueLedgerCommand,
+      enqueueTriggerTask: params.enqueueTriggerTask,
     }
     return fn(ctx)
   }, options)

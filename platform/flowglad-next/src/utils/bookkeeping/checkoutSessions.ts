@@ -418,6 +418,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
         invalidateCache: ctx.invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
+        enqueueTriggerTask: ctx.enqueueTriggerTask,
       }
     )
     customer = customerResult.customer

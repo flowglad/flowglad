@@ -51,6 +51,7 @@ export const createUsageMeter = protectedProcedure
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         } = transactionCtx
         const { livemode, organizationId } = ctx
         if (!organizationId) {
@@ -74,6 +75,7 @@ export const createUsageMeter = protectedProcedure
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
           return Result.ok({ usageMeter })

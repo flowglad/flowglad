@@ -209,6 +209,7 @@ const migrateStripeCustomerDataToFlowglad = async (
           invalidateCache: () => {},
           emitEvent: () => {},
           enqueueLedgerCommand: () => {},
+          enqueueTriggerTask: () => {},
         }
       )
       const paymentMethodRecords = await selectPaymentMethods(

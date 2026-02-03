@@ -1095,6 +1095,7 @@ export const executeBillingRun = async (
             invalidateCache: params.invalidateCache,
             emitEvent: params.emitEvent,
             enqueueLedgerCommand: params.enqueueLedgerCommand,
+            enqueueTriggerTask: params.enqueueTriggerTask,
           }
           const result = await processOutcomeForBillingRun(
             {

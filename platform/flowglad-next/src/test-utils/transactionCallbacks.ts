@@ -24,6 +24,8 @@ export const noopEnqueueLedgerCommand = (
   ..._commands: LedgerCommand[]
 ): void => {}
 
+export const noopEnqueueTriggerTask = (): void => {}
+
 /**
  * Creates a TransactionEffectsContext that discards all effects.
  * Use this when the test doesn't need to verify or process callback behavior.
@@ -40,6 +42,7 @@ export function createDiscardingEffectsContext(
     invalidateCache: noopInvalidateCache,
     emitEvent: noopEmitEvent,
     enqueueLedgerCommand: noopEnqueueLedgerCommand,
+    enqueueTriggerTask: noopEnqueueTriggerTask,
   }
 }
 
@@ -135,6 +138,7 @@ export function createCapturingEffectsContext(
       transaction,
       cacheRecomputationContext,
       ...callbacks,
+      enqueueTriggerTask: noopEnqueueTriggerTask,
     },
     effects,
   }
@@ -166,6 +170,7 @@ export function createProcessingEffectsContext(
     invalidateCache: params.invalidateCache,
     emitEvent: params.emitEvent,
     enqueueLedgerCommand: params.enqueueLedgerCommand,
+    enqueueTriggerTask: params.enqueueTriggerTask,
   }
 }
 
@@ -230,5 +235,6 @@ export function withDiscardingEffectsContext<
     invalidateCache: noopInvalidateCache,
     emitEvent: noopEmitEvent,
     enqueueLedgerCommand: noopEnqueueLedgerCommand,
+    enqueueTriggerTask: noopEnqueueTriggerTask,
   }
 }

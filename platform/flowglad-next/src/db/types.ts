@@ -3,6 +3,71 @@ import type { CacheDependencyKey } from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 
 /**
+ * Options passed to task.trigger() when dispatching.
+ */
+export interface TriggerTaskOptions {
+  idempotencyKey?: string
+}
+
+/**
+ * Represents a trigger task invocation to be dispatched after transaction commit.
+ * Generic over the task type to preserve payload type safety.
+ */
+export interface QueuedTriggerTask<TPayload = unknown> {
+  /** User-provided key for retrieving the handle after dispatch */
+  key: string
+  /** The task to trigger */
+  task: {
+    id: string
+    trigger: (
+      payload: TPayload,
+      options?: TriggerTaskOptions
+    ) => Promise<{ id: string }>
+  }
+  /** The payload to pass to the task */
+  payload: TPayload
+  /** Options to pass to task.trigger() */
+  options?: TriggerTaskOptions
+}
+
+/**
+ * Handle returned after a trigger task is dispatched.
+ */
+export interface TriggerTaskHandle {
+  /** The Trigger.dev run ID */
+  id: string
+}
+
+/**
+ * Type-safe callback for enqueueing trigger tasks.
+ * Accepts any Trigger.dev task and its corresponding payload.
+ * The key is used to retrieve the handle after the transaction commits.
+ */
+export type EnqueueTriggerTaskCallback = <TPayload>(
+  key: string,
+  task: {
+    id: string
+    trigger: (
+      payload: TPayload,
+      options?: TriggerTaskOptions
+    ) => Promise<{ id: string }>
+  },
+  payload: TPayload,
+  options?: TriggerTaskOptions
+) => void
+
+/**
+ * Return type for comprehensive transaction functions.
+ * Contains both the user's result and any trigger handles from dispatched tasks.
+ */
+export interface TransactionResult<T> {
+  /** The result returned by the user's transaction function */
+  result: T
+  /** Handles for trigger tasks dispatched after commit, keyed by user-provided key */
+  triggerHandles: Map<string, TriggerTaskHandle>
+}
+
+/**
  * Simplified cache recomputation context.
  * Previously contained type/role information for recomputing cached values,
  * but since recomputation was removed, only livemode is needed.
@@ -48,6 +113,8 @@ export interface TransactionEffects {
   eventsToInsert: Event.Insert[]
   /** Ledger commands to process. Processed BEFORE commit (inside transaction). */
   ledgerCommands: LedgerCommand[]
+  /** Trigger tasks to dispatch after commit. */
+  triggerTasks: QueuedTriggerTask[]
 }
 
 /**
@@ -81,6 +148,16 @@ interface TransactionCallbacks {
    * enqueueLedgerCommand(creditCommand)
    */
   enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
+  /**
+   * Queue a trigger task to be dispatched after the transaction commits.
+   * The task will only be triggered if the transaction commits successfully.
+   * Use the key to retrieve the Trigger.dev handle from the result's triggerHandles map.
+   *
+   * @example
+   * ctx.enqueueTriggerTask('billingRun', attemptBillingRunTask, { billingRun }, { idempotencyKey: `billing-${id}` })
+   * // After transaction: result.triggerHandles.get('billingRun')?.id
+   */
+  enqueueTriggerTask: EnqueueTriggerTaskCallback
 }
 
 /**
@@ -164,11 +241,12 @@ export interface AdminTransactionParams
  * await someFunction(params, ctx)
  * ```
  */
-export const noopTransactionCallbacks = {
+export const noopTransactionCallbacks: TransactionCallbacks = {
   invalidateCache: () => {},
   emitEvent: () => {},
   enqueueLedgerCommand: () => {},
-} as const
+  enqueueTriggerTask: () => {},
+}
 
 /**
  * Creates a TransactionEffectsContext with noop callbacks.

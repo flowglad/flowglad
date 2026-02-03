@@ -126,6 +126,7 @@ const OnboardingPage = async () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }): Promise<Result<ApiKey.Record, Error>> => {
           const [user] = await selectUsers(
             {
@@ -158,6 +159,7 @@ const OnboardingPage = async () => {
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
           return Result.ok(apiKey)

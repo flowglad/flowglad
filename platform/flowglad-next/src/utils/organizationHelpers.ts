@@ -267,6 +267,7 @@ export const createOrganizationTransaction = async (
         cacheInvalidations: [],
         eventsToInsert: [],
         ledgerCommands: [],
+        triggerTasks: [],
       },
       livemode: false,
       userId,

@@ -164,6 +164,7 @@ const createCustomerProcedure = protectedProcedure
                 emitEvent: transactionCtx.emitEvent,
                 enqueueLedgerCommand:
                   transactionCtx.enqueueLedgerCommand,
+                enqueueTriggerTask: transactionCtx.enqueueTriggerTask,
               }
             )
 
@@ -806,6 +807,7 @@ const archiveCustomerProcedure = protectedProcedure
           emitEvent,
           cacheRecomputationContext,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         } = transactionCtx
         const { organizationId } = ctx
 
@@ -861,6 +863,7 @@ const archiveCustomerProcedure = protectedProcedure
               emitEvent,
               cacheRecomputationContext,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
 

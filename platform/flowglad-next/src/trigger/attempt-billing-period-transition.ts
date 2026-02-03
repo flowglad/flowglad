@@ -24,6 +24,7 @@ export const attemptBillingPeriodTransitionTask = task({
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const ctx = {
               transaction,
@@ -31,6 +32,7 @@ export const attemptBillingPeriodTransitionTask = task({
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
             const billingPeriod = (
               await selectBillingPeriodById(

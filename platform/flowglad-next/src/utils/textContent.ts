@@ -146,6 +146,7 @@ export const savePricingModelIntegrationMarkdown = async ({
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
+        enqueueTriggerTask,
       }) => {
         await updatePricingModel(
           {
@@ -158,6 +159,7 @@ export const savePricingModelIntegrationMarkdown = async ({
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }
         )
         return Result.ok(undefined)
