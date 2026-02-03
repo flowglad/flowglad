@@ -101,7 +101,7 @@ const omitProductId = {
 const priceOptionalFieldSchema = {
   currency: currencyCodeSchema.optional(),
   name: safeZodSanitizedString.optional(),
-  slug: safeZodSanitizedString.optional(),
+  slug: safeZodSanitizedString,
 } as const
 
 /**
@@ -142,8 +142,8 @@ export const setupUsageMeterPriceInputSchema =
       ...priceOptionalFieldSchema,
     })
     .refine(
-      // Only validate if slug is provided - undefined/null slugs are allowed
-      (data) => !data.slug || !isReservedPriceSlug(data.slug),
+      // Slug is required; validate it's not using a reserved suffix
+      (data) => !isReservedPriceSlug(data.slug),
       {
         message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
         path: ['slug'],
@@ -404,17 +404,15 @@ export const validateSetupPricingModelInput = (
 
       // Validate each price in the meter
       for (const price of prices) {
-        if (price.slug) {
-          if (allPriceSlugs.has(price.slug)) {
-            return yield* Result.err(
-              new ValidationError(
-                'price.slug',
-                `Price with slug ${price.slug} already exists`
-              )
+        if (allPriceSlugs.has(price.slug)) {
+          return yield* Result.err(
+            new ValidationError(
+              'price.slug',
+              `Price with slug ${price.slug} already exists`
             )
-          }
-          allPriceSlugs.add(price.slug)
+          )
         }
+        allPriceSlugs.add(price.slug)
       }
 
       // Validate at most one price per usage meter has isDefault: true

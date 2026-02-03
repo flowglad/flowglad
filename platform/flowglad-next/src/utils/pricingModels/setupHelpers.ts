@@ -218,11 +218,12 @@ export async function getPricingModelSetupData(
       const meterPrices = usagePricesByMeterId.get(meter.id) || []
 
       // Transform each price for this meter
+      // Note: slug is required after the backfill migration
       const transformedPrices: SetupUsageMeterPriceInput[] =
         meterPrices.map((price) => ({
           type: PriceType.Usage as const,
           name: price.name ?? undefined,
-          slug: price.slug ?? undefined,
+          slug: price.slug!,
           unitPrice: price.unitPrice,
           isDefault: price.isDefault,
           active: price.active,
@@ -336,9 +337,10 @@ export async function getPricingModelSetupData(
       }
 
       // Base price fields common to all price types
+      // Note: slug is required after the backfill migration
       const basePrice = {
         name: activeDefaultPrice.name ?? undefined,
-        slug: activeDefaultPrice.slug ?? undefined,
+        slug: activeDefaultPrice.slug!,
         unitPrice: activeDefaultPrice.unitPrice,
         isDefault: activeDefaultPrice.isDefault,
         active: activeDefaultPrice.active,
