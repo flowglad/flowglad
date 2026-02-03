@@ -20,7 +20,7 @@ function SubscriptionActionsMenu({
   price,
 }: {
   subscription: Subscription.ClientRecord
-  price: { type: string }
+  price: { type: PriceType }
 }) {
   const router = useRouter()
   const [isCancelOpen, setIsCancelOpen] = React.useState(false)
