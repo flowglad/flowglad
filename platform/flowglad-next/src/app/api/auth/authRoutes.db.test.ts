@@ -92,31 +92,46 @@ function createCustomerRequest(
 }
 
 describe('auth API routes', () => {
-  // Test user credentials
-  const testEmail = `test-${core.nanoid()}@example.com`
+  // Test user credentials - constants shared across tests
   const testPassword = 'TestPassword123!'
   const testName = 'Test User'
 
+  // Track emails created during tests for cleanup
+  const createdEmails: string[] = []
+
+  // Helper to generate unique email and track it for cleanup
+  const createTestEmail = () => {
+    const email = `test-${core.nanoid()}@example.com`
+    createdEmails.push(email)
+    return email
+  }
+
   // Clean up test data after each test
   afterEach(async () => {
-    // Clean up any test users created
-    const testUsers = await db
-      .select()
-      .from(user)
-      .where(eq(user.email, testEmail))
-    for (const u of testUsers) {
-      await db.delete(session).where(eq(session.userId, u.id))
-      await db.delete(account).where(eq(account.userId, u.id))
-      await db.delete(user).where(eq(user.id, u.id))
+    // Clean up all test users created during this test
+    for (const email of createdEmails) {
+      const testUsers = await db
+        .select()
+        .from(user)
+        .where(eq(user.email, email))
+      for (const u of testUsers) {
+        await db.delete(session).where(eq(session.userId, u.id))
+        await db.delete(account).where(eq(account.userId, u.id))
+        await db.delete(user).where(eq(user.id, u.id))
+      }
+      // Clean up verification records
+      await db
+        .delete(verification)
+        .where(eq(verification.identifier, email))
     }
-    // Clean up verification records
-    await db
-      .delete(verification)
-      .where(eq(verification.identifier, testEmail))
+    // Clear the tracking array
+    createdEmails.length = 0
   })
 
   describe('/api/auth/merchant/*', () => {
     it('should handle merchant sign-up and sign-in with email/password, setting cookies with merchant prefix', async () => {
+      const testEmail = createTestEmail()
+
       // Step 1: Sign up a new merchant user
       const signUpRequest = createMerchantRequest('/sign-up/email', {
         method: 'POST',
@@ -164,6 +179,8 @@ describe('auth API routes', () => {
     })
 
     it('should handle merchant sign-out and clear only merchant session cookie', async () => {
+      const testEmail = createTestEmail()
+
       // First sign up and sign in to get a session
       const signUpRequest = createMerchantRequest('/sign-up/email', {
         method: 'POST',
@@ -396,6 +413,8 @@ describe('auth API routes', () => {
 
   describe('cookie isolation between merchant and customer', () => {
     it('merchant sign-in does not affect customer session cookies', async () => {
+      const testEmail = createTestEmail()
+
       // Sign up merchant
       const signUpRequest = createMerchantRequest('/sign-up/email', {
         method: 'POST',
