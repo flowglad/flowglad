@@ -83,10 +83,18 @@ const SYMBOLS = {
   bullet: '\u2022',
 }
 
-function logError(message: string): void {
+function logError(message: string, error?: unknown): void {
   console.error(
     `${COLORS.red}${SYMBOLS.cross}${COLORS.reset} ${message}`
   )
+  if (error) {
+    // Log the full error with stack trace preserved
+    if (error instanceof Error) {
+      console.error(error)
+    } else {
+      console.error('Error details:', error)
+    }
+  }
 }
 
 function logSuccess(message: string): void {
@@ -520,6 +528,12 @@ async function startServices(playgroundName: string): Promise<void> {
     detached: true,
   })
   platformProcess.unref()
+
+  // Validate platform PID - spawn can fail and return undefined pid
+  if (platformProcess.pid === undefined) {
+    logError('Failed to start platform: spawn returned no PID')
+    throw new Error('Platform process failed to start')
+  }
   pids.platform = platformProcess.pid
 
   // Wait a bit for platform to start
@@ -539,6 +553,12 @@ async function startServices(playgroundName: string): Promise<void> {
     detached: true,
   })
   playgroundProcess.unref()
+
+  // Validate playground PID
+  if (playgroundProcess.pid === undefined) {
+    logError('Failed to start playground: spawn returned no PID')
+    throw new Error('Playground process failed to start')
+  }
   pids.playground = playgroundProcess.pid
 
   // Start trigger.dev
@@ -552,9 +572,15 @@ async function startServices(playgroundName: string): Promise<void> {
     detached: true,
   })
   triggerProcess.unref()
+
+  // Validate trigger.dev PID
+  if (triggerProcess.pid === undefined) {
+    logError('Failed to start trigger.dev: spawn returned no PID')
+    throw new Error('Trigger.dev process failed to start')
+  }
   pids.trigger = triggerProcess.pid
 
-  // Save PIDs for stop script
+  // Save PIDs for stop script (only written if all PIDs are valid)
   fs.writeFileSync(PIDS_FILE, JSON.stringify(pids, null, 2))
 
   logSuccess('All services started')
@@ -696,7 +722,7 @@ async function main(): Promise<void> {
 
     process.exit(0)
   } catch (error) {
-    logError(`Initialization failed: ${error}`)
+    logError('Initialization failed', error)
     process.exit(1)
   }
 }
