@@ -265,6 +265,16 @@ function extractApiKey(output: string): string | null {
  * Step 1: Validate the playground exists.
  */
 function validatePlayground(playgroundName: string): void {
+  // First check against allowlist to prevent directory traversal
+  if (!AVAILABLE_PLAYGROUNDS.includes(playgroundName)) {
+    logError(`Invalid playground: ${playgroundName}`)
+    console.log(`\nAvailable playgrounds:`)
+    AVAILABLE_PLAYGROUNDS.forEach((name) => {
+      console.log(`  ${SYMBOLS.bullet} ${name}`)
+    })
+    process.exit(1)
+  }
+
   const playgroundPath = path.join(PLAYGROUND_DIR, playgroundName)
 
   if (!fs.existsSync(playgroundPath)) {

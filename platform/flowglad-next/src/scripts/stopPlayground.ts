@@ -158,22 +158,33 @@ function main(): void {
     if (killProcessGroup(pids.trigger, 'Trigger.dev')) stopped++
   }
 
-  // Stop Playground - try PID first, then fallback to port
+  // Stop Playground - try PID first, then fallback to port if needed
+  let playgroundStopped = false
   if (pids.playground) {
-    if (killProcessGroup(pids.playground, 'Playground')) stopped++
+    playgroundStopped = killProcessGroup(
+      pids.playground,
+      'Playground'
+    )
+    if (playgroundStopped) stopped++
   }
-  // Always try port-based cleanup to catch orphan processes
-  if (killByPort(SERVICE_PORTS.playground, 'Playground')) {
-    if (!pids.playground) stopped++
+  // Only use port-based cleanup as fallback when no PID or PID cleanup failed
+  if (!pids.playground || !playgroundStopped) {
+    if (killByPort(SERVICE_PORTS.playground, 'Playground')) {
+      stopped++
+    }
   }
 
-  // Stop Platform - try PID first, then fallback to port
+  // Stop Platform - try PID first, then fallback to port if needed
+  let platformStopped = false
   if (pids.platform) {
-    if (killProcessGroup(pids.platform, 'Platform')) stopped++
+    platformStopped = killProcessGroup(pids.platform, 'Platform')
+    if (platformStopped) stopped++
   }
-  // Always try port-based cleanup to catch orphan processes
-  if (killByPort(SERVICE_PORTS.platform, 'Platform')) {
-    if (!pids.platform) stopped++
+  // Only use port-based cleanup as fallback when no PID or PID cleanup failed
+  if (!pids.platform || !platformStopped) {
+    if (killByPort(SERVICE_PORTS.platform, 'Platform')) {
+      stopped++
+    }
   }
 
   // Clean up PID file
