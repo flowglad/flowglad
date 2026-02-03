@@ -5387,6 +5387,105 @@
         }
       }
     },
+    "/api/v1/subscriptions/{id}/add-feature": {
+      "post": {
+        "operationId": "subscriptions-addFeatureToSubscription",
+        "summary": "Add Feature to Subscription",
+        "description": "Add a feature to a subscription. For toggle features, this is idempotent. For usage credit features, amounts accumulate. Optionally grant credits immediately for the current billing period.",
+        "tags": ["Subscriptions"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "description": "The subscription ID",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The subscription ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "featureId": {
+                    "description": "The feature ID to add",
+                    "type": "string"
+                  },
+                  "grantCreditsImmediately": {
+                    "description": "If true and the feature is a usage credit grant, credits will be granted immediately for the current billing period",
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": ["featureId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddFeatureToSubscriptionOutput"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/payment-methods": {
       "get": {
         "operationId": "paymentMethods-list",
@@ -19809,6 +19908,16 @@
           }
         },
         "required": ["subscription", "canceledItemCount"],
+        "additionalProperties": false
+      },
+      "AddFeatureToSubscriptionOutput": {
+        "type": "object",
+        "properties": {
+          "subscriptionItemFeature": {
+            "$ref": "#/components/schemas/SubscriptionItemFeaturesClientSelectSchema"
+          }
+        },
+        "required": ["subscriptionItemFeature"],
         "additionalProperties": false
       },
       "UsageMeterClientSelectSchema": {
