@@ -208,7 +208,8 @@ function InnerPricingModelDetailsPage({
                       : 'Test',
                     variant: 'warning' as const,
                     ...(pricingModel.isDefault && {
-                      tooltip: 'Assigned to new customers by default',
+                      tooltip:
+                        'New customers without an explicit pricing model are assigned here',
                     }),
                   },
                 ]

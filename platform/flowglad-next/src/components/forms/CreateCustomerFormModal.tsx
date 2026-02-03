@@ -62,17 +62,14 @@ const CreateCustomerFormModal = ({
       setIsOpen={setIsOpen}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {isLoadingPricingModel ? (
             <Skeleton className="h-4 w-32" />
           ) : (
-            <>
-              <span>
-                {defaultPricingModel?.pricingModel.name ?? 'Unknown'}
-              </span>
-              <span>·</span>
-              <span className="text-jade-foreground">Default</span>
-            </>
+            <span>
+              Pricing Model:{' '}
+              {defaultPricingModel?.pricingModel.name ?? 'Unknown'}
+            </span>
           )}
         </div>
         <CustomerFormFields showExternalId />
