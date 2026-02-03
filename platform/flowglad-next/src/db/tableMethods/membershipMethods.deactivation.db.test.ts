@@ -56,7 +56,7 @@ describe('membership deactivation filtering', () => {
           await updateMembership(
             {
               id: membershipToDeactivate.id,
-              deactivatedAt: new Date(),
+              deactivatedAt: Date.now(),
             },
             transaction
           )
@@ -344,7 +344,7 @@ describe('membership deactivation filtering', () => {
               focused: false,
               livemode: true,
               role: MembershipRole.Member,
-              deactivatedAt: new Date(),
+              deactivatedAt: Date.now(),
               focusedPricingModelId: org2Data.pricingModel.id,
             },
             transaction
@@ -454,7 +454,7 @@ describe('membership deactivation filtering', () => {
             await updateMembership(
               {
                 id: focusedMembership.id,
-                deactivatedAt: new Date(),
+                deactivatedAt: Date.now(),
               },
               transaction
             )

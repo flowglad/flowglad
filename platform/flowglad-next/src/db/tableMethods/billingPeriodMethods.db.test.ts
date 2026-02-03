@@ -146,19 +146,23 @@ describe('Billing Period Methods', () => {
   describe('isBillingPeriodInTerminalState', () => {
     const createMockBillingPeriod = (
       status: BillingPeriodStatus
-    ): BillingPeriod.Record => ({
-      id: 'bp_test',
-      subscriptionId: 'sub_test',
-      startDate: Date.now(),
-      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      status,
-      trialPeriod: false,
-      proratedPeriod: false,
-      livemode: true,
-      pricingModelId: 'pm_test',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    })
+    ): BillingPeriod.Record =>
+      ({
+        id: 'bp_test',
+        subscriptionId: 'sub_test',
+        startDate: Date.now(),
+        endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        status,
+        trialPeriod: false,
+        proratedPeriod: false,
+        livemode: true,
+        pricingModelId: 'pm_test',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        position: 0,
+        createdByCommit: null,
+        updatedByCommit: null,
+      }) as BillingPeriod.Record
 
     it('returns true for terminal statuses (Canceled, Completed)', () => {
       const terminalStatuses = [

@@ -128,7 +128,6 @@ describeIfStripeKey(
         quantity: 1,
         unitPrice: staticPrice.unitPrice,
         type: SubscriptionItemType.Static,
-        livemode: false,
       })
 
       billingPeriod = await setupBillingPeriod({
@@ -346,7 +345,6 @@ describeIfStripeKey(
         quantity: 1,
         unitPrice: staticPrice.unitPrice,
         type: SubscriptionItemType.Static,
-        livemode: false,
       })
 
       billingPeriod = await setupBillingPeriod({
@@ -662,11 +660,11 @@ describeIfStripeKey(
       )
 
       // Verify invoice was created
-      expect(typeof result?.invoice?.id).toBe('string')
-      expect(typeof result?.invoice?.status).toBe('string')
+      expect(typeof (result as any)?.invoice?.id).toBe('string')
+      expect(typeof (result as any)?.invoice?.status).toBe('string')
 
       // Verify payment was created
-      expect(typeof result?.payment?.id).toBe('string')
+      expect(typeof (result as any)?.payment?.id).toBe('string')
     })
 
     it('should not run billing when billing run is not in Scheduled status', async () => {

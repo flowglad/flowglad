@@ -61,9 +61,9 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import type { CacheRecomputationContext } from '@/db/types'
 import { createSpyTracker } from '@/test/spyTracker'
 import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
 import {
@@ -792,7 +792,6 @@ describe('setDefaultPaymentMethodForCustomer', () => {
           const { transaction, livemode } = ctx
           const cacheRecomputationContext: CacheRecomputationContext =
             {
-              type: 'admin',
               livemode,
             }
           return Result.ok(
@@ -835,7 +834,6 @@ describe('setDefaultPaymentMethodForCustomer', () => {
           const { transaction, livemode } = ctx
           const cacheRecomputationContext: CacheRecomputationContext =
             {
-              type: 'admin',
               livemode,
             }
           return Result.ok(
@@ -887,7 +885,6 @@ describe('setDefaultPaymentMethodForCustomer', () => {
           const { transaction, livemode } = ctx
           const cacheRecomputationContext: CacheRecomputationContext =
             {
-              type: 'admin',
               livemode,
             }
           return Result.ok(
@@ -1025,7 +1022,6 @@ describe('setDefaultPaymentMethodForCustomer', () => {
           const { transaction, livemode } = ctx
           const cacheRecomputationContext: CacheRecomputationContext =
             {
-              type: 'admin',
               livemode,
             }
           return Result.ok(
@@ -1455,7 +1451,6 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       await adminTransactionWithResult(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         return Result.ok(
@@ -1496,7 +1491,6 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       await adminTransactionWithResult(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         return Result.ok(
@@ -1543,7 +1537,6 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       await adminTransactionWithResult(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         return Result.ok(
@@ -1612,7 +1605,6 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       await adminTransactionWithResult(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         return Result.ok(
@@ -1653,7 +1645,6 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       await adminTransactionWithResult(async (ctx) => {
         const { transaction, livemode } = ctx
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         return Result.ok(

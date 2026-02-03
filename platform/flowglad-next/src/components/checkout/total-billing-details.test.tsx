@@ -68,7 +68,7 @@ const createMockCheckoutContext = (
     feeCalculation: null,
     editCheckoutSessionLoading: false,
     ...overrides,
-  }
+  } as unknown as CheckoutPageContextValues
 }
 
 const mockCheckoutPageContext = (): CheckoutPageContextValues => {
@@ -85,7 +85,7 @@ const mockCheckoutPageContext = (): CheckoutPageContextValues => {
       currency: CurrencyCode.USD,
       type: PriceType.Subscription,
     },
-  }
+  } as unknown as CheckoutPageContextValues
 }
 
 // Declare global mock state for checkout context
@@ -149,7 +149,7 @@ const mockDiscount = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
-}
+} as unknown as Discount.ClientRecord
 
 const mockFeeCalculation = {
   id: 'fee-1',
@@ -184,7 +184,7 @@ const mockFeeCalculation = {
   type: FeeCalculationType.CheckoutSessionPayment,
   internalNotes: null,
   livemode: false,
-}
+} as unknown as FeeCalculation.CustomerRecord
 
 const mockInvoice = {
   id: 'invoice-1',
@@ -227,7 +227,7 @@ describe('calculateTotalBillingDetails', () => {
     } as any // Type assertion needed for invalid params to test guard
 
     // Act & Expect: should throw error 'Either price or invoice is required'
-    expect(() => calculateTotalBillingDetails(params)).toThrow(
+    expect(() => calculateTotalBillingDetails(params as any)).toThrow(
       'Either price or invoice is required'
     )
   })
@@ -244,7 +244,7 @@ describe('calculateTotalBillingDetails', () => {
     } as any // Type assertion needed for invalid params to test guard
 
     // Act & Expect: should throw error 'Only one of price or invoice is permitted. Received both'
-    expect(() => calculateTotalBillingDetails(params)).toThrow(
+    expect(() => calculateTotalBillingDetails(params as any)).toThrow(
       'Only one of price or invoice is permitted. Received both'
     )
   })
@@ -263,7 +263,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect:
     expect(result.baseAmount).toBe(100)
@@ -285,7 +285,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect:
     expect(result.baseAmount).toBe(100)
@@ -307,7 +307,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect:
     expect(result.baseAmount).toBe(100)
@@ -329,7 +329,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect:
     expect(result.baseAmount).toBe(100) // equals the computed base from price flow
@@ -352,7 +352,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect: base amount should be 100 * 5 = 500
     expect(result.baseAmount).toBe(500)
@@ -375,7 +375,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect: base amount should be 100 * 1 = 100
     expect(result.baseAmount).toBe(100)
@@ -396,7 +396,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect: base amount should be 100 * 3 = 300, total due = 300 - 200 = 100
     expect(result.baseAmount).toBe(300)
@@ -426,7 +426,7 @@ describe('price flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect: base amount should be 500 (from purchase.pricePerBillingCycle), NOT 2500
     // calculatePriceBaseAmount returns pricePerBillingCycle when purchase exists,
@@ -451,7 +451,7 @@ describe('invoice flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect:
     expect(result.baseAmount).toBe(2000)
@@ -474,7 +474,7 @@ describe('invoice flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect: totalDueAmount = 1750 and other fields updated accordingly
     expect(result.baseAmount).toBe(2000)
@@ -497,7 +497,7 @@ describe('invoice flow', () => {
     }
 
     // Act: call function
-    const result = calculateTotalBillingDetails(params)
+    const result = calculateTotalBillingDetails(params as any)
 
     // Expect: same override semantics as in price flow
     expect(result.baseAmount).toBe(2000) // base from invoice calculation
@@ -556,7 +556,7 @@ describe('TotalBillingDetails', () => {
         sellerOrganization: dummyOrganization,
         redirectUrl: 'https://google.com',
         clientSecret: '123',
-      } as CheckoutPageContextValues
+      } as unknown as CheckoutPageContextValues
 
       // Act: render component
       const { container } = render(<TotalBillingDetails />)
@@ -699,22 +699,23 @@ describe('TotalBillingDetails', () => {
         redirectUrl: baseMockContext.redirectUrl,
         cancelUrl: null,
         clientSecret: baseMockContext.clientSecret,
+        customerSessionClientSecret: null,
         discount: null,
         readonlyCustomerEmail: null,
         feeCalculation: null,
         product: baseMockContext.product,
-      } as const
+      }
 
       // Derive subscriptionDetails using the actual function - this should set trialPeriodDays to null
       const subscriptionDetails =
-        subscriptionDetailsFromCheckoutInfoCore(checkoutInfo)
+        subscriptionDetailsFromCheckoutInfoCore(checkoutInfo as any)
 
       // Assert: The function correctly sets trialPeriodDays to null when not eligible
       expect(subscriptionDetails?.trialPeriodDays).toBeNull()
 
       globalThis.__mockedCheckoutContext = createMockCheckoutContext({
-        purchase,
-        price,
+        purchase: purchase as any,
+        price: price as any,
         isEligibleForTrial: false,
         subscriptionDetails,
       })
@@ -782,7 +783,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Usage,
         },
-      } as CheckoutPageContextValues
+      } as unknown as CheckoutPageContextValues
 
       // Act: render component
       const { queryByText } = render(<TotalBillingDetails />)
@@ -807,7 +808,7 @@ describe('TotalBillingDetails', () => {
         feeCalculation: null,
         editCheckoutSessionLoading: false,
         subscriptionDetails: undefined,
-      } as CheckoutPageContextValues
+      } as unknown as CheckoutPageContextValues
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -838,7 +839,7 @@ describe('TotalBillingDetails', () => {
         },
         editCheckoutSessionLoading: false,
         subscriptionDetails: undefined,
-      } as CheckoutPageContextValues
+      } as unknown as CheckoutPageContextValues
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -873,7 +874,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      } as unknown as CheckoutPageContextValues
 
       // Act: render component
       const { container, queryByText } = render(
@@ -905,7 +906,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.EUR,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      } as unknown as CheckoutPageContextValues
 
       // Act: render component
       const { getByText, getAllByText } = render(

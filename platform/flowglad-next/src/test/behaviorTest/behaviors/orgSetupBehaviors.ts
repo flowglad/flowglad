@@ -145,7 +145,7 @@ export const createOrganizationBehavior = defineBehavior({
             email: prev.user.email,
           },
           transaction,
-          { type: 'admin', livemode: true }
+          { livemode: true }
         )
 
       // Get the full organization record (including stripeAccountId)

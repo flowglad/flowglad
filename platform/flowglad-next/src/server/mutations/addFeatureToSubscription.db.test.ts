@@ -394,7 +394,7 @@ describe('addFeatureToSubscription mutation', () => {
         )
         expect(usageCredits.length).toBe(1)
         expect(usageCredits[0].issuedAmount).toBe(
-          usageCreditFeature.amount
+          usageCreditFeature.amount!
         )
       })
     })

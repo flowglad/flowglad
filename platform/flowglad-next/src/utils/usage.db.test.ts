@@ -169,7 +169,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                 }
               )
-            return usageMeterResult
+            return Result.ok(usageMeterResult)
           }
         )
       ).rejects.toThrow()
@@ -384,7 +384,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                 }
               )
-            return usageMeterResult
+            return Result.ok(usageMeterResult)
           }
         )
       ).rejects.toThrow()

@@ -34,6 +34,7 @@ import {
   updateCheckoutSessionPaymentMethodType,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
+import type { CacheRecomputationContext } from '@/db/types'
 import {
   createDiscardingEffectsContext,
   noopEmitEvent,
@@ -46,7 +47,6 @@ import {
   type CoreSripeSetupIntent,
   processSetupIntentSucceeded,
 } from '@/utils/bookkeeping/processSetupIntent'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import {
   checkoutInfoForCheckoutSession,
   checkoutInfoForPriceWhere,
@@ -134,7 +134,6 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             {
               transaction,
               cacheRecomputationContext: {
-                type: 'admin',
                 livemode: true,
               },
               livemode: true,
@@ -280,7 +279,6 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         )
         // 6. Final billing state
         const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
           livemode,
         }
         const billingState = await customerBillingTransaction(

@@ -23,10 +23,10 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransactionWithResult } from '@/db/adminTransaction'
+import type { CacheRecomputationContext } from '@/db/types'
 import { CancellationReason } from '@/types'
 import { calculateSubscriberBreakdown } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
-import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { selectActiveBillingPeriodsForDateRange } from './billingPeriodMethods'
 import {
@@ -1755,7 +1755,6 @@ describe('Subscription Upgrade Selection Logic', () => {
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
-                type: 'admin',
                 livemode,
               }
             // Mark free as upgraded
@@ -1839,7 +1838,6 @@ describe('Subscription Upgrade Selection Logic', () => {
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
-                type: 'admin',
                 livemode,
               }
             await updateSubscription(
@@ -1935,7 +1933,6 @@ describe('Subscription Upgrade Selection Logic', () => {
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
-                type: 'admin',
                 livemode,
               }
             // Get billing details multiple times

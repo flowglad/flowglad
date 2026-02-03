@@ -319,9 +319,11 @@ describe('getPricingModelSetupData', () => {
   it('should throw an error if pricing model is not found', async () => {
     await expect(
       adminTransaction(async (ctx) => {
-        await await getPricingModelSetupData(
-          'non-existent-id',
-          ctx.transaction
+        ;(
+          await getPricingModelSetupData(
+            'non-existent-id',
+            ctx.transaction
+          )
         ).unwrap()
       })
     ).rejects.toThrow()

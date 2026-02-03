@@ -184,7 +184,9 @@ describe('EditDiscountModal', () => {
     organizationId: 'org_123',
   } as any
 
-  const mockMutateAsync = mock(() => {}).mockResolvedValue({})
+  const mockMutateAsync = mock(() =>
+    Promise.resolve({})
+  ).mockResolvedValue({})
   const mockEditDiscount = {
     mutateAsync: mockMutateAsync,
   }
@@ -256,7 +258,9 @@ describe('EditDiscountModal', () => {
           rawStringAmountToCountableCurrencyAmount
         ).toHaveBeenCalledWith('USD', '15.75')
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0]![0]
+        const callArgs = (
+          mockMutateAsync.mock.calls as any[][]
+        )[0]![0]
         expect(callArgs.discount.amountType).toBe(
           DiscountAmountType.Fixed
         )
@@ -273,7 +277,9 @@ describe('EditDiscountModal', () => {
         amount: 25,
       }
 
-      const mutateSpy = mock(() => {}).mockResolvedValue({
+      const mutateSpy = mock(() =>
+        Promise.resolve({ success: true })
+      ).mockResolvedValue({
         success: true,
       })
       ;(
@@ -295,7 +301,7 @@ describe('EditDiscountModal', () => {
 
       await waitFor(() => {
         expect(mutateSpy).toHaveBeenCalledTimes(1)
-        const payload = mutateSpy.mock.calls[0]![0]
+        const payload = (mutateSpy.mock.calls as any[][])[0]![0]
         expect(payload.discount.amountType).toBe(
           DiscountAmountType.Percent
         )
@@ -348,7 +354,7 @@ describe('EditDiscountModal', () => {
   describe('Error Handling', () => {
     it('handles mutation errors without crashing', async () => {
       const mockError = new Error('Failed to update discount')
-      mockMutateAsync.mockRejectedValue(mockError)
+      ;(mockMutateAsync as any).mockRejectedValue(mockError)
 
       render(
         <EditDiscountModal

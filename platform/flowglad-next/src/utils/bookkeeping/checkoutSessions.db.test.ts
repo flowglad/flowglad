@@ -970,7 +970,7 @@ describe('Checkout Sessions', () => {
               },
               createProcessingEffectsContext(params)
             )
-          return bookkeeping
+          return Result.ok(bookkeeping)
         })
       ).rejects.toThrow('Attempting to process checkout session')
     })
@@ -1175,7 +1175,7 @@ describe('Checkout Sessions', () => {
               },
               createProcessingEffectsContext(params)
             )
-          return bookkeeping
+          return Result.ok(bookkeeping)
         })
       ).rejects.toThrow()
     })

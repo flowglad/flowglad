@@ -605,7 +605,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },
@@ -714,7 +714,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },
@@ -851,7 +851,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },
@@ -986,7 +986,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },

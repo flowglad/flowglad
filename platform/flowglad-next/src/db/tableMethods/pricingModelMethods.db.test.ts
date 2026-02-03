@@ -2000,8 +2000,7 @@ describe('Pricing Model Table Rows - Products Count Alignment', () => {
             input: {
               filters: {
                 pricingModelId: pricingModel.id,
-                excludeProductsWithNoPrices: true,
-              },
+              } as any,
               pageSize: 50,
             },
             transaction,

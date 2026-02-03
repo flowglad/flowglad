@@ -2760,31 +2760,30 @@ describe('pricingModelId derivation', () => {
 })
 
 describe('isPaymentInTerminalState', () => {
-  const createMockPayment = (
-    status: PaymentStatus
-  ): Payment.Record => ({
-    id: 'pay_test',
-    organizationId: 'org_test',
-    customerId: 'cust_test',
-    invoiceId: 'inv_test',
-    subscriptionId: null,
-    purchaseId: null,
-    paymentMethodId: null,
-    amount: 1000,
-    refundedAmount: null,
-    refundedAt: null,
-    refunded: false,
-    currency: CurrencyCode.USD,
-    status,
-    chargeDate: Date.now(),
-    stripePaymentIntentId: 'pi_test',
-    stripeChargeId: 'ch_test',
-    paymentMethod: PaymentMethodType.Card,
-    livemode: true,
-    pricingModelId: 'pm_test',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  })
+  const createMockPayment = (status: PaymentStatus): Payment.Record =>
+    ({
+      id: 'pay_test',
+      organizationId: 'org_test',
+      customerId: 'cust_test',
+      invoiceId: 'inv_test',
+      subscriptionId: null,
+      purchaseId: null,
+      paymentMethodId: null,
+      amount: 1000,
+      refundedAmount: null,
+      refundedAt: null,
+      refunded: false,
+      currency: CurrencyCode.USD,
+      status,
+      chargeDate: Date.now(),
+      stripePaymentIntentId: 'pi_test',
+      stripeChargeId: 'ch_test',
+      paymentMethod: PaymentMethodType.Card,
+      livemode: true,
+      pricingModelId: 'pm_test',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }) as Payment.Record
 
   it('returns true for terminal statuses (Succeeded, Refunded, Canceled, Failed)', () => {
     const terminalStatuses = [

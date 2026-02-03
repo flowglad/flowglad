@@ -503,7 +503,6 @@ describe('adjustSubscription resource capacity validation', () => {
     for (let i = 0; i < claimsToCreate; i++) {
       await setupResourceClaim({
         resourceId: resource!.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         organizationId: setup.organization.id,
         subscriptionId: setup.subscription.id,
         pricingModelId: setup.pricingModel.id,

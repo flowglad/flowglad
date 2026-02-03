@@ -7,7 +7,7 @@ import {
 import { getMembershipNotificationPreferences } from './membershipMethods'
 
 describe('getMembershipNotificationPreferences', () => {
-  const baseMembership: Membership.Record = {
+  const baseMembership = {
     id: 'memb_test123',
     userId: 'user_123',
     organizationId: 'org_123',
@@ -19,7 +19,10 @@ describe('getMembershipNotificationPreferences', () => {
     updatedByCommit: null,
     position: 0,
     livemode: true,
-  }
+    focusedPricingModelId: null,
+    role: 'owner',
+    deactivatedAt: null,
+  } as unknown as Membership.Record
 
   it('returns all default preferences when membership has empty notificationPreferences', () => {
     const membership: Membership.Record = {

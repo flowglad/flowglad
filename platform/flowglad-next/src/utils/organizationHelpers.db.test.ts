@@ -136,7 +136,7 @@ describe('createOrganizationTransaction', () => {
             fullName: 'Test User',
           },
           transaction,
-          { type: 'admin', livemode: true }
+          { livemode: true }
         )
         return Result.ok(undefined)
       })
@@ -214,7 +214,7 @@ describe('createOrganizationTransaction', () => {
             fullName: 'Test User',
           },
           transaction,
-          { type: 'admin', livemode: true }
+          { livemode: true }
         )
         return Result.ok(undefined)
       })
@@ -260,7 +260,7 @@ describe('createOrganizationTransaction', () => {
             fullName: 'Test User',
           },
           transaction,
-          { type: 'admin', livemode: true }
+          { livemode: true }
         )
         return Result.ok(undefined)
       })
@@ -394,7 +394,7 @@ describe('createOrganizationTransaction', () => {
             fullName: 'Test User',
           },
           transaction,
-          { type: 'admin', livemode: true }
+          { livemode: true }
         )
         return Result.ok(undefined)
       })
@@ -436,7 +436,7 @@ describe('createOrganizationTransaction', () => {
             fullName: 'Test User',
           },
           transaction,
-          { type: 'admin', livemode: true }
+          { livemode: true }
         )
         return Result.ok(undefined)
       })
@@ -479,7 +479,7 @@ describe('createOrganizationTransaction', () => {
           fullName: 'Test User',
         },
         transaction,
-        { type: 'admin', livemode: true }
+        { livemode: true }
       )
     })
 
@@ -512,7 +512,7 @@ describe('createOrganizationTransaction', () => {
               fullName: 'Test User',
             },
             transaction,
-            { type: 'admin', livemode: true }
+            { livemode: true }
           )
           return Result.ok(undefined)
         })
@@ -558,7 +558,7 @@ describe('createOrganizationTransaction', () => {
               fullName: 'Test User',
             },
             transaction,
-            { type: 'admin', livemode: true }
+            { livemode: true }
           )
           return Result.ok(undefined)
         })
@@ -609,7 +609,7 @@ describe('createOrganizationTransaction', () => {
               fullName: 'Test User',
             },
             transaction,
-            { type: 'admin', livemode: true }
+            { livemode: true }
           )
 
           const [organization] = await selectOrganizations(
@@ -661,7 +661,7 @@ describe('createOrganizationTransaction', () => {
               fullName: 'Test User',
             },
             transaction,
-            { type: 'admin', livemode: true }
+            { livemode: true }
           )
 
           const [organization] = await selectOrganizations(
@@ -701,7 +701,7 @@ describe('createOrganizationTransaction', () => {
               fullName: 'Test User',
             },
             transaction,
-            { type: 'admin', livemode: true }
+            { livemode: true }
           )
           return Result.ok(undefined)
         })

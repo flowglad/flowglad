@@ -799,7 +799,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         object: 'setup_intent',
         customer: null,
         status: 'requires_payment_method',
-      } as unknown as import('stripe').default.SetupIntent)
+      } as unknown as import('stripe').default.Response<
+        import('stripe').default.SetupIntent
+      >)
     })
 
     it('should update setup intent when stripeSetupIntentId is set and fetched setup intent has no customer', async () => {

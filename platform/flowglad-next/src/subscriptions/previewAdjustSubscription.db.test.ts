@@ -112,7 +112,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -148,7 +148,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -185,7 +185,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -222,7 +222,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -265,7 +265,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -316,7 +316,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -362,7 +362,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -405,7 +405,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -449,7 +449,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -506,7 +506,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -559,7 +559,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -601,7 +601,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 
@@ -640,7 +640,7 @@ describe('previewAdjustSubscription', () => {
                   },
                 ],
               },
-            },
+            } as any,
             transaction
           )
 

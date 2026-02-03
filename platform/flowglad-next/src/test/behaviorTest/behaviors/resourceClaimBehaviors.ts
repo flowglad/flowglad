@@ -188,7 +188,6 @@ export const createResourceClaimsBehavior = defineBehavior({
     for (let i = 0; i < claimCount; i++) {
       const claim = await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,

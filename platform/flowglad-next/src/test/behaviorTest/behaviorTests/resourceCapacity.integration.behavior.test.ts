@@ -275,7 +275,6 @@ describe('Resource Capacity Integration Tests', () => {
     for (let i = 0; i < 5; i++) {
       await setupResourceClaim({
         organizationId,
-        subscriptionItemFeatureId,
         resourceId,
         subscriptionId,
         pricingModelId,
@@ -317,7 +316,6 @@ describe('Resource Capacity Integration Tests', () => {
     for (let i = 0; i < 5; i++) {
       await setupResourceClaim({
         organizationId,
-        subscriptionItemFeatureId,
         resourceId,
         subscriptionId,
         pricingModelId,
@@ -459,7 +457,6 @@ describe('Resource Capacity Integration Tests', () => {
     // Create and then manually release a claim by setting up a released claim
     await setupResourceClaim({
       organizationId,
-      subscriptionItemFeatureId,
       resourceId,
       subscriptionId,
       pricingModelId,
@@ -487,7 +484,6 @@ describe('Resource Capacity Integration Tests', () => {
     for (let i = 0; i < 4; i++) {
       await setupResourceClaim({
         organizationId,
-        subscriptionItemFeatureId,
         resourceId,
         subscriptionId,
         pricingModelId,

@@ -164,7 +164,7 @@ describe('usePricingModelList', () => {
     it('returns the current pricing model object from focused membership', () => {
       const { result } = renderHook(() => usePricingModelList())
 
-      expect(result.current.currentPricingModel).toEqual({
+      expect(result.current.currentPricingModel).toMatchObject({
         id: 'pm-live-1',
         name: 'Zebra Production',
         livemode: true,

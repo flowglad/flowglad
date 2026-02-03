@@ -1712,12 +1712,11 @@ describe('Process payment intent status updated', async () => {
       }
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const res = await processPaymentIntentStatusUpdated(
             fakePI,
             ctx
           )
-          return res.unwrap()
+          return Result.ok(res.unwrap())
         })
       ).rejects.toThrow(/PaymentIntentMetadata not found/)
     })
@@ -1735,12 +1734,11 @@ describe('Process payment intent status updated', async () => {
       }
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const res = await processPaymentIntentStatusUpdated(
             fakePI,
             ctx
           )
-          return res.unwrap()
+          return Result.ok(res.unwrap())
         })
       ).rejects.toThrow(/LatestCharge not found/)
     })
@@ -3025,7 +3023,9 @@ describe('Process payment intent status updated', async () => {
           organizationId: organization.id,
           createdBy: 'test',
         },
-      } as unknown as import('stripe').default.Customer)
+      } as unknown as import('stripe').default.Response<
+        import('stripe').default.Customer
+      >)
 
       // Create an anonymous checkout session (no customer ID)
       const anonymousCheckoutSession = (
