@@ -8,6 +8,10 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import type { ApiEnvironment } from '@/types'
 import { getCustomerSession, getMerchantSession } from '@/utils/auth'
+import {
+  getSessionContextOrgId,
+  getSessionScope,
+} from '@/utils/auth/shared'
 
 /**
  * Auth scope for TRPC context.
@@ -27,9 +31,7 @@ export const createContext = async (
   const betterAuthUserId = session?.user?.id
 
   // Verify session scope is 'merchant' (or undefined for backward compatibility)
-  const sessionScope = (
-    session?.session as { scope?: string } | undefined
-  )?.scope
+  const sessionScope = getSessionScope(session)
   const isMerchantSession =
     !sessionScope || sessionScope === 'merchant'
 
@@ -110,9 +112,7 @@ export const createCustomerContext = async (
   const betterAuthUserId = session?.user?.id
 
   // Verify session scope is 'customer'
-  const sessionScope = (
-    session?.session as { scope?: string } | undefined
-  )?.scope
+  const sessionScope = getSessionScope(session)
   const isCustomerSession = sessionScope === 'customer'
 
   let user: User.Record | undefined
@@ -121,11 +121,7 @@ export const createCustomerContext = async (
 
   if (betterAuthUserId && isCustomerSession) {
     // Get organizationId from customer session's contextOrganizationId
-    organizationId = (
-      session?.session as
-        | { contextOrganizationId?: string }
-        | undefined
-    )?.contextOrganizationId
+    organizationId = getSessionContextOrgId(session)
 
     // Look up user and organization in a single transaction
     const { maybeUser, maybeOrganization } = await adminTransaction(

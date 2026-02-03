@@ -52,3 +52,41 @@ export const defaultCookieAttributes = {
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
 }
+
+/**
+ * Session scope type for dual-scope auth.
+ */
+export type SessionScope = 'merchant' | 'customer'
+
+/**
+ * Extract session scope from a better-auth session object.
+ * Returns undefined if scope is not set (backward compatibility) or invalid.
+ */
+export const getSessionScope = (
+  session: { session?: unknown } | null | undefined
+): SessionScope | undefined => {
+  const scope = (session?.session as { scope?: unknown } | undefined)
+    ?.scope
+  if (scope === 'merchant' || scope === 'customer') {
+    return scope
+  }
+  return undefined
+}
+
+/**
+ * Extract contextOrganizationId from a customer session.
+ * Returns undefined if not set or not a valid string.
+ */
+export const getSessionContextOrgId = (
+  session: { session?: unknown } | null | undefined
+): string | undefined => {
+  const orgId = (
+    session?.session as
+      | { contextOrganizationId?: unknown }
+      | undefined
+  )?.contextOrganizationId
+  if (typeof orgId === 'string' && orgId.length > 0) {
+    return orgId
+  }
+  return undefined
+}

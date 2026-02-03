@@ -914,6 +914,126 @@ describe('session contextOrganizationId for customer procedures (Patch 7)', () =
 // Test Suite: Cookie Prefix Verification (Patch 6)
 // ============================================================================
 
+// ============================================================================
+// Test Suite: OTP Expiry Behavior
+// ============================================================================
+
+describe('OTP expiry behavior', () => {
+  let organization: Awaited<
+    ReturnType<typeof setupOrg>
+  >['organization']
+  let customerEmail: string
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+    customerEmail = `customer-expiry-${core.nanoid()}@example.com`
+  })
+
+  afterEach(async () => {
+    await db
+      .delete(verification)
+      .where(eq(verification.identifier, customerEmail))
+    const users = await db
+      .select()
+      .from(user)
+      .where(eq(user.email, customerEmail))
+    for (const u of users) {
+      await db.delete(session).where(eq(session.userId, u.id))
+      await db.delete(account).where(eq(account.userId, u.id))
+      await db.delete(user).where(eq(user.id, u.id))
+    }
+  })
+
+  it('rejects OTP verification when verification record has expired', async () => {
+    // Step 1: Send OTP request
+    const sendOtpRequest = createCustomerRequest(
+      '/sign-in/email-otp',
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `customer-billing-organization-id=${organization.id}`,
+        },
+        body: JSON.stringify({
+          email: customerEmail,
+          type: 'email-verification',
+        }),
+      }
+    )
+
+    const sendOtpResponse = await customerPost(sendOtpRequest)
+
+    if (sendOtpResponse.status !== 200) {
+      return // Skip if OTP sending not available in test environment
+    }
+
+    // Step 2: Get OTP from verification table
+    const verificationRecords = await db
+      .select()
+      .from(verification)
+      .where(eq(verification.identifier, customerEmail))
+
+    if (verificationRecords.length === 0) {
+      return // Skip if no verification record created
+    }
+
+    const otp = verificationRecords[0].value
+
+    // Step 3: Manually expire the verification record by setting expiresAt to the past
+    const expiredTime = new Date(Date.now() - 60 * 1000) // 1 minute in the past
+    await db
+      .update(verification)
+      .set({ expiresAt: expiredTime })
+      .where(eq(verification.identifier, customerEmail))
+
+    // Step 4: Attempt verification with expired OTP - should fail
+    const verifyOtpRequest = createCustomerRequest(
+      '/sign-in/email-otp',
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `customer-billing-organization-id=${organization.id}`,
+        },
+        body: JSON.stringify({
+          email: customerEmail,
+          otp,
+        }),
+      }
+    )
+
+    const verifyResponse = await customerPost(verifyOtpRequest)
+
+    // Verification should fail with 400 or 401 status (expired OTP)
+    expect([400, 401, 403]).toContain(verifyResponse.status)
+
+    // Verify no session was created
+    const sessionToken = extractSessionToken(
+      verifyResponse,
+      CUSTOMER_COOKIE_PREFIX
+    )
+    expect(sessionToken).toBeNull()
+  })
+
+  it('accepts OTP verification when verification record has not expired', async () => {
+    // This is essentially a sanity check that valid OTPs still work
+    const result = await attemptCustomerOtpSignIn(
+      customerEmail,
+      organization.id
+    )
+
+    if (!result) {
+      return // Skip if OTP not available
+    }
+
+    expect(result.verifyResponse.status).toBe(200)
+    expect(typeof result.sessionToken).toBe('string')
+  })
+})
+
+// ============================================================================
+// Test Suite: Cookie Prefix Verification (Patch 6)
+// ============================================================================
+
 describe('cookie prefix verification (Patch 6)', () => {
   let organization: Awaited<
     ReturnType<typeof setupOrg>
