@@ -19,6 +19,7 @@ import type { PaymentMethod } from '@db-core/schema/paymentMethods'
 import { nulledPriceColumns } from '@db-core/schema/prices'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { core } from '@flowglad/shared'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 // These seed methods (and the clearDatabase helper) come from our test support code.
@@ -3378,7 +3379,7 @@ describe('adjustSubscription Integration Tests', async () => {
               ...nulledPriceColumns,
               productId: product.id,
               name: 'Standard Price',
-              slug: `standard-price-${Date.now()}`,
+              slug: `standard-price-${core.nanoid()}`,
               type: PriceType.Subscription,
               unitPrice: 1500,
               currency: CurrencyCode.USD,
