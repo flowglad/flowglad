@@ -152,6 +152,11 @@ const createCustomerProcedure = protectedProcedure
                 customer: {
                   ...customer,
                   organizationId,
+                  // For dashboard calls, use the user's focused pricing model.
+                  // For API calls, let it fall through to use the default pricing model.
+                  pricingModelId: !ctx.isApi
+                    ? ctx.focusedPricingModelId
+                    : undefined,
                 },
               },
               {
