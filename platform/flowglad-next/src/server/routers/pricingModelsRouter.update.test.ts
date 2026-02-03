@@ -11,7 +11,6 @@ import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
@@ -303,9 +302,8 @@ describe('pricingModels.update (extended)', () => {
       )
     ).unwrap()
 
-    expect(
-      result.result.products.updated.length
-    ).toBeGreaterThanOrEqual(0)
+    // Verify the product was updated (name changed from 'Pro Plan' to 'Pro Plan Updated')
+    expect(result.result.products.updated.length).toBe(1)
     expect(result.proPlan?.name).toBe('Pro Plan Updated')
     expect(result.proPlan?.description).toBe(
       'Professional tier - now with more features!'

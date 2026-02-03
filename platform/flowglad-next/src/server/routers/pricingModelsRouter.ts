@@ -221,9 +221,12 @@ const createPricingModelProcedure = protectedProcedure
  * 2. **Full structure update** (CLI sync workflow): When `features`, `products`,
  *    `usageMeters`, or `resources` fields are provided, the procedure uses the
  *    full diff and update transaction to atomically update the entire pricing model.
+ *    This is a FULL REPLACEMENT - all structure fields must be provided to prevent
+ *    accidental data loss. The CLI always sends the complete structure.
  *
- * Uses adminTransaction to bypass RLS policies, as the full structure update
- * may need to create/update/deactivate resources across pricing model scope.
+ * Uses adminTransaction for full structure updates to bypass RLS policies, as the
+ * update may need to create/update/deactivate resources across pricing model scope.
+ * Authorization is enforced via a pre-check using authenticatedTransaction.
  */
 const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
@@ -266,17 +269,57 @@ const updatePricingModelProcedure = protectedProcedure
       )
     }
 
+    // Full structure update requires ALL structure fields to prevent accidental data loss.
+    // This enforces PUT (full replacement) semantics rather than PATCH (partial update).
+    if (
+      pricingModelInput.features === undefined ||
+      pricingModelInput.products === undefined ||
+      pricingModelInput.usageMeters === undefined
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Full structure update requires all structure fields (features, products, usageMeters) to be provided. ' +
+          'For metadata-only updates, omit all structure fields.',
+      })
+    }
+
+    // Authorization pre-check: verify the user can access this pricing model via RLS
+    // before proceeding with the admin-level update
+    unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModelResult = await selectPricingModelById(
+            pricingModelId,
+            transaction
+          )
+          if (Result.isError(pricingModelResult)) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message:
+                'The pricing model you are trying to update either does not exist or you do not have permission to update it.',
+            })
+          }
+          return Result.ok(undefined)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    )
+
     // Full structure update: use diff + update transaction
     // Uses adminTransaction to bypass RLS policies for cross-resource updates
     const result = await adminTransaction(async (transactionCtx) => {
       // Build the proposed input from the request
-      // Required fields must come from the input
+      // All structure fields are guaranteed to be defined by the validation above
+      // Using non-null assertions since TypeScript doesn't narrow across the throw
       const proposedInput = {
         name: pricingModelInput.name,
         isDefault: pricingModelInput.isDefault ?? false,
-        features: pricingModelInput.features ?? [],
-        products: pricingModelInput.products ?? [],
-        usageMeters: pricingModelInput.usageMeters ?? [],
+        features: pricingModelInput.features!,
+        products: pricingModelInput.products!,
+        usageMeters: pricingModelInput.usageMeters!,
         resources: pricingModelInput.resources,
       }
 
@@ -292,21 +335,6 @@ const updatePricingModelProcedure = protectedProcedure
         return updateResult
       }
 
-      // Fetch the full pricing model with products and usage meters for the response
-      const [fullPricingModel] =
-        await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-          { id: pricingModelId },
-          transactionCtx.transaction
-        )
-
-      if (!fullPricingModel) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to fetch updated pricing model',
-        })
-      }
-
-      // Return just the base pricing model fields for the output schema
       return Result.ok({
         pricingModel: updateResult.value.pricingModel,
       })
