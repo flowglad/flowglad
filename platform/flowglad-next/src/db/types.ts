@@ -1,6 +1,7 @@
 import type { Event } from '@db-core/schema/events'
 import type { CacheDependencyKey } from '@/utils/cache'
 import type {
+  CacheDependency,
   SyncDependency,
   SyncEmissionContext,
 } from '@/utils/dependency'
@@ -43,15 +44,31 @@ export interface TriggerTaskHandle {
 }
 
 /**
- * A sync invalidation to be processed after transaction commit.
- * Combines the structured dependency with the organization context.
+ * A sync-enabled dependency invalidation with organization context.
+ * Will emit sync events after commit.
  */
 export interface SyncInvalidation {
-  /** The sync-enabled dependency that was invalidated */
   dependency: SyncDependency
-  /** The organization context for this invalidation */
   context: SyncEmissionContext
 }
+
+/**
+ * A cache-only dependency invalidation.
+ * Only cache invalidation will occur (no sync events).
+ */
+export interface CacheInvalidation {
+  dependency: CacheDependency
+}
+
+/**
+ * A dependency invalidation to be processed after transaction commit.
+ * At processing time:
+ * - Cache keys are derived from all dependencies and invalidated
+ * - Sync invalidations emit sync events
+ */
+export type DependencyInvalidation =
+  | SyncInvalidation
+  | CacheInvalidation
 
 /**
  * Type-safe callback for enqueueing trigger tasks.
@@ -119,11 +136,21 @@ import type { DbTransaction } from '@db-core/schemaTypes'
  * - `ledgerCommands` - Ledger commands are processed before commit for consistency
  *
  * **After commit (outside transaction):**
- * - `cacheInvalidations` - Cache keys are invalidated after commit to avoid stale reads
- * - `syncInvalidations` - Sync events are emitted after commit for data replication
+ * - `invalidations` - Structured dependencies: cache keys derived and invalidated,
+ *   sync-enabled deps with context emit sync events
+ * - `cacheInvalidations` - Legacy string-based cache keys (deprecated, use invalidations)
  */
 export interface TransactionEffects {
-  /** Cache keys to invalidate. Processed AFTER commit (fire-and-forget). */
+  /**
+   * Structured dependency invalidations. At processing time:
+   * - Cache keys are derived from all dependencies and invalidated
+   * - Sync-enabled dependencies with context emit sync events
+   */
+  invalidations: DependencyInvalidation[]
+  /**
+   * Legacy string-based cache keys to invalidate.
+   * @deprecated Use structured dependencies via invalidations instead
+   */
   cacheInvalidations: CacheDependencyKey[]
   /** Events to insert. Processed BEFORE commit (inside transaction). */
   eventsToInsert: Event.Insert[]
@@ -131,8 +158,6 @@ export interface TransactionEffects {
   ledgerCommands: LedgerCommand[]
   /** Trigger tasks to dispatch after commit. */
   triggerTasks: QueuedTriggerTask[]
-  /** Sync invalidations to process after commit for data replication. */
-  syncInvalidations: SyncInvalidation[]
 }
 
 /**

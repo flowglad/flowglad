@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 import { Dependency } from '@/utils/dependency'
 import { createEffectsAccumulator } from './transactionEffectsHelpers'
+import type { SyncInvalidation } from './types'
 
 describe('createEffectsAccumulator', () => {
   describe('invalidateCache', () => {
-    it('invalidateCache with context and sync dep adds to both cacheInvalidations and syncInvalidations', () => {
+    it('with context and sync dep adds SyncInvalidation to invalidations', () => {
       const { effects, invalidateCache } = createEffectsAccumulator()
       const context = {
         organizationId: 'org_1',
@@ -17,37 +18,28 @@ describe('createEffectsAccumulator', () => {
         Dependency.customerSubscriptions({ customerId: 'cust_1' })
       )
 
-      expect(effects.cacheInvalidations).toHaveLength(1)
-      expect(effects.cacheInvalidations[0]).toBe(
-        'customerSubscriptions:cust_1'
-      )
-      expect(effects.syncInvalidations).toHaveLength(1)
-      expect(effects.syncInvalidations[0].dependency.type).toBe(
-        'customerSubscriptions'
-      )
-      expect(effects.syncInvalidations[0].dependency.payload).toEqual(
-        {
-          customerId: 'cust_1',
-        }
-      )
-      expect(effects.syncInvalidations[0].context).toEqual(context)
+      expect(effects.invalidations).toHaveLength(1)
+      const inv = effects.invalidations[0] as SyncInvalidation
+      expect(inv.dependency.type).toBe('customerSubscriptions')
+      expect(inv.dependency.payload).toEqual({ customerId: 'cust_1' })
+      expect(inv.context).toEqual(context)
     })
 
-    it('invalidateCache with cache-only dep only adds to cacheInvalidations', () => {
+    it('with cache-only dep (no context) adds CacheInvalidation to invalidations', () => {
       const { effects, invalidateCache } = createEffectsAccumulator()
 
       invalidateCache(
         Dependency.organizationSettings({ orgId: 'org_1' })
       )
 
-      expect(effects.cacheInvalidations).toHaveLength(1)
-      expect(effects.cacheInvalidations[0]).toBe(
-        'organizationSettings:org_1'
-      )
-      expect(effects.syncInvalidations).toHaveLength(0)
+      expect(effects.invalidations).toHaveLength(1)
+      const inv = effects.invalidations[0]
+      expect(inv.dependency.type).toBe('organizationSettings')
+      expect(inv.dependency.payload).toEqual({ orgId: 'org_1' })
+      expect('context' in inv).toBe(false)
     })
 
-    it('invalidateCache with multiple deps processes all of them', () => {
+    it('with multiple sync deps processes all of them', () => {
       const { effects, invalidateCache } = createEffectsAccumulator()
       const context = {
         organizationId: 'org_1',
@@ -61,23 +53,19 @@ describe('createEffectsAccumulator', () => {
         Dependency.subscription({ subscriptionId: 'sub_1' })
       )
 
-      expect(effects.cacheInvalidations).toHaveLength(2)
-      expect(effects.cacheInvalidations).toContain(
-        'customerSubscriptions:cust_1'
+      expect(effects.invalidations).toHaveLength(2)
+      const types = effects.invalidations.map(
+        (inv) => inv.dependency.type
       )
-      expect(effects.cacheInvalidations).toContain(
-        'subscription:sub_1'
-      )
-      expect(effects.syncInvalidations).toHaveLength(2)
-      expect(effects.syncInvalidations[0].dependency.type).toBe(
-        'customerSubscriptions'
-      )
-      expect(effects.syncInvalidations[1].dependency.type).toBe(
-        'subscription'
-      )
+      expect(types).toContain('customerSubscriptions')
+      expect(types).toContain('subscription')
+      // Both should have context (sync invalidations)
+      for (const inv of effects.invalidations) {
+        expect('context' in inv).toBe(true)
+      }
     })
 
-    it('invalidateCache with context and cache-only dep adds only to cacheInvalidations', () => {
+    it('with context and cache-only dep adds CacheInvalidation (no context stored)', () => {
       const { effects, invalidateCache } = createEffectsAccumulator()
       const context = {
         organizationId: 'org_1',
@@ -85,20 +73,19 @@ describe('createEffectsAccumulator', () => {
         livemode: true,
       }
 
-      // Even with context, cache-only deps don't trigger sync
+      // Even with context provided, cache-only deps don't store context
       invalidateCache(
         context,
         Dependency.organizationSettings({ orgId: 'org_1' })
       )
 
-      expect(effects.cacheInvalidations).toHaveLength(1)
-      expect(effects.cacheInvalidations[0]).toBe(
-        'organizationSettings:org_1'
-      )
-      expect(effects.syncInvalidations).toHaveLength(0)
+      expect(effects.invalidations).toHaveLength(1)
+      const inv = effects.invalidations[0]
+      expect(inv.dependency.type).toBe('organizationSettings')
+      expect('context' in inv).toBe(false)
     })
 
-    it('invalidateCache with mixed sync and cache-only deps only syncs the sync-enabled ones', () => {
+    it('with mixed sync and cache-only deps separates them correctly', () => {
       const { effects, invalidateCache } = createEffectsAccumulator()
       const context = {
         organizationId: 'org_1',
@@ -113,43 +100,42 @@ describe('createEffectsAccumulator', () => {
         Dependency.subscription({ subscriptionId: 'sub_1' })
       )
 
-      // All deps should be in cache invalidations
-      expect(effects.cacheInvalidations).toHaveLength(3)
-      expect(effects.cacheInvalidations).toContain(
-        'customerSubscriptions:cust_1'
-      )
-      expect(effects.cacheInvalidations).toContain(
-        'organizationSettings:org_1'
-      )
-      expect(effects.cacheInvalidations).toContain(
-        'subscription:sub_1'
-      )
+      expect(effects.invalidations).toHaveLength(3)
 
-      // Only sync-enabled deps should be in sync invalidations
-      expect(effects.syncInvalidations).toHaveLength(2)
-      const syncTypes = effects.syncInvalidations.map(
-        (s) => s.dependency.type
-      )
+      // Check sync invalidations have context
+      const syncInvs = effects.invalidations.filter(
+        (inv) => 'context' in inv
+      ) as SyncInvalidation[]
+      expect(syncInvs).toHaveLength(2)
+      const syncTypes = syncInvs.map((inv) => inv.dependency.type)
       expect(syncTypes).toContain('customerSubscriptions')
       expect(syncTypes).toContain('subscription')
-      expect(syncTypes).not.toContain('organizationSettings')
+
+      // Check cache-only invalidation has no context
+      const cacheInvs = effects.invalidations.filter(
+        (inv) => !('context' in inv)
+      )
+      expect(cacheInvs).toHaveLength(1)
+      expect(cacheInvs[0].dependency.type).toBe(
+        'organizationSettings'
+      )
     })
 
-    it('invalidateCache with legacy string keys adds only to cacheInvalidations', () => {
+    it('with legacy string keys adds only to cacheInvalidations', () => {
       const { effects, invalidateCache } = createEffectsAccumulator()
 
       invalidateCache('legacy:key:1', 'legacy:key:2')
 
+      expect(effects.invalidations).toHaveLength(0)
       expect(effects.cacheInvalidations).toHaveLength(2)
       expect(effects.cacheInvalidations).toContain('legacy:key:1')
       expect(effects.cacheInvalidations).toContain('legacy:key:2')
-      expect(effects.syncInvalidations).toHaveLength(0)
     })
 
-    it('effects accumulator starts with empty syncInvalidations array', () => {
+    it('effects accumulator starts with empty invalidations array', () => {
       const { effects } = createEffectsAccumulator()
 
-      expect(effects.syncInvalidations).toEqual([])
+      expect(effects.invalidations).toEqual([])
     })
   })
 

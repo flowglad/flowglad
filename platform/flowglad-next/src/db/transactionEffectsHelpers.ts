@@ -4,7 +4,6 @@ import { invalidateDependencies } from '@/utils/cache.internal'
 import {
   type AnyDependency,
   type CacheDependency,
-  dependencyToCacheKey,
   isSyncDependency,
   type SyncEmissionContext,
 } from '@/utils/dependency'
@@ -15,7 +14,6 @@ import type {
   DbTransaction,
   EnqueueTriggerTaskCallback,
   QueuedTriggerTask,
-  SyncInvalidation,
   TransactionEffects,
 } from './types'
 
@@ -56,18 +54,18 @@ interface InvalidateCacheFunction {
  */
 export function createEffectsAccumulator() {
   const effects: TransactionEffects = {
+    invalidations: [],
     cacheInvalidations: [],
     eventsToInsert: [],
     ledgerCommands: [],
     triggerTasks: [],
-    syncInvalidations: [],
   }
 
   /**
    * Overloaded invalidateCache implementation.
    * Handles three cases:
    * 1. Cache-only dependencies (no context)
-   * 2. Any dependencies with context (sync-enabled deps queued for sync)
+   * 2. Any dependencies with context (sync-enabled deps trigger sync)
    * 3. Legacy string-based cache keys
    */
   const invalidateCache: InvalidateCacheFunction = (
@@ -88,15 +86,10 @@ export function createEffectsAccumulator() {
       // Context-based path: first arg is context, rest are dependencies
       const context = contextOrDepOrKey as SyncEmissionContext
       for (const dep of rest as AnyDependency[]) {
-        // Always invalidate cache
-        effects.cacheInvalidations.push(dependencyToCacheKey(dep))
-
-        // If sync-enabled, also queue sync invalidation
         if (isSyncDependency(dep)) {
-          effects.syncInvalidations.push({
-            dependency: dep,
-            context,
-          } satisfies SyncInvalidation)
+          effects.invalidations.push({ dependency: dep, context })
+        } else {
+          effects.invalidations.push({ dependency: dep })
         }
       }
     } else if (
@@ -104,11 +97,11 @@ export function createEffectsAccumulator() {
       contextOrDepOrKey !== null &&
       'type' in contextOrDepOrKey
     ) {
-      // Structured dependency path (no context)
-      const firstDep = contextOrDepOrKey as AnyDependency
-      effects.cacheInvalidations.push(dependencyToCacheKey(firstDep))
-      for (const dep of rest as AnyDependency[]) {
-        effects.cacheInvalidations.push(dependencyToCacheKey(dep))
+      // Structured dependency path (no context) - must be cache-only deps
+      const firstDep = contextOrDepOrKey as CacheDependency
+      effects.invalidations.push({ dependency: firstDep })
+      for (const dep of rest as CacheDependency[]) {
+        effects.invalidations.push({ dependency: dep })
       }
     } else {
       // Legacy string-based cache key path
