@@ -166,7 +166,7 @@ describe('adjustSubscription error cases', () => {
       renews: true,
     })) as Subscription.StandardRecord
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -186,7 +186,10 @@ describe('adjustSubscription error cases', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow('is in terminal state')
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain('is in terminal state')
+    }
   })
 
   // SKIPPED: CreditTrial status exists in TypeScript enum but is explicitly excluded
@@ -215,7 +218,7 @@ describe('adjustSubscription error cases', () => {
       renews: true,
     })) as Subscription.Record
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -235,9 +238,12 @@ describe('adjustSubscription error cases', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow(
-      'Credit trial subscriptions cannot be adjusted'
-    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Credit trial subscriptions cannot be adjusted'
+      )
+    }
   })
 
   it('throws when adjusting a non-renewing subscription', async () => {
@@ -261,7 +267,7 @@ describe('adjustSubscription error cases', () => {
       renews: false,
     })) as Subscription.StandardRecord
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -281,9 +287,12 @@ describe('adjustSubscription error cases', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow(
-      'is a non-renewing subscription'
-    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'is a non-renewing subscription'
+      )
+    }
   })
 
   it('throws when adjusting a doNotCharge subscription', async () => {
@@ -308,7 +317,7 @@ describe('adjustSubscription error cases', () => {
       doNotCharge: true,
     })) as Subscription.StandardRecord
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -328,7 +337,12 @@ describe('adjustSubscription error cases', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow('Cannot adjust doNotCharge')
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot adjust doNotCharge'
+      )
+    }
   })
 
   it('throws when adjusting a free plan subscription', async () => {
@@ -353,7 +367,7 @@ describe('adjustSubscription error cases', () => {
       isFreePlan: true,
     })) as Subscription.StandardRecord
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -373,7 +387,12 @@ describe('adjustSubscription error cases', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow('Cannot adjust free plan')
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot adjust free plan'
+      )
+    }
   })
 
   it('throws when attempting upgrade with AtEndOfCurrentBillingPeriod timing', async () => {
@@ -382,7 +401,7 @@ describe('adjustSubscription error cases', () => {
     })
     const livemode = true
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -402,9 +421,12 @@ describe('adjustSubscription error cases', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow(
-      'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
-    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
+      )
+    }
   })
 
   it('throws when using a non-subscription price type', async () => {
@@ -421,7 +443,7 @@ describe('adjustSubscription error cases', () => {
       isDefault: false,
     })
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -441,9 +463,12 @@ describe('adjustSubscription error cases', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow(
-      'Only recurring prices can be used in subscriptions'
-    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Only recurring prices can be used in subscriptions'
+      )
+    }
   })
 })
 
@@ -504,7 +529,7 @@ describe('adjustSubscription resource capacity validation', () => {
     }
 
     // Attempt the downgrade - should fail due to capacity validation
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -524,7 +549,10 @@ describe('adjustSubscription resource capacity validation', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow(/Cannot reduce.*capacity/)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/Cannot reduce.*capacity/)
+    }
   })
 })
 
@@ -585,7 +613,7 @@ describe('adjustSubscription priceSlug resolution', () => {
     const setup = await setupTestSubscriptionWithTargetPrice()
     const livemode = true
 
-    const promise = adminTransaction<AdjustSubscriptionResult>(
+    const result = await adminTransaction<AdjustSubscriptionResult>(
       async (ctx) => {
         return adjustSubscription(
           {
@@ -605,7 +633,10 @@ describe('adjustSubscription priceSlug resolution', () => {
       { livemode }
     )
 
-    await expect(promise).rejects.toThrow(/Price.*not found/)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/Price.*not found/)
+    }
   })
 })
 

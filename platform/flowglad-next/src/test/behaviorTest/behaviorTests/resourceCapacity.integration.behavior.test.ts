@@ -323,26 +323,29 @@ describe('Resource Capacity Integration Tests', () => {
     }
 
     // Try to create one more claim
-    await expect(
-      adminTransaction(
-        async ({ transaction }) => {
-          await claimResourceTransaction(
-            {
-              organizationId,
-              customerId,
-              input: {
-                resourceSlug,
-                subscriptionId,
-                quantity: 1,
-              },
+    const result = await adminTransaction(
+      async ({ transaction }) => {
+        await claimResourceTransaction(
+          {
+            organizationId,
+            customerId,
+            input: {
+              resourceSlug,
+              subscriptionId,
+              quantity: 1,
             },
-            transaction
-          )
-          return Result.ok(null)
-        },
-        { livemode }
-      )
-    ).rejects.toThrow(/No available capacity/)
+          },
+          transaction
+        )
+        return Result.ok(null)
+      },
+      { livemode }
+    )
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/No available capacity/)
+    }
   })
 
   // ===========================================================================

@@ -25,7 +25,7 @@ import { setupResourceClaim } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   countActiveResourceClaims,
-  selectResourceClaims,
+  selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
@@ -257,17 +257,15 @@ export const cancelSubscriptionWithResourcesBehavior = defineBehavior(
       if (features.resource) {
         const resourceId = features.resource.id
 
-        // Get all claims (including released ones) to verify release reason
+        // Get active claims after cancellation (should be 0 if all were released)
         claimsAfterCancellation = (
           await adminTransaction(
             async ({ transaction }) => {
-              // We need to check all claims, not just active ones
-              // to verify the release reason
-              const allClaims = await selectResourceClaims(
+              const activeClaims = await selectActiveResourceClaims(
                 { subscriptionId: subscription.id },
                 transaction
               )
-              return Result.ok(allClaims)
+              return Result.ok(activeClaims)
             },
             { livemode }
           )
