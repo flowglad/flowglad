@@ -82,6 +82,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }}
       key={`${product.id}-${pricesLoading}`}
       mode="drawer"
+      submitButtonText="Save"
     >
       <ProductFormFields editProduct />
     </FormModal>
