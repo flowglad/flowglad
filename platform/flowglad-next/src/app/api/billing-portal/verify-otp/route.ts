@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   getCustomerBillingPortalEmail,
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const customer = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomerById(customerId, transaction)
       })
     ).unwrap()

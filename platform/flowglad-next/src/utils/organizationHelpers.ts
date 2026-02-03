@@ -262,8 +262,13 @@ export const createOrganizationTransaction = async (
       },
     },
     {
-      transaction,
-      cacheRecomputationContext,
+      ...ctx,
+      effects: {
+        cacheInvalidations: [],
+        eventsToInsert: [],
+        ledgerCommands: [],
+        triggerTasks: [],
+      },
       livemode: false,
       userId,
       organizationId,

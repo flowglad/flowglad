@@ -2,7 +2,7 @@ import { InvoiceStatus } from '@db-core/enums'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -34,27 +34,25 @@ export const stripePaymentIntentSucceededTask = task({
          * process it on own track, and then terminate
          */
         if ('billingRunId' in metadata) {
-          const result = await adminTransactionWithResult(
-            async (params) => {
-              const effectsCtx: TransactionEffectsContext = {
-                transaction: params.transaction,
-                cacheRecomputationContext:
-                  params.cacheRecomputationContext,
-                invalidateCache: params.invalidateCache,
-                emitEvent: params.emitEvent,
-                enqueueLedgerCommand: params.enqueueLedgerCommand,
-                enqueueTriggerTask: params.enqueueTriggerTask,
-              }
-              return await processOutcomeForBillingRun(
-                { input: payload },
-                effectsCtx
-              )
+          const result = await adminTransaction(async (params) => {
+            const effectsCtx: TransactionEffectsContext = {
+              transaction: params.transaction,
+              cacheRecomputationContext:
+                params.cacheRecomputationContext,
+              invalidateCache: params.invalidateCache,
+              emitEvent: params.emitEvent,
+              enqueueLedgerCommand: params.enqueueLedgerCommand,
+              enqueueTriggerTask: params.enqueueTriggerTask,
             }
-          )
+            return await processOutcomeForBillingRun(
+              { input: payload },
+              effectsCtx
+            )
+          })
           return result.unwrap()
         }
 
-        const transactionResult = await adminTransactionWithResult(
+        const transactionResult = await adminTransaction(
           async (ctx) => {
             const { transaction } = ctx
             const paymentResult =
@@ -118,7 +116,7 @@ export const stripePaymentIntentSucceededTask = task({
         const { invoice, organization, customer, payment, purchase } =
           transactionResult.unwrap()
 
-        const taxResult = await adminTransactionWithResult(
+        const taxResult = await adminTransaction(
           async ({ transaction }) => {
             await createStripeTaxTransactionIfNeededForPayment(
               { organization, payment, invoice },

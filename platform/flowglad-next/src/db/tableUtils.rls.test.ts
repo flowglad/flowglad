@@ -20,7 +20,7 @@ import type { Product } from '@db-core/schema/products'
 import { Result } from 'better-result'
 import { and as drizzleAnd, eq } from 'drizzle-orm'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertPrice,
@@ -165,6 +165,8 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
         expect(updatedProduct.description).toBe(
           'Updated test product description'
         )
+
+        return Result.ok(null)
       },
       { apiKey: org1ApiKeyToken }
     )
@@ -187,22 +189,24 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
             .insert(pricingModels)
             .values(newPricingModelInput)
             .returning()
-          // Should not reach here
-          throw new Error(
-            'PricingModel insert was unexpectedly allowed for another organization'
+          // Should not reach here - return error as Result if RLS doesn't block it
+          return Result.err(
+            new Error(
+              'PricingModel insert was unexpectedly allowed for another organization'
+            )
           )
         },
         { apiKey: org1ApiKeyToken }
-      )
-    } catch (error: any) {
-      expect(error.message).toContain(
+      ).then((r) => r.unwrap())
+    } catch (error: unknown) {
+      expect((error as Error).message).toContain(
         'Failed query: insert into "pricing_models"'
       )
     }
 
     // Verify (using admin) that the pricingModel was not actually created
     const checkPricingModel = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await transaction

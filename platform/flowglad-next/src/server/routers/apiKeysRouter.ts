@@ -8,6 +8,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -23,6 +24,7 @@ import {
   deleteSecretApiKeyTransaction,
 } from '@/utils/apiKeyHelpers'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
 import { protectedProcedure, router } from '../trpc'
 
@@ -38,19 +40,21 @@ const getApiKeyProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ apiKey: apiKeysClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const apiKey = (
-          await selectApiKeyById(input.id, transaction)
-        ).unwrap()
-        return {
-          apiKey,
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const apiKey = (
+            await selectApiKeyById(input.id, transaction)
+          ).unwrap()
+          return Result.ok({
+            apiKey,
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -88,23 +92,13 @@ const getTableRowsProcedure = protectedProcedure
 export const createApiKey = protectedProcedure
   .input(createApiKeyInputSchema)
   .mutation(async ({ input }) => {
-    const result = await authenticatedTransaction(
-      async ({
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-        cacheRecomputationContext,
-      }) => {
-        return createSecretApiKeyTransaction(input, {
-          transaction,
-          userId,
-          livemode,
-          organizationId,
-          cacheRecomputationContext,
-        })
-      }
-    )
+    const result = (
+      await authenticatedTransaction(async (params) => {
+        return Result.ok(
+          await createSecretApiKeyTransaction(input, params)
+        )
+      })
+    ).unwrap()
 
     return {
       apiKey: result.apiKey,
@@ -115,22 +109,12 @@ export const createApiKey = protectedProcedure
 export const deleteApiKey = protectedProcedure
   .input(idInputSchema)
   .mutation(async ({ input, ctx }) => {
-    await authenticatedTransaction(
-      ({
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-        cacheRecomputationContext,
-      }) =>
-        deleteSecretApiKeyTransaction(input, {
-          transaction,
-          userId,
-          livemode,
-          organizationId,
-          cacheRecomputationContext,
-        })
-    )
+    ;(
+      await authenticatedTransaction(async (params) => {
+        await deleteSecretApiKeyTransaction(input, params)
+        return Result.ok(undefined)
+      })
+    ).unwrap()
     return { success: true }
   })
 

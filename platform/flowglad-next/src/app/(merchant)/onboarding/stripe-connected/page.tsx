@@ -1,11 +1,11 @@
 import { Result } from 'better-result'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { getConnectedAccount } from '@/utils/stripe'
 
 const StripeConnectedPage = async () => {
   const organization = (
-    await authenticatedTransactionWithResult(
+    await authenticatedTransaction(
       async ({ userId, transaction }) => {
         const [membership] = await selectMembershipAndOrganizations(
           {

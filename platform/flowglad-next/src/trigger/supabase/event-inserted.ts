@@ -2,6 +2,7 @@ import {
   type Event,
   eventsSelectSchema,
 } from '@db-core/schema/events'
+import type { Organization } from '@db-core/schema/organizations'
 import { logger, task } from '@trigger.dev/sdk'
 import { Result } from 'better-result'
 import type { z } from 'zod'
@@ -17,6 +18,20 @@ import type { SupabaseInsertPayload } from '@/types'
 import { keysToCamelCase } from '@/utils/core'
 import { storeTelemetry } from '@/utils/redis'
 import { sendSvixEvent } from '@/utils/svix'
+
+type EventProcessingResult =
+  | {
+      eventId: string
+      result: 'already_processed'
+      organization?: undefined
+      event?: undefined
+    }
+  | {
+      eventId: string
+      result: 'processed'
+      organization: Organization.Record
+      event: Event.Record
+    }
 
 const eventInsertSchema = supabaseInsertPayloadSchema(
   eventsSelectSchema
@@ -87,35 +102,41 @@ export const eventInsertedTask = task({
       result,
       organization,
       event: mostUpToDateEvent,
-    } = await adminTransaction(async ({ transaction }) => {
-      const existingEvent = (
-        await selectEventById(event.id, transaction)
-      ).unwrap()
+    } = (
+      await adminTransaction(
+        async ({
+          transaction,
+        }): Promise<Result<EventProcessingResult, Error>> => {
+          const existingEvent = (
+            await selectEventById(event.id, transaction)
+          ).unwrap()
 
-      if (existingEvent?.processedAt) {
-        return {
-          eventId: event.id,
-          result: 'already_processed',
+          if (existingEvent?.processedAt) {
+            return Result.ok({
+              eventId: event.id,
+              result: 'already_processed',
+            })
+          }
+
+          const updatedEvent = await updateEvent(
+            { id: event.id, processedAt: Date.now() },
+            transaction
+          )
+          const organization = (
+            await selectOrganizationById(
+              event.organizationId,
+              transaction
+            )
+          ).unwrap()
+          return Result.ok({
+            eventId: event.id,
+            result: 'processed',
+            organization,
+            event: updatedEvent,
+          })
         }
-      }
-
-      const updatedEvent = await updateEvent(
-        { id: event.id, processedAt: Date.now() },
-        transaction
       )
-      const organization = (
-        await selectOrganizationById(
-          event.organizationId,
-          transaction
-        )
-      ).unwrap()
-      return {
-        eventId: event.id,
-        result: 'processed',
-        organization,
-        event: updatedEvent,
-      }
-    })
+    ).unwrap()
     if (result === 'already_processed') {
       return result
     }

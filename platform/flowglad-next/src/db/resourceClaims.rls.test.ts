@@ -20,7 +20,7 @@ import {
   setupSubscriptionItem,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertResourceClaim,
@@ -61,7 +61,7 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
 
     // Create a resource using admin transaction (bypasses RLS for setup)
     resource = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertResource(
             {
@@ -165,12 +165,16 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
         externalId: 'test-claim-1',
       }
 
-      const inserted = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertResourceClaim(claimInsert, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const inserted = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await insertResourceClaim(claimInsert, transaction)
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(inserted.id).toMatch(/^res_claim_/)
       expect(inserted.resourceId).toBe(resource.id)
@@ -185,33 +189,41 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
 
     it('selects resource claims via authenticatedTransaction after insertion', async () => {
       // Insert a claim
-      const inserted = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertResourceClaim(
-            {
-              organizationId: organization.id,
-              resourceId: resource.id,
-              subscriptionId: subscription.id,
-              pricingModelId: pricingModel.id,
-              livemode: true,
-              externalId: 'select-test-claim',
-            },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const inserted = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await insertResourceClaim(
+                {
+                  organizationId: organization.id,
+                  resourceId: resource.id,
+                  subscriptionId: subscription.id,
+                  pricingModelId: pricingModel.id,
+                  livemode: true,
+                  externalId: 'select-test-claim',
+                },
+                transaction
+              )
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       // Select it back
-      const claims = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectResourceClaims(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const claims = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectResourceClaims(
+                { subscriptionId: subscription.id },
+                transaction
+              )
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(claims.length).toBeGreaterThanOrEqual(1)
       const foundClaim = claims.find((c) => c.id === inserted.id)
@@ -245,20 +257,25 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
             },
             transaction
           )
+          return Result.ok(null)
         },
         { apiKey: apiKey.token }
       )
 
       // Select all claims for the subscription
-      const claims = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectResourceClaims(
-            { subscriptionId: subscription.id },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const claims = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return Result.ok(
+              await selectResourceClaims(
+                { subscriptionId: subscription.id },
+                transaction
+              )
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(claims.length).toBeGreaterThanOrEqual(2)
       const externalIds = claims.map((c) => c.externalId)

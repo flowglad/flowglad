@@ -2,7 +2,7 @@ import { PriceType } from '@db-core/enums'
 import type { CheckoutSession } from '@db-core/schema/checkoutSessions'
 import { Result } from 'better-result'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import SubscriptionCheckoutSuccessPage from './SubscriptionCheckoutSuccessPage'
@@ -18,7 +18,7 @@ const PurchaseCheckoutSuccessPage = async ({
   let customerEmail: string | null = null
   if (checkoutSession.customerId) {
     const customer = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomerById(
           checkoutSession.customerId!,
           transaction
@@ -41,7 +41,7 @@ const PurchaseCheckoutSuccessPage = async ({
 
   // Get the price and organization to check if it's a subscription
   const { price, organization } = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const [data] =
         await selectPriceProductAndOrganizationByPriceWhere(
           { id: checkoutSession.priceId! },

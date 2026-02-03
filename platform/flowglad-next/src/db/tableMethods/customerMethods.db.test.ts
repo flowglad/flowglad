@@ -9,7 +9,7 @@ import {
   setupPricingModel,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { ArchivedCustomerError } from '@/errors'
 import core from '@/utils/core'
 import {
@@ -58,7 +58,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Update emails
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customer1.id, email: targetEmail },
           transaction
@@ -79,7 +79,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId(
           {
             email: targetEmail,
@@ -93,7 +93,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Verify both customers with target email were updated
     const updatedCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -125,7 +125,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Update emails
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customer1.id, email: targetEmail },
           transaction
@@ -139,7 +139,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId(
           {
             email: targetEmail,
@@ -153,7 +153,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Verify both customers in org1 were updated
     const updatedCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -188,7 +188,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Update emails and set existing stack auth id
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           {
             id: customerWithExistingId.id,
@@ -209,7 +209,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId(
           {
             email: targetEmail,
@@ -223,7 +223,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Verify only the customer without existing id was updated
     const updatedCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -267,7 +267,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Update emails
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           {
             id: customerWithDifferentEmail.id,
@@ -284,7 +284,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId(
           {
             email: targetEmail,
@@ -298,7 +298,7 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
     // Verify only the customer with target email was updated
     const updatedCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -371,7 +371,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Execute the function
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setUserIdForCustomerRecords(
           {
             customerEmail: targetEmail,
@@ -385,7 +385,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Verify all customers with target email were updated
     const updatedCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -418,7 +418,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Execute the function
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setUserIdForCustomerRecords(
           {
             customerEmail: targetEmail,
@@ -432,7 +432,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Verify only the customer with target email was updated
     const targetEmailCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -444,7 +444,7 @@ describe('setUserIdForCustomerRecords', () => {
       })
     ).unwrap()
     const differentEmailCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -472,7 +472,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // First, set userId to user2
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           {
             id: customer.id,
@@ -486,7 +486,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Verify initial userId is set to user2
     const customerBeforeUpdate = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const customers = await selectCustomers(
           { id: customer.id },
           transaction
@@ -498,7 +498,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Now execute setUserIdForCustomerRecords to change to user1
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setUserIdForCustomerRecords(
           {
             customerEmail: targetEmail,
@@ -512,7 +512,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Verify userId was updated to user1
     const customerAfterUpdate = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const customers = await selectCustomers(
           { id: customer.id },
           transaction
@@ -534,7 +534,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Execute the function with non-existent email
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Should not throw error even when no records match
         await setUserIdForCustomerRecords(
           {
@@ -549,7 +549,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Verify no customers exist with the non-existent email
     const customers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -580,7 +580,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Execute the function
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setUserIdForCustomerRecords(
           {
             customerEmail: targetEmail,
@@ -594,7 +594,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     // Verify both customers were updated regardless of organization
     const updatedCustomers = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomers(
             {
@@ -638,7 +638,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Archive the customer
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customer.id, archived: true },
           transaction
@@ -649,7 +649,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Lookup without includeArchived should return null
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
             {
@@ -676,7 +676,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Archive the customer
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customer.id, archived: true },
           transaction
@@ -687,7 +687,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Lookup with includeArchived=true should return the archived customer
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
             {
@@ -719,7 +719,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Lookup without includeArchived should return the customer
     const resultDefault = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
             {
@@ -739,7 +739,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Lookup with includeArchived=true should also return the customer
     const resultIncludeArchived = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
             {
@@ -761,7 +761,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
   it('should return null for non-existent externalId', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
             {
@@ -791,7 +791,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Lookup in org2 should return null (customer doesn't exist in org2)
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
             {
@@ -808,7 +808,7 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
 
     // Lookup in org1 should return the customer
     const resultOrg1 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerByExternalIdAndOrganizationId(
             {
@@ -858,7 +858,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Archive the customer
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             { id: customer1.id, archived: true },
             transaction
@@ -869,7 +869,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Verify customer1 is archived
       const archivedCustomer = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             (
               await selectCustomerById(customer1.id, transaction)
@@ -908,7 +908,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to create second active customer with same externalId - should fail
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await insertCustomer(
             {
               organizationId: organization1.id,
@@ -962,7 +962,7 @@ describe('Customer uniqueness constraints', () => {
         livemode: true,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             { id: customer1.id, archived: true },
             transaction
@@ -979,7 +979,7 @@ describe('Customer uniqueness constraints', () => {
         livemode: true,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             { id: customer2.id, archived: true },
             transaction
@@ -990,7 +990,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Verify both are archived with the same externalId
       const [archivedCustomer1, archivedCustomer2] = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const c1 = (
             await selectCustomerById(customer1.id, transaction)
           ).unwrap()
@@ -1018,7 +1018,7 @@ describe('Customer uniqueness constraints', () => {
         livemode: true,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             { id: customer1.id, archived: true },
             transaction
@@ -1039,7 +1039,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to unarchive customer1 - should fail due to unique constraint
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             { id: customer1.id, archived: false },
             transaction
@@ -1050,7 +1050,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Verify customer1 is still archived
       const stillArchivedCustomer = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             (
               await selectCustomerById(customer1.id, transaction)
@@ -1135,7 +1135,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to create duplicate customer
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await insertCustomer(
             {
               organizationId: organization1.id,
@@ -1172,7 +1172,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Update customer2's externalId
       const updatedCustomer = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await updateCustomer(
               {
@@ -1211,7 +1211,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to update customer2's externalId to match customer1's
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             {
               id: customer2.id,
@@ -1225,7 +1225,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Verify customer2 still has its original externalId
       const unchangedCustomer = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             (
               await selectCustomerById(customer2.id, transaction)
@@ -1284,7 +1284,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create first customer using insertCustomer
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1306,7 +1306,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to create duplicate using raw insert
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           // @ts-expect-error - intentionally setting null for test
           await transaction.insert(customers).values({
             id: `cust_${core.nanoid()}`,
@@ -1326,7 +1326,7 @@ describe('Customer uniqueness constraints', () => {
     it('should handle null values in the constraint properly', async () => {
       // Attempt to insert a customer without an externalId should fail
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await insertCustomer(
             {
               organizationId: organization1.id,
@@ -1345,7 +1345,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Also test with explicit null - this should fail at the database level
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           // Attempt raw SQL to bypass TypeScript checks
           // @ts-expect-error - intentionally setting null for test
           await transaction.insert(customers).values({
@@ -1370,7 +1370,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create customer in organization1
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1390,7 +1390,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create customer with same invoiceNumberBase in organization2
       const customer2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1425,7 +1425,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create customer with livemode=true
       const customerLive = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1445,7 +1445,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create customer with same invoiceNumberBase but livemode=false
       const customerTest = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1477,7 +1477,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create first customer
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1500,7 +1500,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to create duplicate customer
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await insertCustomer(
             {
               organizationId: organization1.id,
@@ -1563,7 +1563,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create customer with stripeCustomerId in organization1
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1586,7 +1586,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to create customer with same stripeCustomerId in SAME pricingModel - should fail
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await insertCustomer(
             {
               organizationId: organization1.id,
@@ -1609,7 +1609,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create customer with stripeCustomerId in pricingModel1
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1633,7 +1633,7 @@ describe('Customer uniqueness constraints', () => {
       // Create customer with same stripeCustomerId in DIFFERENT pricingModel - should succeed
       // This is the expected behavior: same Stripe customer can exist in multiple pricing models
       const customer2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1664,7 +1664,7 @@ describe('Customer uniqueness constraints', () => {
       const { testmodePricingModel } = await setupOrg()
       // Create three customers with different stripeCustomerIds
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1683,7 +1683,7 @@ describe('Customer uniqueness constraints', () => {
       ).unwrap()
 
       const customer2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1702,7 +1702,7 @@ describe('Customer uniqueness constraints', () => {
       ).unwrap()
 
       const customer3 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1742,7 +1742,7 @@ describe('Customer uniqueness constraints', () => {
       const { testmodePricingModel } = await setupOrg()
       // Create multiple customers without stripeCustomerId - use insertCustomer directly
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1761,7 +1761,7 @@ describe('Customer uniqueness constraints', () => {
       ).unwrap()
 
       const customer2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1780,7 +1780,7 @@ describe('Customer uniqueness constraints', () => {
       ).unwrap()
 
       const customer3 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1813,7 +1813,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Create two customers with different stripeCustomerIds in the SAME pricingModel
       const customer1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1832,7 +1832,7 @@ describe('Customer uniqueness constraints', () => {
       ).unwrap()
 
       const customer2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertCustomer(
               {
@@ -1852,7 +1852,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Attempt to update customer2 to have customer1's stripeCustomerId (same pricing model)
       await expect(
-        adminTransactionWithResult(async ({ transaction }) => {
+        adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             {
               id: customer2.id,
@@ -1866,7 +1866,7 @@ describe('Customer uniqueness constraints', () => {
 
       // Verify customer2 still has its original stripeCustomerId
       const unchangedCustomer = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             (
               await selectCustomerById(customer2.id, transaction)
@@ -1930,7 +1930,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
   describe('search functionality', () => {
     it('should search by customer ID, email, or name (case-insensitive, trims whitespace)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test customer ID search (exact match)
           const resultById =
             await selectCustomersCursorPaginatedWithTableRowData({
@@ -2017,7 +2017,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
 
     it('should ignore empty or undefined search queries', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultEmpty =
             await selectCustomersCursorPaginatedWithTableRowData({
               input: {
@@ -2053,7 +2053,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
 
     it('should only return customers for the specified organization', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Search for "Alice" - should only return customer1, not customerOtherOrg
           const result =
             await selectCustomersCursorPaginatedWithTableRowData({
@@ -2080,7 +2080,7 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
   describe('edge cases and error handling', () => {
     it('should handle invalid inputs gracefully and maintain correct total count', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test null/undefined searchQuery
           const resultUndefined =
             await selectCustomersCursorPaginatedWithTableRowData({
@@ -2144,7 +2144,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     ]
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerPricingInfoBatch(
             customerIds,
@@ -2187,7 +2187,7 @@ describe('selectCustomerPricingInfoBatch', () => {
 
   it('returns an empty result map when no customerIds are provided', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerPricingInfoBatch([], transaction)
         )
@@ -2211,7 +2211,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerPricingInfoBatch(
             [customer1.id, customer2.id],
@@ -2243,7 +2243,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     }
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerPricingInfoBatch(
             customerIds,
@@ -2276,7 +2276,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCustomerPricingInfoBatch(
             [customerLive.id, customerTest.id],

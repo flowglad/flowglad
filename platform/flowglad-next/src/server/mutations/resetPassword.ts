@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBetterAuthUserByEmail } from '@/db/tableMethods/betterAuthSchemaMethods'
@@ -9,11 +10,13 @@ export const resetPassword = publicProcedure
   .mutation(async ({ input }) => {
     const { email } = input
 
-    const userExists = await adminTransaction(
-      async ({ transaction }) => {
-        return selectBetterAuthUserByEmail(email, transaction)
-      }
-    )
+    const userExists = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectBetterAuthUserByEmail(email, transaction)
+        )
+      })
+    ).unwrap()
 
     if (userExists) {
       try {

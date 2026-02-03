@@ -17,7 +17,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
@@ -92,7 +92,7 @@ describe('previewAdjustSubscription', () => {
   describe('when subscription is in invalid state', () => {
     it('returns canAdjust: false for terminal state subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Cancel the subscription to put it in terminal state
           await updateSubscription(
             {
@@ -130,7 +130,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false for non-renewing subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -166,7 +166,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false for doNotCharge subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -203,7 +203,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false for free plan subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -255,7 +255,7 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
@@ -305,7 +305,7 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
@@ -352,7 +352,7 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
@@ -395,7 +395,7 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
@@ -439,7 +439,7 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
@@ -486,7 +486,7 @@ describe('previewAdjustSubscription', () => {
 
       // Remove payment method from subscription and test
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -538,7 +538,7 @@ describe('previewAdjustSubscription', () => {
 
       // Remove payment method from subscription and test
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -582,7 +582,7 @@ describe('previewAdjustSubscription', () => {
       const futureTimestamp = Date.now() + 86400000 // 1 day from now
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -620,7 +620,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false when a cancellation is scheduled', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,

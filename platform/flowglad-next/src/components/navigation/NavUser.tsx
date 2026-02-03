@@ -184,39 +184,41 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="w-56"
                   data-testid="nav-user-org-submenu"
                 >
-                  {organizations.map((org) => (
-                    <DropdownMenuItem
-                      key={org.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                      data-testid={`nav-user-org-${org.id}`}
-                      onSelect={() =>
-                        handleSwitchOrganization(org.id)
-                      }
-                    >
-                      {org.logoURL ? (
-                        <Image
-                          className="rounded-full object-cover h-4 w-4 bg-white"
-                          alt={org.name}
-                          src={org.logoURL}
-                          width={16}
-                          height={16}
-                        />
-                      ) : (
-                        <div className="h-4 w-4 rounded-full bg-muted-foreground/20" />
-                      )}
-                      <span className="truncate flex-1">
-                        {org.name}
-                      </span>
-                      <Check
-                        className={cn(
-                          'h-4 w-4 ml-auto',
-                          currentOrganizationId === org.id
-                            ? 'opacity-100'
-                            : 'opacity-0'
+                  <div className="max-h-64 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
+                    {organizations.map((org) => (
+                      <DropdownMenuItem
+                        key={org.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                        data-testid={`nav-user-org-${org.id}`}
+                        onSelect={() =>
+                          handleSwitchOrganization(org.id)
+                        }
+                      >
+                        {org.logoURL ? (
+                          <Image
+                            className="rounded-full object-cover h-4 w-4 bg-white"
+                            alt={org.name}
+                            src={org.logoURL}
+                            width={16}
+                            height={16}
+                          />
+                        ) : (
+                          <div className="h-4 w-4 rounded-full bg-muted-foreground/20" />
                         )}
-                      />
-                    </DropdownMenuItem>
-                  ))}
+                        <span className="truncate flex-1">
+                          {org.name}
+                        </span>
+                        <Check
+                          className={cn(
+                            'h-4 w-4 ml-auto',
+                            currentOrganizationId === org.id
+                              ? 'opacity-100'
+                              : 'opacity-0'
+                          )}
+                        />
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="flex items-center gap-2 cursor-pointer"
@@ -247,47 +249,50 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="w-64"
                   data-testid="nav-user-pricing-submenu"
                 >
-                  {pricingModels.map(({ pricingModel: pm }) => {
-                    const isSelected = currentPricingModelId === pm.id
-                    return (
-                      <DropdownMenuItem
-                        key={pm.id}
-                        className={cn(
-                          'group flex items-center gap-2 cursor-pointer',
-                          isSelected && 'bg-accent'
-                        )}
-                        data-testid={`nav-user-pm-${pm.id}`}
-                        onSelect={() =>
-                          handleSwitchPricingModel(pm.id)
-                        }
-                      >
-                        {pm.livemode ? (
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-jade-muted-foreground fill-jade-muted-foreground" />
-                        ) : (
-                          <Circle className="h-5 w-5 shrink-0 text-amber-400" />
-                        )}
-                        <span className="truncate flex-1">
-                          {pm.name}
-                        </span>
-                        {pm.livemode ? (
-                          <span className="inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 bg-jade-muted-foreground text-primary-foreground">
-                            Live
+                  <div className="max-h-64 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
+                    {pricingModels.map(({ pricingModel: pm }) => {
+                      const isSelected =
+                        currentPricingModelId === pm.id
+                      return (
+                        <DropdownMenuItem
+                          key={pm.id}
+                          className={cn(
+                            'group flex items-center gap-2 cursor-pointer',
+                            isSelected && 'bg-accent'
+                          )}
+                          data-testid={`nav-user-pm-${pm.id}`}
+                          onSelect={() =>
+                            handleSwitchPricingModel(pm.id)
+                          }
+                        >
+                          {pm.livemode ? (
+                            <CheckCircle2 className="h-5 w-5 shrink-0 text-jade-muted-foreground fill-jade-muted-foreground" />
+                          ) : (
+                            <Circle className="h-5 w-5 shrink-0 text-amber-400" />
+                          )}
+                          <span className="truncate flex-1">
+                            {pm.name}
                           </span>
-                        ) : (
-                          <span
-                            className={cn(
-                              'inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 border-[1.5px] border-amber-400 text-amber-500 bg-transparent transition-opacity',
-                              isSelected
-                                ? 'opacity-100'
-                                : 'opacity-0 group-hover:opacity-100'
-                            )}
-                          >
-                            Test
-                          </span>
-                        )}
-                      </DropdownMenuItem>
-                    )
-                  })}
+                          {pm.livemode ? (
+                            <span className="inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 bg-jade-muted-foreground text-primary-foreground">
+                              Live
+                            </span>
+                          ) : (
+                            <span
+                              className={cn(
+                                'inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 border-[1.5px] border-amber-400 text-amber-500 bg-transparent transition-opacity',
+                                isSelected
+                                  ? 'opacity-100'
+                                  : 'opacity-0 group-hover:opacity-100'
+                              )}
+                            >
+                              Test
+                            </span>
+                          )}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="flex items-center gap-2 cursor-pointer"

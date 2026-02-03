@@ -9,10 +9,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import {
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectProductFeatures,
   updateProductFeature,
@@ -152,7 +149,7 @@ describe('resolveExistingIds', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -170,7 +167,7 @@ describe('resolveExistingIds', () => {
 
     // Test: resolve IDs
     const resolvedIds = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await resolveExistingIds(
             setupResult.pricingModel.id,
@@ -296,7 +293,7 @@ describe('resolveExistingIds', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -314,7 +311,7 @@ describe('resolveExistingIds', () => {
 
     // Test: resolve IDs
     const resolvedIds = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await resolveExistingIds(
             setupResult.pricingModel.id,
@@ -362,7 +359,7 @@ describe('resolveExistingIds', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -380,7 +377,7 @@ describe('resolveExistingIds', () => {
 
     // Directly insert resources for the pricing model
     const createdResources = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await bulkInsertResources(
             [
@@ -409,7 +406,7 @@ describe('resolveExistingIds', () => {
 
     // Test: resolve IDs
     const resolvedIds = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await resolveExistingIds(
             setupResult.pricingModel.id,
@@ -511,7 +508,7 @@ describe('resolveExistingIds', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -529,7 +526,7 @@ describe('resolveExistingIds', () => {
 
     // Test: resolve IDs
     const resolvedIds = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await resolveExistingIds(
             setupResult.pricingModel.id,
@@ -607,7 +604,7 @@ describe('resolveExistingIds', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -625,7 +622,7 @@ describe('resolveExistingIds', () => {
 
     // Test: resolve IDs
     const resolvedIds = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await resolveExistingIds(
             setupResult.pricingModel.id,
@@ -722,7 +719,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -752,8 +749,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: add feature-c to product A, add feature-y to product B
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -777,8 +774,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Expect: creates productFeatures for c and y
     expect(syncResult.added.length).toBe(2)
@@ -876,7 +873,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -906,8 +903,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
 
     // Sync: remove feature-c from product A, remove feature-y from product B
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -927,8 +924,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Expect: expires productFeatures for c and y
     expect(syncResult.removed.length).toBe(2)
@@ -1045,7 +1042,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -1077,8 +1074,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Sync: completely replace features
     // Product A: [a, b] -> [c, d]
     // Product B: [x, y] -> [z]
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1098,8 +1095,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Expect: removes a, b, x, y and adds c, d, z
     expect(syncResult.removed.length).toBe(4)
@@ -1240,7 +1237,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -1276,8 +1273,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Product A: [a, b] -> [a, b] (no change)
     // Product B: [x] -> [x, y] (add y)
     // Product C: [p, q] -> [p] (remove q)
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1301,8 +1298,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Expect: only y added and q removed
     expect(syncResult.added.length).toBe(1)
@@ -1327,8 +1324,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
   it('returns empty added and removed arrays when given empty products list', async () => {
     // Test: call with empty productsWithFeatures array
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [],
@@ -1339,8 +1336,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Expect: returns empty added and removed arrays, no errors
     expect(syncResult.added).toEqual([])
@@ -1390,7 +1387,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -1417,8 +1414,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Step 1: Remove feature-b (this will expire it)
-    const removeResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const removeResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1434,8 +1431,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Verify feature-b was removed (expired)
     expect(removeResult.removed.length).toBe(1)
@@ -1445,8 +1442,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(typeof removeResult.removed[0].expiredAt).toBe('number')
 
     // Step 2: Re-add feature-b (this should unexpire it)
-    const reAddResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const reAddResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1462,8 +1459,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Verify feature-b was added back (unexpired)
     expect(reAddResult.added.length).toBe(1)
@@ -1475,7 +1472,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Verify the database state: both features should now be active
     const finalProductFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: productA.id },
@@ -1544,7 +1541,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -1565,7 +1562,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     )!
     // Manually expire feature-b's productFeature
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const productFeatures = await selectProductFeatures(
           { productId: productA.id },
           ctx.transaction
@@ -1596,8 +1593,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     }
 
     // Sync: request only feature-a (feature-b is already expired)
-    const syncResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const syncResult = (
+      await adminTransaction(async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1613,8 +1610,8 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           params
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     // Expect: no removals because feature-b was already expired
     expect(syncResult.removed.length).toBe(0)

@@ -23,7 +23,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { insertSubscriptionMeterPeriodCalculation } from './subscriptionMeterPeriodCalculationMethods'
 
@@ -89,7 +89,7 @@ describe('insertSubscriptionMeterPeriodCalculation', () => {
 
   it('should successfully insert subscription meter period calculation and derive pricingModelId from usage meter', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const calculation =
           await insertSubscriptionMeterPeriodCalculation(
             {
@@ -120,7 +120,7 @@ describe('insertSubscriptionMeterPeriodCalculation', () => {
 
   it('should use provided pricingModelId without derivation', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const calculation =
           await insertSubscriptionMeterPeriodCalculation(
             {
@@ -148,30 +148,31 @@ describe('insertSubscriptionMeterPeriodCalculation', () => {
   })
 
   it('should throw an error when usageMeterId does not exist', async () => {
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        const nonExistentUsageMeterId = `um_${core.nanoid()}`
+    const result = await adminTransaction(async ({ transaction }) => {
+      const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-        await expect(
-          insertSubscriptionMeterPeriodCalculation(
-            {
-              organizationId: organization.id,
-              subscriptionId: subscription.id,
-              usageMeterId: nonExistentUsageMeterId,
-              billingPeriodId: billingPeriod.id,
-              billingRunId: billingRun.id,
-              totalRawUsageAmount: 1000,
-              creditsAppliedAmount: 0,
-              netBilledAmount: 1000,
-              status: SubscriptionMeterPeriodCalculationStatus.Active,
-              calculatedAt: Date.now(),
-              livemode: true,
-            },
-            transaction
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+      try {
+        await insertSubscriptionMeterPeriodCalculation(
+          {
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: nonExistentUsageMeterId,
+            billingPeriodId: billingPeriod.id,
+            billingRunId: billingRun.id,
+            totalRawUsageAmount: 1000,
+            creditsAppliedAmount: 0,
+            netBilledAmount: 1000,
+            status: SubscriptionMeterPeriodCalculationStatus.Active,
+            calculatedAt: Date.now(),
+            livemode: true,
+          },
+          transaction
+        )
+        return Result.ok('should have thrown')
+      } catch (error) {
+        return Result.err(error as Error)
+      }
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 })

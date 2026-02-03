@@ -17,7 +17,11 @@ import {
 import { renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
-import { usePaymentMethods } from './usePaymentMethods'
+import { invalidateCustomerData } from './lib/invalidation'
+import {
+  PAYMENT_METHODS_QUERY_KEY,
+  usePaymentMethods,
+} from './usePaymentMethods'
 
 // Mock payment methods data with explicit type
 const mockPaymentMethods: PaymentMethodDetails[] = [
@@ -391,10 +395,47 @@ describe('usePaymentMethods', () => {
 })
 
 describe('subscription mutations', () => {
-  it.skip('invalidate payment methods query key', () => {
-    // TODO: implement once subscription mutations are wired to invalidate this query.
-    // Setup: Pre-populate query cache with payment methods
-    // Action: Trigger subscription mutation
-    // Assert: Payment methods query is invalidated
+  it('invalidateCustomerData invalidates payment methods query key', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+
+    // Pre-populate query cache with payment methods data
+    queryClient.setQueryData([PAYMENT_METHODS_QUERY_KEY], {
+      data: {
+        paymentMethods: mockPaymentMethods,
+        billingPortalUrl: mockBillingPortalUrl,
+      },
+    })
+
+    // Verify data is in cache before invalidation
+    const dataBefore = queryClient.getQueryData([
+      PAYMENT_METHODS_QUERY_KEY,
+    ])
+    expect(dataBefore).toEqual({
+      data: {
+        paymentMethods: mockPaymentMethods,
+        billingPortalUrl: mockBillingPortalUrl,
+      },
+    })
+
+    // Get query state before invalidation
+    const stateBefore = queryClient.getQueryState([
+      PAYMENT_METHODS_QUERY_KEY,
+    ])
+    expect(stateBefore?.isInvalidated).toBe(false)
+
+    // Call the shared invalidation helper
+    await invalidateCustomerData(queryClient)
+
+    // Assert that the payment methods query is now invalidated
+    const stateAfter = queryClient.getQueryState([
+      PAYMENT_METHODS_QUERY_KEY,
+    ])
+    expect(stateAfter?.isInvalidated).toBe(true)
   })
 })

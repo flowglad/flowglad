@@ -52,51 +52,53 @@ export const runSendCustomerSubscriptionUpgradedNotification =
       NotFoundError | ValidationError
     >
     try {
-      const data = await adminTransaction(async ({ transaction }) => {
-        // Use buildNotificationContext for new subscription context
-        const {
-          organization,
-          customer,
-          subscription: newSubscription,
-          price: newPrice,
-          paymentMethod,
-        } = await buildNotificationContext(
-          {
-            organizationId: params.organizationId,
-            customerId: params.customerId,
-            subscriptionId: params.newSubscriptionId,
-            include: ['price', 'defaultPaymentMethod'],
-          },
-          transaction
-        )
-
-        // Fetch previous subscription separately (not supported by buildNotificationContext)
-        const previousSubscription = (
-          await selectSubscriptionById(
-            params.previousSubscriptionId,
+      const data = (
+        await adminTransaction(async ({ transaction }) => {
+          // Use buildNotificationContext for new subscription context
+          const {
+            organization,
+            customer,
+            subscription: newSubscription,
+            price: newPrice,
+            paymentMethod,
+          } = await buildNotificationContext(
+            {
+              organizationId: params.organizationId,
+              customerId: params.customerId,
+              subscriptionId: params.newSubscriptionId,
+              include: ['price', 'defaultPaymentMethod'],
+            },
             transaction
           )
-        ).unwrap()
 
-        const previousPrice = previousSubscription.priceId
-          ? (
-              await selectPriceById(
-                previousSubscription.priceId,
-                transaction
-              )
-            ).unwrap()
-          : null
+          // Fetch previous subscription separately (not supported by buildNotificationContext)
+          const previousSubscription = (
+            await selectSubscriptionById(
+              params.previousSubscriptionId,
+              transaction
+            )
+          ).unwrap()
 
-        return {
-          organization,
-          customer,
-          newSubscription,
-          newPrice,
-          previousSubscription,
-          previousPrice,
-          paymentMethod,
-        }
-      })
+          const previousPrice = previousSubscription.priceId
+            ? (
+                await selectPriceById(
+                  previousSubscription.priceId,
+                  transaction
+                )
+              ).unwrap()
+            : null
+
+          return Result.ok({
+            organization,
+            customer,
+            newSubscription,
+            newPrice,
+            previousSubscription,
+            previousPrice,
+            paymentMethod,
+          })
+        })
+      ).unwrap()
       dataResult = Result.ok(data)
     } catch (error) {
       // Only convert NotFoundError to Result.err; rethrow other errors

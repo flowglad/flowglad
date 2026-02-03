@@ -50,34 +50,42 @@ export const runSendOrganizationSubscriptionCreatedNotification =
       NotFoundError | ValidationError
     >
     try {
-      const data = await adminTransaction(async ({ transaction }) => {
-        const context = await buildNotificationContext(
-          {
-            organizationId: subscription.organizationId,
-            customerId: subscription.customerId,
-            include: ['usersAndMemberships'],
-          },
-          transaction
-        )
+      const data = (
+        await adminTransaction(async ({ transaction }) => {
+          const context = await buildNotificationContext(
+            {
+              organizationId: subscription.organizationId,
+              customerId: subscription.customerId,
+              include: ['usersAndMemberships'],
+            },
+            transaction
+          )
 
-        // Fetch the product associated with the subscription for user-friendly naming
-        const price = subscription.priceId
-          ? (
-              await selectPriceById(subscription.priceId, transaction)
-            ).unwrap()
-          : null
-        const product =
-          price && Price.hasProductId(price)
+          // Fetch the product associated with the subscription for user-friendly naming
+          const price = subscription.priceId
             ? (
-                await selectProductById(price.productId, transaction)
+                await selectPriceById(
+                  subscription.priceId,
+                  transaction
+                )
               ).unwrap()
             : null
+          const product =
+            price && Price.hasProductId(price)
+              ? (
+                  await selectProductById(
+                    price.productId,
+                    transaction
+                  )
+                ).unwrap()
+              : null
 
-        return {
-          ...context,
-          product,
-        }
-      })
+          return Result.ok({
+            ...context,
+            product,
+          })
+        })
+      ).unwrap()
       dataResult = Result.ok(data)
     } catch (error) {
       // Only convert NotFoundError to Result.err; rethrow other errors

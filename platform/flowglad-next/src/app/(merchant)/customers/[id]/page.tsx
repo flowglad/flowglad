@@ -1,6 +1,6 @@
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
@@ -19,7 +19,7 @@ const CustomerPage = async ({
 }) => {
   const { id } = await params
   const result = (
-    await authenticatedTransactionWithResult(
+    await authenticatedTransaction(
       async ({ transaction, userId }) => {
         // Verify user has membership access (authorization check)
         const memberships = await selectMembershipAndOrganizations(

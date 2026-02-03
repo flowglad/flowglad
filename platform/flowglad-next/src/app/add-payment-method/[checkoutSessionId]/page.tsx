@@ -9,7 +9,7 @@ import { notFound, redirect } from 'next/navigation'
 import CheckoutForm from '@/components/CheckoutForm'
 import { LightThemeWrapper } from '@/components/LightThemeWrapper'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -24,42 +24,36 @@ const CheckoutSessionPage = async ({
   params: Promise<{ checkoutSessionId: string }>
 }) => {
   const { checkoutSessionId } = await params
-  const result = await adminTransactionWithResult(
-    async ({ transaction }) => {
-      const checkoutSession = (
-        await selectCheckoutSessionById(
-          checkoutSessionId,
-          transaction
-        )
-      ).unwrap()
-      // For non-AddPaymentMethod sessions or missing customerId, return null
-      // to signal a 404 case (vs throwing which would be a 500)
-      if (
-        checkoutSession.type !==
-          CheckoutSessionType.AddPaymentMethod ||
-        !checkoutSession.customerId
-      ) {
-        return Result.ok(null)
-      }
-      const customer = (
-        await selectCustomerById(
-          checkoutSession.customerId,
-          transaction
-        )
-      ).unwrap()
-      const organization = (
-        await selectOrganizationById(
-          checkoutSession.organizationId,
-          transaction
-        )
-      ).unwrap()
-      return Result.ok({
-        checkoutSession,
-        sellerOrganization: organization,
-        customer,
-      })
+  const result = await adminTransaction(async ({ transaction }) => {
+    const checkoutSession = (
+      await selectCheckoutSessionById(checkoutSessionId, transaction)
+    ).unwrap()
+    // For non-AddPaymentMethod sessions or missing customerId, return null
+    // to signal a 404 case (vs throwing which would be a 500)
+    if (
+      checkoutSession.type !== CheckoutSessionType.AddPaymentMethod ||
+      !checkoutSession.customerId
+    ) {
+      return Result.ok(null)
     }
-  )
+    const customer = (
+      await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    ).unwrap()
+    const organization = (
+      await selectOrganizationById(
+        checkoutSession.organizationId,
+        transaction
+      )
+    ).unwrap()
+    return Result.ok({
+      checkoutSession,
+      sellerOrganization: organization,
+      customer,
+    })
+  })
 
   // Let transaction/DB errors surface as 500s
   const data = result.unwrap()

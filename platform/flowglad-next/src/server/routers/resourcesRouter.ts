@@ -3,6 +3,7 @@ import {
   editResourceSchema,
   resourcesClientSelectSchema,
 } from '@db-core/schema/resources'
+
 import {
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -11,6 +12,7 @@ import {
   idInputSchema,
 } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -27,6 +29,7 @@ import {
 } from '@/db/tableMethods/resourceMethods'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'resource',
@@ -134,14 +137,18 @@ const listPaginatedProcedure = protectedProcedure
   .input(resourcesPaginatedSelectSchema)
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectResourcesPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectResourcesPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getTableRowsProcedure = protectedProcedure

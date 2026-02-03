@@ -16,10 +16,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   countActiveResourceClaims,
   countActiveResourceClaimsBatch,
@@ -112,7 +109,7 @@ describe('resourceClaimMethods', () => {
   describe('insertResourceClaim and selectResourceClaimById', () => {
     it('should insert a resource claim and return it with generated id and claimedAt timestamp', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const inserted = await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'pet-1' }),
             transaction
@@ -141,7 +138,7 @@ describe('resourceClaimMethods', () => {
 
     it('should select a resource claim by id and return the same record', async () => {
       const inserted = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResourceClaim(
               createResourceClaimInsert({ externalId: 'pet-2' }),
@@ -152,7 +149,7 @@ describe('resourceClaimMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const selected = (
             await selectResourceClaimById(inserted.id, transaction)
           ).unwrap()
@@ -169,7 +166,7 @@ describe('resourceClaimMethods', () => {
   describe('countActiveResourceClaims', () => {
     it('returns 0 when no claims exist for the subscription+resource', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const count = await countActiveResourceClaims(
             {
               subscriptionId: subscription.id,
@@ -185,7 +182,7 @@ describe('resourceClaimMethods', () => {
 
     it('returns correct count of active claims, excluding released claims', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Insert 3 claims
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'active-1' }),
@@ -256,7 +253,7 @@ describe('resourceClaimMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create claims for the first resource
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'seat-1' }),
@@ -308,7 +305,7 @@ describe('resourceClaimMethods', () => {
   describe('selectActiveResourceClaims and selectResourceClaims', () => {
     it('returns all claims (active and released) from selectResourceClaims, but only active from selectActiveResourceClaims', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'claim-a' }),
             transaction
@@ -350,7 +347,7 @@ describe('resourceClaimMethods', () => {
   describe('external_id uniqueness for active claims', () => {
     it('should enforce external_id uniqueness for active claims on the same resource and subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create first claim with external_id 'user-123'
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'user-123' }),
@@ -361,20 +358,22 @@ describe('resourceClaimMethods', () => {
       ).unwrap()
 
       // Attempting to create another active claim with same external_id should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'user-123' }),
             transaction
           )
-        })
-      ).rejects.toThrow()
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should allow reusing external_id after the claim is released', async () => {
       // Create and release first claim
       const releasedClaim = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const claim = await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'recycled-id' }),
             transaction
@@ -394,7 +393,7 @@ describe('resourceClaimMethods', () => {
 
       // Now we should be able to create a new claim with the same external_id
       const newClaim = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResourceClaim(
               createResourceClaimInsert({
@@ -413,7 +412,7 @@ describe('resourceClaimMethods', () => {
 
     it('should allow different external_ids for active claims on the same resource and subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const claim1 = await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'user-a' }),
             transaction
@@ -433,7 +432,7 @@ describe('resourceClaimMethods', () => {
 
     it('should allow null external_id for multiple active claims', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const claim1 = await insertResourceClaim(
             createResourceClaimInsert({ externalId: null }),
             transaction
@@ -455,7 +454,7 @@ describe('resourceClaimMethods', () => {
   describe('selectActiveClaimByExternalId', () => {
     it('should find an active claim by externalId for the given resource and subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'findable' }),
             transaction
@@ -480,7 +479,7 @@ describe('resourceClaimMethods', () => {
 
     it('should return null when no active claim exists with the given externalId', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const found = await selectActiveClaimByExternalId(
             {
               resourceId: resource.id,
@@ -499,7 +498,7 @@ describe('resourceClaimMethods', () => {
     it('should not return released claims when searching by externalId', async () => {
       // Create and release a claim
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const claim = await insertResourceClaim(
             createResourceClaimInsert({
               externalId: 'released-claim',
@@ -512,7 +511,7 @@ describe('resourceClaimMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const found = await selectActiveClaimByExternalId(
             {
               resourceId: resource.id,
@@ -532,7 +531,7 @@ describe('resourceClaimMethods', () => {
   describe('releaseResourceClaim', () => {
     it('should release a claim by setting releasedAt timestamp and optional reason', async () => {
       const claim = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResourceClaim(
               createResourceClaimInsert({ externalId: 'to-release' }),
@@ -544,7 +543,7 @@ describe('resourceClaimMethods', () => {
 
       const beforeRelease = Date.now()
       const releasedClaim = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await releaseResourceClaim(
               {
@@ -568,7 +567,7 @@ describe('resourceClaimMethods', () => {
 
     it('should release a claim without a reason', async () => {
       const claim = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResourceClaim(
               createResourceClaimInsert({ externalId: 'no-reason' }),
@@ -579,7 +578,7 @@ describe('resourceClaimMethods', () => {
       ).unwrap()
 
       const releasedClaim = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await releaseResourceClaim({ id: claim.id }, transaction)
           )
@@ -608,7 +607,7 @@ describe('resourceClaimMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create 2 claims for resource 1
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'seat-1' }),
@@ -697,7 +696,7 @@ describe('resourceClaimMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create claims only for resource 1
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'seat-1' }),
@@ -722,7 +721,7 @@ describe('resourceClaimMethods', () => {
 
     it('returns empty map when resourceIds array is empty', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const counts = await countActiveResourceClaimsBatch(
             {
               subscriptionId: subscription.id,
@@ -739,7 +738,7 @@ describe('resourceClaimMethods', () => {
 
     it('excludes released claims from the count', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create 3 claims
           await insertResourceClaim(
             createResourceClaimInsert({ externalId: 'seat-1' }),

@@ -1,6 +1,6 @@
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { getDatabaseAuthenticationInfo } from '@/db/databaseAuthentication'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import InnerPricingModelDetailsPage from './InnerPricingModelDetailsPage'
@@ -32,7 +32,7 @@ const PricingModelPage = async ({
   }
 
   const pricingModel = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const [pricingModel] = await selectPricingModels(
         { id, organizationId }, // Filter by both id AND organizationId for security
         transaction

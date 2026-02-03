@@ -31,7 +31,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import {
   createAndFinalizeSubscriptionFeeCalculation,
@@ -71,7 +71,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       endDate: new Date('2023-01-31T23:59:59.999Z').getTime(),
     })
     const countries = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCountries(
             {
@@ -321,7 +321,7 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
     })
 
     const countries = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectCountries(
             {
@@ -337,7 +337,7 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
 
     // Usage prices should now work without product lookup
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await createAndFinalizeSubscriptionFeeCalculation(
             {

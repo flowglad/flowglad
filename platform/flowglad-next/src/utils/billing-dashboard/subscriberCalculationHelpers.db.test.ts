@@ -21,7 +21,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   calculateActiveSubscribersByMonth,
   calculateSubscriberBreakdown,
@@ -35,7 +35,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -90,7 +90,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -178,7 +178,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -214,7 +214,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -259,7 +259,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -305,7 +305,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -359,7 +359,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -429,7 +429,7 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -485,7 +485,7 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -526,7 +526,7 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -567,7 +567,7 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -625,7 +625,7 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -690,7 +690,7 @@ describe('calculateSubscriberBreakdown', () => {
     }
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -750,7 +750,7 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -811,7 +811,7 @@ describe('calculateSubscriberBreakdown', () => {
     }
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -834,7 +834,7 @@ describe('calculateSubscriberBreakdown', () => {
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -892,7 +892,7 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateSubscriberBreakdown(
             organization.id,
@@ -932,7 +932,7 @@ describe('getCurrentActiveSubscribers', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getCurrentActiveSubscribers(
             {
@@ -952,7 +952,7 @@ describe('getCurrentActiveSubscribers', () => {
     const { organization } = await setupOrg()
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getCurrentActiveSubscribers(
             {
@@ -989,7 +989,7 @@ describe('getCurrentActiveSubscribers', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getCurrentActiveSubscribers(
             {
@@ -1049,7 +1049,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1173,7 +1173,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for Product A only
     const resultA = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1194,7 +1194,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for Product B only
     const resultB = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1215,7 +1215,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for all products (no filter)
     const resultAll = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1267,7 +1267,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for Product B (which has no subscriptions)
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1322,7 +1322,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for this product
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1409,7 +1409,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for Product A - should find the subscription
     const resultA = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1430,7 +1430,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for Product B - should also find the same subscription
     const resultB = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
@@ -1451,7 +1451,7 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
 
     // Query for all products - should count the subscription only once
     const resultAll = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateActiveSubscribersByMonth(
             organization.id,
