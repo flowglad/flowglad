@@ -2,7 +2,6 @@
 import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
-import { Skeleton } from '@/components/ui/skeleton'
 import { type CreateCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import core from '@/utils/core'
 import CustomerFormFields from './CustomerFormFields'
@@ -28,10 +27,6 @@ const CreateCustomerFormModal = ({
   setIsOpen: (isOpen: boolean) => void
 }) => {
   const createCustomer = trpc.customers.create.useMutation()
-  const {
-    data: focusedMembership,
-    isLoading: isLoadingPricingModel,
-  } = trpc.organizations.getFocusedMembership.useQuery()
 
   const getDefaultValues = (): CreateCustomerInputSchema => ({
     customer: {
@@ -61,19 +56,7 @@ const CreateCustomerFormModal = ({
       isOpen={isOpen}
       setIsOpen={setIsOpen}
     >
-      <div className="flex flex-col gap-4">
-        <div className="text-xs text-muted-foreground">
-          {isLoadingPricingModel ? (
-            <Skeleton className="h-4 w-32" />
-          ) : (
-            <span>
-              Pricing Model:{' '}
-              {focusedMembership?.pricingModel.name ?? 'Unknown'}
-            </span>
-          )}
-        </div>
-        <CustomerFormFields showExternalId />
-      </div>
+      <CustomerFormFields showExternalId />
     </FormModal>
   )
 }
