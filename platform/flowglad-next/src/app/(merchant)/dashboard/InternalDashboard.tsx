@@ -234,6 +234,7 @@ function InternalDashboardPage({
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={focusedPricingModelId}
+        hidePricingModelSelect
       />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}

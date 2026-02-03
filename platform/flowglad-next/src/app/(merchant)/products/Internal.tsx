@@ -30,6 +30,7 @@ function Internal() {
         isOpen={isCreateProductOpen}
         setIsOpen={setIsCreateProductOpen}
         defaultPricingModelId={focusedPricingModelId}
+        hidePricingModelSelect
       />
     </>
   )
