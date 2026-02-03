@@ -802,5 +802,16 @@ export const createBillingEndpoints = (
       handler: routeToHandlerMap[FlowgladActionKey.GetPaymentMethods],
       options,
     }),
+    // Customer details endpoint
+    getCustomerDetails: createFlowgladBillingEndpoint({
+      actionKey: FlowgladActionKey.GetCustomerDetails,
+      validator:
+        flowgladActionValidators[
+          FlowgladActionKey.GetCustomerDetails
+        ],
+      handler:
+        routeToHandlerMap[FlowgladActionKey.GetCustomerDetails],
+      options,
+    }),
   }
 }
