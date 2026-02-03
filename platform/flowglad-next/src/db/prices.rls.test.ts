@@ -147,6 +147,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       const priceInsert: Price.SubscriptionInsert = {
         productId: product.id,
         name: 'Test Subscription Price',
+        slug: 'test_subscription_price',
         type: PriceType.Subscription,
         unitPrice: 1000,
         intervalUnit: IntervalUnit.Month,
@@ -180,6 +181,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
         usageMeterId: usageMeter.id,
         productId: null,
         name: 'Test Usage Price',
+        slug: 'test_usage_price',
         type: PriceType.Usage,
         unitPrice: 50,
         usageEventsPerUnit: 1,
@@ -220,6 +222,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       const priceInsert: Price.SubscriptionInsert = {
         productId: product.id, // org1's product
         name: 'Unauthorized Price',
+        slug: 'unauthorized_price',
         type: PriceType.Subscription,
         unitPrice: 1000,
         intervalUnit: IntervalUnit.Month,
@@ -255,6 +258,7 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
         usageMeterId: usageMeter.id, // org1's usage meter
         productId: null,
         name: 'Unauthorized Usage Price',
+        slug: 'unauthorized_usage_price',
         type: PriceType.Usage,
         unitPrice: 50,
         usageEventsPerUnit: 1,
