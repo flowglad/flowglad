@@ -29,9 +29,9 @@ const CreateCustomerFormModal = ({
 }) => {
   const createCustomer = trpc.customers.create.useMutation()
   const {
-    data: defaultPricingModel,
+    data: focusedMembership,
     isLoading: isLoadingPricingModel,
-  } = trpc.pricingModels.getDefault.useQuery({})
+  } = trpc.organizations.getFocusedMembership.useQuery()
 
   const getDefaultValues = (): CreateCustomerInputSchema => ({
     customer: {
@@ -68,7 +68,7 @@ const CreateCustomerFormModal = ({
           ) : (
             <span>
               Pricing Model:{' '}
-              {defaultPricingModel?.pricingModel.name ?? 'Unknown'}
+              {focusedMembership?.pricingModel.name ?? 'Unknown'}
             </span>
           )}
         </div>

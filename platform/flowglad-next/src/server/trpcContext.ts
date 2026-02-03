@@ -22,6 +22,7 @@ export const createContext = async (
   let organizationId: string | undefined
   let organization: Organization.Record | undefined
   let user: User.Record | undefined
+  let focusedPricingModelId: string | undefined
 
   if (betterAuthUserId) {
     const memberships = (
@@ -43,6 +44,7 @@ export const createContext = async (
       organization = maybeMembership.organization
       organizationId = organization!.id
       user = maybeMembership.user
+      focusedPricingModelId = membership.focusedPricingModelId
     } else {
       const [maybeUser] = (
         await adminTransaction(async ({ transaction }) => {
@@ -77,6 +79,7 @@ export const createContext = async (
     organization,
     isApi: false,
     apiKey: undefined,
+    focusedPricingModelId,
   }
 }
 
@@ -112,6 +115,7 @@ export const createApiContext = ({
       organization,
       environment,
       livemode: environment === 'live',
+      focusedPricingModelId: undefined,
     }
   }
 }
