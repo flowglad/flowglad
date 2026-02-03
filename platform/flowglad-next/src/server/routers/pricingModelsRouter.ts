@@ -14,7 +14,6 @@ import {
 } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
-import yaml from 'json-to-pretty-yaml'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -56,6 +55,19 @@ export const pricingModelsRouteConfigs = [
   ...routeConfigs,
   trpcToRest('pricingModels.clone'),
 ]
+
+export const exportPricingModelRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
+  'GET /pricing-models/:id/export': {
+    procedure: 'pricingModels.export',
+    pattern: /^pricing-models\/([^/]+)\/export$/,
+    mapParams: (matches) => ({
+      id: matches[0],
+    }),
+  },
+}
 export const getDefaultPricingModelRouteConfig: Record<
   string,
   RouteConfig
@@ -461,24 +473,61 @@ const setupPricingModelProcedure = protectedProcedure
   })
 
 const exportPricingModelProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/api/v1/pricing-models/{id}/export',
+      summary: 'Export a PricingModel',
+      tags: ['Pricing Models'],
+      protect: true,
+    },
+  })
   .input(idInputSchema)
   .output(
     z.object({
-      pricingModelYAML: z
+      pricingModel: setupPricingModelSchema.describe(
+        'JSON structure of the pricing model configuration'
+      ),
+      updatedAt: z
         .string()
-        .describe('YAML representation of the pricing model'),
+        .describe(
+          'ISO date string of when the pricing model was last updated'
+        ),
     })
   )
   .query(
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
+
+        // Fetch the pricing model to get updatedAt
+        const pricingModelResult = await selectPricingModelById(
+          input.id,
+          transaction
+        )
+        if (Result.isError(pricingModelResult)) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Pricing model ${input.id} not found`,
+          })
+        }
+        const pricingModel = pricingModelResult.unwrap()
+
+        // Get the setup data structure
         const data = await getPricingModelSetupData(
           input.id,
           transaction
         )
+        if (Result.isError(data)) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: data.error.message,
+          })
+        }
+
         return {
-          pricingModelYAML: yaml.stringify(data.unwrap()),
+          pricingModel: data.unwrap(),
+          updatedAt: new Date(pricingModel.updatedAt).toISOString(),
         }
       }
     )
