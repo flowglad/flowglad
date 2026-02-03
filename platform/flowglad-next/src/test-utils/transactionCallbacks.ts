@@ -1,9 +1,9 @@
 import type { Event } from '@db-core/schema/events'
 import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type {
+  AdminTransactionParams,
+  AuthenticatedTransactionParams,
   CacheRecomputationContext,
-  ComprehensiveAdminTransactionParams,
-  ComprehensiveAuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -24,6 +24,8 @@ export const noopEnqueueLedgerCommand = (
   ..._commands: LedgerCommand[]
 ): void => {}
 
+export const noopEnqueueTriggerTask = (): void => {}
+
 /**
  * Creates a TransactionEffectsContext that discards all effects.
  * Use this when the test doesn't need to verify or process callback behavior.
@@ -40,6 +42,7 @@ export function createDiscardingEffectsContext(
     invalidateCache: noopInvalidateCache,
     emitEvent: noopEmitEvent,
     enqueueLedgerCommand: noopEnqueueLedgerCommand,
+    enqueueTriggerTask: noopEnqueueTriggerTask,
   }
 }
 
@@ -135,6 +138,7 @@ export function createCapturingEffectsContext(
       transaction,
       cacheRecomputationContext,
       ...callbacks,
+      enqueueTriggerTask: noopEnqueueTriggerTask,
     },
     effects,
   }
@@ -144,23 +148,21 @@ export function createCapturingEffectsContext(
  * Creates a TransactionEffectsContext that processes effects through the
  * comprehensive transaction infrastructure.
  * Use this when calling functions that expect TransactionEffectsContext from within
- * comprehensiveAdminTransaction callbacks, to ensure effects are properly processed.
+ * adminTransaction callbacks, to ensure effects are properly processed.
  *
  * @example
  * ```typescript
- * await comprehensiveAdminTransaction(async (params) => {
+ * (await adminTransaction(async (params) => {
  *   await attemptToTransitionSubscriptionBillingPeriod(
  *     billingPeriod,
  *     createProcessingEffectsContext(params)
  *   )
  *   return { result: null }
- * })
+ * }).unwrap()
  * ```
  */
 export function createProcessingEffectsContext(
-  params:
-    | ComprehensiveAdminTransactionParams
-    | ComprehensiveAuthenticatedTransactionParams
+  params: AdminTransactionParams | AuthenticatedTransactionParams
 ): TransactionEffectsContext {
   return {
     transaction: params.transaction,
@@ -168,6 +170,7 @@ export function createProcessingEffectsContext(
     invalidateCache: params.invalidateCache,
     emitEvent: params.emitEvent,
     enqueueLedgerCommand: params.enqueueLedgerCommand,
+    enqueueTriggerTask: params.enqueueTriggerTask,
   }
 }
 
@@ -232,5 +235,6 @@ export function withDiscardingEffectsContext<
     invalidateCache: noopInvalidateCache,
     emitEvent: noopEmitEvent,
     enqueueLedgerCommand: noopEnqueueLedgerCommand,
+    enqueueTriggerTask: noopEnqueueTriggerTask,
   }
 }

@@ -471,7 +471,7 @@ export const processOutcomeForBillingRun = async (
     // Note: Result is checked for errors but the value is not used.
     // handleSubscriptionItemAdjustment handles cache invalidation internally.
     if (Result.isError(subscriptionItemAdjustmentResult)) {
-      throw subscriptionItemAdjustmentResult.error
+      return Result.err(subscriptionItemAdjustmentResult.error)
     }
 
     // Sync subscription record with updated items

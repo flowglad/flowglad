@@ -7,7 +7,7 @@ import {
 } from '@db-core/schema/memberships'
 import { Result } from 'better-result'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   getMembershipNotificationPreferences,
   selectMembershipById,
@@ -30,7 +30,7 @@ describe('memberships notificationPreferences', () => {
   describe('getMembershipNotificationPreferences', () => {
     it('returns expected defaults for new memberships via getMembershipNotificationPreferences', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Fetch the fresh membership
           const freshMembership = (
             await selectMembershipById(membership.id, transaction)
@@ -64,7 +64,7 @@ describe('memberships notificationPreferences', () => {
       }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateMembership(
             {
               id: membership.id,
@@ -101,7 +101,7 @@ describe('memberships notificationPreferences', () => {
 
     it('returns all defaults for a fresh membership', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const freshMembership = (
             await selectMembershipById(membership.id, transaction)
           ).unwrap()
@@ -132,7 +132,7 @@ describe('memberships notificationPreferences', () => {
       }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateMembership(
             {
               id: membership.id,

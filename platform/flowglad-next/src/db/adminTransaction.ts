@@ -2,8 +2,8 @@ import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type {
+  AdminTransactionParams,
   CacheRecomputationContext,
-  ComprehensiveAdminTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
 import { isNil } from '@/utils/core'
@@ -24,20 +24,6 @@ interface AdminTransactionOptions {
 // only works in the context of a nextjs sessionful runtime.
 
 /**
- * Executes a function within an admin database transaction.
- * Delegates to comprehensiveAdminTransaction by wrapping the result.
- */
-export async function adminTransaction<T>(
-  fn: (params: ComprehensiveAdminTransactionParams) => Promise<T>,
-  options: AdminTransactionOptions = {}
-): Promise<T> {
-  return comprehensiveAdminTransaction(async (params) => {
-    const result = await fn(params)
-    return Result.ok(result)
-  }, options)
-}
-
-/**
  * Core comprehensive admin transaction logic without tracing.
  * Returns the full Result plus processed counts so the traced wrapper can extract accurate metrics.
  *
@@ -45,9 +31,7 @@ export async function adminTransaction<T>(
  * This prevents TDZ errors when there are circular import dependencies.
  */
 async function executeComprehensiveAdminTransaction<T>(
-  fn: (
-    params: ComprehensiveAdminTransactionParams
-  ) => Promise<Result<T, Error>>,
+  fn: (params: AdminTransactionParams) => Promise<Result<T, Error>>,
   effectiveLivemode: boolean
 ): Promise<{
   output: Result<T, Error>
@@ -60,6 +44,7 @@ async function executeComprehensiveAdminTransaction<T>(
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = createEffectsAccumulator()
 
   let processedEventsCount = 0
@@ -75,7 +60,7 @@ async function executeComprehensiveAdminTransaction<T>(
     const cacheRecomputationContext: CacheRecomputationContext = {
       livemode: effectiveLivemode,
     }
-    const paramsForFn: ComprehensiveAdminTransactionParams = {
+    const paramsForFn: AdminTransactionParams = {
       transaction,
       userId: 'ADMIN',
       livemode: effectiveLivemode,
@@ -84,6 +69,7 @@ async function executeComprehensiveAdminTransaction<T>(
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
+      enqueueTriggerTask,
     }
 
     const output = await fn(paramsForFn)
@@ -116,61 +102,6 @@ async function executeComprehensiveAdminTransaction<T>(
 }
 
 /**
- * Executes a function within an admin database transaction and automatically processes
- * events and ledger commands via callback functions.
- *
- * @param fn - Function that receives admin transaction parameters (including emitEvent, enqueueLedgerCommand,
- *   invalidateCache callbacks) and returns a Result containing the result
- * @param options - Transaction options including livemode flag
- * @returns Promise resolving to the result value from the transaction function
- *
- * @example
- * ```ts
- * const result = await comprehensiveAdminTransaction(async ({ transaction, emitEvent, enqueueLedgerCommand }) => {
- *   // ... perform operations ...
- *   emitEvent(event1, event2)
- *   enqueueLedgerCommand({ type: 'credit', amount: 100 })
- *   return Result.ok(someValue)
- * })
- * ```
- */
-export async function comprehensiveAdminTransaction<T>(
-  fn: (
-    params: ComprehensiveAdminTransactionParams
-  ) => Promise<Result<T, Error>>,
-  options: AdminTransactionOptions = {}
-): Promise<T> {
-  const { livemode = true } = options
-  const effectiveLivemode = isNil(livemode) ? true : livemode
-
-  const { output } = await traced(
-    {
-      options: {
-        spanName: 'db.comprehensiveAdminTransaction',
-        tracerName: 'db.transaction',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'db.transaction.type': 'admin',
-          'db.user_id': 'ADMIN',
-          'db.livemode': effectiveLivemode,
-        },
-      },
-      extractResultAttributes: (data) => ({
-        // Use the actual processed counts, which include both effects callbacks and output
-        'db.events_count': data.processedEventsCount,
-        'db.ledger_commands_count': data.processedLedgerCommandsCount,
-      }),
-    },
-    () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
-  )()
-
-  if (output.status === 'error') {
-    throw output.error
-  }
-  return output.value
-}
-
-/**
  * Convenience wrapper for adminTransaction that takes a Result-returning
  * function and automatically unwraps the result.
  *
@@ -192,54 +123,49 @@ export async function adminTransactionUnwrap<T>(
   fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
   options?: AdminTransactionOptions
 ): Promise<T> {
-  return comprehensiveAdminTransaction(async (params) => {
+  const result = await adminTransaction(async (params) => {
     const ctx: TransactionEffectsContext = {
       transaction: params.transaction,
       cacheRecomputationContext: params.cacheRecomputationContext,
       invalidateCache: params.invalidateCache,
       emitEvent: params.emitEvent,
       enqueueLedgerCommand: params.enqueueLedgerCommand,
+      enqueueTriggerTask: params.enqueueTriggerTask,
     }
     return fn(ctx)
   }, options)
+  // Throw the original error directly to preserve TRPCError type
+  // (using .unwrap() would wrap it in a Panic error)
+  if (result.status === 'error') {
+    throw result.error
+  }
+  return result.value
 }
 
 /**
- * Executes a function within an admin database transaction and returns the Result directly.
+ * Executes a function within an admin database transaction.
+ * The callback receives full transaction parameters.
  *
- * Unlike `comprehensiveAdminTransaction` which unwraps and throws on error, this function
- * returns the Result for explicit error handling by the caller via `.unwrap()`.
- *
- * Use this when you need to:
- * - Chain multiple transactions and handle errors between them
- * - Return errors to callers without throwing
- * - Migrate code towards explicit Result handling
+ * The callback is responsible for returning a Result - this function passes through whatever
+ * Result the callback returns.
  *
  * @param fn - Function that receives admin transaction parameters and returns a Result
  * @param options - Transaction options including livemode flag
- * @returns Promise resolving to the Result (not unwrapped)
+ * @returns Promise resolving to the Result returned by the callback
  *
  * @example
  * ```ts
- * const result = await adminTransactionWithResult(async ({ transaction, emitEvent }) => {
- *   // ... perform operations ...
- *   emitEvent(event1)
- *   return Result.ok(someValue)
+ * const result = await adminTransaction(async ({ transaction }) => {
+ *   const customer = await selectCustomerById(customerId, transaction)
+ *   if (!customer) {
+ *     return Result.err(new NotFoundError('Customer', customerId))
+ *   }
+ *   return Result.ok(customer)
  * })
- *
- * // At router/API boundary, unwrap to convert to exceptions:
- * return result.unwrap()
- *
- * // Or handle errors explicitly:
- * if (Result.isError(result)) {
- *   // handle error
- * }
  * ```
  */
-export async function adminTransactionWithResult<T>(
-  fn: (
-    params: ComprehensiveAdminTransactionParams
-  ) => Promise<Result<T, Error>>,
+export async function adminTransaction<T>(
+  fn: (params: AdminTransactionParams) => Promise<Result<T, Error>>,
   options: AdminTransactionOptions = {}
 ): Promise<Result<T, Error>> {
   const { livemode = true } = options
@@ -249,7 +175,7 @@ export async function adminTransactionWithResult<T>(
     const { output } = await traced(
       {
         options: {
-          spanName: 'db.adminTransactionWithResult',
+          spanName: 'db.adminTransaction',
           tracerName: 'db.transaction',
           kind: SpanKind.CLIENT,
           attributes: {
@@ -278,3 +204,9 @@ export async function adminTransactionWithResult<T>(
     )
   }
 }
+
+/**
+ * Alias for adminTransactionUnwrap for compatibility.
+ * Executes a function within an admin database transaction and unwraps the result.
+ */
+export const comprehensiveAdminTransaction = adminTransactionUnwrap

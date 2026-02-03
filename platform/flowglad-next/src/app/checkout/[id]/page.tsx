@@ -3,7 +3,7 @@ import { Result } from 'better-result'
 import { notFound, redirect } from 'next/navigation'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   type CheckoutInfoCore,
   checkoutInfoSchema,
@@ -31,7 +31,7 @@ const CheckoutSessionPage = async ({
     discount,
     isEligibleForTrial,
   } = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       return Result.ok(
         await checkoutInfoForCheckoutSession(id, transaction)
       )

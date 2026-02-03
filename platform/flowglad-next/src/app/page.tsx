@@ -1,6 +1,6 @@
 import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectMembershipAndOrganizations,
   unfocusMembershipsForUser,
@@ -22,7 +22,7 @@ export default async function Home() {
   }
   const user = await betterAuthUserToApplicationUser(betterAuthUser)
   const membershipsAndOrganizations = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const memberships = await selectMembershipAndOrganizations(
         { userId: user.id },
         transaction

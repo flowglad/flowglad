@@ -2,6 +2,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
 import * as Sentry from '@sentry/nextjs'
 import type * as trpcNext from '@trpc/server/adapters/next'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizationsByBetterAuthUserId } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -41,8 +42,8 @@ export const createContext = async (
   let user: User.Record | undefined
 
   if (betterAuthUserId && isMerchantSession) {
-    const { memberships, fallbackUser } = await adminTransaction(
-      async ({ transaction }) => {
+    const { memberships, fallbackUser } = (
+      await adminTransaction(async ({ transaction }) => {
         const memberships =
           await selectMembershipAndOrganizationsByBetterAuthUserId(
             betterAuthUserId,
@@ -60,9 +61,9 @@ export const createContext = async (
                 transaction
               )
             )[0]
-        return { memberships, fallbackUser }
-      }
-    )
+        return Result.ok({ memberships, fallbackUser })
+      })
+    ).unwrap()
 
     const maybeMembership = memberships.find(
       (membership) => membership.membership.focused
@@ -71,7 +72,7 @@ export const createContext = async (
       const { membership } = maybeMembership
       environment = membership.livemode ? 'live' : 'test'
       organization = maybeMembership.organization
-      organizationId = organization.id
+      organizationId = organization!.id
       user = maybeMembership.user
     } else if (fallbackUser) {
       user = fallbackUser
@@ -124,8 +125,8 @@ export const createCustomerContext = async (
     organizationId = getSessionContextOrgId(session)
 
     // Look up user and organization in a single transaction
-    const { maybeUser, maybeOrganization } = await adminTransaction(
-      async ({ transaction }) => {
+    const { maybeUser, maybeOrganization } = (
+      await adminTransaction(async ({ transaction }) => {
         const [maybeUser] = await selectUsers(
           { betterAuthId: betterAuthUserId },
           transaction
@@ -143,9 +144,9 @@ export const createCustomerContext = async (
           }
         }
 
-        return { maybeUser, maybeOrganization }
-      }
-    )
+        return Result.ok({ maybeUser, maybeOrganization })
+      })
+    ).unwrap()
 
     if (maybeUser) {
       user = maybeUser
@@ -194,11 +195,14 @@ export const createApiContext = ({
       // @ts-expect-error - headers get
       .get('Authorization')
       ?.replace(/^Bearer\s/, '')
-    const organization = await adminTransaction(
-      async ({ transaction }) => {
-        return selectOrganizationById(organizationId, transaction)
-      }
-    )
+    const organization = (
+      await adminTransaction(async ({ transaction }) => {
+        const org = (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+        return Result.ok(org)
+      })
+    ).unwrap()
     return {
       apiKey,
       isApi: true,

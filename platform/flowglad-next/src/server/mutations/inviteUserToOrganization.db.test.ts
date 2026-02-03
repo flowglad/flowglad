@@ -15,7 +15,7 @@ import {
   setupUserAndApiKey,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectMemberships,
   updateMembership,
@@ -89,7 +89,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [newUser] = await selectUsers({ email }, transaction)
           expect(newUser.name).toBe(input.name)
 
@@ -143,7 +143,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
       expect(result).toEqual({ action: 'created' })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [newUser] = await selectUsers({ email }, transaction)
           expect(newUser.name).toBe('')
 
@@ -184,7 +184,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             {
               userId: existingUser.id,
@@ -211,7 +211,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const input = { email: existingUser.email! }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             {
               userId: existingUser.id,
@@ -234,7 +234,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
       expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             {
               userId: existingUser.id,
@@ -262,7 +262,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       // Deactivate the membership
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateMembership(
             { id: membership.id, deactivatedAt: Date.now() },
             transaction
@@ -273,7 +273,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       // Verify membership is deactivated (not visible in default query)
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const activeMemberships = await selectMemberships(
             {
               userId: removedUser.id,
@@ -304,7 +304,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       // Membership should be reactivated
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             {
               userId: removedUser.id,
@@ -331,7 +331,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
         })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateMembership(
             { id: membership.id, deactivatedAt: Date.now() },
             transaction
@@ -359,7 +359,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       // Verify reactivation happened
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             {
               userId: removedUser.id,

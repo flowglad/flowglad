@@ -750,7 +750,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       ctx
     )
     if (activationResult.status === 'error') {
-      throw activationResult.error
+      return Result.err(activationResult.error)
     }
     const { billingRun } = activationResult.value
 

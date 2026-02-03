@@ -1,6 +1,8 @@
 import { FlowgladActionKey } from '@flowglad/shared'
 import type { QueryClient } from '@tanstack/react-query'
 import { FEATURES_QUERY_KEY } from '../useFeatures'
+import { PAYMENT_METHODS_QUERY_KEY } from '../usePaymentMethods'
+import { SUBSCRIPTIONS_QUERY_KEY } from '../useSubscriptions'
 import { USAGE_METERS_QUERY_KEY } from '../useUsageMeters'
 
 /**
@@ -14,9 +16,13 @@ export const invalidateCustomerData = async (
   queryClient: QueryClient
 ) => {
   await Promise.all([
-    // Note: SUBSCRIPTIONS_QUERY_KEY will be added by M3 (subscription-hooks milestone)
-    // queryClient.invalidateQueries({ queryKey: [SUBSCRIPTIONS_QUERY_KEY] }),
+    queryClient.invalidateQueries({
+      queryKey: [SUBSCRIPTIONS_QUERY_KEY],
+    }),
     queryClient.invalidateQueries({ queryKey: [FEATURES_QUERY_KEY] }),
+    queryClient.invalidateQueries({
+      queryKey: [PAYMENT_METHODS_QUERY_KEY],
+    }),
     queryClient.invalidateQueries({
       queryKey: [USAGE_METERS_QUERY_KEY],
     }),

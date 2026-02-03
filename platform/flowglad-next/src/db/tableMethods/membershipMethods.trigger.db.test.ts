@@ -3,6 +3,7 @@ import type { Membership } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { User } from '@db-core/schema/users'
+import { Result } from 'better-result'
 import {
   setupOrg,
   setupUserAndApiKey,
@@ -60,63 +61,72 @@ describe('enforce_focused_pm_org_constraint_trigger', () => {
   describe('allows valid focusedPricingModelId', () => {
     it('allows setting focusedPricingModelId to a PM belonging to the same organization', async () => {
       // This should succeed - the PM belongs to the same org as the membership
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            focusedPricingModelId: livePricingModel.id,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: membership.id,
+              focusedPricingModelId: livePricingModel.id,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the update succeeded
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             { id: membership.id },
             transaction
           )
-          return memberships[0]
-        }
-      )
+          return Result.ok(memberships[0])
+        })
+      ).unwrap()
 
       expect(result.focusedPricingModelId).toBe(livePricingModel.id)
     })
 
     it('allows switching between PMs within the same organization', async () => {
       // Set to live PM
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            focusedPricingModelId: livePricingModel.id,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: membership.id,
+              focusedPricingModelId: livePricingModel.id,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Switch to test PM (same org)
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            focusedPricingModelId: testmodePricingModel.id,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: membership.id,
+              focusedPricingModelId: testmodePricingModel.id,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
 
       // Verify the update succeeded
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           const memberships = await selectMemberships(
             { id: membership.id },
             transaction
           )
-          return memberships[0]
-        }
-      )
+          return Result.ok(memberships[0])
+        })
+      ).unwrap()
 
       expect(result.focusedPricingModelId).toBe(
         testmodePricingModel.id
@@ -133,8 +143,8 @@ describe('enforce_focused_pm_org_constraint_trigger', () => {
       try {
         // Attempt to set focusedPricingModelId to a PM from a different org
         // This should fail due to the trigger
-        await expect(
-          adminTransaction(async ({ transaction }) => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
             await updateMembership(
               {
                 id: membership.id,
@@ -142,8 +152,10 @@ describe('enforce_focused_pm_org_constraint_trigger', () => {
               },
               transaction
             )
-          })
-        ).rejects.toThrow()
+            return Result.ok(undefined)
+          }
+        )
+        expect(Result.isError(result)).toBe(true)
       } finally {
         await teardownOrg({ organizationId: otherOrg.id })
       }
@@ -152,8 +164,8 @@ describe('enforce_focused_pm_org_constraint_trigger', () => {
     it('rejects setting focusedPricingModelId to a non-existent PM', async () => {
       // Attempt to set focusedPricingModelId to a non-existent PM
       // This should fail due to the trigger
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await updateMembership(
             {
               id: membership.id,
@@ -161,45 +173,48 @@ describe('enforce_focused_pm_org_constraint_trigger', () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow()
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
   describe('trigger error messages', () => {
-    it('throws error with details when attempting cross-org PM assignment', async () => {
+    it('returns error with details when attempting cross-org PM assignment', async () => {
       // Create another organization with its own pricing model
       const { organization: otherOrg, pricingModel: otherPm } =
         await setupOrg()
 
       try {
-        await adminTransaction(async ({ transaction }) => {
-          await updateMembership(
-            {
-              id: membership.id,
-              focusedPricingModelId: otherPm!.id,
-            },
-            transaction
-          )
-        })
-        // Should not reach here
-        expect(true).toBe(false)
-      } catch (error) {
-        // Verify an error is thrown (trigger enforces cross-org constraint)
-        expect(error).toBeInstanceOf(Error)
-        // The error message includes the failed query details
-        const errorMessage = (error as Error).message
-        expect(errorMessage).toContain('memberships')
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            await updateMembership(
+              {
+                id: membership.id,
+                focusedPricingModelId: otherPm!.id,
+              },
+              transaction
+            )
+            return Result.ok(undefined)
+          }
+        )
+        // Verify an error is returned (trigger enforces cross-org constraint)
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          // The error message includes the failed query details
+          expect(result.error.message).toContain('memberships')
+        }
       } finally {
         await teardownOrg({ organizationId: otherOrg.id })
       }
     })
 
-    it('throws error when attempting to set non-existent PM', async () => {
+    it('returns error when attempting to set non-existent PM', async () => {
       const nonExistentId = 'fake-pm-id-12345'
 
-      try {
-        await adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await updateMembership(
             {
               id: membership.id,
@@ -207,15 +222,14 @@ describe('enforce_focused_pm_org_constraint_trigger', () => {
             },
             transaction
           )
-        })
-        // Should not reach here
-        expect(true).toBe(false)
-      } catch (error) {
-        // Verify an error is thrown (trigger enforces PM existence)
-        expect(error).toBeInstanceOf(Error)
+          return Result.ok(undefined)
+        }
+      )
+      // Verify an error is returned (trigger enforces PM existence)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
         // The error message includes the failed query details
-        const errorMessage = (error as Error).message
-        expect(errorMessage).toContain('memberships')
+        expect(result.error.message).toContain('memberships')
       }
     })
   })

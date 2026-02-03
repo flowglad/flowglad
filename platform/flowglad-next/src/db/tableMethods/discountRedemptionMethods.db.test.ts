@@ -21,7 +21,7 @@ import {
   setupProduct,
   setupPurchase,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   insertDiscountRedemption,
@@ -81,7 +81,7 @@ describe('Discount Redemption Methods', () => {
   describe('insertDiscountRedemption', () => {
     it('should successfully insert discount redemption and derive pricingModelId from purchase', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const discountRedemption = await insertDiscountRedemption(
             {
               discountId: discount.id,
@@ -110,13 +110,13 @@ describe('Discount Redemption Methods', () => {
       ).unwrap()
     })
 
-    it('should throw an error when purchaseId does not exist', async () => {
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
-          const nonExistentPurchaseId = `purch_${core.nanoid()}`
+    it('should return an error when purchaseId does not exist', async () => {
+      const nonExistentPurchaseId = `purch_${core.nanoid()}`
 
-          await expect(
-            insertDiscountRedemption(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          try {
+            await insertDiscountRedemption(
               {
                 discountId: discount.id,
                 discountName: discount.name,
@@ -130,15 +130,18 @@ describe('Discount Redemption Methods', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('no-error' as const)
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const discountRedemption = await insertDiscountRedemption(
             {
               discountId: discount.id,
@@ -168,7 +171,7 @@ describe('Discount Redemption Methods', () => {
   describe('upsertDiscountRedemptionByPurchaseId', () => {
     it('should successfully upsert discount redemption and derive pricingModelId from purchase', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await upsertDiscountRedemptionByPurchaseId(
             {
               discountId: discount.id,
@@ -199,7 +202,7 @@ describe('Discount Redemption Methods', () => {
 
     it('should do nothing on conflict with existing discount redemption', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // First upsert (insert)
           const firstResult =
             await upsertDiscountRedemptionByPurchaseId(
@@ -256,7 +259,7 @@ describe('Discount Redemption Methods', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await upsertDiscountRedemptionByPurchaseId(
             {
               discountId: discount.id,

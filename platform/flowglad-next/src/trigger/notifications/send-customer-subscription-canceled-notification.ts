@@ -44,15 +44,15 @@ export const runSendCustomerSubscriptionCanceledNotification =
       },
       NotFoundError | ValidationError
     >
-    try {
-      const data = await adminTransaction(async ({ transaction }) => {
+    const transactionResult = await adminTransaction(
+      async ({ transaction }) => {
         // First fetch subscription to get organizationId and customerId
         const subscriptionResult = await selectSubscriptionById(
           subscriptionId,
           transaction
         )
         if (Result.isError(subscriptionResult)) {
-          throw subscriptionResult.error
+          return subscriptionResult
         }
         const subscription = subscriptionResult.value
 
@@ -67,27 +67,34 @@ export const runSendCustomerSubscriptionCanceledNotification =
           )
 
         // Fetch the product associated with the subscription for user-friendly naming
-        const price = subscription.priceId
-          ? (
-              await selectPriceById(subscription.priceId, transaction)
-            ).unwrap()
+        const priceResult = subscription.priceId
+          ? await selectPriceById(subscription.priceId, transaction)
           : null
-        const product =
-          price && Price.hasProductId(price)
-            ? (
-                await selectProductById(price.productId, transaction)
-              ).unwrap()
-            : null
+        if (priceResult && Result.isError(priceResult)) {
+          return priceResult
+        }
+        const price = priceResult ? priceResult.value : null
 
-        return {
+        const productResult =
+          price && Price.hasProductId(price)
+            ? await selectProductById(price.productId, transaction)
+            : null
+        if (productResult && Result.isError(productResult)) {
+          return productResult
+        }
+        const product = productResult ? productResult.value : null
+
+        return Result.ok({
           subscription,
           organization,
           customer,
           product,
-        }
-      })
-      dataResult = Result.ok(data)
-    } catch (error) {
+        })
+      }
+    )
+
+    if (Result.isError(transactionResult)) {
+      const error = transactionResult.error
       // Only convert NotFoundError to Result.err; rethrow other errors
       // for Trigger.dev to retry (e.g., transient DB failures)
       if (error instanceof NotFoundError) {
@@ -103,6 +110,8 @@ export const runSendCustomerSubscriptionCanceledNotification =
       } else {
         throw error
       }
+    } else {
+      dataResult = Result.ok(transactionResult.value)
     }
 
     if (Result.isError(dataResult)) {

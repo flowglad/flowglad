@@ -4,6 +4,7 @@ import {
   type Membership,
 } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -43,37 +44,42 @@ export const innerInviteUserToOrganizationHandler = async (
   defaultTestPricingModelId: string
 ): Promise<{ action: InviteAction }> => {
   // Use admin transaction to find user by email
-  const [userForEmail] = await adminTransaction(
-    async ({ transaction }) => {
-      return selectUsers({ email: input.email }, transaction)
-    }
-  )
+  const [userForEmail] = (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await selectUsers({ email: input.email }, transaction)
+      )
+    })
+  ).unwrap()
 
   if (!userForEmail) {
     // Create new user and membership
-    await adminTransaction(async ({ transaction }) => {
-      const databaseUser = await insertUser(
-        {
-          id: `user_${core.nanoid()}`,
-          email: input.email,
-          name: input.name ?? '',
-        },
-        transaction
-      )
-      // New memberships default to test mode (livemode: false)
-      // to ensure safe onboarding before production access
-      await insertMembership(
-        {
-          userId: databaseUser.id,
-          organizationId: focusedMembership.organization.id,
-          focused: false,
-          livemode: false,
-          role: MembershipRole.Member,
-          focusedPricingModelId: defaultTestPricingModelId,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const databaseUser = await insertUser(
+          {
+            id: `user_${core.nanoid()}`,
+            email: input.email,
+            name: input.name ?? '',
+          },
+          transaction
+        )
+        // New memberships default to test mode (livemode: false)
+        // to ensure safe onboarding before production access
+        await insertMembership(
+          {
+            userId: databaseUser.id,
+            organizationId: focusedMembership.organization.id,
+            focused: false,
+            livemode: false,
+            role: MembershipRole.Member,
+            focusedPricingModelId: defaultTestPricingModelId,
+          },
+          transaction
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
     await sendOrganizationInvitationEmail({
       to: [input.email],
       organizationName: focusedMembership.organization.name,
@@ -83,8 +89,8 @@ export const innerInviteUserToOrganizationHandler = async (
   }
 
   // Check for existing membership (including deactivated)
-  const action = await adminTransaction(
-    async ({ transaction }): Promise<InviteAction> => {
+  const action = (
+    await adminTransaction(async ({ transaction }) => {
       const membershipForUser = await selectMemberships(
         {
           userId: userForEmail.id,
@@ -104,10 +110,10 @@ export const innerInviteUserToOrganizationHandler = async (
             },
             transaction
           )
-          return 'reactivated'
+          return Result.ok('reactivated' as InviteAction)
         }
         // Already an active member
-        return 'already_member'
+        return Result.ok('already_member' as InviteAction)
       }
       // Create new membership for existing user
       // New memberships default to test mode (livemode: false)
@@ -123,9 +129,9 @@ export const innerInviteUserToOrganizationHandler = async (
         },
         transaction
       )
-      return 'created'
-    }
-  )
+      return Result.ok('created' as InviteAction)
+    })
+  ).unwrap()
 
   // Send email for all new/reactivated memberships (not if already an active member)
   if (action !== 'already_member') {
@@ -150,7 +156,7 @@ export const inviteUserToOrganization = protectedProcedure
   .input(inviteUserToOrganizationSchema)
   .mutation(async ({ input, ctx }) => {
     // Get focused membership (uses RLS to verify user has access)
-    const { focusedMembership, user: inviterUser } =
+    const { focusedMembership, user: inviterUser } = (
       await authenticatedTransaction(
         async ({ transaction, userId }) => {
           const focusedMembership =
@@ -164,32 +170,35 @@ export const inviteUserToOrganization = protectedProcedure
               transaction
             )
           ).unwrap()
-          return {
+          return Result.ok({
             focusedMembership,
             user,
-          }
+          })
         },
         {
           apiKey: ctx.apiKey,
         }
       )
+    ).unwrap()
 
     // Get the org's default test mode PM for new memberships.
     // Uses admin transaction to bypass livemode RLS filtering,
     // since the inviter may be in live mode but new memberships
     // always start in test mode for safe onboarding.
-    const [defaultTestPm] = await adminTransaction(
-      async ({ transaction }) => {
-        return selectPricingModels(
-          {
-            organizationId: focusedMembership.organization.id,
-            livemode: false,
-            isDefault: true,
-          },
-          transaction
+    const [defaultTestPm] = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectPricingModels(
+            {
+              organizationId: focusedMembership.organization.id,
+              livemode: false,
+              isDefault: true,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     if (!defaultTestPm) {
       throw new Error(
         `No default test mode pricing model found for organization ${focusedMembership.organization.id}`

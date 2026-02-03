@@ -147,10 +147,29 @@ export const IS_TEST =
   process.env.VERCEL_ENV !== 'production'
 
 /**
+ * Local playground mode flag.
+ *
+ * When enabled, the platform validates API keys against the local database
+ * instead of calling Unkey. This allows playground projects to work with
+ * locally-seeded API keys.
+ *
+ * Set FLOWGLAD_LOCAL_PLAYGROUND=true to enable.
+ *
+ * IMPORTANT: This flag is automatically disabled in production environments
+ * (VERCEL_ENV === 'production') to prevent misconfiguration from bypassing
+ * Unkey API key validation.
+ */
+export const IS_LOCAL_PLAYGROUND =
+  process.env.FLOWGLAD_LOCAL_PLAYGROUND === 'true' &&
+  process.env.VERCEL_ENV !== 'production'
+
+/**
  * Test database URL used by both local docker-compose and CI service containers.
  * Both environments provide PostgreSQL at localhost:5432 with identical credentials.
+ * Can be overridden via TEST_DB_URL environment variable for playground development.
  */
 export const TEST_DB_URL =
+  process.env.TEST_DB_URL ||
   'postgresql://test:test@localhost:5432/test_db'
 export const IS_DEV =
   !IS_PROD && process.env.NODE_ENV === 'development'
@@ -212,6 +231,29 @@ export const formatDateRange = ({
 export const log = Sentry.captureMessage
 
 export const error = IS_PROD ? Sentry.captureException : console.error
+
+/**
+ * Captures an exception to Sentry and returns the event ID for correlation.
+ * In non-production environments, logs to console.error and returns undefined.
+ *
+ * Use this when you need to correlate Better Stack logs with Sentry events:
+ * ```typescript
+ * const sentryEventId = captureError(error)
+ * logger.error('Something went wrong', { sentry_event_id: sentryEventId })
+ * ```
+ */
+export const captureError = (
+  exception: Error | unknown,
+  captureContext?: Parameters<typeof Sentry.captureException>[1]
+): string | undefined => {
+  if (IS_PROD) {
+    const eventId = Sentry.captureException(exception, captureContext)
+    return eventId
+  }
+  // In non-prod, log to console but don't send to Sentry
+  console.error('[captureError]', exception)
+  return undefined
+}
 
 export const noOp = () => {}
 
@@ -528,6 +570,7 @@ export const safeZodSanitizedString = z
 export const core = {
   IS_PROD,
   IS_TEST,
+  IS_LOCAL_PLAYGROUND,
   TEST_DB_URL,
   DEV_ENVIRONMENT_NOTIF_PREFIX,
   NEXT_PUBLIC_APP_URL,
@@ -544,6 +587,7 @@ export const core = {
   devPrefixString,
   log,
   error,
+  captureError,
   noOp,
   isNil,
   groupBy,

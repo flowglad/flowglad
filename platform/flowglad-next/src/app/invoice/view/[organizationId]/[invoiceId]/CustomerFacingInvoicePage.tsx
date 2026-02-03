@@ -1,6 +1,6 @@
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -18,7 +18,7 @@ export const CustomerFacingInvoicePage = (
   }) => {
     const { invoiceId, organizationId } = await params
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const invoicesWithLineItems =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
             { id: invoiceId },

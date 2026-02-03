@@ -14,11 +14,14 @@ import type { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { routes } from '@/app/api/v1/[...path]/restRoutes'
+import { db } from '@/db/client'
+import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { appRouter } from '@/server'
 import { createApiContext } from '@/server/trpcContext'
 import { type ApiEnvironment } from '@/types'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
-import core from '@/utils/core'
+import core, { captureError } from '@/utils/core'
 import { logger } from '@/utils/logger'
 import {
   type PaginationParams,
@@ -47,6 +50,84 @@ const parseErrorMessage = (rawMessage: string) => {
     return rawMessage
   }
   return parsedMessage
+}
+
+/**
+ * Helper to get current trace ID from active span.
+ */
+function getTraceId(): string | undefined {
+  const span = trace.getActiveSpan()
+  return span?.spanContext().traceId
+}
+
+/**
+ * Creates response helpers with request ID and trace context baked in.
+ * These helpers ensure all responses include correlation headers for Better Stack.
+ */
+function createResponseHelpers(requestId: string) {
+  const getHeaders = (): HeadersInit => ({
+    'X-Request-Id': requestId,
+    ...(getTraceId() && { 'X-Trace-Id': getTraceId()! }),
+  })
+
+  return {
+    /**
+     * JSON response with correlation headers
+     */
+    json: <T>(
+      data: T,
+      init?: { status?: number; headers?: HeadersInit }
+    ): NextResponse<T> => {
+      return NextResponse.json(data, {
+        ...init,
+        headers: {
+          ...getHeaders(),
+          ...init?.headers,
+        },
+      })
+    },
+
+    /**
+     * Error response with trace context in body for Better Stack correlation.
+     * Includes request_id, trace_id, and sentry_event_id so monitors can link to logs/traces/Sentry.
+     */
+    error: (
+      errorMessage: string | object,
+      init: {
+        status: number
+        code?: string
+        sentryEventId?: string
+      }
+    ): NextResponse => {
+      const traceId = getTraceId()
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          ...(init.code && { code: init.code }),
+          // Include correlation IDs in error responses for Better Stack
+          request_id: requestId,
+          ...(traceId && { trace_id: traceId }),
+          ...(init.sentryEventId && {
+            sentry_event_id: init.sentryEventId,
+          }),
+        },
+        {
+          status: init.status,
+          headers: getHeaders(),
+        }
+      )
+    },
+
+    /**
+     * Plain text response with correlation headers
+     */
+    text: (body: string, init?: { status?: number }): Response => {
+      return new Response(body, {
+        ...init,
+        headers: getHeaders(),
+      })
+    },
+  }
 }
 
 // NOTE: consolidated REST route mapping lives in `restRoutes.ts` so it can be unit-tested
@@ -82,6 +163,7 @@ const innerHandler = async (
   const tracer = trace.getTracer('rest-api')
   const requestId = crypto.randomUUID().slice(0, 8)
   const requestStartTime = Date.now()
+  const respond = createResponseHelpers(requestId)
 
   return tracer.startActiveSpan(
     `REST ${req.method}`,
@@ -118,7 +200,7 @@ const innerHandler = async (
             method: req.method,
             url: req.url,
           })
-          return new Response('Unauthorized', { status: 401 })
+          return respond.text('Unauthorized', { status: 401 })
         }
 
         const path = (await params).path.join('/')
@@ -190,7 +272,7 @@ const innerHandler = async (
         const routeMatchingStartTime = Date.now()
         const matchingRoute = Object.entries(routes).find(
           ([key, config]) => {
-            const [routeMethod, routePath] = key.split(' ')
+            const [routeMethod] = key.split(' ')
             return (
               req.method === routeMethod && config.pattern.test(path)
             )
@@ -222,7 +304,7 @@ const innerHandler = async (
             available_routes: Object.keys(routes).length,
           })
 
-          return new Response('Not Found', { status: 404 })
+          return respond.text('Not Found', { status: 404 })
         }
 
         const [routeKey, route] = matchingRoute
@@ -304,10 +386,9 @@ const innerHandler = async (
                 }
               )
 
-              return NextResponse.json(
-                { error: 'Invalid JSON in request body' },
-                { status: 400 }
-              )
+              return respond.error('Invalid JSON in request body', {
+                status: 400,
+              })
             }
           }
         }
@@ -417,10 +498,9 @@ const innerHandler = async (
               }
             )
 
-            return NextResponse.json(
-              { error: (error as Error).message },
-              { status: 400 }
-            )
+            return respond.error((error as Error).message, {
+              status: 400,
+            })
           }
         }
 
@@ -494,6 +574,33 @@ const innerHandler = async (
 
           const totalDuration = Date.now() - requestStartTime
 
+          // Capture to Sentry only for 5xx server errors (not client errors)
+          let sentryEventId: string | undefined
+          if (httpStatus >= 500) {
+            sentryEventId = captureError(
+              new Error(
+                typeof errorMessage === 'string'
+                  ? errorMessage
+                  : JSON.stringify(errorMessage)
+              ),
+              {
+                tags: {
+                  request_id: requestId,
+                  error_code: errorCode,
+                  error_category: errorCategory,
+                  procedure: route.procedure,
+                },
+                extra: {
+                  path,
+                  method: req.method,
+                  organization_id: organizationId,
+                  http_status: httpStatus,
+                  stack: responseJson.error.json.data.stack,
+                },
+              }
+            )
+          }
+
           parentSpan.setStatus({
             code: SpanStatusCode.ERROR,
             message: errorMessage as string,
@@ -507,6 +614,9 @@ const innerHandler = async (
             'perf.total_duration_ms': totalDuration,
             'perf.response_serialization_duration_ms':
               responseSerializationDuration,
+            ...(sentryEventId && {
+              'sentry.event_id': sentryEventId,
+            }),
           })
 
           logger.error(`[${requestId}] REST API Error`, {
@@ -524,17 +634,14 @@ const innerHandler = async (
             pricing_model_id: pricingModelId,
             total_duration_ms: totalDuration,
             stack: responseJson.error.json.data.stack,
+            sentry_event_id: sentryEventId,
           })
 
-          return NextResponse.json(
-            {
-              error: errorMessage,
-              code: errorCode,
-            },
-            {
-              status: httpStatus,
-            }
-          )
+          return respond.error(errorMessage, {
+            status: httpStatus,
+            code: errorCode,
+            sentryEventId,
+          })
         }
 
         // Success response
@@ -589,10 +696,22 @@ const innerHandler = async (
           span: parentSpan, // Pass span explicitly for trace correlation
         })
 
-        return NextResponse.json(responseData)
+        return respond.json(responseData)
       } catch (error) {
         // Catch any unexpected errors
         const totalDuration = Date.now() - requestStartTime
+
+        // Capture to Sentry and get event ID for correlation
+        const sentryEventId = captureError(error, {
+          tags: {
+            request_id: requestId,
+            method: req.method,
+          },
+          extra: {
+            url: req.url,
+            total_duration_ms: totalDuration,
+          },
+        })
 
         parentSpan.recordException(error as Error)
         parentSpan.setStatus({
@@ -605,6 +724,7 @@ const innerHandler = async (
           'error.message': (error as Error).message,
           'http.status_code': 500,
           'perf.total_duration_ms': totalDuration,
+          ...(sentryEventId && { 'sentry.event_id': sentryEventId }),
         })
 
         const errorApiEnvironment = req.unkey
@@ -621,12 +741,13 @@ const innerHandler = async (
           total_duration_ms: totalDuration,
           rest_sdk_version: sdkVersion,
           span: parentSpan, // Pass span explicitly for trace correlation
+          sentry_event_id: sentryEventId,
         })
 
-        return NextResponse.json(
-          { error: 'Internal server error' },
-          { status: 500 }
-        )
+        return respond.error('Internal server error', {
+          status: 500,
+          sentryEventId,
+        })
       } finally {
         parentSpan.end()
       }
@@ -923,13 +1044,270 @@ const withVerification = (
   }
 }
 
+/**
+ * Local verification middleware for playground development.
+ *
+ * Instead of calling Unkey, this middleware looks up the API key in the local
+ * database and constructs a verification result from the database record.
+ *
+ * This allows playground projects to work with locally-seeded API keys.
+ */
+const withLocalVerification = (
+  handler: (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => Promise<Response>
+): ((
+  req: NextRequestWithUnkeyContext,
+  context: FlowgladRESTRouteContext
+) => Promise<Response>) => {
+  return async (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => {
+    const tracer = trace.getTracer('rest-api-auth-local')
+
+    return tracer.startActiveSpan(
+      'Local API Key Verification',
+      { kind: SpanKind.INTERNAL },
+      async (authSpan) => {
+        try {
+          const headerSet = await headers()
+          const authorizationHeader = headerSet.get('Authorization')
+
+          if (!authorizationHeader) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Missing authorization header',
+            })
+            logger.warn(
+              'REST API Local Auth Failed: Missing authorization header',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+              }
+            )
+            return new Response(
+              'Unauthorized. Authorization header is required.',
+              { status: 401 }
+            )
+          }
+
+          const apiKey = getApiKeyHeader(authorizationHeader)
+          if (!apiKey) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Invalid authorization format',
+            })
+            logger.warn(
+              'REST API Local Auth Failed: Invalid authorization format',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+              }
+            )
+            return new Response(
+              'Invalid authorization format. Use "Bearer <key>" or "<key>".',
+              { status: 401 }
+            )
+          }
+
+          const keyPrefix = apiKey.substring(0, 8)
+          authSpan.setAttributes({
+            'auth.key_prefix': keyPrefix,
+            'auth.mode': 'local_playground',
+          })
+
+          // Look up the API key and membership in the local database
+          // Wrap in try-catch to return clear auth errors instead of 500s
+          let localAuthResult:
+            | { success: false; error: 'not_found' | 'db_error' }
+            | {
+                success: true
+                apiKeyRecord: NonNullable<
+                  Awaited<ReturnType<typeof selectApiKeys>>[0]
+                >
+                userId: string
+              }
+
+          try {
+            localAuthResult = await db.transaction(async (tx) => {
+              const apiKeyRecords = await selectApiKeys(
+                { token: apiKey, active: true },
+                tx
+              )
+              const apiKeyRecord = apiKeyRecords[0]
+
+              if (!apiKeyRecord) {
+                return {
+                  success: false as const,
+                  error: 'not_found' as const,
+                }
+              }
+
+              // Look up a userId from the organization's memberships
+              // This is needed because the API key metadata schema requires userId
+              const membershipRecords = await selectMemberships(
+                { organizationId: apiKeyRecord.organizationId },
+                tx
+              )
+              const membership = membershipRecords[0]
+
+              return {
+                success: true as const,
+                apiKeyRecord,
+                userId: membership?.userId ?? 'local_playground_user',
+              }
+            })
+          } catch (dbError) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Database error during local auth',
+            })
+            authSpan.setAttributes({
+              'auth.error': 'db_error',
+              'auth.error_message':
+                dbError instanceof Error
+                  ? dbError.message
+                  : String(dbError),
+            })
+            logger.error(
+              'REST API Local Auth Failed: Database error',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+                error: dbError as Error,
+              }
+            )
+            return new Response(
+              'Authentication failed. Unable to verify API key.',
+              { status: 401 }
+            )
+          }
+
+          if (!localAuthResult.success) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'API key not found in local database',
+            })
+            logger.warn(
+              'REST API Local Auth Failed: API key not found',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+              }
+            )
+            return new Response(
+              'API key invalid. Key not found in local database.',
+              { status: 401 }
+            )
+          }
+
+          const { apiKeyRecord, userId } = localAuthResult
+
+          // Explicit guard for apiKeyRecord - this should never happen after
+          // the success check above, but provides defense-in-depth and satisfies
+          // TypeScript narrowing in case of any edge cases
+          if (!apiKeyRecord) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'API key record missing after validation',
+            })
+            logger.error(
+              'REST API Local Auth Failed: Unexpected missing apiKeyRecord',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+              }
+            )
+            return new Response(
+              'Authentication failed. Invalid API key state.',
+              { status: 401 }
+            )
+          }
+
+          // Construct a result object similar to what Unkey returns
+          const environment = apiKeyRecord.livemode ? 'live' : 'test'
+          const result = {
+            valid: true,
+            code: 'VALID' as const,
+            ownerId: apiKeyRecord.organizationId,
+            environment,
+            meta: {
+              type: apiKeyRecord.type,
+              userId,
+              organizationId: apiKeyRecord.organizationId,
+              pricingModelId: apiKeyRecord.pricingModelId,
+            },
+          }
+
+          authSpan.setStatus({ code: SpanStatusCode.OK })
+          authSpan.setAttributes({
+            'auth.success': true,
+            'auth.environment': environment,
+            'auth.organization_id': apiKeyRecord.organizationId,
+            'auth.pricing_model_id': apiKeyRecord.pricingModelId,
+          })
+
+          logger.info('REST API Local Auth Success', {
+            service: 'api',
+            apiEnvironment: environment as ApiEnvironment,
+            method: req.method,
+            url: req.url,
+            key_prefix: keyPrefix,
+            organization_id: apiKeyRecord.organizationId,
+            pricing_model_id: apiKeyRecord.pricingModelId,
+          })
+
+          // Set user context in Sentry
+          Sentry.setUser({
+            id: apiKeyRecord.organizationId,
+          })
+
+          const reqWithUnkey = Object.assign(req, {
+            unkey: result,
+          })
+
+          return handler(reqWithUnkey, context)
+        } finally {
+          authSpan.end()
+        }
+      }
+    )
+  }
+}
+
 const routeHandler = async (
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> }
 ): Promise<Response> => {
-  const handler = core.IS_TEST
-    ? innerHandler
-    : withVerification(innerHandler)
+  // Choose the appropriate verification middleware based on environment
+  let handler: (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => Promise<Response>
+
+  if (core.IS_TEST && !core.IS_LOCAL_PLAYGROUND) {
+    // Test mode without local playground: skip verification entirely
+    // (tests call tRPC directly, not through REST API routes)
+    handler = innerHandler
+  } else if (core.IS_LOCAL_PLAYGROUND) {
+    // Local playground mode: validate against local database
+    // This populates req.unkey which innerHandler requires
+    handler = withLocalVerification(innerHandler)
+  } else {
+    // Production: validate against Unkey
+    handler = withVerification(innerHandler)
+  }
+
   return handler(
     request as NextRequestWithUnkeyContext,
     context as FlowgladRESTRouteContext

@@ -1,6 +1,6 @@
 import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { getCustomerSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
@@ -25,7 +25,7 @@ const BillingPortalRedirectPage = async ({
   // Security is enforced by customerSessionProcedure (validates user session + organizationId)
   // and the query filter (userId + organizationId + livemode).
   const customers = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await authenticatedTransaction(async ({ transaction }) => {
       return Result.ok(
         await selectCustomers(
           { userId: user.id, organizationId, livemode: true },

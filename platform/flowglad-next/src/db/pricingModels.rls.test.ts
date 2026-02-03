@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import type { PricingModel } from '@db-core/schema/pricingModels'
+import { Result } from 'better-result'
 import {
   setupOrg,
   setupPricingModel,
@@ -59,21 +60,24 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         livemode: false,
         isDefault: false,
       }
-      let createdPricingModel: PricingModel.ClientRecord | undefined
-      await authenticatedTransaction(
-        async (params) => {
-          createdPricingModel = await insertPricingModel(
-            pricingModelInsert,
-            params.transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      const createdPricingModel = (
+        await authenticatedTransaction(
+          async (params) => {
+            return Result.ok(
+              await insertPricingModel(
+                pricingModelInsert,
+                params.transaction
+              )
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
       expect(createdPricingModel).toMatchObject({
         name: pricingModelInsert.name,
       })
-      expect(createdPricingModel!.name).toBe(pricingModelInsert.name)
-      expect(createdPricingModel!.organizationId).toBe(
+      expect(createdPricingModel.name).toBe(pricingModelInsert.name)
+      expect(createdPricingModel.organizationId).toBe(
         org1Data.organization.id
       )
     })
@@ -85,45 +89,46 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         livemode: false,
         isDefault: false,
       }
-      await expect(
-        authenticatedTransaction(
-          async (params) => {
-            await insertPricingModel(
-              pricingModelInsert,
-              params.transaction
-            )
-          },
-          { apiKey: org1ApiKeyToken }
-        ) // Authenticated as Org1 user
-      ).rejects.toThrow() // RLS should prevent this action
+      const result = await authenticatedTransaction(
+        async (params) => {
+          await insertPricingModel(
+            pricingModelInsert,
+            params.transaction
+          )
+          return Result.ok(undefined)
+        },
+        { apiKey: org1ApiKeyToken }
+      ) // Authenticated as Org1 user
+      expect(Result.isError(result)).toBe(true) // RLS should prevent this action
     })
   })
 
   // Test cases for reading pricingModels
   describe('selectPricingModelById - Organization Policy', () => {
     it('should ALLOW a user to read pricingModels within their own organization', async () => {
-      let fetchedPricingModel1: PricingModel.ClientRecord | null =
-        null
-      let fetchedPricingModel2: PricingModel.ClientRecord | null =
-        null
-
-      await authenticatedTransaction(
-        async (params) => {
-          fetchedPricingModel1 = (
-            await selectPricingModelById(
-              org1DefaultPricingModel.id,
-              params.transaction
-            )
-          ).unwrap()
-          fetchedPricingModel2 = (
-            await selectPricingModelById(
-              org1ExtraPricingModel.id,
-              params.transaction
-            )
-          ).unwrap()
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      const { fetchedPricingModel1, fetchedPricingModel2 } = (
+        await authenticatedTransaction(
+          async (params) => {
+            const pm1 = (
+              await selectPricingModelById(
+                org1DefaultPricingModel.id,
+                params.transaction
+              )
+            ).unwrap()
+            const pm2 = (
+              await selectPricingModelById(
+                org1ExtraPricingModel.id,
+                params.transaction
+              )
+            ).unwrap()
+            return Result.ok({
+              fetchedPricingModel1: pm1,
+              fetchedPricingModel2: pm2,
+            })
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       expect(fetchedPricingModel1).toMatchObject({
         id: org1DefaultPricingModel.id,
@@ -131,26 +136,30 @@ describe('Pricing Models RLS - Organization Policy', async () => {
       expect(fetchedPricingModel2).toMatchObject({
         id: org1ExtraPricingModel.id,
       })
-      expect(fetchedPricingModel2!.id).toBe(org1ExtraPricingModel.id)
+      expect(fetchedPricingModel2.id).toBe(org1ExtraPricingModel.id)
     })
 
     it('should DENY a user from reading pricingModels of another organization', async () => {
-      await expect(
-        authenticatedTransaction(
-          async (params) => {
-            // This call is expected to throw due to RLS / not found
-            ;(
-              await selectPricingModelById(
-                org2DefaultPricingModel.id, // Attempting to read Org2's pricingModel
-                params.transaction
-              )
-            ).unwrap()
-          },
-          { apiKey: org1ApiKeyToken }
-        ) // Authenticated as Org1 user
-      ).rejects.toThrow(
-        `No pricing models found with id: ${org2DefaultPricingModel.id}`
-      )
+      const result = await authenticatedTransaction(
+        async (params) => {
+          // This call is expected to fail due to RLS / not found
+          const selectResult = await selectPricingModelById(
+            org2DefaultPricingModel.id, // Attempting to read Org2's pricingModel
+            params.transaction
+          )
+          if (Result.isError(selectResult)) {
+            return Result.err(selectResult.error)
+          }
+          return Result.ok(selectResult.value)
+        },
+        { apiKey: org1ApiKeyToken }
+      ) // Authenticated as Org1 user
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `No pricing models found with id: ${org2DefaultPricingModel.id}`
+        )
+      }
     })
   })
 
@@ -158,38 +167,41 @@ describe('Pricing Models RLS - Organization Policy', async () => {
   describe('updatePricingModel - Organization Policy', () => {
     it('should ALLOW a user to update pricingModels within their own organization', async () => {
       const newName = 'Updated Org1 Default Pricing Model Name'
-      let updatedPricingModel: PricingModel.ClientRecord | undefined
 
-      await authenticatedTransaction(
-        async (ctx) => {
-          updatedPricingModel = await updatePricingModel(
-            { id: org1DefaultPricingModel.id, name: newName },
-            ctx
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      const updatedPricingModel = (
+        await authenticatedTransaction(
+          async (ctx) => {
+            return Result.ok(
+              await updatePricingModel(
+                { id: org1DefaultPricingModel.id, name: newName },
+                ctx
+              )
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       expect(updatedPricingModel).toMatchObject({ name: newName })
-      expect(updatedPricingModel!.name).toBe(newName)
-      expect(updatedPricingModel!.organizationId).toBe(
+      expect(updatedPricingModel.name).toBe(newName)
+      expect(updatedPricingModel.organizationId).toBe(
         org1Data.organization.id
       )
     })
 
     it('should DENY a user from updating pricingModels of another organization', async () => {
       const newName = 'Attempt to Update Org2 Pricing Model Name'
-      await expect(
-        authenticatedTransaction(
-          async (ctx) => {
-            await updatePricingModel(
-              { id: org2DefaultPricingModel.id, name: newName }, // Targeting Org2's pricingModel
-              ctx
-            )
-          },
-          { apiKey: org1ApiKeyToken }
-        ) // Authenticated as Org1 user
-      ).rejects.toThrow() // RLS should prevent this, update throws if ID not found/matched by RLS
+      const result = await authenticatedTransaction(
+        async (ctx) => {
+          await updatePricingModel(
+            { id: org2DefaultPricingModel.id, name: newName }, // Targeting Org2's pricingModel
+            ctx
+          )
+          return Result.ok(undefined)
+        },
+        { apiKey: org1ApiKeyToken }
+      ) // Authenticated as Org1 user
+      expect(Result.isError(result)).toBe(true) // RLS should prevent this, update throws if ID not found/matched by RLS
     })
   })
 })

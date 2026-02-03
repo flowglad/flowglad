@@ -10,7 +10,7 @@ import type { User } from '@db-core/schema/users'
 import * as Sentry from '@sentry/nextjs'
 import { Result } from 'better-result'
 import { headers } from 'next/headers'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertUser,
@@ -82,7 +82,7 @@ export default async function RootLayout({
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         if (!user) {
           throw new Error('User not found')
         }

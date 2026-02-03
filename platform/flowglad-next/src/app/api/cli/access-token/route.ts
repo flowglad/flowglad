@@ -71,74 +71,79 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { organizationId, pricingModelId, livemode } = body
 
   // Validate user has access to the organization and pricing model
-  const validationResult = await adminTransaction(
-    async ({ transaction }): Promise<ValidationResult> => {
-      // Get the application user from their Better Auth ID
-      const [applicationUser] = await selectUsers(
-        { betterAuthId: betterAuthUserId },
-        transaction
-      )
+  const validationResult = (
+    await adminTransaction(
+      async ({
+        transaction,
+      }): Promise<Result<ValidationResult, Error>> => {
+        // Get the application user from their Better Auth ID
+        const [applicationUser] = await selectUsers(
+          { betterAuthId: betterAuthUserId },
+          transaction
+        )
 
-      if (!applicationUser) {
-        return {
-          valid: false,
-          error: 'User not found',
-          status: 404,
+        if (!applicationUser) {
+          return Result.ok({
+            valid: false,
+            error: 'User not found',
+            status: 404,
+          })
         }
-      }
 
-      // Check membership in the organization
-      const memberships = await selectMemberships(
-        { userId: applicationUser.id, organizationId },
-        transaction
-      )
+        // Check membership in the organization
+        const memberships = await selectMemberships(
+          { userId: applicationUser.id, organizationId },
+          transaction
+        )
 
-      if (memberships.length === 0) {
-        return {
-          valid: false,
-          error: 'User does not have access to this organization',
-          status: 403,
+        if (memberships.length === 0) {
+          return Result.ok({
+            valid: false,
+            error: 'User does not have access to this organization',
+            status: 403,
+          })
         }
-      }
 
-      // Verify pricing model exists and belongs to the organization
-      const pricingModelResult = await selectPricingModelById(
-        pricingModelId,
-        transaction
-      )
+        // Verify pricing model exists and belongs to the organization
+        const pricingModelResult = await selectPricingModelById(
+          pricingModelId,
+          transaction
+        )
 
-      if (Result.isError(pricingModelResult)) {
-        return {
-          valid: false,
-          error: 'Pricing model not found',
-          status: 404,
+        if (Result.isError(pricingModelResult)) {
+          return Result.ok({
+            valid: false,
+            error: 'Pricing model not found',
+            status: 404,
+          })
         }
-      }
 
-      const pricingModel = pricingModelResult.value
-      if (pricingModel.organizationId !== organizationId) {
-        return {
-          valid: false,
-          error: 'Pricing model does not belong to this organization',
-          status: 403,
+        const pricingModel = pricingModelResult.value
+        if (pricingModel.organizationId !== organizationId) {
+          return Result.ok({
+            valid: false,
+            error:
+              'Pricing model does not belong to this organization',
+            status: 403,
+          })
         }
-      }
 
-      if (pricingModel.livemode !== livemode) {
-        return {
-          valid: false,
-          error: `Pricing model livemode mismatch. Expected ${livemode}, got ${pricingModel.livemode}`,
-          status: 400,
+        if (pricingModel.livemode !== livemode) {
+          return Result.ok({
+            valid: false,
+            error: `Pricing model livemode mismatch. Expected ${livemode}, got ${pricingModel.livemode}`,
+            status: 400,
+          })
         }
-      }
 
-      return {
-        valid: true,
-        userId: applicationUser.id,
-        pricingModel,
+        return Result.ok({
+          valid: true,
+          userId: applicationUser.id,
+          pricingModel,
+        })
       }
-    }
-  )
+    )
+  ).unwrap()
 
   if (!validationResult.valid) {
     return NextResponse.json(

@@ -1,10 +1,8 @@
 import * as Sentry from '@sentry/nextjs'
+import { Result } from 'better-result'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateSessionContextOrganizationId } from '@/db/tableMethods/betterAuthSchemaMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { CUSTOMER_COOKIE_PREFIX } from '@/utils/auth/constants'
@@ -70,7 +68,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const customer = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomerById(customerId, transaction)
       })
     ).unwrap()
@@ -173,15 +171,16 @@ export async function POST(request: NextRequest) {
           ? sessionToken.split('.')[0]
           : sessionToken
 
-        const updatedSession = await adminTransaction(
-          async ({ transaction }) => {
-            return updateSessionContextOrganizationId(
+        const updatedSession = (
+          await adminTransaction(async ({ transaction }) => {
+            const session = await updateSessionContextOrganizationId(
               rawToken,
               organizationId,
               transaction
             )
-          }
-        )
+            return Result.ok(session)
+          })
+        ).unwrap()
 
         // Verify the update succeeded - if no session was found, this is a critical error
         if (!updatedSession) {

@@ -42,6 +42,7 @@ import type { Price } from '@db-core/schema/prices'
 import { nulledPriceColumns } from '@db-core/schema/prices'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Product } from '@db-core/schema/products'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   insertCheckoutSession,
@@ -164,56 +165,58 @@ export const createProductWithPriceBehavior = defineBehavior({
     { contractTypeDep },
     prev: CompleteStripeOnboardingResult
   ): Promise<CreateProductWithPriceResult> => {
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const pricingModel = await selectDefaultPricingModel(
-        { organizationId: prev.organization.id, livemode: true },
-        transaction
-      )
+    const result = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const pricingModel = await selectDefaultPricingModel(
+          { organizationId: prev.organization.id, livemode: true },
+          transaction
+        )
 
-      if (!pricingModel) {
-        throw new Error('Default pricing model not found')
-      }
+        if (!pricingModel) {
+          throw new Error('Default pricing model not found')
+        }
 
-      const product = await insertProduct(
-        {
-          name: `Test Product ${core.nanoid()}`,
-          organizationId: prev.organization.id,
-          livemode: true,
-          description: 'Test product for checkout behavior test',
-          imageURL: null,
-          active: true,
-          singularQuantityLabel: 'item',
-          pluralQuantityLabel: 'items',
-          pricingModelId: pricingModel.id,
-          externalId: null,
-          default: false,
-          slug: `test-product-${core.nanoid()}`,
-        },
-        ctx
-      )
+        const product = await insertProduct(
+          {
+            name: `Test Product ${core.nanoid()}`,
+            organizationId: prev.organization.id,
+            livemode: true,
+            description: 'Test product for checkout behavior test',
+            imageURL: null,
+            active: true,
+            singularQuantityLabel: 'item',
+            pluralQuantityLabel: 'items',
+            pricingModelId: pricingModel.id,
+            externalId: null,
+            default: false,
+            slug: `test-product-${core.nanoid()}`,
+          },
+          ctx
+        )
 
-      const price = await insertPrice(
-        {
-          ...nulledPriceColumns,
-          productId: product.id,
-          name: 'Single Payment Price',
-          type: PriceType.SinglePayment,
-          unitPrice: 5000, // $50.00
-          livemode: true,
-          active: true,
-          isDefault: true,
-          currency: contractTypeDep.getCurrency(
-            prev.organization.defaultCurrency
-          ),
-          externalId: null,
-          slug: `test-price-${core.nanoid()}`,
-        },
-        ctx
-      )
+        const price = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Single Payment Price',
+            type: PriceType.SinglePayment,
+            unitPrice: 5000, // $50.00
+            livemode: true,
+            active: true,
+            isDefault: true,
+            currency: contractTypeDep.getCurrency(
+              prev.organization.defaultCurrency
+            ),
+            externalId: null,
+            slug: `test-price-${core.nanoid()}`,
+          },
+          ctx
+        )
 
-      return { product, price, pricingModel }
-    })
+        return Result.ok({ product, price, pricingModel })
+      })
+    ).unwrap()
 
     return {
       ...prev,
@@ -255,53 +258,55 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
     _deps,
     prev: CreateProductWithPriceResult
   ): Promise<InitiateCheckoutSessionResult> => {
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Create anonymous customer
-      const customer = await insertCustomer(
-        {
-          organizationId: prev.organization.id,
-          email: `customer+${core.nanoid()}@test.com`,
-          name: 'Test Customer',
-          externalId: core.nanoid(),
-          livemode: true,
-          stripeCustomerId: `cus_${core.nanoid()}`,
-          invoiceNumberBase: core.nanoid(),
-          pricingModelId: prev.pricingModel.id,
-        },
-        transaction
-      )
+    const result = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Create anonymous customer
+        const customer = await insertCustomer(
+          {
+            organizationId: prev.organization.id,
+            email: `customer+${core.nanoid()}@test.com`,
+            name: 'Test Customer',
+            externalId: core.nanoid(),
+            livemode: true,
+            stripeCustomerId: `cus_${core.nanoid()}`,
+            invoiceNumberBase: core.nanoid(),
+            pricingModelId: prev.pricingModel.id,
+          },
+          transaction
+        )
 
-      // Create checkout session without billing address
-      const checkoutSessionResult = await insertCheckoutSession(
-        {
-          organizationId: prev.organization.id,
+        // Create checkout session without billing address
+        const checkoutSessionResult = await insertCheckoutSession(
+          {
+            organizationId: prev.organization.id,
+            customerId: customer.id,
+            customerEmail: customer.email,
+            customerName: customer.name,
+            priceId: prev.price.id,
+            status: CheckoutSessionStatus.Open,
+            type: CheckoutSessionType.Product,
+            quantity: 1,
+            livemode: true,
+            targetSubscriptionId: null,
+            outputName: null,
+            invoiceId: null,
+            outputMetadata: {},
+            automaticallyUpdateSubscriptions: null,
+            preserveBillingCycleAnchor: false,
+            billingAddress: null,
+            paymentMethodType: PaymentMethodType.Card,
+          },
+          transaction
+        )
+        const checkoutSession = checkoutSessionResult.unwrap()
+
+        return Result.ok({
           customerId: customer.id,
-          customerEmail: customer.email,
-          customerName: customer.name,
-          priceId: prev.price.id,
-          status: CheckoutSessionStatus.Open,
-          type: CheckoutSessionType.Product,
-          quantity: 1,
-          livemode: true,
-          targetSubscriptionId: null,
-          outputName: null,
-          invoiceId: null,
-          outputMetadata: {},
-          automaticallyUpdateSubscriptions: null,
-          preserveBillingCycleAnchor: false,
-          billingAddress: null,
-          paymentMethodType: PaymentMethodType.Card,
-        },
-        transaction
-      )
-      const checkoutSession = checkoutSessionResult.unwrap()
-
-      return {
-        customerId: customer.id,
-        checkoutSession,
-      }
-    })
+          checkoutSession,
+        })
+      })
+    ).unwrap()
 
     return {
       ...prev,
@@ -356,33 +361,36 @@ export const applyDiscountBehavior = defineBehavior({
     }
 
     // Create the discount and link it to the checkout session
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Create discount for this organization
-      const discount = await insertDiscount(
-        {
-          ...discountInsert,
-          organizationId: prev.organization.id,
-          pricingModelId: prev.pricingModel.id,
-          livemode: true,
-        },
-        transaction
-      )
+    const result = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Create discount for this organization
+        const discount = await insertDiscount(
+          {
+            ...discountInsert,
+            organizationId: prev.organization.id,
+            pricingModelId: prev.pricingModel.id,
+            livemode: true,
+          },
+          transaction
+        )
 
-      // Update checkout session with discount
-      const checkoutSessionWithDiscount = await updateCheckoutSession(
-        {
-          ...prev.checkoutSession,
-          discountId: discount.id,
-        },
-        transaction
-      )
+        // Update checkout session with discount
+        const checkoutSessionWithDiscount =
+          await updateCheckoutSession(
+            {
+              ...prev.checkoutSession,
+              discountId: discount.id,
+            },
+            transaction
+          )
 
-      return {
-        discount,
-        checkoutSessionWithDiscount,
-      }
-    })
+        return Result.ok({
+          discount,
+          checkoutSessionWithDiscount,
+        })
+      })
+    ).unwrap()
 
     return {
       ...prev,
@@ -441,24 +449,26 @@ export const provideBillingAddressBehavior = defineBehavior({
         ? prev.checkoutSessionWithDiscount.id
         : prev.checkoutSession.id
 
-    const result = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const {
-        checkoutSession: updatedCheckoutSession,
-        feeCalculation,
-      } = await editCheckoutSessionBillingAddress(
-        {
-          checkoutSessionId,
-          billingAddress,
-        },
-        transaction
-      )
+    const result = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const {
+          checkoutSession: updatedCheckoutSession,
+          feeCalculation,
+        } = await editCheckoutSessionBillingAddress(
+          {
+            checkoutSessionId,
+            billingAddress,
+          },
+          transaction
+        )
 
-      return {
-        updatedCheckoutSession,
-        feeCalculation,
-      }
-    })
+        return Result.ok({
+          updatedCheckoutSession,
+          feeCalculation,
+        })
+      })
+    ).unwrap()
 
     // Build the checkoutSessionWithDiscount value:
     // - If we had a discount applied, use that session

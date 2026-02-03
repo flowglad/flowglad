@@ -25,7 +25,7 @@ import {
   setupOrg,
   setupPayment,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
@@ -667,7 +667,7 @@ describe('finalizeFeeCalculation', () => {
     const { organization, price } = await setupOrg()
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -695,7 +695,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -745,7 +745,7 @@ describe('finalizeFeeCalculation', () => {
     })
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -773,7 +773,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -812,7 +812,7 @@ describe('finalizeFeeCalculation', () => {
     })
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -840,7 +840,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -887,7 +887,7 @@ describe('finalizeFeeCalculation', () => {
     })
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -915,7 +915,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -952,7 +952,7 @@ describe('finalizeFeeCalculation', () => {
     })
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -980,7 +980,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -1019,7 +1019,7 @@ describe('finalizeFeeCalculation', () => {
     })
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -1047,7 +1047,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -1085,7 +1085,7 @@ describe('finalizeFeeCalculation', () => {
     })
     const baseFeePercentage = organization.feePercentage
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -1113,7 +1113,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -1144,7 +1144,7 @@ describe('finalizeFeeCalculation', () => {
     const lastMonth = new Date()
     lastMonth.setMonth(lastMonth.getMonth() - 2)
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertPayment(
             {
@@ -1171,7 +1171,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -1199,7 +1199,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )
@@ -1259,7 +1259,7 @@ describe('finalizeFeeCalculation', () => {
     })
 
     const feeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertFeeCalculation(
             {
@@ -1287,7 +1287,7 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
 
     const updatedFeeCalculation = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await finalizeFeeCalculation(feeCalculation, transaction)
         )

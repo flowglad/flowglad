@@ -27,7 +27,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 // Database query functions
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
@@ -54,19 +54,21 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     price = orgData.price
 
     // Enable feature flag for immediate adjustments
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      organization = await updateOrganization(
-        {
-          id: organization.id,
-          featureFlags: {
-            [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        organization = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+            },
           },
-        },
-        transaction
-      )
-      return Result.ok(null)
-    })
+          transaction
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
 
     // Set up customer
     customer = await setupCustomer({
@@ -129,966 +131,1326 @@ describe('Proration Logic - Payment Status Scenarios', () => {
   })
 
   it('should handle processing payment + upgrade mid-cycle with proper proration adjustments', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create payment with Processing status for $9.99
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Processing,
-        amount: 999, // $9.99
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Prepare upgrade to $49.99 plan
-      const upgradeItems: SubscriptionItem.Upsert[] = [
-        {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment with Processing status for $9.99
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Processing,
+          amount: 999, // $9.99
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
           subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Premium Plan',
-          quantity: 1,
-          unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
+          paymentMethodId: paymentMethod.id,
           livemode: true,
-          externalId: null,
-        },
-      ]
+        })
 
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
+        // Setup: Prepare upgrade to $49.99 plan
+        const upgradeItems: SubscriptionItem.Upsert[] = [
           {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: upgradeItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 4999, // $49.99
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
           },
-          organization,
-          ctx
+        ]
+
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: upgradeItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items to examine proration breakdown
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
         )
-      ).unwrap()
 
-      // Verify: Get billing period items to examine proration breakdown
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
+        // Since we set billing period to be 30 days before and after current date, we're at 50%
+        const percentRemaining = 0.5
 
-      // Since we set billing period to be 30 days before and after current date, we're at 50%
-      const percentRemaining = 0.5
+        // Verify proration items are created
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('correction')
+        )
+        if (correctionItems.length > 0) {
+          expect(correctionItems[0].name).toContain('Net charge: ')
+        }
 
-      // Verify proration items are created
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('correction')
-      )
-      if (correctionItems.length > 0) {
-        expect(correctionItems[0].name).toContain('Net charge: ')
-      }
+        // The current logic focuses on the total net charge, not individual proration amounts
+        // The correction adjustment ensures the total equals the calculated net charge
 
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
+        // Verify proration logic is working (removal credit + addition charge)
+        // The exact amounts depend on current date, but we verify the pattern is correct
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
 
-      // Verify proration logic is working (removal credit + addition charge)
-      // The exact amounts depend on current date, but we verify the pattern is correct
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
-
-      // Should have net positive charge since upgrading from $9.99 to $49.99
-      expect(totalProrationAmount).toBeGreaterThan(0)
-      return Result.ok(null)
-    })
+        // Should have net positive charge since upgrading from $9.99 to $49.99
+        expect(totalProrationAmount).toBeGreaterThan(0)
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should treat succeeded payment + upgrade mid-cycle the same as processing payment', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create payment with Succeeded status (instead of Processing)
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded, // Only difference from previous test
-        amount: 999, // $9.99
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Prepare upgrade to $49.99 plan
-      const upgradeItems: SubscriptionItem.Upsert[] = [
-        {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment with Succeeded status (instead of Processing)
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded, // Only difference from previous test
+          amount: 999, // $9.99
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
           subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Premium Plan',
-          quantity: 1,
-          unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
+          paymentMethodId: paymentMethod.id,
           livemode: true,
-          externalId: null,
-        },
-      ]
+        })
 
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
+        // Setup: Prepare upgrade to $49.99 plan
+        const upgradeItems: SubscriptionItem.Upsert[] = [
           {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: upgradeItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 4999, // $49.99
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
           },
-          organization,
-          ctx
+        ]
+
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: upgradeItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
+        // Verify: The new logic creates a single net charge adjustment item
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
 
-      // Verify: The new logic creates a single net charge adjustment item
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
+        // Should have exactly one proration adjustment item
+        expect(correctionItems).toHaveLength(1)
 
-      // Should have exactly one proration adjustment item
-      expect(correctionItems).toHaveLength(1)
+        // Processing and Succeeded payments should be treated identically
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
 
-      // Processing and Succeeded payments should be treated identically
-      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(correctionItems[0].name).toContain(
-        'Net charge adjustment'
-      )
+        // Verify the specific charge amount
+        // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
+        // Already paid: $9.99
+        // Net charge should be: ~$20.00
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(20, 0) // ~$20.00
 
-      // Verify the specific charge amount
-      // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
-      // Already paid: $9.99
-      // Net charge should be: ~$20.00
-      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(20, 0) // ~$20.00
-
-      // Verify final charge calculation
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
-      expect(999 + totalProrationAmount).toBeCloseTo(2999, 2) // Total ~$29.99, allow 2 cent tolerance
-      return Result.ok(null)
-    })
+        // Verify final charge calculation
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
+        expect(999 + totalProrationAmount).toBeCloseTo(2999, 2) // Total ~$29.99, allow 2 cent tolerance
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should ignore failed payment amount when calculating proration for upgrade', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create payment with Failed status
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Failed, // Failed payment should be ignored
-        amount: 999, // $9.99 (should not count toward existing payments)
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Prepare upgrade to $49.99 plan
-      const upgradeItems: SubscriptionItem.Upsert[] = [
-        {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment with Failed status
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Failed, // Failed payment should be ignored
+          amount: 999, // $9.99 (should not count toward existing payments)
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
           subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Premium Plan',
-          quantity: 1,
-          unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
+          paymentMethodId: paymentMethod.id,
           livemode: true,
-          externalId: null,
-        },
-      ]
+        })
 
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
+        // Setup: Prepare upgrade to $49.99 plan
+        const upgradeItems: SubscriptionItem.Upsert[] = [
           {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: upgradeItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 4999, // $49.99
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
           },
-          organization,
-          ctx
+        ]
+
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: upgradeItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
+        // Verify: The new logic creates a single net charge adjustment item
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
 
-      // Verify: The new logic creates a single net charge adjustment item
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
+        // Should have exactly one proration adjustment item
+        expect(correctionItems).toHaveLength(1)
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
 
-      // Should have exactly one proration adjustment item
-      expect(correctionItems).toHaveLength(1)
-      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(correctionItems[0].name).toContain(
-        'Net charge adjustment'
-      )
+        // Verify the specific charge amount
+        // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
+        // Already paid: $0.00 (failed payment ignored)
+        // Net charge should be: ~$30.00 (full fair value)
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(
+          3000 / 100,
+          0
+        ) // ~$30.00, allow 50 cent tolerance
 
-      // Verify the specific charge amount
-      // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
-      // Already paid: $0.00 (failed payment ignored)
-      // Net charge should be: ~$30.00 (full fair value)
-      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(
-        3000 / 100,
-        0
-      ) // ~$30.00, allow 50 cent tolerance
+        // Critical difference: Since failed payment is ignored, customer pays FULL fair value
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
 
-      // Critical difference: Since failed payment is ignored, customer pays FULL fair value
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
-
-      // Customer should pay full $29.99 since no successful payment exists
-      // This means proration adjustments alone should equal ~$29.99
-      expect(totalProrationAmount / 100).toBeCloseTo(2999 / 100, 0) // ~$29.99 from proration alone, allow 2 cent tolerance
-      return Result.ok(null)
-    })
+        // Customer should pay full $29.99 since no successful payment exists
+        // This means proration adjustments alone should equal ~$29.99
+        expect(totalProrationAmount / 100).toBeCloseTo(2999 / 100, 0) // ~$29.99 from proration alone, allow 2 cent tolerance
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should add new subscription items without removing existing items', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create payment for existing plan
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 999, // $9.99 for existing plan
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Add new subscription item WITHOUT removing existing one
-      const addOnlyItems: SubscriptionItem.Upsert[] = [
-        {
-          // Keep existing item by including it with its ID
-          id: subscriptionItem.id,
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment for existing plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 999, // $9.99 for existing plan
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
           subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Base Plan',
-          quantity: 1,
-          unitPrice: 999, // Keep existing plan
-          addedDate:
-            Number(subscription.currentBillingPeriodStart) ||
-            Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Start of billing period
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
+          paymentMethodId: paymentMethod.id,
           livemode: true,
-          externalId: null,
-        },
-        {
-          // Add new item (no ID = new item)
+        })
+
+        // Setup: Add new subscription item WITHOUT removing existing one
+        const addOnlyItems: SubscriptionItem.Upsert[] = [
+          {
+            // Keep existing item by including it with its ID
+            id: subscriptionItem.id,
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Base Plan',
+            quantity: 1,
+            unitPrice: 999, // Keep existing plan
+            addedDate:
+              Number(subscription.currentBillingPeriodStart) ||
+              Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Start of billing period
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+          {
+            // Add new item (no ID = new item)
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Add-on Feature',
+            quantity: 1,
+            unitPrice: 2000, // $20.00 add-on
+            addedDate: new Date(
+              new Date().getFullYear(),
+              6,
+              1
+            ).getTime(), // FIXME: Refactor to use static date instead of Date.now() - July 1st of current year
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
+
+        // Execute: Perform subscription adjustment
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: addOnlyItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // The new logic creates a single net charge adjustment item
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        // Should have exactly one proration adjustment item for the net charge
+        expect(correctionItems).toHaveLength(1)
+
+        // Verify net charge adjustment (should be positive)
+        // Old plan total: $9.99
+        // New plan total: $9.99 + $20.00 = $29.99
+        // Fair value: 50% of $9.99 (old) + 50% of $29.99 (new) = 500 + 1500 = ~$20.00
+        // Already paid: $9.99
+        // Net charge: ~$10.00
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should remove existing subscription items without adding new items', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment for existing plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 999, // $9.99 for existing plan
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Remove existing subscription item by not including it in new items array
+        const removeOnlyItems: SubscriptionItem.Upsert[] = [
+          // Empty array means all existing items will be expired
+        ]
+
+        // Execute: Perform subscription adjustment
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: removeOnlyItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Should have 0 subscription items (all removed)
+        expect(result.subscriptionItems).toHaveLength(0)
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // The new logic applies downgrade protection and creates NO proration items
+        // when net charge would be <= 0
+        // In this case: Fair value ~$5.00, Already paid $9.99, Net charge would be negative
+        // But we cap at 0 (no refunds), so NO billing period items are created
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        expect(correctionItems).toHaveLength(0) // No proration items for downgrades
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should calculate proration for upgrades with succeeded payments', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment with Succeeded status (instead of Processing)
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded, // Only difference from previous test
+          amount: 999, // $9.99
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Prepare upgrade to $49.99 plan
+        const upgradeItems: SubscriptionItem.Upsert[] = [
+          {
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 4999, // $49.99
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
+
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: upgradeItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // Verify: The new logic creates a single net charge adjustment item
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        // Should have exactly one proration adjustment item
+        expect(correctionItems).toHaveLength(1)
+
+        // Processing and Succeeded payments should be treated identically
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
+
+        // Verify the specific charge amount
+        // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
+        // Already paid: $9.99
+        // Net charge should be: ~$20.00
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(20, 0) // ~$20.00
+
+        // Verify final charge calculation
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
+        expect(999 + totalProrationAmount).toBeCloseTo(2999, 2) // Total ~$29.99, allow 2 cent tolerance
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should ignore failed payment amount when calculating proration for upgrade', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment with Failed status
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Failed, // Failed payment should be ignored
+          amount: 999, // $9.99 (should not count toward existing payments)
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Prepare upgrade to $49.99 plan
+        const upgradeItems: SubscriptionItem.Upsert[] = [
+          {
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 4999, // $49.99
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
+
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: upgradeItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // Verify: The new logic creates a single net charge adjustment item
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        // Should have exactly one proration adjustment item
+        expect(correctionItems).toHaveLength(1)
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
+
+        // Verify the specific charge amount
+        // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
+        // Already paid: $0.00 (failed payment ignored)
+        // Net charge should be: ~$30.00 (full fair value)
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(
+          3000 / 100,
+          0
+        ) // ~$30.00, allow 50 cent tolerance
+
+        // Critical difference: Since failed payment is ignored, customer pays FULL fair value
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
+
+        // Customer should pay full $29.99 since no successful payment exists
+        // This means proration adjustments alone should equal ~$29.99
+        expect(totalProrationAmount / 100).toBeCloseTo(2999 / 100, 0) // ~$29.99 from proration alone, allow 2 cent tolerance
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should add new subscription items without removing existing items', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment for existing plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 999, // $9.99 for existing plan
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Add new subscription item WITHOUT removing existing one
+        const addOnlyItems: SubscriptionItem.Upsert[] = [
+          {
+            // Keep existing item by including it with its ID
+            id: subscriptionItem.id,
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Base Plan',
+            quantity: 1,
+            unitPrice: 999, // Keep existing plan
+            addedDate:
+              Number(subscription.currentBillingPeriodStart) ||
+              Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Start of billing period
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+          {
+            // Add new item (no ID = new item)
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Add-on Feature',
+            quantity: 1,
+            unitPrice: 2000, // $20.00 add-on
+            addedDate: new Date(
+              new Date().getFullYear(),
+              6,
+              1
+            ).getTime(), // FIXME: Refactor to use static date instead of Date.now() - July 1st of current year
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
+
+        // Execute: Perform subscription adjustment
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: addOnlyItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // The new logic creates a single net charge adjustment item
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        // Should have exactly one proration adjustment item for the net charge
+        expect(correctionItems).toHaveLength(1)
+
+        // Verify net charge adjustment (should be positive)
+        // Old plan total: $9.99
+        // New plan total: $9.99 + $20.00 = $29.99
+        // Fair value: 50% of $9.99 (old) + 50% of $29.99 (new) = 500 + 1500 = ~$20.00
+        // Already paid: $9.99
+        // Net charge: ~$10.00
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should remove existing subscription items without adding new items', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment for existing plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 999, // $9.99 for existing plan
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Remove existing subscription item by not including it in new items array
+        const removeOnlyItems: SubscriptionItem.Upsert[] = [
+          // Empty array means all existing items will be expired
+        ]
+
+        // Execute: Perform subscription adjustment
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: removeOnlyItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Should have 0 subscription items (all removed)
+        expect(result.subscriptionItems).toHaveLength(0)
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // The new logic applies downgrade protection and creates NO proration items
+        // when net charge would be <= 0
+        // In this case: Fair value ~$5.00, Already paid $9.99, Net charge would be negative
+        // But we cap at 0 (no refunds), so NO billing period items are created
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        expect(correctionItems).toHaveLength(0) // No proration items for downgrades
+
+        // Verify subscription record name remains unchanged when no active items
+        // (The sync logic doesn't update when there are no active items)
+        expect(result.subscription.name).toBe(subscription.name)
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should apply downgrade protection to zero out negative charges and prevent credits', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Update the existing subscription item to $49.99 plan first
+        // First expire the original Base Plan item
+        await updateSubscriptionItem(
+          {
+            id: subscriptionItem.id,
+            expiredAt: Date.now(), // FIXME: Refactor to use static date instead of Date.now()
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+
+        const expensiveItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Expensive Plan',
+          quantity: 1,
+          unitPrice: 4999, // $49.99 (expensive plan)
+          addedDate: Number(billingPeriod.startDate),
+          type: SubscriptionItemType.Static,
+        })
+
+        // Setup: Create succeeded payment for the expensive plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 4999, // $49.99 (customer already paid full amount)
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Prepare downgrade to $9.99 plan
+        const downgradeItems: SubscriptionItem.Upsert[] = [
+          {
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Basic Plan',
+            quantity: 1,
+            unitPrice: 999, // $9.99 (cheaper plan)
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
+
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: downgradeItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // The new logic applies downgrade protection and creates NO proration items
+        // when net charge would be <= 0
+        // Customer already paid $49.99, fair value is ~$29.99 (would be ~$20 credit)
+        // But we don't issue credits, so NO billing period items are created
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        expect(correctionItems).toHaveLength(0) // No proration items for downgrades
+
+        // Verify total billing adjustments result in $0 additional charge (no credits)
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
+
+        // Customer already paid $49.99, fair value is ~$29.99 (would be ~$20 credit)
+        // But we don't issue credits, so total proration should be $0
+        expect(totalProrationAmount).toBe(0) // No additional charge, no credit
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should replace existing subscription items with new ones and create proper proration adjustments', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment for existing plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 999, // $9.99 for existing plan
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Replace existing item with a different one (old item will be expired automatically)
+        const replaceItems: SubscriptionItem.Upsert[] = [
+          {
+            // Add new item (no ID = new item), old item will be expired automatically
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Replacement Plan',
+            quantity: 1,
+            unitPrice: 2999, // $29.99 replacement plan
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
+
+        // Execute: Perform subscription adjustment
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: replaceItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // The new logic creates a single net charge adjustment item for upgrades
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        expect(correctionItems).toHaveLength(1) // One proration item for net charge
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
+
+        // Verify the specific charge amount
+        // Old plan: $9.99
+        // New plan: $29.99
+        // Fair value: 50% of $9.99 (old) + 50% of $29.99 (new) = 500 + 1500 = ~$20.00
+        // Already paid: $9.99
+        // Net charge: ~$10.00
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should apply downgrade protection when downgrading to free plan with zero additional charges', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create payment for $19.99 plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 1999, // $19.99
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
+
+        // Setup: Update subscription item to $19.99 plan
+        await updateSubscriptionItem(
+          {
+            id: subscriptionItem.id,
+            unitPrice: 1999, // $19.99
+            name: 'Premium Plan',
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+
+        // Setup: Prepare downgrade to free plan
+        const freePlanItems: SubscriptionItem.Upsert[] = [
+          {
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Free Plan',
+            quantity: 1,
+            unitPrice: 0, // Free plan
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (30% through period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
+
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: freePlanItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
+
+        // The new logic applies downgrade protection and creates NO proration items
+        // when downgrading to a free plan (net charge would be negative)
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        expect(correctionItems).toHaveLength(0) // No proration items for downgrades
+
+        // Verify total billing adjustments result in $0 additional charge (downgrade protection)
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
+        expect(totalProrationAmount).toBe(0) // No additional charge due to downgrade protection
+
+        // Verify subscription record reflects new plan
+        expect(result.subscription.name).toBe('Free Plan')
+        return Result.ok(null)
+      })
+    ).unwrap()
+  })
+
+  it('should process multiple subscription items with complex pricing and create appropriate proration adjustments', async () => {
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Create second subscription item
+        const secondItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
           name: 'Add-on Feature',
           quantity: 1,
-          unitPrice: 2000, // $20.00 add-on
-          addedDate: new Date(
-            new Date().getFullYear(),
-            6,
-            1
-          ).getTime(), // FIXME: Refactor to use static date instead of Date.now() - July 1st of current year
+          unitPrice: 999, // $9.99
+          addedDate: billingPeriod.startDate,
           type: SubscriptionItemType.Static,
-          expiredAt: null,
-          livemode: true,
-          externalId: null,
-        },
-      ]
+        })
 
-      // Execute: Perform subscription adjustment
-      const result = (
-        await adjustSubscription(
+        // Setup: Update first item to $19.99
+        await updateSubscriptionItem(
           {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: addOnlyItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
+            id: subscriptionItem.id,
+            unitPrice: 1999, // $19.99
+            name: 'Base Plan',
+            type: SubscriptionItemType.Static,
           },
-          organization,
-          ctx
+          transaction
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
-
-      // The new logic creates a single net charge adjustment item
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
-
-      // Should have exactly one proration adjustment item for the net charge
-      expect(correctionItems).toHaveLength(1)
-
-      // Verify net charge adjustment (should be positive)
-      // Old plan total: $9.99
-      // New plan total: $9.99 + $20.00 = $29.99
-      // Fair value: 50% of $9.99 (old) + 50% of $29.99 (new) = 500 + 1500 = ~$20.00
-      // Already paid: $9.99
-      // Net charge: ~$10.00
-      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
-      return Result.ok(null)
-    })
-  })
-
-  it('should remove existing subscription items without adding new items', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create payment for existing plan
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 999, // $9.99 for existing plan
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Remove existing subscription item by not including it in new items array
-      const removeOnlyItems: SubscriptionItem.Upsert[] = [
-        // Empty array means all existing items will be expired
-      ]
-
-      // Execute: Perform subscription adjustment
-      const result = (
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: removeOnlyItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
-          },
-          organization,
-          ctx
-        )
-      ).unwrap()
-
-      // Verify: Should have 0 subscription items (all removed)
-      expect(result.subscriptionItems).toHaveLength(0)
-
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
-
-      // The new logic applies downgrade protection and creates NO proration items
-      // when net charge would be <= 0
-      // In this case: Fair value ~$5.00, Already paid $9.99, Net charge would be negative
-      // But we cap at 0 (no refunds), so NO billing period items are created
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
-
-      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
-
-      // Verify subscription record name remains unchanged when no active items
-      // (The sync logic doesn't update when there are no active items)
-      expect(result.subscription.name).toBe(subscription.name)
-      return Result.ok(null)
-    })
-  })
-
-  it('should apply downgrade protection to zero out negative charges and prevent credits', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Update the existing subscription item to $49.99 plan first
-      // First expire the original Base Plan item
-      await updateSubscriptionItem(
-        {
-          id: subscriptionItem.id,
-          expiredAt: Date.now(), // FIXME: Refactor to use static date instead of Date.now()
-          type: SubscriptionItemType.Static,
-        },
-        transaction
-      )
-
-      const expensiveItem = await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        name: 'Expensive Plan',
-        quantity: 1,
-        unitPrice: 4999, // $49.99 (expensive plan)
-        addedDate: Number(billingPeriod.startDate),
-        type: SubscriptionItemType.Static,
-      })
-
-      // Setup: Create succeeded payment for the expensive plan
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 4999, // $49.99 (customer already paid full amount)
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Prepare downgrade to $9.99 plan
-      const downgradeItems: SubscriptionItem.Upsert[] = [
-        {
+        // Setup: Create payment for total of both items ($29.98)
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 2998, // $29.98 total
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
           subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Basic Plan',
-          quantity: 1,
-          unitPrice: 999, // $9.99 (cheaper plan)
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
+          paymentMethodId: paymentMethod.id,
           livemode: true,
-          externalId: null,
-        },
-      ]
+        })
 
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
+        // Setup: Prepare change to single expensive item
+        const singleItem: SubscriptionItem.Upsert[] = [
           {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: downgradeItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Premium Plan',
+            quantity: 1,
+            unitPrice: 4999, // $49.99
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (50% through period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
           },
-          organization,
-          ctx
-        )
-      ).unwrap()
+        ]
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
-
-      // The new logic applies downgrade protection and creates NO proration items
-      // when net charge would be <= 0
-      // Customer already paid $49.99, fair value is ~$29.99 (would be ~$20 credit)
-      // But we don't issue credits, so NO billing period items are created
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
-
-      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
-
-      // Verify total billing adjustments result in $0 additional charge (no credits)
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
-
-      // Customer already paid $49.99, fair value is ~$29.99 (would be ~$20 credit)
-      // But we don't issue credits, so total proration should be $0
-      expect(totalProrationAmount).toBe(0) // No additional charge, no credit
-      return Result.ok(null)
-    })
-  })
-
-  it('should replace existing subscription items with new ones and create proper proration adjustments', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create payment for existing plan
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 999, // $9.99 for existing plan
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Replace existing item with a different one (old item will be expired automatically)
-      const replaceItems: SubscriptionItem.Upsert[] = [
-        {
-          // Add new item (no ID = new item), old item will be expired automatically
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Replacement Plan',
-          quantity: 1,
-          unitPrice: 2999, // $29.99 replacement plan
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
-          livemode: true,
-          externalId: null,
-        },
-      ]
-
-      // Execute: Perform subscription adjustment
-      const result = (
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: replaceItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: singleItem,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
+            organization,
+            ctx
+          )
+        ).unwrap()
+
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
-
-      // The new logic creates a single net charge adjustment item for upgrades
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
-
-      expect(correctionItems).toHaveLength(1) // One proration item for net charge
-      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(correctionItems[0].name).toContain(
-        'Net charge adjustment'
-      )
-
-      // Verify the specific charge amount
-      // Old plan: $9.99
-      // New plan: $29.99
-      // Fair value: 50% of $9.99 (old) + 50% of $29.99 (new) = 500 + 1500 = ~$20.00
-      // Already paid: $9.99
-      // Net charge: ~$10.00
-      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
-      return Result.ok(null)
-    })
-  })
-
-  it('should apply downgrade protection when downgrading to free plan with zero additional charges', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create payment for $19.99 plan
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 1999, // $19.99
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Update subscription item to $19.99 plan
-      await updateSubscriptionItem(
-        {
-          id: subscriptionItem.id,
-          unitPrice: 1999, // $19.99
-          name: 'Premium Plan',
-          type: SubscriptionItemType.Static,
-        },
-        transaction
-      )
-
-      // Setup: Prepare downgrade to free plan
-      const freePlanItems: SubscriptionItem.Upsert[] = [
-        {
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Free Plan',
-          quantity: 1,
-          unitPrice: 0, // Free plan
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (30% through period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
-          livemode: true,
-          externalId: null,
-        },
-      ]
-
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: freePlanItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
-          },
-          organization,
-          ctx
+        // The new logic creates a single net charge adjustment item for upgrades
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
-
-      // The new logic applies downgrade protection and creates NO proration items
-      // when downgrading to a free plan (net charge would be negative)
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
-
-      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
-
-      // Verify total billing adjustments result in $0 additional charge (downgrade protection)
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
-      expect(totalProrationAmount).toBe(0) // No additional charge due to downgrade protection
-
-      // Verify subscription record reflects new plan
-      expect(result.subscription.name).toBe('Free Plan')
-      return Result.ok(null)
-    })
-  })
-
-  it('should process multiple subscription items with complex pricing and create appropriate proration adjustments', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Create second subscription item
-      const secondItem = await setupSubscriptionItem({
-        subscriptionId: subscription.id,
-        priceId: price.id,
-        name: 'Add-on Feature',
-        quantity: 1,
-        unitPrice: 999, // $9.99
-        addedDate: billingPeriod.startDate,
-        type: SubscriptionItemType.Static,
-      })
-
-      // Setup: Update first item to $19.99
-      await updateSubscriptionItem(
-        {
-          id: subscriptionItem.id,
-          unitPrice: 1999, // $19.99
-          name: 'Base Plan',
-          type: SubscriptionItemType.Static,
-        },
-        transaction
-      )
-
-      // Setup: Create payment for total of both items ($29.98)
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 2998, // $29.98 total
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Prepare change to single expensive item
-      const singleItem: SubscriptionItem.Upsert[] = [
-        {
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Premium Plan',
-          quantity: 1,
-          unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (50% through period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
-          livemode: true,
-          externalId: null,
-        },
-      ]
-
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: singleItem,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
-          },
-          organization,
-          ctx
+        expect(correctionItems).toHaveLength(1)
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
+        // Verify the specific charge amount
+        // Old plan total: $19.99 + $9.99 = $29.98
+        // New plan total: $49.99
+        // Fair value: 50% of $29.98 (old) + 50% of $49.99 (new) = 1499 + 2500 = ~$40.00
+        // Already paid: $29.98
+        // Net charge: ~$10.00
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
 
-      // The new logic creates a single net charge adjustment item for upgrades
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
+        // Verify total proration amount
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
 
-      expect(correctionItems).toHaveLength(1)
-      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(correctionItems[0].name).toContain(
-        'Net charge adjustment'
-      )
-
-      // Verify the specific charge amount
-      // Old plan total: $19.99 + $9.99 = $29.98
-      // New plan total: $49.99
-      // Fair value: 50% of $29.98 (old) + 50% of $49.99 (new) = 1499 + 2500 = ~$40.00
-      // Already paid: $29.98
-      // Net charge: ~$10.00
-      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
-
-      // Verify total proration amount
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
-
-      // Should have net positive charge since upgrading from $29.98 to $49.99
-      expect(totalProrationAmount).toBeGreaterThan(0)
-      expect(totalProrationAmount).toBeCloseTo(1000, 2) // ~$10.00 additional, allow 2 cent tolerance
-      return Result.ok(null)
-    })
+        // Should have net positive charge since upgrading from $29.98 to $49.99
+        expect(totalProrationAmount).toBeGreaterThan(0)
+        expect(totalProrationAmount).toBeCloseTo(1000, 2) // ~$10.00 additional, allow 2 cent tolerance
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should calculate full fair value proration when no existing payments exist', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Update subscription item to $15.00 plan
-      await updateSubscriptionItem(
-        {
-          id: subscriptionItem.id,
-          unitPrice: 1500, // $15.00
-          name: 'Basic Plan',
-          type: SubscriptionItemType.Static,
-        },
-        transaction
-      )
-
-      // Setup: NO payment created (simulating new subscription without payment yet)
-
-      // Setup: Prepare upgrade to $25.00 plan
-      const upgradeItems: SubscriptionItem.Upsert[] = [
-        {
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Standard Plan',
-          quantity: 1,
-          unitPrice: 2500, // $25.00
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (40% through period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
-          livemode: true,
-          externalId: null,
-        },
-      ]
-
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Update subscription item to $15.00 plan
+        await updateSubscriptionItem(
           {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: upgradeItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
+            id: subscriptionItem.id,
+            unitPrice: 1500, // $15.00
+            name: 'Basic Plan',
+            type: SubscriptionItemType.Static,
           },
-          organization,
-          ctx
+          transaction
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
+        // Setup: NO payment created (simulating new subscription without payment yet)
 
-      // The new logic creates a single net charge adjustment item
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
+        // Setup: Prepare upgrade to $25.00 plan
+        const upgradeItems: SubscriptionItem.Upsert[] = [
+          {
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Standard Plan',
+            quantity: 1,
+            unitPrice: 2500, // $25.00
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (40% through period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
 
-      expect(correctionItems).toHaveLength(1)
-      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(correctionItems[0].name).toContain(
-        'Net charge adjustment'
-      )
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: upgradeItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
 
-      // Verify the specific charge amount
-      // Old plan: $15.00
-      // New plan: $25.00
-      // Fair value: 50% of $15.00 (old) + 50% of $25.00 (new) = 750 + 1250 = ~$20.00
-      // Already paid: $0.00 (no payments)
-      // Net charge: ~$20.00 (full fair value)
-      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(20, 0) // ~$20.00
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
 
-      // Verify total proration amount (should be full fair value since no existing payments)
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
+        // The new logic creates a single net charge adjustment item
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
 
-      // Should be positive since no existing payments to offset
-      expect(totalProrationAmount).toBeGreaterThan(0)
-      // The current logic calculates the net charge based on existing payments
-      // If there are existing payments, the calculation will be different
-      expect(totalProrationAmount).toBeCloseTo(2000, 2) // ~$20.00 net charge, allow 2 cent tolerance
-      return Result.ok(null)
-    })
+        expect(correctionItems).toHaveLength(1)
+        expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
+
+        // Verify the specific charge amount
+        // Old plan: $15.00
+        // New plan: $25.00
+        // Fair value: 50% of $15.00 (old) + 50% of $25.00 (new) = 750 + 1250 = ~$20.00
+        // Already paid: $0.00 (no payments)
+        // Net charge: ~$20.00 (full fair value)
+        expect(correctionItems[0].unitPrice / 100).toBeCloseTo(20, 0) // ~$20.00
+
+        // Verify total proration amount (should be full fair value since no existing payments)
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
+
+        // Should be positive since no existing payments to offset
+        expect(totalProrationAmount).toBeGreaterThan(0)
+        // The current logic calculates the net charge based on existing payments
+        // If there are existing payments, the calculation will be different
+        expect(totalProrationAmount).toBeCloseTo(2000, 2) // ~$20.00 net charge, allow 2 cent tolerance
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   it('should process zero unit price items without arithmetic errors and apply downgrade protection', async () => {
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      // Setup: Update subscription item to $19.99 plan
-      await updateSubscriptionItem(
-        {
-          id: subscriptionItem.id,
-          unitPrice: 1999, // $19.99
-          name: 'Premium Plan',
-          type: SubscriptionItemType.Static,
-        },
-        transaction
-      )
-
-      // Setup: Create payment for $19.99
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 1999, // $19.99
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
-
-      // Setup: Prepare change to free plan (unitPrice: 0)
-      const freePlanItems: SubscriptionItem.Upsert[] = [
-        {
-          subscriptionId: subscription.id,
-          priceId: price.id,
-          name: 'Free Plan',
-          quantity: 1,
-          unitPrice: 0, // Free plan
-          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (50% through period)
-          type: SubscriptionItemType.Static,
-          expiredAt: null,
-          livemode: true,
-          externalId: null,
-        },
-      ]
-
-      // Execute: Perform subscription adjustment with proration
-      const result = (
-        await adjustSubscription(
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Setup: Update subscription item to $19.99 plan
+        await updateSubscriptionItem(
           {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: freePlanItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
-            },
+            id: subscriptionItem.id,
+            unitPrice: 1999, // $19.99
+            name: 'Premium Plan',
+            type: SubscriptionItemType.Static,
           },
-          organization,
-          ctx
+          transaction
         )
-      ).unwrap()
 
-      // Verify: Get billing period items
-      const bpItems = await selectBillingPeriodItems(
-        { billingPeriodId: billingPeriod.id },
-        transaction
-      )
+        // Setup: Create payment for $19.99
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 1999, // $19.99
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
 
-      // The new logic applies downgrade protection and creates NO proration items
-      // when downgrading to a free plan (net charge would be negative)
-      const correctionItems = bpItems.filter((item) =>
-        item.name?.includes('Net charge adjustment')
-      )
+        // Setup: Prepare change to free plan (unitPrice: 0)
+        const freePlanItems: SubscriptionItem.Upsert[] = [
+          {
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            name: 'Free Plan',
+            quantity: 1,
+            unitPrice: 0, // Free plan
+            addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (50% through period)
+            type: SubscriptionItemType.Static,
+            expiredAt: null,
+            livemode: true,
+            externalId: null,
+          },
+        ]
 
-      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
+        // Execute: Perform subscription adjustment with proration
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: freePlanItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+        ).unwrap()
 
-      // Verify total billing adjustments result in $0 additional charge (downgrade protection)
-      const totalProrationAmount = bpItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0
-      )
-      expect(totalProrationAmount).toBe(0) // No additional charge due to downgrade protection
+        // Verify: Get billing period items
+        const bpItems = await selectBillingPeriodItems(
+          { billingPeriodId: billingPeriod.id },
+          transaction
+        )
 
-      // Verify no arithmetic errors occurred (test should complete without throwing)
-      // With no proration items created, bpItems.length should be 0
-      expect(bpItems.length).toBe(0)
-      return Result.ok(null)
-    })
+        // The new logic applies downgrade protection and creates NO proration items
+        // when downgrading to a free plan (net charge would be negative)
+        const correctionItems = bpItems.filter((item) =>
+          item.name?.includes('Net charge adjustment')
+        )
+
+        expect(correctionItems).toHaveLength(0) // No proration items for downgrades
+
+        // Verify total billing adjustments result in $0 additional charge (downgrade protection)
+        const totalProrationAmount = bpItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        )
+        expect(totalProrationAmount).toBe(0) // No additional charge due to downgrade protection
+
+        // Verify no arithmetic errors occurred (test should complete without throwing)
+        // With no proration items created, bpItems.length should be 0
+        expect(bpItems.length).toBe(0)
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 })
