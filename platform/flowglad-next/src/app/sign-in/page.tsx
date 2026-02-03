@@ -187,7 +187,7 @@ export default function SignIn() {
         }}
       >
         <GoogleLogo />
-        Sign in with Google
+        Log in with Google
       </Button>
 
       {/* Or divider */}
