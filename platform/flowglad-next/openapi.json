@@ -777,7 +777,7 @@
                         "type": "boolean"
                       },
                       "slug": {
-                        "description": "URL-friendly identifier for the product",
+                        "description": "Unique identifier for the product within its pricing model",
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 255
@@ -14188,7 +14188,7 @@
             "type": "boolean"
           },
           "slug": {
-            "description": "URL-friendly identifier for the product",
+            "description": "Unique identifier for the product within its pricing model",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
@@ -14289,7 +14289,7 @@
             "type": "boolean"
           },
           "slug": {
-            "description": "URL-friendly identifier for the product",
+            "description": "Unique identifier for the product within its pricing model",
             "type": "string",
             "minLength": 1,
             "maxLength": 255

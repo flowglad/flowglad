@@ -111,7 +111,7 @@ const refinement = {
   name: z.string(),
   active: z.boolean(),
   slug: safeZodSanitizedString.describe(
-    'URL-friendly identifier for the product'
+    'Unique identifier for the product within its pricing model'
   ),
 }
 
