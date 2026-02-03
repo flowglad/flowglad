@@ -1,4 +1,5 @@
 import { schedules } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
 import { attemptCancelScheduledSubscriptionsTask } from './attempt-cancel-scheduled-subscriptions'
@@ -10,49 +11,53 @@ export const hourlyCron = schedules.task({
   id: 'hourly-cron',
   cron: '0 * * * *',
   run: async ({ lastTimestamp, timestamp }) => {
-    return adminTransaction(async ({ transaction }) => {
-      await deleteExpiredCheckoutSessionsAndFeeCalculations(
-        transaction
-      )
-      await attemptBillingRunsTask.trigger(
-        {
-          timestamp,
-        },
-        {
-          idempotencyKey: `attempt-billing-runs:${timestamp.toISOString()}`,
-        }
-      )
-      const lastTimestampISO = (
-        lastTimestamp ?? new Date(Date.now() - 1000 * 60 * 60)
-      ).toISOString()
-      await attemptCancelScheduledSubscriptionsTask.trigger(
-        {
-          startDateISO: lastTimestampISO,
-          endDateISO: timestamp.toISOString(),
-        },
-        {
-          idempotencyKey: `attempt-cancel-scheduled-subscriptions:${timestamp.toISOString()}`,
-        }
-      )
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        await deleteExpiredCheckoutSessionsAndFeeCalculations(
+          transaction
+        )
+        await attemptBillingRunsTask.trigger(
+          {
+            timestamp,
+          },
+          {
+            idempotencyKey: `attempt-billing-runs:${timestamp.toISOString()}`,
+          }
+        )
+        const lastTimestampISO = (
+          lastTimestamp ?? new Date(Date.now() - 1000 * 60 * 60)
+        ).toISOString()
+        await attemptCancelScheduledSubscriptionsTask.trigger(
+          {
+            startDateISO: lastTimestampISO,
+            endDateISO: timestamp.toISOString(),
+          },
+          {
+            idempotencyKey: `attempt-cancel-scheduled-subscriptions:${timestamp.toISOString()}`,
+          }
+        )
 
-      await attemptTransitionBillingPeriodsTask.trigger(
-        {
-          lastTimestamp: new Date(lastTimestampISO),
-          currentTimestamp: new Date(timestamp),
-        },
-        {
-          idempotencyKey: `attempt-transition-billing-periods:${timestamp.toISOString()}`,
-        }
-      )
+        await attemptTransitionBillingPeriodsTask.trigger(
+          {
+            lastTimestamp: new Date(lastTimestampISO),
+            currentTimestamp: new Date(timestamp),
+          },
+          {
+            idempotencyKey: `attempt-transition-billing-periods:${timestamp.toISOString()}`,
+          }
+        )
 
-      await failStalePaymentsTask.trigger(
-        {
-          timestamp,
-        },
-        {
-          idempotencyKey: `fail-stale-payments:${timestamp.toISOString()}`,
-        }
-      )
-    })
+        await failStalePaymentsTask.trigger(
+          {
+            timestamp,
+          },
+          {
+            idempotencyKey: `fail-stale-payments:${timestamp.toISOString()}`,
+          }
+        )
+
+        return Result.ok(undefined)
+      })
+    ).unwrap()
   },
 })

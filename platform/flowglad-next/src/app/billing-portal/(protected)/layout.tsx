@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getSession } from '@/utils/auth'
+import { getCustomerSession } from '@/utils/auth'
 
 export default async function BillingPortalProtectedLayout({
   children,
@@ -8,7 +8,8 @@ export default async function BillingPortalProtectedLayout({
   children: React.ReactNode
   params: Promise<{ organizationId?: string; customerId?: string }>
 }) {
-  const session = await getSession()
+  // Use customer session for billing portal - not merchant session
+  const session = await getCustomerSession()
   const resolvedParams = await params
 
   if (!session) {

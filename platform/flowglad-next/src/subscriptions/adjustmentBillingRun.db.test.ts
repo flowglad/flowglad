@@ -28,7 +28,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { executeBillingRun } from './billingRunHelpers'
 
@@ -105,7 +105,7 @@ describe('executeBillingRun - Adjustment Billing Run Error Handling', () => {
     await executeBillingRun(adjustmentBillingRun.id)
 
     const updatedBillingRun = (
-      await adminTransactionWithResult(({ transaction }) =>
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(
           adjustmentBillingRun.id,
           transaction

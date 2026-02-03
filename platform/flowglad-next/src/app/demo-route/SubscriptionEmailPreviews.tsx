@@ -290,9 +290,9 @@ export const BillingPortalOTPPreview = ({
   return (
     <EmailPreviewWrapper
       templateName="customer-billing-portal-otp"
-      scenario="Billing portal sign-in OTP"
-      subject="Sign In to Billing Portal"
-      previewText={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
+      scenario="Billing portal log-in OTP"
+      subject="Log In to Billing Portal"
+      previewText={`Log in to your billing portal for ${commonOrganizationProps.organizationName}`}
       livemode={livemode}
       emailType="billing-portal-otp"
     >
@@ -321,9 +321,9 @@ export const BillingPortalMagicLinkPreview = ({
   return (
     <EmailPreviewWrapper
       templateName="customer-billing-portal-magic-link"
-      scenario="Billing portal magic link sign-in"
-      subject="Sign In to Billing Portal"
-      previewText={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
+      scenario="Billing portal magic link log-in"
+      subject="Log In to Billing Portal"
+      previewText={`Log in to your billing portal for ${commonOrganizationProps.organizationName}`}
       livemode={livemode}
       emailType="billing-portal-magic-link"
     >

@@ -7,10 +7,7 @@ import {
 } from '@db-core/enums'
 import type { CreateOrganizationInput } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
@@ -119,7 +116,7 @@ describe('createOrganizationTransaction', () => {
   it('should create an organization', async () => {
     const organizationName = core.nanoid()
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const countryId =
           await getPlatformEligibleCountryId(transaction)
         const input: CreateOrganizationInput = {
@@ -142,7 +139,7 @@ describe('createOrganizationTransaction', () => {
       })
     ).unwrap()
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [organization] = await selectOrganizations(
           {
             name: organizationName,
@@ -197,7 +194,7 @@ describe('createOrganizationTransaction', () => {
     const userId = core.nanoid()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const countryId =
           await getPlatformEligibleCountryId(transaction)
         const input: CreateOrganizationInput = {
@@ -221,7 +218,7 @@ describe('createOrganizationTransaction', () => {
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [organization] = await selectOrganizations(
           { name: organizationName },
           transaction
@@ -243,7 +240,7 @@ describe('createOrganizationTransaction', () => {
   it('should create default Free Plan products and prices for live and testmode', async () => {
     const organizationName = `org_${core.nanoid()}`
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const countryId =
           await getPlatformEligibleCountryId(transaction)
         const input: CreateOrganizationInput = {
@@ -267,7 +264,7 @@ describe('createOrganizationTransaction', () => {
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [organization] = await selectOrganizations(
           { name: organizationName },
           transaction
@@ -375,7 +372,7 @@ describe('createOrganizationTransaction', () => {
     const organizationName = `org_${core.nanoid()}`
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const countryId = await getMoROnlyCountryId(transaction)
         const input: CreateOrganizationInput = {
           organization: {
@@ -401,7 +398,7 @@ describe('createOrganizationTransaction', () => {
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [organization] = await selectOrganizations(
           { name: organizationName },
           transaction
@@ -419,7 +416,7 @@ describe('createOrganizationTransaction', () => {
     const organizationName = `org_${core.nanoid()}`
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const countryId = await getMoROnlyCountryId(transaction)
         const input: CreateOrganizationInput = {
           organization: {
@@ -443,7 +440,7 @@ describe('createOrganizationTransaction', () => {
     ).unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [organization] = await selectOrganizations(
           { name: organizationName },
           transaction
@@ -460,7 +457,7 @@ describe('createOrganizationTransaction', () => {
   it('should reject Platform contract type for MoR-only countries', async () => {
     const organizationName = `org_${core.nanoid()}`
 
-    const promise = adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async ({ transaction }) => {
       const countryId = await getMoROnlyCountryId(transaction)
       const input: CreateOrganizationInput = {
         organization: {
@@ -481,11 +478,15 @@ describe('createOrganizationTransaction', () => {
         transaction,
         { livemode: true }
       )
+      return Result.ok(undefined)
     })
 
-    await expect(promise).rejects.toThrow(
-      /The selected payment configuration is not available in .+\. See supported countries/
-    )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(
+        /The selected payment configuration is not available in .+\. See supported countries/
+      )
+    }
   })
 
   describe('defaultCurrency enforcement for MoR organizations', () => {
@@ -493,7 +494,7 @@ describe('createOrganizationTransaction', () => {
       const organizationName = `org_${core.nanoid()}`
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const countryId = await getMoROnlyCountryId(transaction)
           const input: CreateOrganizationInput = {
             organization: {
@@ -519,7 +520,7 @@ describe('createOrganizationTransaction', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [organization] = await selectOrganizations(
             { name: organizationName },
             transaction
@@ -538,7 +539,7 @@ describe('createOrganizationTransaction', () => {
       const organizationName = `org_${core.nanoid()}`
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const bothEligibleCountry =
             await getBothEligibleCountry(transaction)
           const input: CreateOrganizationInput = {
@@ -565,7 +566,7 @@ describe('createOrganizationTransaction', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [organization] = await selectOrganizations(
             { name: organizationName },
             transaction
@@ -585,7 +586,7 @@ describe('createOrganizationTransaction', () => {
       const organizationName = `org_${core.nanoid()}`
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonUSPlatformCountry =
             await getNonUSPlatformEligibleCountry(transaction)
           const expectedCurrency = defaultCurrencyForCountry(
@@ -634,7 +635,7 @@ describe('createOrganizationTransaction', () => {
       const organizationName = `org_${core.nanoid()}`
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const countries = await selectCountries({}, transaction)
           const usCountry = countries.find(
             (country) => country.code === 'US'
@@ -683,7 +684,7 @@ describe('createOrganizationTransaction', () => {
       const organizationName = `org_${core.nanoid()}`
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const countryId = await getMoROnlyCountryId(transaction)
           // Don't explicitly set stripeConnectContractType - let it auto-select MoR
           const input: CreateOrganizationInput = {
@@ -708,7 +709,7 @@ describe('createOrganizationTransaction', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [organization] = await selectOrganizations(
             { name: organizationName },
             transaction

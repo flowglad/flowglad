@@ -7,7 +7,7 @@ import {
   UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE,
   USAGE_LIMIT_SUBSCRIPTION_TEMPLATE,
 } from '@/constants/pricingModelTemplates'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
 
 let organization: Organization.Record
@@ -43,7 +43,7 @@ describe('Template Integration Tests', () => {
 
       for (const { template, expectedName } of templates) {
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             return Result.ok(
               await (
                 await setupPricingModelTransaction(
@@ -72,7 +72,7 @@ describe('Template Integration Tests', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -93,7 +93,7 @@ describe('Template Integration Tests', () => {
 
     it('should create template in correct environment', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(

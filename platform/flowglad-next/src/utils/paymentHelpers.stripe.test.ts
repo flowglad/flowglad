@@ -24,7 +24,7 @@ import {
   setupOrg,
   setupPayment,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import { NotFoundError, ValidationError } from '@/errors'
 import { nanoid } from '@/utils/core'
@@ -257,7 +257,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult = await refundPaymentTransaction(
             {
               id: payment.id,
@@ -299,7 +299,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult = await refundPaymentTransaction(
             { id: payment.id, partialAmount: null },
             transaction
@@ -333,7 +333,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult = await refundPaymentTransaction(
             {
               id: payment.id,
@@ -369,7 +369,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult = await refundPaymentTransaction(
             { id: payment.id, partialAmount: payment.amount },
             transaction
@@ -410,7 +410,7 @@ describe('refundPaymentTransaction', () => {
         )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult = await refundPaymentTransaction(
             { id: payment.id, partialAmount: 3000 },
             transaction
@@ -425,7 +425,7 @@ describe('refundPaymentTransaction', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult = await refundPaymentTransaction(
             { id: payment.id, partialAmount: 7000 },
             transaction
@@ -444,7 +444,7 @@ describe('refundPaymentTransaction', () => {
   describe('validation errors', () => {
     it('returns NotFoundError when payment is not found', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await refundPaymentTransaction(
             { id: 'non_existent_id', partialAmount: null },
             transaction
@@ -478,7 +478,7 @@ describe('refundPaymentTransaction', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await refundPaymentTransaction(
             { id: refundedPayment.id, partialAmount: null },
             transaction
@@ -509,7 +509,7 @@ describe('refundPaymentTransaction', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await refundPaymentTransaction(
             { id: processingPayment.id, partialAmount: null },
             transaction
@@ -528,7 +528,7 @@ describe('refundPaymentTransaction', () => {
 
     it('returns ValidationError when partial amount exceeds payment amount', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await refundPaymentTransaction(
             { id: payment.id, partialAmount: 15000 }, // $150 > $100
             transaction
@@ -547,7 +547,7 @@ describe('refundPaymentTransaction', () => {
 
     it('returns ValidationError when partial amount is not positive', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await refundPaymentTransaction(
             { id: payment.id, partialAmount: 0 },
             transaction
@@ -621,7 +621,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await refundPaymentTransaction(
             { id: morPaymentWithTax.id, partialAmount: null },
             transaction
@@ -654,7 +654,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await refundPaymentTransaction(
             {
               id: morPaymentWithTax.id,
@@ -695,7 +695,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedPaymentResult = await refundPaymentTransaction(
             { id: morPaymentWithTax.id, partialAmount: null },
             transaction
@@ -738,7 +738,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await refundPaymentTransaction(
             { id: paymentWithoutTax.id, partialAmount: null },
             transaction
@@ -781,7 +781,7 @@ describe('refundPaymentTransaction', () => {
       )
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await refundPaymentTransaction(
             {
               id: platformPaymentWithTaxId.id,
@@ -838,7 +838,7 @@ describe('retryPaymentTransaction', () => {
 
     // Update with tax fields that should be propagated
     const updatedFailedPayment = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await updatePayment(
             {
@@ -889,7 +889,7 @@ describe('retryPaymentTransaction', () => {
 
     // Retry the payment
     const retriedPayment = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await retryPaymentTransaction(
             { id: updatedFailedPayment.id },

@@ -47,7 +47,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
@@ -231,7 +231,7 @@ describeIfStripeKey(
       }
       // Remove stripeCustomerId to trigger a validation error during billing run
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             {
               id: customer.id,
@@ -245,7 +245,7 @@ describeIfStripeKey(
 
       // Capture initial state
       const initialSubscriptionItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentlyActiveSubscriptionItems(
               { subscriptionId: subscription.id },
@@ -279,7 +279,7 @@ describeIfStripeKey(
 
       // Assert: Billing run should be marked as failed
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -292,7 +292,7 @@ describeIfStripeKey(
 
       // Assert: Subscription items NOT adjusted (processOutcomeForBillingRun early exits for failed adjustment)
       const subscriptionItemsAfterFailure = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentlyActiveSubscriptionItems(
               { subscriptionId: subscription.id },
@@ -311,7 +311,7 @@ describeIfStripeKey(
 
       // Assert: All 3 claims still accessible
       const claimsAfterFailure = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectActiveResourceClaims(
               {
@@ -334,7 +334,7 @@ describeIfStripeKey(
 
       // Assert: Capacity unchanged (still from old features)
       const usage = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await getResourceUsage(
               subscription.id,

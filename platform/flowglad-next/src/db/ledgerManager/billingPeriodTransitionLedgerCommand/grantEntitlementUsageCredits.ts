@@ -64,7 +64,7 @@ export const grantEntitlementUsageCredits = async (
       !ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId!)
   )
   if (usageMetersWithoutLedgerAccounts.length > 0) {
-    const newlyCreatedLedgerAccounts =
+    const newlyCreatedLedgerAccountsResult =
       await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
         {
           subscriptionId: command.subscriptionId!,
@@ -74,6 +74,9 @@ export const grantEntitlementUsageCredits = async (
         },
         transaction
       )
+    // If subscription doesn't exist, throw (shouldn't happen during billing period transition)
+    const newlyCreatedLedgerAccounts =
+      newlyCreatedLedgerAccountsResult.unwrap()
     newlyCreatedLedgerAccounts.forEach((ledgerAccount) => {
       ledgerAccountsByUsageMeterId.set(
         ledgerAccount.usageMeterId!,

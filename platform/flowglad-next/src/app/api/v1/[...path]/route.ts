@@ -14,6 +14,9 @@ import type { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { routes } from '@/app/api/v1/[...path]/restRoutes'
+import { db } from '@/db/client'
+import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { appRouter } from '@/server'
 import { createApiContext } from '@/server/trpcContext'
 import { type ApiEnvironment } from '@/types'
@@ -1041,13 +1044,270 @@ const withVerification = (
   }
 }
 
+/**
+ * Local verification middleware for playground development.
+ *
+ * Instead of calling Unkey, this middleware looks up the API key in the local
+ * database and constructs a verification result from the database record.
+ *
+ * This allows playground projects to work with locally-seeded API keys.
+ */
+const withLocalVerification = (
+  handler: (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => Promise<Response>
+): ((
+  req: NextRequestWithUnkeyContext,
+  context: FlowgladRESTRouteContext
+) => Promise<Response>) => {
+  return async (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => {
+    const tracer = trace.getTracer('rest-api-auth-local')
+
+    return tracer.startActiveSpan(
+      'Local API Key Verification',
+      { kind: SpanKind.INTERNAL },
+      async (authSpan) => {
+        try {
+          const headerSet = await headers()
+          const authorizationHeader = headerSet.get('Authorization')
+
+          if (!authorizationHeader) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Missing authorization header',
+            })
+            logger.warn(
+              'REST API Local Auth Failed: Missing authorization header',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+              }
+            )
+            return new Response(
+              'Unauthorized. Authorization header is required.',
+              { status: 401 }
+            )
+          }
+
+          const apiKey = getApiKeyHeader(authorizationHeader)
+          if (!apiKey) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Invalid authorization format',
+            })
+            logger.warn(
+              'REST API Local Auth Failed: Invalid authorization format',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+              }
+            )
+            return new Response(
+              'Invalid authorization format. Use "Bearer <key>" or "<key>".',
+              { status: 401 }
+            )
+          }
+
+          const keyPrefix = apiKey.substring(0, 8)
+          authSpan.setAttributes({
+            'auth.key_prefix': keyPrefix,
+            'auth.mode': 'local_playground',
+          })
+
+          // Look up the API key and membership in the local database
+          // Wrap in try-catch to return clear auth errors instead of 500s
+          let localAuthResult:
+            | { success: false; error: 'not_found' | 'db_error' }
+            | {
+                success: true
+                apiKeyRecord: NonNullable<
+                  Awaited<ReturnType<typeof selectApiKeys>>[0]
+                >
+                userId: string
+              }
+
+          try {
+            localAuthResult = await db.transaction(async (tx) => {
+              const apiKeyRecords = await selectApiKeys(
+                { token: apiKey, active: true },
+                tx
+              )
+              const apiKeyRecord = apiKeyRecords[0]
+
+              if (!apiKeyRecord) {
+                return {
+                  success: false as const,
+                  error: 'not_found' as const,
+                }
+              }
+
+              // Look up a userId from the organization's memberships
+              // This is needed because the API key metadata schema requires userId
+              const membershipRecords = await selectMemberships(
+                { organizationId: apiKeyRecord.organizationId },
+                tx
+              )
+              const membership = membershipRecords[0]
+
+              return {
+                success: true as const,
+                apiKeyRecord,
+                userId: membership?.userId ?? 'local_playground_user',
+              }
+            })
+          } catch (dbError) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Database error during local auth',
+            })
+            authSpan.setAttributes({
+              'auth.error': 'db_error',
+              'auth.error_message':
+                dbError instanceof Error
+                  ? dbError.message
+                  : String(dbError),
+            })
+            logger.error(
+              'REST API Local Auth Failed: Database error',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+                error: dbError as Error,
+              }
+            )
+            return new Response(
+              'Authentication failed. Unable to verify API key.',
+              { status: 401 }
+            )
+          }
+
+          if (!localAuthResult.success) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'API key not found in local database',
+            })
+            logger.warn(
+              'REST API Local Auth Failed: API key not found',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+              }
+            )
+            return new Response(
+              'API key invalid. Key not found in local database.',
+              { status: 401 }
+            )
+          }
+
+          const { apiKeyRecord, userId } = localAuthResult
+
+          // Explicit guard for apiKeyRecord - this should never happen after
+          // the success check above, but provides defense-in-depth and satisfies
+          // TypeScript narrowing in case of any edge cases
+          if (!apiKeyRecord) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'API key record missing after validation',
+            })
+            logger.error(
+              'REST API Local Auth Failed: Unexpected missing apiKeyRecord',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+                key_prefix: keyPrefix,
+              }
+            )
+            return new Response(
+              'Authentication failed. Invalid API key state.',
+              { status: 401 }
+            )
+          }
+
+          // Construct a result object similar to what Unkey returns
+          const environment = apiKeyRecord.livemode ? 'live' : 'test'
+          const result = {
+            valid: true,
+            code: 'VALID' as const,
+            ownerId: apiKeyRecord.organizationId,
+            environment,
+            meta: {
+              type: apiKeyRecord.type,
+              userId,
+              organizationId: apiKeyRecord.organizationId,
+              pricingModelId: apiKeyRecord.pricingModelId,
+            },
+          }
+
+          authSpan.setStatus({ code: SpanStatusCode.OK })
+          authSpan.setAttributes({
+            'auth.success': true,
+            'auth.environment': environment,
+            'auth.organization_id': apiKeyRecord.organizationId,
+            'auth.pricing_model_id': apiKeyRecord.pricingModelId,
+          })
+
+          logger.info('REST API Local Auth Success', {
+            service: 'api',
+            apiEnvironment: environment as ApiEnvironment,
+            method: req.method,
+            url: req.url,
+            key_prefix: keyPrefix,
+            organization_id: apiKeyRecord.organizationId,
+            pricing_model_id: apiKeyRecord.pricingModelId,
+          })
+
+          // Set user context in Sentry
+          Sentry.setUser({
+            id: apiKeyRecord.organizationId,
+          })
+
+          const reqWithUnkey = Object.assign(req, {
+            unkey: result,
+          })
+
+          return handler(reqWithUnkey, context)
+        } finally {
+          authSpan.end()
+        }
+      }
+    )
+  }
+}
+
 const routeHandler = async (
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> }
 ): Promise<Response> => {
-  const handler = core.IS_TEST
-    ? innerHandler
-    : withVerification(innerHandler)
+  // Choose the appropriate verification middleware based on environment
+  let handler: (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => Promise<Response>
+
+  if (core.IS_TEST && !core.IS_LOCAL_PLAYGROUND) {
+    // Test mode without local playground: skip verification entirely
+    // (tests call tRPC directly, not through REST API routes)
+    handler = innerHandler
+  } else if (core.IS_LOCAL_PLAYGROUND) {
+    // Local playground mode: validate against local database
+    // This populates req.unkey which innerHandler requires
+    handler = withLocalVerification(innerHandler)
+  } else {
+    // Production: validate against Unkey
+    handler = withVerification(innerHandler)
+  }
+
   return handler(
     request as NextRequestWithUnkeyContext,
     context as FlowgladRESTRouteContext

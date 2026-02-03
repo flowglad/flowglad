@@ -26,7 +26,7 @@ import type { User } from '@db-core/schema/users'
 import { Result } from 'better-result'
 // Now import everything else (including mocked modules)
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import * as databaseAuthentication from '@/db/databaseAuthentication'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { organizationsRouter } from '@/server/routers/organizationsRouter'
@@ -82,6 +82,7 @@ const createAuthedContext = async (params: {
     organization,
     isApi: false,
     apiKey: undefined,
+    authScope: 'merchant',
   }
 
   return { ctx, user }
@@ -111,7 +112,7 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
 
     // Verify the organization was updated with a Stripe account ID
     const updatedOrg = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await (
             await selectOrganizationById(organization.id, transaction)
@@ -139,7 +140,7 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
 
     // Verify the organization was updated
     const updatedOrg = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await (
             await selectOrganizationById(organization.id, transaction)
@@ -168,7 +169,7 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
 
     // Verify the organization was updated
     const updatedOrg = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await (
             await selectOrganizationById(organization.id, transaction)

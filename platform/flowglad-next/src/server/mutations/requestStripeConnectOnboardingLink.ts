@@ -1,5 +1,6 @@
 import { BusinessOnboardingStatus } from '@db-core/enums'
 import { requestStripeConnectOnboardingLinkInputSchema } from '@db-core/schema/countries'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
@@ -14,39 +15,44 @@ import {
 export const requestStripeConnectOnboardingLink = protectedProcedure
   .input(requestStripeConnectOnboardingLinkInputSchema)
   .mutation(async () => {
-    const { organization, country } = await authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        const [membership] = await selectMembershipAndOrganizations(
-          {
-            userId,
-            focused: true,
-          },
-          transaction
-        )
-
-        if (!membership) {
-          throw new Error('No memberships found for this user')
-        }
-
-        const organization = membership.organization
-
-        if (!organization) {
-          throw new Error('Organization not found')
-        }
-
-        if (!organization.countryId) {
-          throw new Error(
-            'Country is required before you can enable payments.'
+    const { organization, country } = (
+      await authenticatedTransaction(
+        async ({ transaction, userId }) => {
+          const [membership] = await selectMembershipAndOrganizations(
+            {
+              userId,
+              focused: true,
+            },
+            transaction
           )
+
+          if (!membership) {
+            throw new Error('No memberships found for this user')
+          }
+
+          const organization = membership.organization
+
+          if (!organization) {
+            throw new Error('Organization not found')
+          }
+
+          if (!organization.countryId) {
+            throw new Error(
+              'Country is required before you can enable payments.'
+            )
+          }
+
+          const country = (
+            await selectCountryById(
+              organization.countryId,
+              transaction
+            )
+          ).unwrap()
+
+          return Result.ok({ organization, country })
         }
-
-        const country = (
-          await selectCountryById(organization.countryId, transaction)
-        ).unwrap()
-
-        return { organization, country }
-      }
-    )
+      )
+    ).unwrap()
 
     let stripeAccountId = organization.stripeAccountId
 
@@ -71,20 +77,23 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
       true
     )
 
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            ...organization,
-            stripeAccountId,
-            onboardingStatus:
-              BusinessOnboardingStatus.PartiallyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
+    ;(
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updateOrganization(
+            {
+              ...organization,
+              stripeAccountId,
+              onboardingStatus:
+                BusinessOnboardingStatus.PartiallyOnboarded,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        },
+        { livemode: true }
+      )
+    ).unwrap()
 
     return {
       onboardingLink,

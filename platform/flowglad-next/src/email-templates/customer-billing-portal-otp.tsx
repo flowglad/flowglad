@@ -23,7 +23,7 @@ export const CustomerBillingPortalOTPEmail = ({
 
   return (
     <EmailLayout
-      previewText={`Sign in to your billing portal for ${organizationName}`}
+      previewText={`Log in to your billing portal for ${organizationName}`}
       variant="customer"
     >
       <TestModeBanner livemode={livemode} />
@@ -34,13 +34,10 @@ export const CustomerBillingPortalOTPEmail = ({
         alt="Flowglad Logo"
         style={{ marginBottom: '32px' }}
       />
-      <Header
-        title={'Sign In to Billing Portal'}
-        variant="customer"
-      />
+      <Header title={'Log In to Billing Portal'} variant="customer" />
       <Paragraph variant="customer">Hi {displayName},</Paragraph>
       <Paragraph variant="customer">
-        You requested a verification code to sign in to your billing
+        You requested a verification code to log in to your billing
         portal for {organizationName}.
       </Paragraph>
       <Section

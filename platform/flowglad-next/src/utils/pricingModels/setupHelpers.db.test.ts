@@ -8,10 +8,7 @@ import {
 import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectFeaturesByProductFeatureWhere,
   updateProductFeature,
@@ -180,7 +177,7 @@ describe('getPricingModelSetupData', () => {
 
     // Create the pricing model using setupPricingModelTransaction
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -198,7 +195,7 @@ describe('getPricingModelSetupData', () => {
 
     // Now fetch it back using getPricingModelSetupData
     const fetchedData = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await getPricingModelSetupData(
@@ -317,16 +314,17 @@ describe('getPricingModelSetupData', () => {
   })
 
   it('should throw an error if pricing model is not found', async () => {
-    await expect(
-      adminTransaction(async (ctx) => {
-        ;(
-          await getPricingModelSetupData(
-            'non-existent-id',
-            ctx.transaction
-          )
-        ).unwrap()
-      })
-    ).rejects.toThrow()
+    const result = await adminTransaction(async (ctx) => {
+      const data = await getPricingModelSetupData(
+        'non-existent-id',
+        ctx.transaction
+      )
+      if (Result.isError(data)) {
+        return data
+      }
+      return Result.ok(data.value)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('should handle a minimal pricing model with no usage meters or features', async () => {
@@ -356,7 +354,7 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -373,7 +371,7 @@ describe('getPricingModelSetupData', () => {
     ).unwrap()
 
     const fetchedData = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await getPricingModelSetupData(
@@ -426,7 +424,7 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -443,7 +441,7 @@ describe('getPricingModelSetupData', () => {
     ).unwrap()
 
     const fetchedData = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await getPricingModelSetupData(
@@ -561,7 +559,7 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -578,7 +576,7 @@ describe('getPricingModelSetupData', () => {
     ).unwrap()
 
     const fetchedData = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await getPricingModelSetupData(
@@ -664,7 +662,7 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -681,7 +679,7 @@ describe('getPricingModelSetupData', () => {
     ).unwrap()
     // Now manually expire one of the product-feature associations
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const product = setupResult.products.find(
           (p) => p.slug === 'test-product-associations'
@@ -716,7 +714,7 @@ describe('getPricingModelSetupData', () => {
 
     // Fetch the pricing model data
     const fetchedData = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await getPricingModelSetupData(

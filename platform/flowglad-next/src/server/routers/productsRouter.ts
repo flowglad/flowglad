@@ -4,6 +4,7 @@ import {
   productsTableRowDataSchema,
   productWithPricesSchema,
 } from '@db-core/schema/prices'
+
 import {
   productsClientSelectSchema,
   productsPaginatedListSchema,
@@ -35,6 +36,7 @@ import {
   createProductTransaction,
   editProductTransaction as editProductPricingModel,
 } from '@/utils/pricingModel'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { protectedProcedure, router } from '../trpc'
 import { errorHandlers } from '../trpcErrorHandler'
 
@@ -163,14 +165,18 @@ export const listProducts = protectedProcedure
   .input(productsPaginatedSelectSchema)
   .output(productsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectProductsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectProductsPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 export const getProduct = protectedProcedure
@@ -179,42 +185,44 @@ export const getProduct = protectedProcedure
   .output(productWithPricesSchema)
   .query(async ({ input, ctx }) => {
     try {
-      return await authenticatedTransaction(
-        async ({ transaction }) => {
-          const result =
-            await selectProductPriceAndFeaturesByProductId(
-              input.id,
-              transaction
-            )
+      return (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const result =
+              await selectProductPriceAndFeaturesByProductId(
+                input.id,
+                transaction
+              )
 
-          if (!result) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `Product not found with id ${input.id}`,
+            if (!result) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `Product not found with id ${input.id}`,
+              })
+            }
+
+            const { product, prices, features } = result
+
+            if (!prices || prices.length === 0) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `No prices found for product with id ${input.id}`,
+              })
+            }
+
+            return Result.ok({
+              ...product,
+              prices,
+              features,
+              defaultPrice:
+                prices.find((price) => price.isDefault) ?? prices[0],
             })
+          },
+          {
+            apiKey: ctx.apiKey,
           }
-
-          const { product, prices, features } = result
-
-          if (!prices || prices.length === 0) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `No prices found for product with id ${input.id}`,
-            })
-          }
-
-          return {
-            ...product,
-            prices,
-            features,
-            defaultPrice:
-              prices.find((price) => price.isDefault) ?? prices[0],
-          }
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
+        )
+      ).unwrap()
     } catch (error) {
       errorHandlers.product.handle(error, {
         operation: 'get',
@@ -259,48 +267,50 @@ export const getCountsByStatus = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        // Get the user's organization
-        const [membership] = await selectMembershipAndOrganizations(
-          {
-            userId,
-            focused: true,
-          },
-          transaction
-        )
-
-        // Get products with prices and pricing models
-        const productsResult =
-          await selectPricesProductsAndPricingModelsForOrganization(
-            {},
-            membership.organization.id,
+    return (
+      await authenticatedTransaction(
+        async ({ transaction, userId }) => {
+          // Get the user's organization
+          const [membership] = await selectMembershipAndOrganizations(
+            {
+              userId,
+              focused: true,
+            },
             transaction
           )
 
-        // Get unique products
-        const uniqueProducts = R.uniqBy(
-          (p) => p.id,
-          productsResult.map((p) => p.product)
-        )
+          // Get products with prices and pricing models
+          const productsResult =
+            await selectPricesProductsAndPricingModelsForOrganization(
+              {},
+              membership.organization.id,
+              transaction
+            )
 
-        // Count active and inactive products
-        const activeCount = uniqueProducts.filter(
-          (p) => p.active
-        ).length
-        const inactiveCount = uniqueProducts.filter(
-          (p) => !p.active
-        ).length
+          // Get unique products
+          const uniqueProducts = R.uniqBy(
+            (p) => p.id,
+            productsResult.map((p) => p.product)
+          )
 
-        return [
-          { status: 'active', count: activeCount },
-          { status: 'inactive', count: inactiveCount },
-        ]
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+          // Count active and inactive products
+          const activeCount = uniqueProducts.filter(
+            (p) => p.active
+          ).length
+          const inactiveCount = uniqueProducts.filter(
+            (p) => !p.active
+          ).length
+
+          return Result.ok([
+            { status: 'active', count: activeCount },
+            { status: 'inactive', count: inactiveCount },
+          ])
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 export const productsRouter = router({

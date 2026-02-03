@@ -23,7 +23,7 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
   subscriptionsRouter,
@@ -164,7 +164,7 @@ describe('validateAndResolvePriceForSubscription', () => {
 
   it('returns price, product, and organization when given a valid subscription priceId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await validateAndResolvePriceForSubscription({
           priceId: subscriptionPrice.id,
           customerId: customer.id,
@@ -182,7 +182,7 @@ describe('validateAndResolvePriceForSubscription', () => {
 
   it('throws NOT_FOUND when priceId does not exist', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const nonExistentId = 'non-existent-price-id'
 
         await expect(
@@ -222,7 +222,7 @@ describe('validateAndResolvePriceForSubscription', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await expect(
           validateAndResolvePriceForSubscription({
             priceId: usagePrice.id,
@@ -240,7 +240,7 @@ describe('validateAndResolvePriceForSubscription', () => {
 
   it('throws BAD_REQUEST when price is a single payment price', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await expect(
           validateAndResolvePriceForSubscription({
             priceId: singlePaymentPrice.id,
@@ -258,7 +258,7 @@ describe('validateAndResolvePriceForSubscription', () => {
 
   it('throws BAD_REQUEST when neither priceId nor priceSlug is provided', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await expect(
           validateAndResolvePriceForSubscription({
             customerId: customer.id,
@@ -275,7 +275,7 @@ describe('validateAndResolvePriceForSubscription', () => {
 
   it('throws NOT_FOUND when priceSlug does not exist for the customer', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const nonExistentSlug = 'non-existent-price-slug'
 
         await expect(
@@ -312,7 +312,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
 
   it('returns customer when given a valid customerId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result =
           await validateAndResolveCustomerForSubscription({
             customerId: customer.id,
@@ -329,7 +329,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
 
   it('returns customer when given a valid customerExternalId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result =
           await validateAndResolveCustomerForSubscription({
             customerExternalId: customer.externalId!,
@@ -346,7 +346,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
 
   it('throws NOT_FOUND when customerExternalId does not exist', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const nonExistentExternalId = 'non-existent-external-id'
 
         await expect(
@@ -366,7 +366,7 @@ describe('validateAndResolveCustomerForSubscription', () => {
 
   it('throws BAD_REQUEST when neither customerId nor customerExternalId is provided', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await expect(
           validateAndResolveCustomerForSubscription({
             organizationId: organization.id,

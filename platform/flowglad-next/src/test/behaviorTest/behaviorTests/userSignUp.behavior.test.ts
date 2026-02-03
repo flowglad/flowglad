@@ -23,7 +23,7 @@ import {
 } from '@db-core/enums'
 import { Result } from 'better-result'
 import { teardownOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
@@ -95,7 +95,7 @@ const commonOrgInvariants = async (
 
   // Verify pricing models exist (livemode + testmode)
   const pricingModels = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       return Result.ok(
         await selectPricingModels(
           { organizationId: result.organization.id },
@@ -112,7 +112,7 @@ const commonOrgInvariants = async (
 
   // Verify default products exist
   const products = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       return Result.ok(
         await selectProducts(
           { organizationId: result.organization.id },
@@ -136,7 +136,7 @@ const authInvariants = async (result: AuthenticateUserResult) => {
 
   // User has no memberships yet
   const memberships = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       return Result.ok(
         await selectMemberships(
           { userId: result.user.id },

@@ -22,11 +22,11 @@ import {
   setupProduct,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
-import type { CacheRecomputationContext } from '@/db/types'
+import { adminTransaction } from '@/db/adminTransaction'
 import { CancellationReason } from '@/types'
 import { calculateSubscriberBreakdown } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { selectActiveBillingPeriodsForDateRange } from './billingPeriodMethods'
 import {
@@ -293,7 +293,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update free subscription to be canceled with upgrade reason
           await updateSubscription(
             {
@@ -346,7 +346,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const activeSubscriptions =
             await selectActiveSubscriptionsForCustomer(
               customer.id,
@@ -385,7 +385,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update to inconsistent state: Active but with UpgradedToPaid
           await updateSubscription(
             {
@@ -434,7 +434,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update with NonPayment reason
           await updateSubscription(
             {
@@ -485,7 +485,7 @@ describe('Subscription Upgrade Selection Logic', () => {
 
     it('should return empty array when no active subscriptions exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const activeSubscriptions =
             await selectActiveSubscriptionsForCustomer(
               customer.id,
@@ -523,7 +523,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update free subscription to be canceled with upgrade reason
           await updateSubscription(
             {
@@ -568,7 +568,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Cancel it (not upgrade)
           await updateSubscription(
             {
@@ -605,7 +605,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update to inconsistent state: Active but with UpgradedToPaid
           await updateSubscription(
             {
@@ -654,7 +654,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Link them in a chain
           for (let i = 0; i < chainLength - 1; i++) {
             await updateSubscription(
@@ -711,7 +711,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const currentSubscription =
             await selectCurrentSubscriptionForCustomer(
               customer.id,
@@ -799,7 +799,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update free subscription to canceled with upgrade reason
           await updateSubscription(
             {
@@ -877,7 +877,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Query all periods
           const activePeriods =
             await selectActiveBillingPeriodsForDateRange(
@@ -941,7 +941,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Query only for February (but will include overlapping periods)
           const activePeriods =
             await selectActiveBillingPeriodsForDateRange(
@@ -984,7 +984,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Query with endDate exactly at period startDate
           const activePeriods =
             await selectActiveBillingPeriodsForDateRange(
@@ -1028,7 +1028,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Ensure replacedBySubscriptionId is null
           await updateSubscription(
             {
@@ -1085,7 +1085,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Query for test mode
           const testModePeriods =
             await selectActiveBillingPeriodsForDateRange(
@@ -1146,7 +1146,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Cancel with customer_request reason
           await updateSubscription(
             {
@@ -1260,7 +1260,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Query for org1 test mode only
           const activePeriods =
             await selectActiveBillingPeriodsForDateRange(
@@ -1316,7 +1316,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Upgrade free to paid
           await updateSubscription(
             {
@@ -1395,7 +1395,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Get active subscriptions for the period
           const activeSubscriptions =
             await getActiveSubscriptionsForPeriod(
@@ -1465,7 +1465,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Get subscriptions for org1
           const org1Subscriptions =
             await getActiveSubscriptionsForPeriod(
@@ -1523,7 +1523,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update to inconsistent state
           await updateSubscription(
             {
@@ -1582,7 +1582,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const activeSubscriptions =
             await getActiveSubscriptionsForPeriod(
               organization.id,
@@ -1632,7 +1632,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const activeSubscriptions =
             await getActiveSubscriptionsForPeriod(
               organization.id,
@@ -1684,7 +1684,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Mark free as upgraded at start of period 2
           await updateSubscription(
             {
@@ -1751,10 +1751,11 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(
+        await adminTransaction(
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
+                type: 'admin',
                 livemode,
               }
             // Mark free as upgraded
@@ -1834,10 +1835,11 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(
+        await adminTransaction(
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
+                type: 'admin',
                 livemode,
               }
             await updateSubscription(
@@ -1929,10 +1931,11 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(
+        await adminTransaction(
           async ({ transaction, livemode }) => {
             const cacheRecomputationContext: CacheRecomputationContext =
               {
+                type: 'admin',
                 livemode,
               }
             // Get billing details multiple times
@@ -2015,7 +2018,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Calculate subscriber breakdown
           const breakdown = await calculateSubscriberBreakdown(
             organization.id,
@@ -2100,7 +2103,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       ])
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Calculate breakdown
           const breakdown = await calculateSubscriberBreakdown(
             organization.id,
@@ -2213,7 +2216,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       ])
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const breakdown = await calculateSubscriberBreakdown(
             organization.id,
             currentMonth,
@@ -2297,7 +2300,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       ])
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const breakdown = await calculateSubscriberBreakdown(
             organization.id,
             currentMonth,
@@ -2339,7 +2342,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create a circular reference (this shouldn't happen in practice)
           // Update A to point to B
           await updateSubscription(
@@ -2396,7 +2399,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update to point to non-existent subscription
           const fakeSubscriptionId = `sub_${core.nanoid()}`
           await updateSubscription(
@@ -2466,7 +2469,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update base to point to branch1
           await updateSubscription(
             {
@@ -2527,7 +2530,7 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Ensure replacedBySubscriptionId is null
           await updateSubscription(
             {

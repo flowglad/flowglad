@@ -17,7 +17,7 @@ import {
   setupPrice,
   setupPurchase,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   bulkInsertPurchases,
@@ -59,7 +59,7 @@ describe('insertPurchase', () => {
 
   it('should successfully insert purchase and derive pricingModelId from price', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchase = await insertPurchase(
           {
             organizationId: organization.id,
@@ -90,39 +90,36 @@ describe('insertPurchase', () => {
   })
 
   it('should throw an error when priceId does not exist', async () => {
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        const nonExistentPriceId = `price_${core.nanoid()}`
+    const nonExistentPriceId = `price_${core.nanoid()}`
 
-        await expect(
-          insertPurchase(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              priceId: nonExistentPriceId,
-              livemode: true,
-              name: 'Test Purchase',
-              priceType: PriceType.SinglePayment,
-              totalPurchaseValue: 1000,
-              quantity: 1,
-              firstInvoiceValue: 1000,
-              status: PurchaseStatus.Paid,
-              pricePerBillingCycle: null,
-              intervalUnit: null,
-              intervalCount: null,
-              trialPeriodDays: null,
-            },
-            transaction
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async ({ transaction }) => {
+      await insertPurchase(
+        {
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: nonExistentPriceId,
+          livemode: true,
+          name: 'Test Purchase',
+          priceType: PriceType.SinglePayment,
+          totalPurchaseValue: 1000,
+          quantity: 1,
+          firstInvoiceValue: 1000,
+          status: PurchaseStatus.Paid,
+          pricePerBillingCycle: null,
+          intervalUnit: null,
+          intervalCount: null,
+          trialPeriodDays: null,
+        },
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('should use provided pricingModelId without derivation', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchase = await insertPurchase(
           {
             organizationId: organization.id,
@@ -195,7 +192,7 @@ describe('bulkInsertPurchases', () => {
 
   it('should bulk insert purchases and derive pricingModelId for each', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchases = (
           await bulkInsertPurchases(
             [
@@ -286,7 +283,7 @@ describe('upsertPurchaseById', () => {
 
   it('should upsert purchase and derive pricingModelId from price', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchase = await upsertPurchaseById(
           {
             organizationId: organization.id,
@@ -318,7 +315,7 @@ describe('upsertPurchaseById', () => {
 
   it('should use provided pricingModelId without derivation', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchase = await upsertPurchaseById(
           {
             organizationId: organization.id,
@@ -431,7 +428,7 @@ describe('derivePricingModelIdFromPurchase', () => {
 
   it('should derive pricingModelId from an existing purchase', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const derivedPricingModelId =
           await derivePricingModelIdFromPurchase(
             purchase.id,
@@ -446,19 +443,16 @@ describe('derivePricingModelIdFromPurchase', () => {
   })
 
   it('should throw error when purchase does not exist', async () => {
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        const nonExistentPurchaseId = `purchase_${core.nanoid()}`
+    const nonExistentPurchaseId = `purchase_${core.nanoid()}`
 
-        await expect(
-          derivePricingModelIdFromPurchase(
-            nonExistentPurchaseId,
-            transaction
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async ({ transaction }) => {
+      await derivePricingModelIdFromPurchase(
+        nonExistentPurchaseId,
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 })
 
@@ -501,7 +495,7 @@ describe('selectPurchasesByCustomerId', () => {
 
   it('should return purchase records for a customer', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchases = await selectPurchasesByCustomerId(
           customer.id,
           transaction,
@@ -531,7 +525,7 @@ describe('selectPurchasesByCustomerId', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchases = await selectPurchasesByCustomerId(
           customerWithNoPurchases.id,
           transaction,
@@ -558,7 +552,7 @@ describe('selectPurchasesByCustomerId', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const purchases = await selectPurchasesByCustomerId(
           customer.id,
           transaction,

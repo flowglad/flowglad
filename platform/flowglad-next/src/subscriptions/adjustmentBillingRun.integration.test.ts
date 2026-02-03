@@ -39,7 +39,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { safelyUpdatePaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
@@ -179,7 +179,7 @@ describeIfStripeKey(
 
       // Remove Stripe customer ID
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             {
               id: customer.id,
@@ -208,7 +208,7 @@ describeIfStripeKey(
       })
 
       const updatedBillingRun = (
-        await adminTransactionWithResult(({ transaction }) =>
+        await adminTransaction(({ transaction }) =>
           selectBillingRunById(adjustmentBillingRun.id, transaction)
         )
       ).unwrap()
@@ -228,7 +228,7 @@ describeIfStripeKey(
 
       // Remove Stripe payment method ID
       ;(
-        await adminTransactionWithResult(
+        await adminTransaction(
           async ({
             transaction,
             cacheRecomputationContext,
@@ -271,7 +271,7 @@ describeIfStripeKey(
       })
 
       const updatedBillingRun = (
-        await adminTransactionWithResult(({ transaction }) =>
+        await adminTransaction(({ transaction }) =>
           selectBillingRunById(adjustmentBillingRun.id, transaction)
         )
       ).unwrap()
@@ -423,7 +423,7 @@ describeIfStripeKey(
       })
 
       const updatedBillingRun = (
-        await adminTransactionWithResult(({ transaction }) =>
+        await adminTransaction(({ transaction }) =>
           selectBillingRunById(adjustmentBillingRun.id, transaction)
         )
       ).unwrap()
@@ -433,7 +433,7 @@ describeIfStripeKey(
 
       // Verify subscription items were updated
       const itemsAfter = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectCurrentlyActiveSubscriptionItems(
               { subscriptionId: subscription.id },
@@ -502,7 +502,7 @@ describeIfStripeKey(
       })
 
       const updatedBillingRun = (
-        await adminTransactionWithResult(({ transaction }) =>
+        await adminTransaction(({ transaction }) =>
           selectBillingRunById(adjustmentBillingRun.id, transaction)
         )
       ).unwrap()
@@ -576,7 +576,7 @@ describeIfStripeKey(
       })
 
       const updatedBillingRun = (
-        await adminTransactionWithResult(({ transaction }) =>
+        await adminTransaction(({ transaction }) =>
           selectBillingRunById(adjustmentBillingRun.id, transaction)
         )
       ).unwrap()
@@ -586,7 +586,7 @@ describeIfStripeKey(
 
       // Verify both new items exist
       const itemsAfter = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectCurrentlyActiveSubscriptionItems(
               { subscriptionId: subscription.id },
@@ -641,7 +641,7 @@ describeIfStripeKey(
         } as SubscriptionItem.Insert,
       ]
 
-      const result = await executeBillingRun(
+      const resultResult = await executeBillingRun(
         adjustmentBillingRun.id,
         {
           newSubscriptionItems:
@@ -649,9 +649,10 @@ describeIfStripeKey(
           adjustmentDate: new Date(),
         }
       )
+      const result = resultResult.unwrap()
 
       const updatedBillingRun = (
-        await adminTransactionWithResult(({ transaction }) =>
+        await adminTransaction(({ transaction }) =>
           selectBillingRunById(adjustmentBillingRun.id, transaction)
         )
       ).unwrap()
@@ -690,18 +691,22 @@ describeIfStripeKey(
         } as SubscriptionItem.Insert,
       ]
 
-      const result = await executeBillingRun(completedBillingRun.id, {
-        newSubscriptionItems:
-          newSubscriptionItems as SubscriptionItem.Insert[],
-        adjustmentDate: new Date(),
-      })
+      const resultResult = await executeBillingRun(
+        completedBillingRun.id,
+        {
+          newSubscriptionItems:
+            newSubscriptionItems as SubscriptionItem.Insert[],
+          adjustmentDate: new Date(),
+        }
+      )
+      const result = resultResult.unwrap()
 
       // Should return undefined/early exit without processing
       expect(result).toBeUndefined()
 
       // Status should remain unchanged
       const unchangedBillingRun = (
-        await adminTransactionWithResult(({ transaction }) =>
+        await adminTransaction(({ transaction }) =>
           selectBillingRunById(completedBillingRun.id, transaction)
         )
       ).unwrap()

@@ -1,5 +1,6 @@
 import { BusinessOnboardingStatus } from '@db-core/enums'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -17,8 +18,8 @@ export const getBusinessOnboardingStatus = protectedProcedure
     })
   )
   .query(async ({ input, ctx }) => {
-    const organization = await authenticatedTransaction(
-      async ({ transaction }) => {
+    const organization = (
+      await authenticatedTransaction(async ({ transaction }) => {
         const organization = (
           await selectOrganizationById(
             input.organizationId,
@@ -26,9 +27,9 @@ export const getBusinessOnboardingStatus = protectedProcedure
           )
         ).unwrap()
 
-        return organization
-      }
-    )
+        return Result.ok(organization)
+      })
+    ).unwrap()
 
     if (
       organization.stripeAccountId &&
@@ -40,17 +41,20 @@ export const getBusinessOnboardingStatus = protectedProcedure
           organization.stripeAccountId,
           ctx.livemode
         )
-      await adminTransaction(async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: organization.id,
-            onboardingStatus:
-              stripeOnboardingDetails.onboardingStatus,
-            payoutsEnabled: stripeOnboardingDetails.payoutsEnabled,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: organization.id,
+              onboardingStatus:
+                stripeOnboardingDetails.onboardingStatus,
+              payoutsEnabled: stripeOnboardingDetails.payoutsEnabled,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
       return
     }
 

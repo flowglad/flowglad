@@ -1,4 +1,5 @@
 import { createDiscountInputSchema } from '@db-core/schema/discounts'
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
@@ -8,37 +9,39 @@ import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 export const createDiscount = protectedProcedure
   .input(createDiscountInputSchema)
   .mutation(async ({ input, ctx }) => {
-    const discount = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
+    const discount = (
+      await authenticatedTransaction(
+        async ({ transaction, userId, livemode }) => {
+          const [{ organization }] =
+            await selectMembershipAndOrganizations(
+              {
+                userId,
+                focused: true,
+              },
+              transaction
+            )
+
+          // Validate and resolve pricingModelId (uses default if not provided)
+          const pricingModelId =
+            await validateAndResolvePricingModelId({
+              pricingModelId: input.discount.pricingModelId,
+              organizationId: organization.id,
+              livemode,
+              transaction,
+            })
+
+          const discount = await insertDiscount(
             {
-              userId,
-              focused: true,
+              ...input.discount,
+              pricingModelId,
+              organizationId: organization.id,
+              livemode,
             },
             transaction
           )
-
-        // Validate and resolve pricingModelId (uses default if not provided)
-        const pricingModelId = await validateAndResolvePricingModelId(
-          {
-            pricingModelId: input.discount.pricingModelId,
-            organizationId: organization.id,
-            livemode,
-            transaction,
-          }
-        )
-
-        return insertDiscount(
-          {
-            ...input.discount,
-            pricingModelId,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-      }
-    )
+          return Result.ok(discount)
+        }
+      )
+    ).unwrap()
     return { data: { discount } }
   })

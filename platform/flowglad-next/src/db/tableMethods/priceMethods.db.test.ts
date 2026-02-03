@@ -26,10 +26,7 @@ import {
   setupResourceFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { updateCustomer } from './customerMethods'
 import {
@@ -89,7 +86,7 @@ describe('priceMethods.ts', () => {
   describe('safelyInsertPrice', () => {
     it('successfully inserts a price', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await safelyInsertPrice(
             {
@@ -122,7 +119,7 @@ describe('priceMethods.ts', () => {
 
     it('sets all other prices to non-default when inserting a default price', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // First, create another price for the same product
           const secondPrice = await setupPrice({
@@ -185,7 +182,7 @@ describe('priceMethods.ts', () => {
   describe('safelyUpdatePrice', () => {
     it('successfully updates a price', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const updatedPrice = await safelyUpdatePrice(
             {
@@ -207,7 +204,7 @@ describe('priceMethods.ts', () => {
 
     it('sets all other prices to non-default when updating a price to default', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // First, create another price for the same product
           const secondPrice = await setupPrice({
@@ -248,7 +245,7 @@ describe('priceMethods.ts', () => {
 
     it('sets other prices to non-default and not active when addin and updating a new price', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // First, create another price for the same product
           const secondPrice = await setupPrice({
@@ -297,7 +294,7 @@ describe('priceMethods.ts', () => {
 
     it('retrieves the correct product with prices after updates', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create another price for the same product
           const secondPrice = await setupPrice({
@@ -366,12 +363,15 @@ describe('priceMethods.ts', () => {
       }
 
       // Expect the entire transaction to fail due to the unique constraint violation
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await insertPrice(newPriceInsert, ctx)
-        })
-      ).rejects.toThrow(/Failed query:/)
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertPrice(newPriceInsert, ctx)
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/Failed query:/)
+      }
     })
 
     it('does not throw an error when adding and updating a price to be default when another default price exists', async () => {
@@ -392,7 +392,7 @@ describe('priceMethods.ts', () => {
       // Attempt to update the second price to be default
       // This should succeed - updating an existing price to be default is allowed
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           await updatePrice(
             {
               id: secondPrice.id,
@@ -409,7 +409,7 @@ describe('priceMethods.ts', () => {
 
     it('allows inserting a non-default price when a default price already exists', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // A default price for product.id already exists from the beforeEach hook.
           const nonDefaultPriceInsert: Price.SubscriptionInsert = {
@@ -453,7 +453,7 @@ describe('priceMethods.ts', () => {
 
     it('allows multiple prices for the same product but only the latest one is default', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // The first default price is created in beforeEach
 
@@ -515,7 +515,7 @@ describe('priceMethods.ts', () => {
 
     it('allows multiple default prices for different products', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // The first default price for the first product is created in beforeEach
 
@@ -561,129 +561,135 @@ describe('priceMethods.ts', () => {
   describe('Slug uniqueness policies', () => {
     it('throws an error when inserting a price with duplicate slug in same pricing model across products (both active)', async () => {
       const slug = 'duplicate-slug'
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Create a second product in the same pricing model
-          const secondProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Second Product',
-            pricingModelId: product.pricingModelId,
-          })
-          // Insert first ACTIVE price with slug on the original product
-          await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: product.id,
-              name: 'First Slug Price',
-              type: PriceType.Subscription,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              active: true,
-              slug,
-            },
-            ctx
-          )
-          // Attempt to insert another ACTIVE price with the same slug on the second product
-          await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: secondProduct.id,
-              name: 'Second Slug Price',
-              type: PriceType.Subscription,
-              unitPrice: 1500,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              active: true,
-              slug,
-            },
-            ctx
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
         })
-      ).rejects.toThrow(/Failed query: /)
+        // Insert first ACTIVE price with slug on the original product
+        await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'First Slug Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug,
+          },
+          ctx
+        )
+        // Attempt to insert another ACTIVE price with the same slug on the second product
+        await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Second Slug Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/Failed query: /)
+      }
     })
 
     it('throws an error when updating a price slug to one that already exists on an active price in the same pricing model', async () => {
       const slug1 = 'slug-one'
       const slug2 = 'slug-two'
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Create a second product in the same pricing model
-          const secondProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Second Product',
-            pricingModelId: product.pricingModelId,
-          })
-          // Insert first ACTIVE price with slug1 on the original product
-          const firstPrice = await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: product.id,
-              name: 'First Slug Price',
-              type: PriceType.Subscription,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              active: true,
-              slug: slug1,
-            },
-            ctx
-          )
-          // Insert second ACTIVE price with slug2 on the second product
-          const secondPrice = await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: secondProduct.id,
-              name: 'Second Slug Price',
-              type: PriceType.Subscription,
-              unitPrice: 1500,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              active: true,
-              slug: slug2,
-            },
-            ctx
-          )
-          // Attempt to update the second price to have slug1 (both are active)
-          await updatePrice(
-            {
-              id: secondPrice.id,
-              slug: slug1,
-              type: PriceType.Subscription,
-            },
-            ctx
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
         })
-      ).rejects.toThrow(/Failed query: /)
+        // Insert first ACTIVE price with slug1 on the original product
+        const firstPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'First Slug Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug: slug1,
+          },
+          ctx
+        )
+        // Insert second ACTIVE price with slug2 on the second product
+        const secondPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Second Slug Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug: slug2,
+          },
+          ctx
+        )
+        // Attempt to update the second price to have slug1 (both are active)
+        await updatePrice(
+          {
+            id: secondPrice.id,
+            slug: slug1,
+            type: PriceType.Subscription,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/Failed query: /)
+      }
     })
 
     it('allows inserting active price with slug different from existing active prices slugs', async () => {
       const slug1 = 'active-slug-1'
       const slug2 = 'active-slug-2'
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -741,7 +747,7 @@ describe('priceMethods.ts', () => {
 
     it('allows updating the slug on an active price to a value different from existing active prices slugs', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -814,7 +820,7 @@ describe('priceMethods.ts', () => {
     it('allows inserting inactive price with slug that exists on active price in same pricing model', async () => {
       const slug = 'shared-slug'
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -872,7 +878,7 @@ describe('priceMethods.ts', () => {
     it('allows inserting active price with slug that exists on inactive price in same pricing model', async () => {
       const slug = 'reusable-slug'
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -930,7 +936,7 @@ describe('priceMethods.ts', () => {
     it('allows updating price from active to inactive even when another active price has same slug', async () => {
       const slug = 'shared-slug'
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -997,72 +1003,75 @@ describe('priceMethods.ts', () => {
 
     it('throws an error when updating inactive price to active when another active price has the same slug', async () => {
       const slug = 'conflicting-slug'
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Create a second product in the same pricing model
-          const secondProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Second Product',
-            pricingModelId: product.pricingModelId,
-          })
-          // Insert first ACTIVE price with slug
-          await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: product.id,
-              name: 'Active Price',
-              type: PriceType.Subscription,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              active: true,
-              slug,
-            },
-            ctx
-          )
-          // Insert INACTIVE price with same slug
-          const inactivePrice = await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: secondProduct.id,
-              name: 'Inactive Price',
-              type: PriceType.Subscription,
-              unitPrice: 1500,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              isDefault: false,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              active: false,
-              slug,
-            },
-            ctx
-          )
-          // Attempt to update inactive price to active - should fail
-          await updatePrice(
-            {
-              id: inactivePrice.id,
-              active: true,
-              type: PriceType.Subscription,
-            },
-            ctx
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
         })
-      ).rejects.toThrow(/Failed query: /)
+        // Insert first ACTIVE price with slug
+        await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Active Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug,
+          },
+          ctx
+        )
+        // Insert INACTIVE price with same slug
+        const inactivePrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Inactive Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: false,
+            slug,
+          },
+          ctx
+        )
+        // Attempt to update inactive price to active - should fail
+        await updatePrice(
+          {
+            id: inactivePrice.id,
+            active: true,
+            type: PriceType.Subscription,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/Failed query: /)
+      }
     })
 
     it('allows multiple inactive prices with the same slug in same pricing model', async () => {
       const slug = 'inactive-slug'
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -1122,7 +1131,7 @@ describe('priceMethods.ts', () => {
     it('allows updating inactive price slug to match another inactive price slug', async () => {
       const slug = 'shared-inactive-slug'
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
@@ -1230,7 +1239,7 @@ describe('priceMethods.ts', () => {
 
     it('should find price by slug for customer in default pricing model', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectPriceBySlugAndCustomerId(
             {
@@ -1251,7 +1260,7 @@ describe('priceMethods.ts', () => {
 
     it('should return null when slug does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result = await selectPriceBySlugAndCustomerId(
             {
@@ -1269,7 +1278,7 @@ describe('priceMethods.ts', () => {
 
     it('should return null when price is inactive', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Deactivate the price
           await updatePrice(
@@ -1297,7 +1306,7 @@ describe('priceMethods.ts', () => {
 
     it('should find price in customer-specific pricing model when set', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Create a new pricing model
           const customPricingModel = await setupPricingModel({
@@ -1369,7 +1378,7 @@ describe('priceMethods.ts', () => {
       // NOTE: Database constraints prevent multiple ACTIVE prices with same slug,
       // but allow multiple inactive prices and one active + multiple inactive with same slug
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const slug = 'shared-slug'
 
@@ -1463,7 +1472,7 @@ describe('priceMethods.ts', () => {
 
     it('should find price by slug for organization in default pricing model', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result =
             await selectPriceBySlugForDefaultPricingModel(
@@ -1486,7 +1495,7 @@ describe('priceMethods.ts', () => {
 
     it('should return null when slug does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const result =
             await selectPriceBySlugForDefaultPricingModel(
@@ -1506,7 +1515,7 @@ describe('priceMethods.ts', () => {
 
     it('should return null when price is inactive', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Deactivate the price
           await updatePrice(
@@ -1536,7 +1545,7 @@ describe('priceMethods.ts', () => {
 
     it('should respect livemode parameter', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Should find livemode price when livemode is true
           const livemodeResult =
@@ -1572,66 +1581,69 @@ describe('priceMethods.ts', () => {
     })
 
     it('should throw error when no default pricing model exists', async () => {
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Create a new organization without a default pricing model
-          const nonDefaultPricingModel = await setupPricingModel({
-            organizationId: organization.id,
-            name: 'Non-Default Pricing Model',
-            isDefault: false,
-          })
-
-          // Create a product in the non-default pricing model
-          const nonDefaultProduct = await setupProduct({
-            organizationId: organization.id,
-            name: 'Non-Default Product',
-            livemode: true,
-            pricingModelId: nonDefaultPricingModel.id,
-          })
-
-          const nonDefaultPrice = await setupPrice({
-            productId: nonDefaultProduct.id,
-            name: 'Non-Default Price',
-            type: PriceType.Subscription,
-            unitPrice: 3000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            livemode: true,
-            isDefault: true,
-            trialPeriodDays: 0,
-            currency: CurrencyCode.USD,
-            slug: 'non-default-price-slug',
-          })
-
-          // Update the default pricing model to be non-default
-          // This simulates a state where there's no default pricing model
-          await updatePricingModel(
-            {
-              id: pricingModelId,
-              isDefault: false,
-            },
-            ctx
-          )
-
-          // This should throw an error because there's no default pricing model
-          await selectPriceBySlugForDefaultPricingModel(
-            {
-              slug: 'non-default-price-slug',
-              organizationId: organization.id,
-              livemode: true,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Create a new organization without a default pricing model
+        const nonDefaultPricingModel = await setupPricingModel({
+          organizationId: organization.id,
+          name: 'Non-Default Pricing Model',
+          isDefault: false,
         })
-      ).rejects.toThrow(
-        /No default pricing model found for organization/
-      )
+
+        // Create a product in the non-default pricing model
+        const nonDefaultProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Non-Default Product',
+          livemode: true,
+          pricingModelId: nonDefaultPricingModel.id,
+        })
+
+        const nonDefaultPrice = await setupPrice({
+          productId: nonDefaultProduct.id,
+          name: 'Non-Default Price',
+          type: PriceType.Subscription,
+          unitPrice: 3000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+          slug: 'non-default-price-slug',
+        })
+
+        // Update the default pricing model to be non-default
+        // This simulates a state where there's no default pricing model
+        await updatePricingModel(
+          {
+            id: pricingModelId,
+            isDefault: false,
+          },
+          ctx
+        )
+
+        // This should throw an error because there's no default pricing model
+        await selectPriceBySlugForDefaultPricingModel(
+          {
+            slug: 'non-default-price-slug',
+            organizationId: organization.id,
+            livemode: true,
+          },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(
+          /No default pricing model found for organization/
+        )
+      }
     })
 
     it('should return active price when both active and inactive prices exist with same slug', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const slug = 'shared-slug'
 
@@ -1725,7 +1737,7 @@ describe('priceMethods.ts', () => {
 
     it('should successfully return map of pricingModelIds for multiple prices', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const pricingModelIdMap = await pricingModelIdsForPrices(
             [price1.id, price2.id],
@@ -1746,7 +1758,7 @@ describe('priceMethods.ts', () => {
 
     it('should return empty map when no price IDs are provided', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const pricingModelIdMap = await pricingModelIdsForPrices(
             [],
@@ -1761,7 +1773,7 @@ describe('priceMethods.ts', () => {
 
     it('should only return entries for existing prices', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const nonExistentPriceId = `price_${core.nanoid()}`
           const pricingModelIdMap = await pricingModelIdsForPrices(
@@ -1785,7 +1797,7 @@ describe('priceMethods.ts', () => {
   describe('insertPrice', () => {
     it('should insert price and derive pricingModelId from product for product-backed prices', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await insertPrice(
             {
@@ -1817,7 +1829,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await insertPrice(
             {
@@ -1855,7 +1867,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await insertPrice(
             {
@@ -1886,7 +1898,7 @@ describe('priceMethods.ts', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await insertPrice(
             {
@@ -1914,7 +1926,7 @@ describe('priceMethods.ts', () => {
   describe('dangerouslyInsertPrice', () => {
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const newPrice = await dangerouslyInsertPrice(
             {
@@ -1954,7 +1966,7 @@ describe('priceMethods.ts', () => {
 
     it('should bulk insert prices and derive pricingModelId for each', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const prices = await bulkInsertPrices(
             [
@@ -1998,7 +2010,7 @@ describe('priceMethods.ts', () => {
 
     it('should honor pre-provided pricingModelId in bulk insert', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const prices = await bulkInsertPrices(
             [
@@ -2051,7 +2063,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const prices = await bulkInsertPrices(
             [
@@ -2134,7 +2146,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // Query specifically for the usage price by ID
           const results =
@@ -2154,7 +2166,7 @@ describe('priceMethods.ts', () => {
 
     it('should return product for subscription prices', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const results =
             await selectPricesAndProductsForOrganization(
@@ -2194,7 +2206,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const results =
             await selectPricesAndProductsForOrganization(
@@ -2247,7 +2259,7 @@ describe('priceMethods.ts', () => {
     describe('insertPrice', () => {
       it('derives pricingModelId from usageMeterId when inserting a usage price without pricingModelId', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const newPrice = await insertPrice(
               {
@@ -2277,7 +2289,7 @@ describe('priceMethods.ts', () => {
 
       it('uses provided pricingModelId instead of deriving from usageMeterId when both are provided', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const newPrice = await insertPrice(
               {
@@ -2305,7 +2317,7 @@ describe('priceMethods.ts', () => {
     describe('dangerouslyInsertPrice', () => {
       it('derives pricingModelId from usageMeterId when inserting a usage price without pricingModelId', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const newPrice = await dangerouslyInsertPrice(
               {
@@ -2344,7 +2356,7 @@ describe('priceMethods.ts', () => {
         })
 
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const prices = await bulkInsertPrices(
               [
@@ -2397,7 +2409,7 @@ describe('priceMethods.ts', () => {
         })
 
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const prices = await bulkInsertPrices(
               [
@@ -2503,7 +2515,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
             price.id,
@@ -2544,7 +2556,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
             price.id,
@@ -2606,7 +2618,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
             price.id,
@@ -2691,7 +2703,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const features = await selectResourceFeaturesForPrice(
             price.id,
@@ -2782,7 +2794,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const featureMap = await selectResourceFeaturesForPrices(
             [price1.id, price2.id],
@@ -2806,7 +2818,7 @@ describe('priceMethods.ts', () => {
 
     it('returns empty map when passed empty array', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const featureMap = await selectResourceFeaturesForPrices(
             [],
@@ -2880,7 +2892,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const featureMap = await selectResourceFeaturesForPrices(
             [price1.id, price2.id],
@@ -2927,7 +2939,7 @@ describe('priceMethods.ts', () => {
 
       const nonExistentPriceId = `price_${core.nanoid()}`
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const featureMap = await selectResourceFeaturesForPrices(
             [price.id, nonExistentPriceId],
@@ -2946,7 +2958,7 @@ describe('priceMethods.ts', () => {
   describe('derivePricingModelIdForPrice', () => {
     it('derives pricingModelId from productId when productId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const priceInsert = {
             ...nulledPriceColumns,
@@ -2983,7 +2995,7 @@ describe('priceMethods.ts', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const priceInsert = {
             ...usagePriceDefaultColumns,
@@ -3014,7 +3026,7 @@ describe('priceMethods.ts', () => {
     it('uses the provided pricingModelId when already set', async () => {
       const explicitPricingModelId = product.pricingModelId
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const priceInsert = {
             ...nulledPriceColumns,
@@ -3045,7 +3057,7 @@ describe('priceMethods.ts', () => {
 
     it('throws an error when neither productId nor usageMeterId is provided and pricingModelId is not set', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const priceInsert = {
             ...nulledPriceColumns,
@@ -3095,7 +3107,7 @@ describe('priceMethods.ts', () => {
     describe('setPricesForUsageMeterToNonDefault', () => {
       it('sets all prices for a usage meter to non-default', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create two usage prices, one is default
             const price1 = await dangerouslyInsertPrice(
@@ -3157,7 +3169,7 @@ describe('priceMethods.ts', () => {
     describe('selectDefaultPriceForUsageMeter', () => {
       it('returns the active default price for a usage meter', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create a default price
             const defaultPrice = await dangerouslyInsertPrice(
@@ -3190,7 +3202,7 @@ describe('priceMethods.ts', () => {
 
       it('returns null when no active default price exists', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create an inactive default price
             await dangerouslyInsertPrice(
@@ -3224,7 +3236,7 @@ describe('priceMethods.ts', () => {
     describe('ensureUsageMeterHasDefaultPrice', () => {
       it('sets the no_charge price as default when no active default exists', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create a no_charge price (simulating what setupTransaction creates)
             const noChargeSlug = `${testUsageMeter.slug}_no_charge`
@@ -3279,7 +3291,7 @@ describe('priceMethods.ts', () => {
 
       it('does nothing when an active default already exists', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create an active default price
             const defaultPrice = await dangerouslyInsertPrice(
@@ -3342,7 +3354,7 @@ describe('priceMethods.ts', () => {
     describe('safelyUpdatePrice for usage prices', () => {
       it('unsets other usage meter prices when setting a price as default', async () => {
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create two usage prices
             const price1 = await dangerouslyInsertPrice(

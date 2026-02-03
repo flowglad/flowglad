@@ -1,4 +1,5 @@
 import { BusinessOnboardingStatus } from '@db-core/enums'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -94,8 +95,8 @@ export const updateOrganizationOnboardingStatus = async (
     stripeAccountId,
     livemode
   )
-  const organization = await adminTransaction(
-    async ({ transaction }) => {
+  const organization = (
+    await adminTransaction(async ({ transaction }) => {
       let [organization] = await selectOrganizations(
         {
           stripeAccountId,
@@ -139,8 +140,8 @@ export const updateOrganizationOnboardingStatus = async (
         )
       }
 
-      return organization
-    }
-  )
+      return Result.ok(organization)
+    })
+  ).unwrap()
   return { onboardingStatus, organization }
 }

@@ -38,10 +38,7 @@ import {
   setupUsageLedgerScenario,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import { core } from '@/utils/core'
 import { insertSubscriptionItemFeature } from './subscriptionItemFeatureMethods'
@@ -105,7 +102,7 @@ describe('subscriptionItemMethods', async () => {
   describe('selectSubscriptionItemById', () => {
     it('should return a subscription item when a valid ID is provided and the item exists', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = (
             await selectSubscriptionItemById(
               subscriptionItem.id,
@@ -122,7 +119,7 @@ describe('subscriptionItemMethods', async () => {
     it('should return an error when the ID does not exist', async () => {
       const nonExistentId = core.nanoid()
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionItemById(
             nonExistentId,
             transaction
@@ -150,7 +147,7 @@ describe('subscriptionItemMethods', async () => {
         type: SubscriptionItemType.Static,
       }
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await insertSubscriptionItem(
             newItemData,
             transaction
@@ -176,7 +173,7 @@ describe('subscriptionItemMethods', async () => {
         priceId: price.id,
       }
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await expect(
             // @ts-expect-error testing invalid data for zod
             insertSubscriptionItem(invalidItemData, transaction)
@@ -194,7 +191,7 @@ describe('subscriptionItemMethods', async () => {
         quantity: 5,
       }
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await updateSubscriptionItem(
             {
               id: subscriptionItem.id,
@@ -221,7 +218,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should return null if the subscription item to update does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await expect(
             updateSubscriptionItem(
               {
@@ -241,7 +238,7 @@ describe('subscriptionItemMethods', async () => {
   describe('selectSubscriptionItems', () => {
     it('should return an array of subscription items matching the where conditions', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const results = await selectSubscriptionItems(
             { subscriptionId: subscription.id },
             transaction
@@ -259,7 +256,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should return an empty array if no subscription items match the where conditions', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const results = await selectSubscriptionItems(
             { subscriptionId: core.nanoid() },
             transaction
@@ -302,7 +299,7 @@ describe('subscriptionItemMethods', async () => {
         },
       ]
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const results = await bulkInsertSubscriptionItems(
             itemsToInsert,
             transaction
@@ -323,7 +320,7 @@ describe('subscriptionItemMethods', async () => {
   describe('selectSubscriptionAndItems', () => {
     it('should return the subscription and its associated items when a valid where clause for subscriptions is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionAndItems(
             { id: subscription.id },
             transaction
@@ -342,7 +339,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should return null if no subscription matches the where clause', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionAndItems(
             { id: core.nanoid() },
             transaction
@@ -357,7 +354,7 @@ describe('subscriptionItemMethods', async () => {
   describe('selectSubscriptionItemsAndSubscriptionBySubscriptionId', () => {
     it('should return the subscription and its items when a valid subscriptionId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result =
             await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
               subscription.id,
@@ -373,7 +370,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should return null if the subscriptionId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result =
             await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
               core.nanoid(),
@@ -421,7 +418,7 @@ describe('subscriptionItemMethods', async () => {
         },
       ]
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const results = await bulkCreateOrUpdateSubscriptionItems(
             itemsToUpsert,
             transaction
@@ -471,7 +468,7 @@ describe('subscriptionItemMethods', async () => {
         ],
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           feature = await insertSubscriptionItemFeature(
             subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
               {
@@ -533,7 +530,7 @@ describe('subscriptionItemMethods', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create additional subscription items
           const item2 = await setupSubscriptionItem({
             subscriptionId: subscription.id,
@@ -690,46 +687,42 @@ describe('subscriptionItemMethods', async () => {
   describe('selectSubscriptionItemsWithPricesBySubscriptionIds', () => {
     it('should return an empty array when given an empty array of subscription IDs', async () => {
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            const results =
-              await selectSubscriptionItemsWithPricesBySubscriptionIds(
-                [],
-                transaction,
-                livemode,
-                { ignoreCache: true }
-              )
-            expect(results).toEqual([])
-            return Result.ok(undefined)
-          }
-        )
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [],
+              transaction,
+              livemode,
+              { ignoreCache: true }
+            )
+          expect(results).toEqual([])
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
     it('should return subscription items with their associated prices for valid subscription IDs', async () => {
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            const results =
-              await selectSubscriptionItemsWithPricesBySubscriptionIds(
-                [subscription.id],
-                transaction,
-                livemode,
-                { ignoreCache: true }
-              )
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [subscription.id],
+              transaction,
+              livemode,
+              { ignoreCache: true }
+            )
 
-            expect(results.length).toBe(1)
-            expect(results[0].subscriptionItem.id).toBe(
-              subscriptionItem.id
-            )
-            expect(results[0].subscriptionItem.subscriptionId).toBe(
-              subscription.id
-            )
-            expect(results[0].price).toMatchObject({ id: price.id })
-            expect(results[0].price?.id).toBe(price.id)
-            return Result.ok(undefined)
-          }
-        )
+          expect(results.length).toBe(1)
+          expect(results[0].subscriptionItem.id).toBe(
+            subscriptionItem.id
+          )
+          expect(results[0].subscriptionItem.subscriptionId).toBe(
+            subscription.id
+          )
+          expect(results[0].price).toMatchObject({ id: price.id })
+          expect(results[0].price?.id).toBe(price.id)
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
@@ -750,58 +743,54 @@ describe('subscriptionItemMethods', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            const results =
-              await selectSubscriptionItemsWithPricesBySubscriptionIds(
-                [subscription.id, secondSubscription.id],
-                transaction,
-                livemode,
-                { ignoreCache: true }
-              )
-
-            expect(results.length).toBe(2)
-
-            const firstSubItems = results.filter(
-              (r) =>
-                r.subscriptionItem.subscriptionId === subscription.id
-            )
-            const secondSubItems = results.filter(
-              (r) =>
-                r.subscriptionItem.subscriptionId ===
-                secondSubscription.id
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [subscription.id, secondSubscription.id],
+              transaction,
+              livemode,
+              { ignoreCache: true }
             )
 
-            expect(firstSubItems.length).toBe(1)
-            expect(firstSubItems[0].subscriptionItem.id).toBe(
-              subscriptionItem.id
-            )
+          expect(results.length).toBe(2)
 
-            expect(secondSubItems.length).toBe(1)
-            expect(secondSubItems[0].subscriptionItem.id).toBe(
-              secondSubscriptionItem.id
-            )
-            return Result.ok(undefined)
-          }
-        )
+          const firstSubItems = results.filter(
+            (r) =>
+              r.subscriptionItem.subscriptionId === subscription.id
+          )
+          const secondSubItems = results.filter(
+            (r) =>
+              r.subscriptionItem.subscriptionId ===
+              secondSubscription.id
+          )
+
+          expect(firstSubItems.length).toBe(1)
+          expect(firstSubItems[0].subscriptionItem.id).toBe(
+            subscriptionItem.id
+          )
+
+          expect(secondSubItems.length).toBe(1)
+          expect(secondSubItems[0].subscriptionItem.id).toBe(
+            secondSubscriptionItem.id
+          )
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
     it('should return an empty array when given non-existent subscription IDs', async () => {
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            const results =
-              await selectSubscriptionItemsWithPricesBySubscriptionIds(
-                [core.nanoid(), core.nanoid()],
-                transaction,
-                livemode,
-                { ignoreCache: true }
-              )
-            expect(results).toEqual([])
-            return Result.ok(undefined)
-          }
-        )
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [core.nanoid(), core.nanoid()],
+              transaction,
+              livemode,
+              { ignoreCache: true }
+            )
+          expect(results).toEqual([])
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
   })
@@ -813,131 +802,127 @@ describe('subscriptionItemMethods', async () => {
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            // Create an expired item
-            const expiredSetup = await setupSubscriptionItem({
-              subscriptionId: subscription.id,
-              name: 'Expired Item',
-              quantity: 1,
-              unitPrice: 100,
-              priceId: price.id,
-              addedDate: pastDate,
-            })
-            // explicitly expire it.
-            await updateSubscriptionItem(
-              {
-                id: expiredSetup.id,
-                expiredAt: pastDate,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // Create an expired item
+          const expiredSetup = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Expired Item',
+            quantity: 1,
+            unitPrice: 100,
+            priceId: price.id,
+            addedDate: pastDate,
+          })
+          // explicitly expire it.
+          await updateSubscriptionItem(
+            {
+              id: expiredSetup.id,
+              expiredAt: pastDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              expiredAt: pastDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          ) // Expire the original item
+
+          // Create a new active item (item1)
+          const item1 = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Currently Active Item',
+            quantity: 1,
+            unitPrice: 100,
+            priceId: price.id,
+            addedDate: now,
+          })
+          // Item that expires in future (item2)
+          const item2 = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Future Expiring Item',
+            quantity: 1,
+            unitPrice: 100,
+            priceId: price.id,
+            addedDate: now,
+          })
+          // Update item1 to expire in the future, making item2 the one that simply has addedDate = now and expiredAt = null
+          await updateSubscriptionItem(
+            {
+              id: item1.id,
+              expiredAt: futureDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: organization.id },
+              transaction,
+              livemode
             )
+          expect(richSubscriptions.length).toBe(1)
+          const subWithItems = richSubscriptions[0]
+          expect(subWithItems.id).toBe(subscription.id)
 
-            await updateSubscriptionItem(
-              {
-                id: subscriptionItem.id,
-                expiredAt: pastDate,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
-            ) // Expire the original item
-
-            // Create a new active item (item1)
-            const item1 = await setupSubscriptionItem({
-              subscriptionId: subscription.id,
-              name: 'Currently Active Item',
-              quantity: 1,
-              unitPrice: 100,
-              priceId: price.id,
-              addedDate: now,
-            })
-            // Item that expires in future (item2)
-            const item2 = await setupSubscriptionItem({
-              subscriptionId: subscription.id,
-              name: 'Future Expiring Item',
-              quantity: 1,
-              unitPrice: 100,
-              priceId: price.id,
-              addedDate: now,
-            })
-            // Update item1 to expire in the future, making item2 the one that simply has addedDate = now and expiredAt = null
-            await updateSubscriptionItem(
-              {
-                id: item1.id,
-                expiredAt: futureDate,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
+          // We expect item1 (now future expiring) and item2 (active, no explicit expiry)
+          expect(subWithItems.subscriptionItems.length).toBe(2)
+          expect(
+            subWithItems.subscriptionItems.find(
+              (si) => si.id === item1.id
             )
+          ).toMatchObject({ id: item1.id })
+          expect(
+            subWithItems.subscriptionItems.find(
+              (si) => si.id === item2.id
+            )
+          ).toMatchObject({ id: item2.id })
 
-            const richSubscriptions =
-              await selectRichSubscriptionsAndActiveItems(
-                { organizationId: organization.id },
-                transaction,
-                livemode
-              )
-            expect(richSubscriptions.length).toBe(1)
-            const subWithItems = richSubscriptions[0]
-            expect(subWithItems.id).toBe(subscription.id)
+          // These should not be present
+          expect(
+            subWithItems.subscriptionItems.find(
+              (si) => si.id === expiredSetup.id
+            )
+          ).toBeUndefined()
+          expect(
+            subWithItems.subscriptionItems.find(
+              (si) => si.id === subscriptionItem.id // original item, now expired
+            )
+          ).toBeUndefined()
 
-            // We expect item1 (now future expiring) and item2 (active, no explicit expiry)
-            expect(subWithItems.subscriptionItems.length).toBe(2)
-            expect(
-              subWithItems.subscriptionItems.find(
-                (si) => si.id === item1.id
-              )
-            ).toMatchObject({ id: item1.id })
-            expect(
-              subWithItems.subscriptionItems.find(
-                (si) => si.id === item2.id
-              )
-            ).toMatchObject({ id: item2.id })
-
-            // These should not be present
-            expect(
-              subWithItems.subscriptionItems.find(
-                (si) => si.id === expiredSetup.id
-              )
-            ).toBeUndefined()
-            expect(
-              subWithItems.subscriptionItems.find(
-                (si) => si.id === subscriptionItem.id // original item, now expired
-              )
-            ).toBeUndefined()
-
-            // Check current status
-            expect(subWithItems.current).toBe(true) // Assuming default subscription status is active
-            return Result.ok(undefined)
-          }
-        )
+          // Check current status
+          expect(subWithItems.current).toBe(true) // Assuming default subscription status is active
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
     it('should correctly determine current status for non-active subscriptions', async () => {
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            await updateSubscription(
-              {
-                id: subscription.id,
-                status: SubscriptionStatus.Canceled,
-                renews: subscription.renews,
-              },
-              transaction
-            )
+        await adminTransaction(async ({ transaction, livemode }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              status: SubscriptionStatus.Canceled,
+              renews: subscription.renews,
+            },
+            transaction
+          )
 
-            const richSubscriptions =
-              await selectRichSubscriptionsAndActiveItems(
-                { organizationId: organization.id },
-                transaction,
-                livemode
-              )
-            expect(richSubscriptions.length).toBe(1)
-            expect(richSubscriptions[0].current).toBe(false)
-            return Result.ok(undefined)
-          }
-        )
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: organization.id },
+              transaction,
+              livemode
+            )
+          expect(richSubscriptions.length).toBe(1)
+          expect(richSubscriptions[0].current).toBe(false)
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
@@ -946,61 +931,64 @@ describe('subscriptionItemMethods', async () => {
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
       const futureDate = now + 24 * 60 * 60 * 1000 // tomorrow
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        // Update original item to have addedDate in the past (currently active)
-        await updateSubscriptionItem(
-          {
-            id: subscriptionItem.id,
-            addedDate: pastDate,
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // Update original item to have addedDate in the past (currently active)
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              addedDate: pastDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
 
-        // Create a scheduled future item (simulating a scheduled downgrade)
-        // This item has addedDate in the future, so it shouldn't appear yet
-        const scheduledFutureItem = await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          name: 'Scheduled Future Item',
-          quantity: 1,
-          unitPrice: 500,
-          priceId: price.id,
-          addedDate: futureDate, // This is the key - addedDate is in the future
+          // Create a scheduled future item (simulating a scheduled downgrade)
+          // This item has addedDate in the future, so it shouldn't appear yet
+          const scheduledFutureItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Scheduled Future Item',
+            quantity: 1,
+            unitPrice: 500,
+            priceId: price.id,
+            addedDate: futureDate, // This is the key - addedDate is in the future
+          })
+
+          // Also set up a scenario like a downgrade: current item expires when future item starts
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              expiredAt: futureDate, // Will expire when the scheduled item becomes active
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: organization.id },
+              transaction,
+              livemode
+            )
+
+          expect(richSubscriptions.length).toBe(1)
+          const subWithItems = richSubscriptions[0]
+
+          // The current item should be included (it's still active - expiredAt is in the future)
+          expect(subWithItems.subscriptionItems.length).toBe(1)
+          expect(subWithItems.subscriptionItems[0].id).toBe(
+            subscriptionItem.id
+          )
+
+          // The scheduled future item should NOT be included
+          expect(
+            subWithItems.subscriptionItems.find(
+              (si) => si.id === scheduledFutureItem.id
+            )
+          ).toBeUndefined()
+          return Result.ok(undefined)
         })
-
-        // Also set up a scenario like a downgrade: current item expires when future item starts
-        await updateSubscriptionItem(
-          {
-            id: subscriptionItem.id,
-            expiredAt: futureDate, // Will expire when the scheduled item becomes active
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
-
-        const richSubscriptions =
-          await selectRichSubscriptionsAndActiveItems(
-            { organizationId: organization.id },
-            transaction,
-            livemode
-          )
-
-        expect(richSubscriptions.length).toBe(1)
-        const subWithItems = richSubscriptions[0]
-
-        // The current item should be included (it's still active - expiredAt is in the future)
-        expect(subWithItems.subscriptionItems.length).toBe(1)
-        expect(subWithItems.subscriptionItems[0].id).toBe(
-          subscriptionItem.id
-        )
-
-        // The scheduled future item should NOT be included
-        expect(
-          subWithItems.subscriptionItems.find(
-            (si) => si.id === scheduledFutureItem.id
-          )
-        ).toBeUndefined()
-      })
+      ).unwrap()
     })
 
     it('should only include feature items for active subscription items', async () => {
@@ -1008,215 +996,209 @@ describe('subscriptionItemMethods', async () => {
       const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            // First expire the original subscription item from beforeEach
-            await updateSubscriptionItem(
-              {
-                id: subscriptionItem.id,
-                expiredAt: pastDate,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
-            )
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // First expire the original subscription item from beforeEach
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              expiredAt: pastDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
 
-            // Create a feature setup
-            const featureSetup =
-              await setupTestFeaturesAndProductFeatures({
-                organizationId: organization.id,
-                productId: price.productId!, // Test uses subscription price which has productId
-                livemode: true,
-                featureSpecs: [
-                  {
-                    name: 'Test Feature',
-                    type: FeatureType.Toggle,
-                  },
-                ],
-              })
-
-            // Create an active item with a feature
-            const activeItem = await setupSubscriptionItem({
-              subscriptionId: subscription.id,
-              name: 'Active Item with Feature',
-              quantity: 1,
-              unitPrice: 100,
-              priceId: price.id,
-            })
-            const activeFeature = await insertSubscriptionItemFeature(
-              subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+          // Create a feature setup
+          const featureSetup =
+            await setupTestFeaturesAndProductFeatures({
+              organizationId: organization.id,
+              productId: price.productId!, // Test uses subscription price which has productId
+              livemode: true,
+              featureSpecs: [
                 {
-                  subscriptionItem: activeItem,
-                  feature: featureSetup[0].feature,
-                  productFeature: featureSetup[0].productFeature,
-                }
-              ),
-              transaction
-            )
-
-            // Create an expired item with a feature
-            const expiredItem = await setupSubscriptionItem({
-              subscriptionId: subscription.id,
-              name: 'Expired Item with Feature',
-              quantity: 1,
-              unitPrice: 100,
-              priceId: price.id,
-              addedDate: pastDate,
+                  name: 'Test Feature',
+                  type: FeatureType.Toggle,
+                },
+              ],
             })
-            await updateSubscriptionItem(
+
+          // Create an active item with a feature
+          const activeItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Active Item with Feature',
+            quantity: 1,
+            unitPrice: 100,
+            priceId: price.id,
+          })
+          const activeFeature = await insertSubscriptionItemFeature(
+            subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
               {
-                id: expiredItem.id,
-                expiredAt: pastDate,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
+                subscriptionItem: activeItem,
+                feature: featureSetup[0].feature,
+                productFeature: featureSetup[0].productFeature,
+              }
+            ),
+            transaction
+          )
+
+          // Create an expired item with a feature
+          const expiredItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Expired Item with Feature',
+            quantity: 1,
+            unitPrice: 100,
+            priceId: price.id,
+            addedDate: pastDate,
+          })
+          await updateSubscriptionItem(
+            {
+              id: expiredItem.id,
+              expiredAt: pastDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+          const expiredFeature = await insertSubscriptionItemFeature(
+            subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+              {
+                subscriptionItem: expiredItem,
+                feature: featureSetup[0].feature,
+                productFeature: featureSetup[0].productFeature,
+              }
+            ),
+            transaction
+          )
+
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: organization.id },
+              transaction,
+              livemode
             )
-            const expiredFeature =
-              await insertSubscriptionItemFeature(
-                subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-                  {
-                    subscriptionItem: expiredItem,
-                    feature: featureSetup[0].feature,
-                    productFeature: featureSetup[0].productFeature,
-                  }
-                ),
-                transaction
-              )
 
-            const richSubscriptions =
-              await selectRichSubscriptionsAndActiveItems(
-                { organizationId: organization.id },
-                transaction,
-                livemode
-              )
+          expect(richSubscriptions.length).toBe(1)
+          const subWithItems = richSubscriptions[0]
 
-            expect(richSubscriptions.length).toBe(1)
-            const subWithItems = richSubscriptions[0]
+          // Verify only active item is included
+          expect(subWithItems.subscriptionItems.length).toBe(1)
+          expect(subWithItems.subscriptionItems[0].id).toBe(
+            activeItem.id
+          )
 
-            // Verify only active item is included
-            expect(subWithItems.subscriptionItems.length).toBe(1)
-            expect(subWithItems.subscriptionItems[0].id).toBe(
-              activeItem.id
-            )
-
-            // Verify only feature for active item is included
-            expect(
-              subWithItems.experimental?.featureItems.length
-            ).toBe(1)
-            expect(
-              subWithItems.experimental?.featureItems[0].id
-            ).toBe(activeFeature.id)
-            expect(
-              subWithItems.experimental?.featureItems[0]
-                .subscriptionItemId
-            ).toBe(activeItem.id)
-            return Result.ok(undefined)
-          }
-        )
+          // Verify only feature for active item is included
+          expect(subWithItems.experimental?.featureItems.length).toBe(
+            1
+          )
+          expect(subWithItems.experimental?.featureItems[0].id).toBe(
+            activeFeature.id
+          )
+          expect(
+            subWithItems.experimental?.featureItems[0]
+              .subscriptionItemId
+          ).toBe(activeItem.id)
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
     it('should only include unexpired subscriptionItemFeatures', async () => {
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            const now = Date.now()
-            const pastDate = now - 1000 * 60 * 60 * 24 // 1 day ago
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const now = Date.now()
+          const pastDate = now - 1000 * 60 * 60 * 24 // 1 day ago
 
-            // Expire the subscription item from beforeEach to avoid interference
-            await updateSubscriptionItem(
-              {
-                id: subscriptionItem.id,
-                expiredAt: pastDate,
-                type: SubscriptionItemType.Static,
-              },
-              transaction
-            )
+          // Expire the subscription item from beforeEach to avoid interference
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              expiredAt: pastDate,
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
 
-            // Create a feature setup with a product and feature
-            const featureSetup =
-              await setupTestFeaturesAndProductFeatures({
-                organizationId: organization.id,
-                productId: price.productId!, // Test uses subscription price which has productId
-                livemode: true,
-                featureSpecs: [
-                  {
-                    name: 'Active Feature',
-                    type: FeatureType.Toggle,
-                  },
-                  {
-                    name: 'Expired Feature',
-                    type: FeatureType.Toggle,
-                  },
-                ],
-              })
-
-            // Create an active subscription item
-            const activeItem = await setupSubscriptionItem({
-              subscriptionId: subscription.id,
-              name: 'Active Item',
-              quantity: 1,
-              unitPrice: 100,
-              priceId: price.id,
+          // Create a feature setup with a product and feature
+          const featureSetup =
+            await setupTestFeaturesAndProductFeatures({
+              organizationId: organization.id,
+              productId: price.productId!, // Test uses subscription price which has productId
+              livemode: true,
+              featureSpecs: [
+                {
+                  name: 'Active Feature',
+                  type: FeatureType.Toggle,
+                },
+                {
+                  name: 'Expired Feature',
+                  type: FeatureType.Toggle,
+                },
+              ],
             })
 
-            // Create an unexpired feature for the active item (no expiredAt)
-            const activeFeature = await insertSubscriptionItemFeature(
-              subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+          // Create an active subscription item
+          const activeItem = await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'Active Item',
+            quantity: 1,
+            unitPrice: 100,
+            priceId: price.id,
+          })
+
+          // Create an unexpired feature for the active item (no expiredAt)
+          const activeFeature = await insertSubscriptionItemFeature(
+            subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+              {
+                subscriptionItem: activeItem,
+                feature: featureSetup[0].feature,
+                productFeature: featureSetup[0].productFeature,
+              }
+            ),
+            transaction
+          )
+
+          // Create an expired feature for the active item
+          const expiredFeature = await insertSubscriptionItemFeature(
+            {
+              ...subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
                 {
                   subscriptionItem: activeItem,
-                  feature: featureSetup[0].feature,
-                  productFeature: featureSetup[0].productFeature,
+                  feature: featureSetup[1].feature,
+                  productFeature: featureSetup[1].productFeature,
                 }
               ),
-              transaction
+              expiredAt: pastDate, // Expired
+            },
+            transaction
+          )
+
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: organization.id },
+              transaction,
+              livemode
             )
 
-            // Create an expired feature for the active item
-            const expiredFeature =
-              await insertSubscriptionItemFeature(
-                {
-                  ...subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-                    {
-                      subscriptionItem: activeItem,
-                      feature: featureSetup[1].feature,
-                      productFeature: featureSetup[1].productFeature,
-                    }
-                  ),
-                  expiredAt: pastDate, // Expired
-                },
-                transaction
-              )
+          expect(richSubscriptions.length).toBe(1)
+          const subWithItems = richSubscriptions[0]
 
-            const richSubscriptions =
-              await selectRichSubscriptionsAndActiveItems(
-                { organizationId: organization.id },
-                transaction,
-                livemode
-              )
+          // Verify active item is included
+          expect(subWithItems.subscriptionItems.length).toBe(1)
+          expect(subWithItems.subscriptionItems[0].id).toBe(
+            activeItem.id
+          )
 
-            expect(richSubscriptions.length).toBe(1)
-            const subWithItems = richSubscriptions[0]
-
-            // Verify active item is included
-            expect(subWithItems.subscriptionItems.length).toBe(1)
-            expect(subWithItems.subscriptionItems[0].id).toBe(
-              activeItem.id
-            )
-
-            // Verify only unexpired features are included
-            expect(
-              subWithItems.experimental?.featureItems.length
-            ).toBe(1)
-            expect(
-              subWithItems.experimental?.featureItems[0].id
-            ).toBe(activeFeature.id)
-            // Verify expired feature is NOT included
-            const featureIds =
-              subWithItems.experimental?.featureItems.map((f) => f.id)
-            expect(featureIds).not.toContain(expiredFeature.id)
-            return Result.ok(undefined)
-          }
-        )
+          // Verify only unexpired features are included
+          expect(subWithItems.experimental?.featureItems.length).toBe(
+            1
+          )
+          expect(subWithItems.experimental?.featureItems[0].id).toBe(
+            activeFeature.id
+          )
+          // Verify expired feature is NOT included
+          const featureIds =
+            subWithItems.experimental?.featureItems.map((f) => f.id)
+          expect(featureIds).not.toContain(expiredFeature.id)
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
@@ -1228,158 +1210,152 @@ describe('subscriptionItemMethods', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            // Update the first meter's ledger entries to include the usageMeterId
-            await transaction
-              .update(ledgerEntries)
-              .set({ usageMeterId: scenario1.usageMeter.id })
-              .where(
-                and(
-                  eq(
-                    ledgerEntries.ledgerAccountId,
-                    scenario1.ledgerAccount.id
-                  ),
-                  eq(
-                    ledgerEntries.subscriptionId,
-                    scenario1.subscription.id
-                  )
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // Update the first meter's ledger entries to include the usageMeterId
+          await transaction
+            .update(ledgerEntries)
+            .set({ usageMeterId: scenario1.usageMeter.id })
+            .where(
+              and(
+                eq(
+                  ledgerEntries.ledgerAccountId,
+                  scenario1.ledgerAccount.id
+                ),
+                eq(
+                  ledgerEntries.subscriptionId,
+                  scenario1.subscription.id
                 )
               )
-
-            // Create second usage meter and its ledger entries within the transaction
-            const secondUsageMeter = await setupUsageMeter({
-              organizationId: organization.id,
-              name: 'Second Usage Meter',
-            })
-
-            const secondUsageEvent = await setupUsageEvent({
-              subscriptionId: scenario1.subscription.id,
-              amount: 100,
-              usageMeterId: secondUsageMeter.id,
-              usageDate: Date.now(),
-              organizationId: organization.id,
-              priceId: price.id,
-              billingPeriodId: scenario1.billingPeriod.id,
-              transactionId: core.nanoid(),
-              customerId: customer.id,
-            })
-
-            const ledgerTransaction = await setupLedgerTransaction({
-              organizationId: organization.id,
-              subscriptionId: scenario1.subscription.id,
-              type: LedgerTransactionType.UsageEventProcessed,
-            })
-
-            const secondLedgerAccount = await setupLedgerAccount({
-              organizationId: organization.id,
-              subscriptionId: scenario1.subscription.id,
-              usageMeterId: secondUsageMeter.id,
-              livemode: true,
-            })
-
-            const secondLedgerEntry = await setupDebitLedgerEntry({
-              organizationId: organization.id,
-              subscriptionId: scenario1.subscription.id,
-              usageMeterId: secondUsageMeter.id,
-              amount: 200,
-              entryType: LedgerEntryType.UsageCost,
-              sourceUsageEventId: secondUsageEvent.id,
-              ledgerTransactionId: ledgerTransaction.id,
-              ledgerAccountId: secondLedgerAccount.id,
-            })
-
-            const richSubscriptions =
-              await selectRichSubscriptionsAndActiveItems(
-                { organizationId: scenario1.organization.id },
-                transaction,
-                livemode
-              )
-
-            expect(richSubscriptions.length).toBe(1)
-            const subWithItems = richSubscriptions[0]
-            expect(subWithItems.subscriptionItems.length).toBe(1)
-            expect(subWithItems.subscriptionItems[0].id).toBe(
-              scenario1.subscriptionItem.id
             )
 
-            // Verify meter balances - should include both meters
-            expect(
-              subWithItems.experimental?.usageMeterBalances.length
-            ).toBe(2)
+          // Create second usage meter and its ledger entries within the transaction
+          const secondUsageMeter = await setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Second Usage Meter',
+          })
 
-            const meterBalances =
-              subWithItems.experimental?.usageMeterBalances ?? []
-            const associatedMeterBalance = meterBalances.find(
-              (b) => b.id === scenario1.usageMeter.id
-            )
-            const unassociatedMeterBalance = meterBalances.find(
-              (b) => b.id === secondUsageMeter.id
+          const secondUsageEvent = await setupUsageEvent({
+            subscriptionId: scenario1.subscription.id,
+            amount: 100,
+            usageMeterId: secondUsageMeter.id,
+            usageDate: Date.now(),
+            organizationId: organization.id,
+            priceId: price.id,
+            billingPeriodId: scenario1.billingPeriod.id,
+            transactionId: core.nanoid(),
+            customerId: customer.id,
+          })
+
+          const ledgerTransaction = await setupLedgerTransaction({
+            organizationId: organization.id,
+            subscriptionId: scenario1.subscription.id,
+            type: LedgerTransactionType.UsageEventProcessed,
+          })
+
+          const secondLedgerAccount = await setupLedgerAccount({
+            organizationId: organization.id,
+            subscriptionId: scenario1.subscription.id,
+            usageMeterId: secondUsageMeter.id,
+            livemode: true,
+          })
+
+          const secondLedgerEntry = await setupDebitLedgerEntry({
+            organizationId: organization.id,
+            subscriptionId: scenario1.subscription.id,
+            usageMeterId: secondUsageMeter.id,
+            amount: 200,
+            entryType: LedgerEntryType.UsageCost,
+            sourceUsageEventId: secondUsageEvent.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            ledgerAccountId: secondLedgerAccount.id,
+          })
+
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: scenario1.organization.id },
+              transaction,
+              livemode
             )
 
-            expect(associatedMeterBalance).toMatchObject({
-              availableBalance: -300,
-            })
-            expect(associatedMeterBalance?.availableBalance).toBe(
-              -300
-            )
-            expect(unassociatedMeterBalance).toMatchObject({
-              availableBalance: -200,
-            })
-            expect(unassociatedMeterBalance?.availableBalance).toBe(
-              -200
-            )
-            return Result.ok(undefined)
-          }
-        )
+          expect(richSubscriptions.length).toBe(1)
+          const subWithItems = richSubscriptions[0]
+          expect(subWithItems.subscriptionItems.length).toBe(1)
+          expect(subWithItems.subscriptionItems[0].id).toBe(
+            scenario1.subscriptionItem.id
+          )
+
+          // Verify meter balances - should include both meters
+          expect(
+            subWithItems.experimental?.usageMeterBalances.length
+          ).toBe(2)
+
+          const meterBalances =
+            subWithItems.experimental?.usageMeterBalances ?? []
+          const associatedMeterBalance = meterBalances.find(
+            (b) => b.id === scenario1.usageMeter.id
+          )
+          const unassociatedMeterBalance = meterBalances.find(
+            (b) => b.id === secondUsageMeter.id
+          )
+
+          expect(associatedMeterBalance).toMatchObject({
+            availableBalance: -300,
+          })
+          expect(associatedMeterBalance?.availableBalance).toBe(-300)
+          expect(unassociatedMeterBalance).toMatchObject({
+            availableBalance: -200,
+          })
+          expect(unassociatedMeterBalance?.availableBalance).toBe(
+            -200
+          )
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
 
     it('should handle subscriptions with no items or features', async () => {
       ;(
-        await adminTransactionWithResult(
-          async ({ transaction, livemode }) => {
-            // First expire the original subscription item from beforeEach
-            await updateSubscriptionItem(
-              {
-                id: subscriptionItem.id,
-                expiredAt: 0, // Set to epoch to ensure it's expired
-                type: SubscriptionItemType.Static,
-              },
-              transaction
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // First expire the original subscription item from beforeEach
+          await updateSubscriptionItem(
+            {
+              id: subscriptionItem.id,
+              expiredAt: 0, // Set to epoch to ensure it's expired
+              type: SubscriptionItemType.Static,
+            },
+            transaction
+          )
+
+          // Create a new subscription with no items
+          const emptySubscription = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: price.id,
+          })
+
+          const richSubscriptions =
+            await selectRichSubscriptionsAndActiveItems(
+              { organizationId: organization.id },
+              transaction,
+              livemode
             )
 
-            // Create a new subscription with no items
-            const emptySubscription = await setupSubscription({
-              organizationId: organization.id,
-              customerId: customer.id,
-              paymentMethodId: paymentMethod.id,
-              priceId: price.id,
-            })
+          expect(richSubscriptions.length).toBe(2) // Original + new empty subscription
 
-            const richSubscriptions =
-              await selectRichSubscriptionsAndActiveItems(
-                { organizationId: organization.id },
-                transaction,
-                livemode
-              )
-
-            expect(richSubscriptions.length).toBe(2) // Original + new empty subscription
-
-            const emptySub = richSubscriptions.find(
-              (s) => s.id === emptySubscription.id
-            )
-            expect(emptySub).toMatchObject({
-              id: emptySubscription.id,
-            })
-            expect(emptySub?.subscriptionItems).toEqual([])
-            expect(emptySub?.experimental?.featureItems).toEqual([])
-            expect(
-              emptySub?.experimental?.usageMeterBalances
-            ).toEqual([])
-            return Result.ok(undefined)
-          }
-        )
+          const emptySub = richSubscriptions.find(
+            (s) => s.id === emptySubscription.id
+          )
+          expect(emptySub).toMatchObject({
+            id: emptySubscription.id,
+          })
+          expect(emptySub?.subscriptionItems).toEqual([])
+          expect(emptySub?.experimental?.featureItems).toEqual([])
+          expect(emptySub?.experimental?.usageMeterBalances).toEqual(
+            []
+          )
+          return Result.ok(undefined)
+        })
       ).unwrap()
     })
   })
@@ -1417,7 +1393,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should insert new subscription items if no item with the same externalId exists', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const results =
             await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
               itemsToInsert.map((item) => {
@@ -1444,7 +1420,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should do nothing if subscription items with the same externalId already exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // First insert
           await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
             itemsToInsert.map((item) => {
@@ -1499,7 +1475,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should return items not expired or expiring after anchorDate', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Expire the default item before anchorDate
           await updateSubscriptionItem(
             {
@@ -1571,7 +1547,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('should apply whereConditions in addition to active filter', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update the original subscription item to have addedDate before anchorDate
           await updateSubscriptionItem(
             {
@@ -1614,7 +1590,7 @@ describe('subscriptionItemMethods', async () => {
   describe('pricingModelId derivation', () => {
     it('insertSubscriptionItem should derive pricingModelId from subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const item = await insertSubscriptionItem(
             {
               subscriptionId: subscription.id,
@@ -1638,7 +1614,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('insertSubscriptionItem should honor provided pricingModelId', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const orgData = await setupOrg()
           const item = await insertSubscriptionItem(
             {
@@ -1662,7 +1638,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('bulkInsertSubscriptionItems should derive pricingModelId for all items', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const items = await bulkInsertSubscriptionItems(
             [
               {
@@ -1701,7 +1677,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('bulkInsertOrDoNothingSubscriptionItemsByExternalId should derive pricingModelId', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const externalId1 = `ext_${core.nanoid()}`
           const externalId2 = `ext_${core.nanoid()}`
 
@@ -1746,7 +1722,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('bulkCreateOrUpdateSubscriptionItems should derive pricingModelId for new items', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const newItem = {
             subscriptionId: subscription.id,
             type: SubscriptionItemType.Static,
@@ -1773,7 +1749,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('insertSubscriptionItem should throw error when subscription does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
           await expect(
@@ -1797,7 +1773,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('bulkInsertSubscriptionItems should throw error when any subscription does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
           await expect(
@@ -1832,7 +1808,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('bulkInsertOrDoNothingSubscriptionItemsByExternalId should throw error when subscription does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentSubscriptionId = `sub_${core.nanoid()}`
           const externalId = `ext_${core.nanoid()}`
 
@@ -1860,7 +1836,7 @@ describe('subscriptionItemMethods', async () => {
 
     it('bulkCreateOrUpdateSubscriptionItems should throw error when subscription does not exist for new items', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
           await expect(

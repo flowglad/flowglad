@@ -7,7 +7,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { User } from '@db-core/schema/users'
 import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectMemberships,
   updateMembership,
@@ -57,7 +57,7 @@ describe('organizationsRouter notification preferences', () => {
 
     // Get the membership that was created
     const memberships = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectMemberships(
             { userId: user.id, organizationId: organization.id },
@@ -113,7 +113,7 @@ describe('organizationsRouter notification preferences', () => {
     it('returns stored preferences merged with defaults', async () => {
       // Update membership with partial preferences
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateMembership(
             {
               id: membership.id,
@@ -175,7 +175,7 @@ describe('organizationsRouter notification preferences', () => {
     it('updates specified preferences while preserving unspecified ones', async () => {
       // First set some initial preferences
       const adminUpdatedMembership = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await updateMembership(
               {
