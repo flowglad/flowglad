@@ -60,6 +60,7 @@ describe('Route type classification', () => {
       FlowgladActionKey.ListResourceClaims,
       FlowgladActionKey.GetUsageMeterBalances,
       FlowgladActionKey.GetFeatureAccess,
+      FlowgladActionKey.GetPaymentMethods,
     ]
 
     expect(authenticatedKeys.sort()).toEqual(
