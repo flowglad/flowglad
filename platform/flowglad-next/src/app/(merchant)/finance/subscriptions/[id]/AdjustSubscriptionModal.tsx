@@ -204,11 +204,11 @@ export const AdjustSubscriptionModal = ({
       }
     )
 
-  // Filter to only subscription-type prices (not usage prices) that are active
+  // Filter to only subscription-type prices (not usage or single payment) that are active
   const availablePrices = useMemo(() => {
     if (!pricesData?.data) return []
     return pricesData.data.filter(
-      (price) => price.type !== PriceType.Usage && price.active
+      (price) => price.type === PriceType.Subscription && price.active
     )
   }, [pricesData])
 
