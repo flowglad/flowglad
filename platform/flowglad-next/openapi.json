@@ -777,17 +777,18 @@
                         "type": "boolean"
                       },
                       "slug": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
+                        "description": "Unique identifier for the product within its pricing model",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
                       }
                     },
-                    "required": ["name", "active", "pricingModelId"]
+                    "required": [
+                      "name",
+                      "active",
+                      "pricingModelId",
+                      "slug"
+                    ]
                   },
                   "price": {
                     "$ref": "#/components/schemas/CreateProductPriceInput"
@@ -9832,14 +9833,9 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           }
         },
         "required": ["id", "name", "active"]
@@ -14192,14 +14188,10 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the product within its pricing model",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           }
         },
         "required": [
@@ -14297,14 +14289,10 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the product within its pricing model",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "prices": {
             "type": "array",
