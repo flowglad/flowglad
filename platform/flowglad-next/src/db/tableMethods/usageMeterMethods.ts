@@ -29,6 +29,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { selectCustomerById } from './customerMethods'
@@ -61,6 +62,7 @@ export const derivePricingModelIdFromUsageMeter =
     async (id, transaction) => {
       const result = await selectUsageMeterById(id, transaction)
       if (Result.isError(result)) {
+        // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
         throw result.error
       }
       return result.value
@@ -234,9 +236,7 @@ export const selectUsageMetersCursorPaginated =
           item.pricingModelId
         )
         if (!pricingModel) {
-          throw new Error(
-            `PricingModel not found for usage meter ${item.id}`
-          )
+          panic(`PricingModel not found for usage meter ${item.id}`)
         }
         return {
           usageMeter: item,

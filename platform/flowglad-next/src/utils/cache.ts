@@ -543,6 +543,7 @@ export async function cachedBulkLookup<TKey, TResult>(
           code: SpanStatusCode.ERROR,
           message: (error as Error).message,
         })
+        // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
         throw error
       } finally {
         span.setAttribute('duration_ms', Date.now() - startTime)
@@ -727,6 +728,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         missedKeys: missedKeys.length,
         error: errorMessage,
       })
+      // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
       throw fetchError
     }
   }

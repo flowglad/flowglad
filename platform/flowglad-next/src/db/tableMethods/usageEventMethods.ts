@@ -34,7 +34,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
-import core from '@/utils/core'
+import { panic } from '@/errors'
 import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 import {
@@ -107,7 +107,7 @@ export const bulkInsertOrDoNothingUsageEventsByTransactionId = async (
         usageEventInsert.pricingModelId ??
         pricingModelIdMap.get(usageEventInsert.usageMeterId)
       if (!pricingModelId) {
-        throw new Error(
+        panic(
           `Pricing model id not found for usage meter ${usageEventInsert.usageMeterId}`
         )
       }
@@ -215,13 +215,13 @@ export const selectUsageEventsTableRowData =
         const price = pricesById.get(usageEvent.priceId)
 
         if (!customer || !subscription || !usageMeter) {
-          throw new Error(
+          panic(
             `Missing related data for usage event ${usageEvent.id}`
           )
         }
 
         if (!price) {
-          throw new Error(
+          panic(
             `Missing price for usage event ${usageEvent.id}, priceId: ${usageEvent.priceId}`
           )
         }

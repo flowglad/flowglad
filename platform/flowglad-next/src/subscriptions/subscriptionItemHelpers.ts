@@ -13,10 +13,7 @@ import {
   type LedgerEntry,
   ledgerEntryNulledSourceIdColumns,
 } from '@db-core/schema/ledgerEntries'
-import {
-  SubscriptionItemFeature,
-  subscriptionItemFeatures,
-} from '@db-core/schema/subscriptionItemFeatures'
+import { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import {
@@ -45,7 +42,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import type { NotFoundError } from '@/errors'
+import { type NotFoundError, panic } from '@/errors'
 import { LedgerTransactionInitiatingSourceType } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from './adjustSubscription'
@@ -415,7 +412,7 @@ const grantProratedCreditsForFeatures = async (params: {
     entry.entryType === LedgerEntryType.CreditGrantRecognized
 
   if (!ledgerEntries.every(isCreditGrantRecognized)) {
-    throw new Error(
+    panic(
       'Unexpected ledger entry type: expected all entries to be CreditGrantRecognized'
     )
   }

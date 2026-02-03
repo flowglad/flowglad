@@ -17,6 +17,7 @@ import {
 import { zodEpochMs } from '@db-core/timestampMs'
 import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { selectOrganizations } from './organizationMethods'
 import { selectPricingModels } from './pricingModelMethods'
 
@@ -76,15 +77,11 @@ const enrichApiKeysWithOrganizations = async (
   return data.map((apiKey) => {
     const organization = orgsById.get(apiKey.organizationId)
     if (!organization) {
-      throw new Error(
-        `Organization not found for API key ${apiKey.id}`
-      )
+      panic(`Organization not found for API key ${apiKey.id}`)
     }
     const pricingModel = pricingModelsById.get(apiKey.pricingModelId)
     if (!pricingModel) {
-      throw new Error(
-        `Pricing model not found for API key ${apiKey.id}`
-      )
+      panic(`Pricing model not found for API key ${apiKey.id}`)
     }
     return {
       apiKey,

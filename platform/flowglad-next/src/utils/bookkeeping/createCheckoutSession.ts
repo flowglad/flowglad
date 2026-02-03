@@ -28,7 +28,7 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
-import { ValidationError } from '@/errors'
+import { panic, ValidationError } from '@/errors'
 import core from '@/utils/core'
 import {
   createPaymentIntentForCheckoutSession,
@@ -77,7 +77,7 @@ export const checkoutSessionInsertFromInput = ({
 
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
     if (!isAnonymous && !customer) {
-      throw new Error(
+      panic(
         `Required customer not found for Product checkout (anonymous=false). externalId='${checkoutSessionInput.customerExternalId}', organization='${organizationId}'.`
       )
     }
@@ -99,7 +99,7 @@ export const checkoutSessionInsertFromInput = ({
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
   ) {
     if (!customer) {
-      throw new Error(
+      panic(
         'Customer is required for add payment method checkout sessions'
       )
     }
@@ -118,12 +118,12 @@ export const checkoutSessionInsertFromInput = ({
     CheckoutSessionType.ActivateSubscription
   ) {
     if (!customer) {
-      throw new Error(
+      panic(
         'Customer is required for activate subscription checkout sessions'
       )
     }
     if (!activateSubscriptionPriceId) {
-      throw new Error(
+      panic(
         'Activate subscription checkout sessions require a price derived from the target subscription'
       )
     }
@@ -141,7 +141,7 @@ export const checkoutSessionInsertFromInput = ({
         checkoutSessionInput.preserveBillingCycleAnchor ?? false,
     }
   }
-  throw new Error(
+  panic(
     `Invalid checkout session, type: ${
       // @ts-expect-error - this is a type error because it should never be hit
       checkoutSessionInput.type

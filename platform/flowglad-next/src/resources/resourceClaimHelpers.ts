@@ -27,6 +27,7 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 
 // ============================================================================
 // Input Schemas
@@ -294,20 +295,20 @@ const resolveSubscription = async (
     ).unwrap()
 
     if (!subscription) {
-      throw new Error(
+      panic(
         `Subscription with id "${params.subscriptionId}" not found`
       )
     }
 
     // Validate ownership - subscription must belong to the specified organization and customer
     if (subscription.organizationId !== params.organizationId) {
-      throw new Error(
+      panic(
         `Subscription "${params.subscriptionId}" does not belong to organization "${params.organizationId}"`
       )
     }
 
     if (subscription.customerId !== params.customerId) {
-      throw new Error(
+      panic(
         `Subscription "${params.subscriptionId}" does not belong to customer "${params.customerId}"`
       )
     }
@@ -330,13 +331,13 @@ const resolveSubscription = async (
   )
 
   if (activeSubscriptions.length === 0) {
-    throw new Error(
+    panic(
       'No active subscription found. Please provide a subscriptionId.'
     )
   }
 
   if (activeSubscriptions.length > 1) {
-    throw new Error(
+    panic(
       `Multiple active subscriptions found (${activeSubscriptions.length}). ` +
         'Please provide a subscriptionId to specify which subscription to use.'
     )
@@ -366,7 +367,7 @@ const findResourceBySlug = async (
   )
 
   if (!resource) {
-    throw new Error(
+    panic(
       `Resource with slug "${params.resourceSlug}" not found in pricing model`
     )
   }
@@ -763,7 +764,7 @@ const insertClaimsWithOptimisticLock = async (
     const available = totalCapacity - currentCount
 
     if (requested > available) {
-      throw new Error(
+      panic(
         `No available capacity. Requested: ${requested}, Available: ${available}, Capacity: ${totalCapacity}`
       )
     }
@@ -859,7 +860,7 @@ const insertClaimsWithOptimisticLock = async (
     }
   }
 
-  throw new Error(
+  panic(
     'Max retries exceeded due to concurrent modifications to resource claims'
   )
 }
@@ -933,7 +934,7 @@ export async function claimResourceTransaction(
 
   // 2. Validate subscription is not in terminal state
   if (isSubscriptionInTerminalState(subscription.status)) {
-    throw new Error(
+    panic(
       `Cannot claim resources: Subscription ${subscription.id} is not active (status: ${subscription.status})`
     )
   }
@@ -959,7 +960,7 @@ export async function claimResourceTransaction(
     )
 
   if (featureIds.length === 0) {
-    throw new Error(
+    panic(
       `No Resource feature found for resource ${resource.id} in subscription ${subscription.id}`
     )
   }
@@ -1281,7 +1282,7 @@ export async function releaseResourceTransaction(
       .sort((a, b) => a.claimedAt - b.claimedAt) // FIFO order
 
     if (anonymousClaims.length < input.quantity) {
-      throw new Error(
+      panic(
         `Cannot release ${input.quantity} anonymous claims. Only ${anonymousClaims.length} exist. ` +
           `Use claimIds to release specific claims regardless of type.`
       )
@@ -1300,7 +1301,7 @@ export async function releaseResourceTransaction(
     )
 
     if (!claim) {
-      throw new Error(
+      panic(
         `No active claim found with externalId "${input.externalId}"`
       )
     }
@@ -1323,9 +1324,7 @@ export async function releaseResourceTransaction(
       const missing = input.externalIds.find(
         (id) => !foundIds.has(id)
       )
-      throw new Error(
-        `No active claim found with externalId "${missing}"`
-      )
+      panic(`No active claim found with externalId "${missing}"`)
     }
 
     claimsToRelease = claims
@@ -1346,7 +1345,7 @@ export async function releaseResourceTransaction(
     for (const claimId of input.claimIds) {
       const claim = activeClaimsById.get(claimId)
       if (!claim) {
-        throw new Error(`No active claim found with id "${claimId}"`)
+        panic(`No active claim found with id "${claimId}"`)
       }
       claimsToRelease.push(claim)
     }

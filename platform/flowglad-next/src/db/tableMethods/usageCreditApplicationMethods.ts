@@ -14,6 +14,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import {
   derivePricingModelIdFromUsageCredit,
   pricingModelIdsForUsageCredits,
@@ -88,7 +89,7 @@ export const bulkInsertUsageCreditApplications = async (
         insert.pricingModelId ??
         pricingModelIdMap.get(insert.usageCreditId)
       if (!pricingModelId) {
-        throw new Error(
+        panic(
           `Pricing model id not found for usage credit ${insert.usageCreditId}`
         )
       }

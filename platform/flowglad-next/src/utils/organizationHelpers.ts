@@ -26,6 +26,7 @@ import {
   createTransactionEffectsContext,
   type DbTransaction,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { type FeatureFlag } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
@@ -113,7 +114,7 @@ export const createOrganizationTransaction = async (
     ] ?? country.code
   const eligibleFlows = getEligibleFundsFlowsForCountry(country.code)
   if (eligibleFlows.length === 0) {
-    throw new Error(
+    panic(
       `${countryName} is not currently supported for payments. See supported countries: https://docs.flowglad.com/countries`
     )
   }
@@ -126,7 +127,7 @@ export const createOrganizationTransaction = async (
     requestedStripeConnectContractType ===
       StripeConnectContractType.MerchantOfRecord
   ) {
-    throw new Error(
+    panic(
       'Merchant-of-record funds flow is not available in production yet.'
     )
   }
@@ -136,7 +137,7 @@ export const createOrganizationTransaction = async (
     core.IS_PROD &&
     !eligibleFlows.includes(StripeConnectContractType.Platform)
   ) {
-    throw new Error(
+    panic(
       `${countryName} is not yet supported. We're working on expanding to more countries soon. See supported countries: https://docs.flowglad.com/countries`
     )
   }
@@ -147,7 +148,7 @@ export const createOrganizationTransaction = async (
       defaultStripeConnectContractTypeForCountry(eligibleFlows))
 
   if (!eligibleFlows.includes(stripeConnectContractType)) {
-    throw new Error(
+    panic(
       `The selected payment configuration is not available in ${countryName}. See supported countries: https://docs.flowglad.com/countries`
     )
   }
@@ -193,9 +194,7 @@ export const createOrganizationTransaction = async (
         subdomainSlug: finalSubdomainSlug,
       }
     )
-    throw new Error(
-      'Failed to create or find organization. Please try again.'
-    )
+    panic('Failed to create or find organization. Please try again.')
   }
 
   const organizationId = organizationRecord.id

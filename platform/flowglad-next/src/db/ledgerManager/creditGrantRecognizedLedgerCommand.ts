@@ -12,7 +12,7 @@ import { Result } from 'better-result'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, panic } from '@/errors'
 import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '../tableMethods/ledgerAccountMethods'
 import type {
   CreditGrantRecognizedLedgerCommand,
@@ -51,7 +51,9 @@ export const processCreditGrantRecognizedLedgerCommand = async (
         new NotFoundError('subscriptions', command.subscriptionId!)
       )
     }
-    throw error
+    panic(
+      `Unexpected error inserting ledger transaction: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 
   if (!insertedLedgerTransaction || !insertedLedgerTransaction.id) {

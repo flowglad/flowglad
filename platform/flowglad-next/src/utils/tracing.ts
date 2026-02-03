@@ -217,6 +217,7 @@ const withSpan = async <T>(
           code: SpanStatusCode.ERROR,
           message: (error as Error).message,
         })
+        // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
         throw error
       } finally {
         span.setAttributes({ duration_ms: Date.now() - startTime })

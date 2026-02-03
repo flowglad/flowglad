@@ -13,6 +13,7 @@ import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/member
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
+import { panic } from '@/errors'
 import {
   createSecretApiKey,
   deleteApiKey as deleteApiKeyFromUnkey,
@@ -31,7 +32,7 @@ export const createSecretApiKeyTransaction = async (
   }: AuthenticatedTransactionParams
 ) => {
   if (input.apiKey.type !== FlowgladApiKeyType.Secret) {
-    throw new Error(
+    panic(
       'createSecretApiKeyTransaction: Only secret keys are supported. Received type: ' +
         input.apiKey.type
     )
@@ -50,22 +51,20 @@ export const createSecretApiKeyTransaction = async (
     pricingModel.organizationId !== organizationId ||
     pricingModel.livemode !== livemode
   ) {
-    throw new Error(
-      'Invalid pricing model for this organization and mode'
-    )
+    panic('Invalid pricing model for this organization and mode')
   }
 
   // Get the focused membership and organization
   const focusedMembership =
     await selectFocusedMembershipAndOrganization(userId, transaction)
   if (!focusedMembership) {
-    throw new Error('No focused membership found')
+    panic('No focused membership found')
   }
   /**
    * Disable the creation of API keys in livemode if the organization does not have payouts enabled
    */
   if (!focusedMembership.organization.payoutsEnabled && livemode) {
-    throw new Error(
+    panic(
       `createApiKey: Cannot create livemode secret key.` +
         `Organization ${focusedMembership.organization.name} does not have payouts enabled`
     )
@@ -155,7 +154,7 @@ export const deleteSecretApiKeyTransaction = async (
 
   // Validate it's a secret key
   if (apiKey.type !== FlowgladApiKeyType.Secret) {
-    throw new Error(
+    panic(
       'deleteSecretApiKeyTransaction: Only secret keys can be deleted. Received type: ' +
         apiKey.type
     )
@@ -174,7 +173,7 @@ export const deleteSecretApiKeyTransaction = async (
         apiKeyId: apiKey.id,
         userId,
       })
-      throw new Error(
+      panic(
         `Failed to delete API key from Unkey. Database deletion aborted to prevent orphaned key. unkeyId: ${apiKey.unkeyId}`
       )
     }

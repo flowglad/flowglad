@@ -76,6 +76,31 @@
     {
       "includes": ["platform/flowglad-next/db-core/**/*.ts"],
       "plugins": ["./plugins/no-path-aliases-in-db-core.grit"]
+    },
+    {
+      "includes": [
+        "platform/flowglad-next/src/**/*.ts",
+        "!platform/flowglad-next/src/app/**",
+        "!platform/flowglad-next/src/server/routers/**",
+        "!platform/flowglad-next/src/server/mutations/**",
+        "!platform/flowglad-next/src/server/queries/**",
+        "!platform/flowglad-next/src/server/trpc*.ts",
+        "!platform/flowglad-next/src/trigger/**",
+        "!platform/flowglad-next/src/scripts/**",
+        "!platform/flowglad-next/src/components/**",
+        "!platform/flowglad-next/src/contexts/**",
+        "!platform/flowglad-next/src/db/authenticatedTransaction.ts",
+        "!platform/flowglad-next/src/db/adminTransaction.ts",
+        "!platform/flowglad-next/src/db/databaseAuthentication.ts",
+        "!platform/flowglad-next/src/api-contract/**",
+        "!platform/flowglad-next/src/errors.ts",
+        "!platform/flowglad-next/src/test/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx",
+        "!**/*.spec.ts",
+        "!**/*.spec.tsx"
+      ],
+      "plugins": ["./plugins/no-throw-outside-boundaries.grit"]
     }
   ]
 }

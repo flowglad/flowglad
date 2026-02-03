@@ -1,5 +1,6 @@
 import { CurrencyCode, IntervalUnit } from '@db-core/enums'
 import { z } from 'zod'
+import { panic } from '@/errors'
 import type { EmailType } from './registry'
 
 // ============================================================================
@@ -457,9 +458,7 @@ export const validateEmailProps = <T>(
       .map((e: z.ZodIssue) => `${e.path.join('.')}: ${e.message}`)
       .join(', ')
 
-    throw new Error(
-      `Email validation failed for "${emailType}": ${errors}`
-    )
+    panic(`Email validation failed for "${emailType}": ${errors}`)
   }
 
   return result.data
@@ -481,9 +480,7 @@ export const validateEmailPropsForType = <T extends EmailType>(
   const schema = EMAIL_VALIDATION_SCHEMAS[emailType]
 
   if (!schema) {
-    throw new Error(
-      `No validation schema found for email type: ${emailType}`
-    )
+    panic(`No validation schema found for email type: ${emailType}`)
   }
 
   return validateEmailProps(schema, props, emailType)

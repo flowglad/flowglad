@@ -57,6 +57,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import {
   createCheckoutSessionFeeCalculation,
@@ -86,7 +87,7 @@ export const editCheckoutSession = async (
   ).unwrap()
 
   if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
-    throw new Error('Checkout session is not open')
+    panic('Checkout session is not open')
   }
   /**
    * If the tax calculation has changed,
@@ -132,7 +133,7 @@ export const editCheckoutSession = async (
       await selectPurchaseById(purchaseId, transaction)
     ).unwrap()
     if (purchase.status !== PurchaseStatus.Pending) {
-      throw new Error('Purchase is not pending')
+      panic('Purchase is not pending')
     }
     await updatePurchase(
       {
@@ -204,7 +205,7 @@ export const editCheckoutSessionBillingAddress = async (
   ).unwrap()
 
   if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
-    throw new Error('Checkout session is not open')
+    panic('Checkout session is not open')
   }
 
   // Update the checkout session with new billing address
@@ -337,7 +338,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
   // Product checkout requires a product - usage prices (with null product) are not supported here
   if (!product) {
-    throw new Error(
+    panic(
       'Purchase bookkeeping is only supported for product prices (subscription/single payment), not usage prices'
     )
   }
@@ -371,7 +372,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     providedStripeCustomerId &&
     providedStripeCustomerId !== customer.stripeCustomerId
   ) {
-    throw Error(
+    panic(
       `Attempting to process checkout session ${checkoutSession.id} with a different stripe customer ${providedStripeCustomerId} than the checkout session customer ${customer.stripeCustomerId} already linked to the purchase`
     )
   }
@@ -463,7 +464,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
         }
       purchaseInsert = singlePaymentPurchaseInsert
     } else {
-      throw new Error(
+      panic(
         `Unsupported price type for checkout session ${checkoutSession.id}`
       )
     }
@@ -487,7 +488,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       transaction
     )
   if (!feeCalculation) {
-    throw new Error(
+    panic(
       `No fee calculation found for purchase session ${checkoutSession.id}`
     )
   }

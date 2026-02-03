@@ -25,7 +25,7 @@ import {
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, panic } from '@/errors'
 import { LedgerTransactionInitiatingSourceType } from '@/types'
 
 export const createUsageCreditApplicationsForUsageEvent = async (
@@ -178,7 +178,9 @@ export const processUsageEventProcessedLedgerCommand = async (
         new NotFoundError('subscriptions', command.subscriptionId!)
       )
     }
-    throw error
+    panic(
+      `Unexpected error inserting ledger transaction: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
   const ledgerAccountsResult =
     await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
@@ -196,7 +198,7 @@ export const processUsageEventProcessedLedgerCommand = async (
   }
   const [ledgerAccount] = ledgerAccountsResult.unwrap()
   if (!ledgerAccount) {
-    throw new Error(
+    panic(
       'Failed to select ledger account for UsageEventProcessed command'
     )
   }

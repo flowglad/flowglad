@@ -1,4 +1,5 @@
 import { CurrencyCode } from '@db-core/enums'
+import { panic } from '@/errors'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
@@ -141,7 +142,7 @@ export function getMetricConfig(
 ): MetricConfig {
   if (isUsageMetric(metric)) {
     if (!meterName) {
-      throw new Error('meterName is required for usage metrics')
+      panic('meterName is required for usage metrics')
     }
     return createUsageMetricConfig(meterName)
   }

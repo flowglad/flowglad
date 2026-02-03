@@ -17,6 +17,7 @@ import {
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 
 /**
  * This function updates an invoice and its line items.
@@ -45,7 +46,7 @@ export const updateInvoiceTransaction = async (
   transaction: DbTransaction
 ) => {
   if (invoice.id !== id) {
-    throw new Error(
+    panic(
       `ID mismatch: parameter id (${id}) does not match invoice.id (${invoice.id})`
     )
   }
@@ -53,13 +54,13 @@ export const updateInvoiceTransaction = async (
     await selectInvoiceById(id, transaction)
   ).unwrap()
   if (invoiceIsInTerminalState(existingInvoice)) {
-    throw new Error(
+    panic(
       `Invoice ${existingInvoice.id} has status ${existingInvoice.status}, which is terminal. You cannot update invoices that are in a terminal state.`
     )
   }
   const updatedInvoice = await updateInvoice(invoice, transaction)
   if (invoiceIsInTerminalState(updatedInvoice)) {
-    throw new Error('Cannot update a paid invoice')
+    panic('Cannot update a paid invoice')
   }
   const existingInvoiceLineItems = await selectInvoiceLineItems(
     {
@@ -87,18 +88,14 @@ export const updateInvoiceTransaction = async (
     invoiceLineItems.map(async (invoiceLineItem) => {
       if ('id' in invoiceLineItem) {
         if (invoiceLineItem.type === SubscriptionItemType.Usage) {
-          throw new Error(
-            'Usage invoice line items are not supported'
-          )
+          panic('Usage invoice line items are not supported')
         }
         const update =
           invoiceLineItemsUpdateSchema.parse(invoiceLineItem)
         return updateInvoiceLineItem(update, transaction)
       } else {
         if (invoiceLineItem.type === SubscriptionItemType.Usage) {
-          throw new Error(
-            'Usage invoice line items are not supported'
-          )
+          panic('Usage invoice line items are not supported')
         }
         return insertInvoiceLineItem(
           {
