@@ -35,11 +35,6 @@ const PLAYGROUND_DIR = path.join(REPO_ROOT, 'playground')
 const LOGS_DIR = path.join(REPO_ROOT, '.playground-logs')
 const PIDS_FILE = path.join(LOGS_DIR, '.pids.json')
 
-const AVAILABLE_PLAYGROUNDS = [
-  'seat-based-billing',
-  'generation-based-subscription',
-]
-
 // Platform user credentials (must match seedPlayground.ts)
 const PLATFORM_USER = {
   email: 'dev@flowglad.local',
@@ -58,6 +53,33 @@ const PLAYGROUND_DB = {
     databaseUrl:
       'postgresql://flowglad:flowglad_dev_password@localhost:5434/flowglad_db',
   },
+} as const
+
+// Derive AVAILABLE_PLAYGROUNDS from PLAYGROUND_DB keys to ensure consistency
+type PlaygroundName = keyof typeof PLAYGROUND_DB
+const AVAILABLE_PLAYGROUNDS = Object.keys(PLAYGROUND_DB)
+
+/**
+ * Type guard to check if a string is a valid playground name.
+ */
+function isValidPlaygroundName(name: string): name is PlaygroundName {
+  return name in PLAYGROUND_DB
+}
+
+/**
+ * Type-safe helper to get playground database config.
+ * Throws if playground name is not valid.
+ */
+function getPlaygroundDbConfig(playgroundName: string): {
+  port: number
+  databaseUrl: string
+} {
+  if (!isValidPlaygroundName(playgroundName)) {
+    throw new Error(
+      `No database configuration for playground: ${playgroundName}`
+    )
+  }
+  return PLAYGROUND_DB[playgroundName]
 }
 
 // ============================================================================
@@ -207,6 +229,44 @@ function runCommandCapture(
       reject(err)
     })
   })
+}
+
+/**
+ * Kill any existing processes on the specified port.
+ * Uses lsof to find processes and kill them.
+ */
+function killProcessOnPort(port: number): void {
+  try {
+    // Find process IDs using the port
+    const result = execSync(`lsof -ti:${port}`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim()
+
+    if (result) {
+      const pids = result.split('\n').filter(Boolean)
+      for (const pid of pids) {
+        try {
+          execSync(`kill -9 ${pid}`, { stdio: 'pipe' })
+          logDim(`  Killed process ${pid} on port ${port}`)
+        } catch {
+          // Process may have already exited
+        }
+      }
+    }
+  } catch {
+    // No process on this port, which is fine
+  }
+}
+
+/**
+ * Kill any existing processes on platform (3000) and playground (3001) ports.
+ * Ensures a clean start without port conflicts.
+ */
+function killExistingPortProcesses(): void {
+  logInfo('Checking for existing processes on ports 3000 and 3001...')
+  killProcessOnPort(3000)
+  killProcessOnPort(3001)
 }
 
 /**
@@ -367,14 +427,7 @@ function generateEnvLocal(
 ): void {
   const playgroundPath = path.join(PLAYGROUND_DIR, playgroundName)
   const envLocalPath = path.join(playgroundPath, '.env.local')
-  const dbConfig =
-    PLAYGROUND_DB[playgroundName as keyof typeof PLAYGROUND_DB]
-
-  if (!dbConfig) {
-    throw new Error(
-      `No database configuration for playground: ${playgroundName}`
-    )
-  }
+  const dbConfig = getPlaygroundDbConfig(playgroundName)
 
   const betterAuthSecret = generateSecret()
 
@@ -410,14 +463,7 @@ async function setupPlaygroundDatabase(
   playgroundName: string
 ): Promise<void> {
   const playgroundPath = path.join(PLAYGROUND_DIR, playgroundName)
-  const dbConfig =
-    PLAYGROUND_DB[playgroundName as keyof typeof PLAYGROUND_DB]
-
-  if (!dbConfig) {
-    throw new Error(
-      `No database configuration for playground: ${playgroundName}`
-    )
-  }
+  const dbConfig = getPlaygroundDbConfig(playgroundName)
 
   logInfo('Setting up playground database...')
   logDim('Running: bun run db:setup')
@@ -435,16 +481,18 @@ async function setupPlaygroundDatabase(
 }
 
 /**
- * Print the final summary.
+ * Print common summary information (credentials, API key, URLs, database).
+ * Used by both printSummary and printRunningSummary to reduce duplication.
  */
-function printSummary(playgroundName: string, apiKey: string): void {
-  const dbConfig =
-    PLAYGROUND_DB[playgroundName as keyof typeof PLAYGROUND_DB]
+function printCommonSummary(
+  playgroundName: string,
+  apiKey: string,
+  title: string
+): void {
+  const dbConfig = getPlaygroundDbConfig(playgroundName)
 
   console.log('\n' + '='.repeat(60))
-  console.log(
-    `${COLORS.green}${COLORS.bold}Playground initialized successfully!${COLORS.reset}`
-  )
+  console.log(`${COLORS.green}${COLORS.bold}${title}${COLORS.reset}`)
   console.log('='.repeat(60))
 
   console.log(
@@ -464,7 +512,18 @@ function printSummary(playgroundName: string, apiKey: string): void {
   console.log(
     `  Platform (Supabase): postgresql://postgres:postgres@localhost:54322/postgres`
   )
-  console.log(`  Playground: ${dbConfig?.databaseUrl}`)
+  console.log(`  Playground: ${dbConfig.databaseUrl}`)
+}
+
+/**
+ * Print the final summary (manual setup mode).
+ */
+function printSummary(playgroundName: string, apiKey: string): void {
+  printCommonSummary(
+    playgroundName,
+    apiKey,
+    'Playground initialized successfully!'
+  )
 
   console.log(`\n${COLORS.bold}Next Steps:${COLORS.reset}`)
   console.log(`  1. Start the platform with local playground mode:`)
@@ -593,6 +652,9 @@ async function startServices(playgroundName: string): Promise<void> {
   }
 
   try {
+    // Kill any existing processes on ports 3000 and 3001 for a clean start
+    killExistingPortProcesses()
+
     // Start platform
     // Explicitly set DATABASE_URL to local Supabase to prevent inheriting
     // a remote DATABASE_URL from the user's environment (safety check blocks remote DBs)
@@ -626,8 +688,7 @@ async function startServices(playgroundName: string): Promise<void> {
     // Start playground
     // Explicitly set DATABASE_URL to prevent inheriting platform's DATABASE_URL
     // (Next.js prioritizes process.env over .env.local)
-    const dbConfig =
-      PLAYGROUND_DB[playgroundName as keyof typeof PLAYGROUND_DB]
+    const dbConfig = getPlaygroundDbConfig(playgroundName)
     logInfo('Starting playground...')
     playgroundOut = fs.openSync(playgroundLogFile, 'a')
     playgroundProcess = spawn('bun', ['run', 'dev'], {
@@ -684,33 +745,11 @@ function printRunningSummary(
   playgroundName: string,
   apiKey: string
 ): void {
-  const dbConfig =
-    PLAYGROUND_DB[playgroundName as keyof typeof PLAYGROUND_DB]
-
-  console.log('\n' + '='.repeat(60))
-  console.log(
-    `${COLORS.green}${COLORS.bold}Playground initialized and running!${COLORS.reset}`
+  printCommonSummary(
+    playgroundName,
+    apiKey,
+    'Playground initialized and running!'
   )
-  console.log('='.repeat(60))
-
-  console.log(
-    `\n${COLORS.bold}Platform Login Credentials:${COLORS.reset}`
-  )
-  console.log(`  Email:    ${PLATFORM_USER.email}`)
-  console.log(`  Password: ${PLATFORM_USER.password}`)
-
-  console.log(`\n${COLORS.bold}Playground API Key:${COLORS.reset}`)
-  console.log(`  ${apiKey}`)
-
-  console.log(`\n${COLORS.bold}URLs:${COLORS.reset}`)
-  console.log(`  Platform:   http://localhost:3000`)
-  console.log(`  Playground: http://localhost:3001`)
-
-  console.log(`\n${COLORS.bold}Database:${COLORS.reset}`)
-  console.log(
-    `  Platform (Supabase): postgresql://postgres:postgres@localhost:54322/postgres`
-  )
-  console.log(`  Playground: ${dbConfig?.databaseUrl}`)
 
   console.log(`\n${COLORS.bold}View Logs:${COLORS.reset}`)
   console.log(
