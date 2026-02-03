@@ -4,6 +4,7 @@ import { resourceClaims } from '@db-core/schema/resourceClaims'
 import type { Resource } from '@db-core/schema/resources'
 import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
 import { metadataSchema } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import * as core from 'nanoid'
 import { z } from 'zod'
@@ -27,7 +28,7 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
-import { panic } from '@/errors'
+import { CapacityExceededError, panic } from '@/errors'
 
 // ============================================================================
 // Input Schemas
@@ -730,7 +731,9 @@ const insertClaimsWithOptimisticLock = async (
     }>
   },
   transaction: DbTransaction
-): Promise<{ success: boolean; claims: ResourceClaim.Record[] }> => {
+): Promise<
+  Result<{ claims: ResourceClaim.Record[] }, CapacityExceededError>
+> => {
   const {
     subscriptionId,
     resourceId,
@@ -741,7 +744,7 @@ const insertClaimsWithOptimisticLock = async (
   } = params
 
   if (claimsToInsert.length === 0) {
-    return { success: true, claims: [] }
+    return Result.ok({ claims: [] })
   }
 
   for (
@@ -764,8 +767,8 @@ const insertClaimsWithOptimisticLock = async (
     const available = totalCapacity - currentCount
 
     if (requested > available) {
-      panic(
-        `No available capacity. Requested: ${requested}, Available: ${available}, Capacity: ${totalCapacity}`
+      return Result.err(
+        new CapacityExceededError(requested, available, totalCapacity)
       )
     }
 
@@ -848,7 +851,7 @@ const insertClaimsWithOptimisticLock = async (
     // 4. Check if all claims were inserted (atomic - all or nothing)
     if (rows.length === claimsToInsert.length) {
       const insertedClaims = rows.map(transformRawRowToRecord)
-      return { success: true, claims: insertedClaims }
+      return Result.ok({ claims: insertedClaims })
     }
 
     // 5. Conflict detected - count changed, nothing was inserted, retry
@@ -1121,7 +1124,7 @@ export async function claimResourceTransaction(
 
   // 6. Insert claims using optimistic locking
   // This validates capacity and handles concurrent modifications via retry
-  const { claims: newClaims } = await insertClaimsWithOptimisticLock(
+  const insertResult = await insertClaimsWithOptimisticLock(
     {
       subscriptionId: subscription.id,
       resourceId: resource.id,
@@ -1132,6 +1135,8 @@ export async function claimResourceTransaction(
     },
     transaction
   )
+  // Propagate capacity errors to the caller
+  const { claims: newClaims } = insertResult.unwrap()
 
   // 7. Populate temporary claim IDs if any claims are temporary
   if (temporaryClaimsInfo) {

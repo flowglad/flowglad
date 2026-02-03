@@ -381,7 +381,11 @@ export async function checkoutInfoForPriceWhere(
       success: true,
     }
   }
-  panic('Could not derive ')
+  // This should be unreachable - all price types are handled above
+  const _exhaustiveCheck: never = price
+  panic(
+    `Could not derive checkout info for unhandled price type: ${(_exhaustiveCheck as Price.Record).type}`
+  )
 }
 
 export async function checkoutInfoForCheckoutSession(
