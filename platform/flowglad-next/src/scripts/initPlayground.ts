@@ -503,11 +503,19 @@ async function startServices(playgroundName: string): Promise<void> {
   } = {}
 
   // Start platform
+  // Explicitly set DATABASE_URL to local Supabase to prevent inheriting
+  // a remote DATABASE_URL from the user's environment (safety check blocks remote DBs)
+  const PLATFORM_DATABASE_URL =
+    'postgresql://postgres:postgres@localhost:54322/postgres'
   logInfo('Starting platform...')
   const platformOut = fs.openSync(platformLogFile, 'a')
   const platformProcess = spawn('bun', ['run', 'dev'], {
     cwd: PLATFORM_DIR,
-    env: { ...process.env, FLOWGLAD_LOCAL_PLAYGROUND: 'true' },
+    env: {
+      ...process.env,
+      FLOWGLAD_LOCAL_PLAYGROUND: 'true',
+      DATABASE_URL: PLATFORM_DATABASE_URL,
+    },
     stdio: ['ignore', platformOut, platformOut],
     detached: true,
   })
@@ -534,10 +542,12 @@ async function startServices(playgroundName: string): Promise<void> {
   pids.playground = playgroundProcess.pid
 
   // Start trigger.dev
+  // Also set DATABASE_URL to local Supabase for trigger.dev
   logInfo('Starting trigger.dev...')
   const triggerOut = fs.openSync(triggerLogFile, 'a')
   const triggerProcess = spawn('bun', ['run', 'trigger:dev'], {
     cwd: PLATFORM_DIR,
+    env: { ...process.env, DATABASE_URL: PLATFORM_DATABASE_URL },
     stdio: ['ignore', triggerOut, triggerOut],
     detached: true,
   })
