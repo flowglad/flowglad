@@ -144,8 +144,8 @@ function InternalDashboardPage({
         title={greeting}
         className="pb-2"
         description={
-          <div className="-ml-4 flex flex-1 items-center justify-between">
-            <div className="flex items-center">
+          <div className="-ml-4 flex flex-1 flex-wrap items-center justify-between gap-y-2">
+            <div className="flex flex-wrap items-center">
               <DateRangePicker
                 fromDate={range.from}
                 toDate={range.to}
@@ -162,10 +162,12 @@ function InternalDashboardPage({
                 fromDate={range.from}
                 toDate={range.to}
               />
-              <ProductPicker
-                value={productId}
-                onValueChange={setProductId}
-              />
+              <div className="hidden sm:block">
+                <ProductPicker
+                  value={productId}
+                  onValueChange={setProductId}
+                />
+              </div>
             </div>
             <Popover
               open={isPopoverOpen}
