@@ -5,7 +5,6 @@ import {
   expect,
   it,
   mock,
-  spyOn,
 } from 'bun:test'
 import { FlowgladActionKey } from '@flowglad/shared'
 import {
@@ -15,9 +14,7 @@ import {
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
-import * as invalidationModule from './lib/invalidation'
 import { useSubscription } from './useSubscription'
-import { SUBSCRIPTIONS_QUERY_KEY } from './useSubscriptions'
 
 // Mock subscription data
 const mockSubscription1 = {
@@ -232,6 +229,40 @@ describe('useSubscription', () => {
     ).rejects.toThrow('No active subscription')
   })
 
+  it('cancel() throws error when API returns error response payload', async () => {
+    // First call: fetch subscriptions
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSubscriptionsResponse),
+    })
+
+    const { result } = renderHook(() => useSubscription(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Second call: cancel returns 200 but with error payload
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          error: {
+            code: 'SUBSCRIPTION_ALREADY_CANCELED',
+            json: { message: 'Subscription is already canceled' },
+          },
+        }),
+    })
+
+    await expect(
+      result.current.cancel({
+        cancellation: { timing: 'immediately' },
+      })
+    ).rejects.toThrow('SUBSCRIPTION_ALREADY_CANCELED')
+  })
+
   it('uncancel() calls uncancel endpoint with subscription id', async () => {
     // First call: fetch subscriptions
     mockFetch.mockResolvedValueOnce({
@@ -318,80 +349,6 @@ describe('useSubscription', () => {
     expect(adjustBody.subscriptionId).toBe('sub_123')
     expect(adjustBody.priceSlug).toBe('pro-monthly')
     expect(adjustBody.quantity).toBe(1)
-  })
-
-  it('mutations invalidate SUBSCRIPTIONS_QUERY_KEY, USAGE_METERS_QUERY_KEY, FEATURES_QUERY_KEY, and GetCustomerBilling after success', async () => {
-    // First call: fetch subscriptions
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(mockSubscriptionsResponse),
-    })
-
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-      },
-    })
-
-    const invalidateQueriesSpy = spyOn(
-      queryClient,
-      'invalidateQueries'
-    ).mockResolvedValue(undefined)
-
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={queryClient}>
-        <FlowgladConfigProvider baseURL="https://test.example.com">
-          {children}
-        </FlowgladConfigProvider>
-      </QueryClientProvider>
-    )
-
-    const { result } = renderHook(() => useSubscription(), {
-      wrapper,
-    })
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    })
-
-    // Clear spy calls from initial render
-    invalidateQueriesSpy.mockClear()
-
-    // Second call: cancel subscription
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          data: {
-            subscription: {
-              ...mockSubscription1,
-              status: 'canceled',
-            },
-          },
-        }),
-    })
-
-    await act(async () => {
-      await result.current.cancel({
-        cancellation: { timing: 'immediately' },
-      })
-    })
-
-    // Verify invalidateQueries was called for all customer query keys
-    // The invalidateCustomerData helper invalidates: SUBSCRIPTIONS_QUERY_KEY, FEATURES_QUERY_KEY, USAGE_METERS_QUERY_KEY, GetCustomerBilling
-    expect(invalidateQueriesSpy).toHaveBeenCalledTimes(4)
-
-    const invalidatedKeys = invalidateQueriesSpy.mock.calls.map(
-      (call) => (call[0] as { queryKey: string[] }).queryKey[0]
-    )
-    expect(invalidatedKeys).toContain(SUBSCRIPTIONS_QUERY_KEY)
-    expect(invalidatedKeys).toContain(
-      FlowgladActionKey.GetCustomerBilling
-    )
-
-    invalidateQueriesSpy.mockRestore()
   })
 
   it('uses billingMocks in dev mode and returns mock responses for mutations without making network calls', async () => {

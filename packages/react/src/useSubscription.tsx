@@ -125,9 +125,19 @@ export const useSubscription = (): UseSubscriptionResult => {
       )
     }
 
-    const data = await response.json()
+    const json: {
+      data?: unknown
+      error?: { code: string; json: Record<string, unknown> }
+    } = await response.json()
+
+    if (json.error) {
+      throw new Error(
+        json.error.code ?? 'Subscription cancellation failed'
+      )
+    }
+
     await invalidateCustomerData(queryClient)
-    return data
+    return json.data
   }
 
   const uncancel = async (
@@ -172,9 +182,19 @@ export const useSubscription = (): UseSubscriptionResult => {
       )
     }
 
-    const data = await response.json()
+    const json: {
+      data?: unknown
+      error?: { code: string; json: Record<string, unknown> }
+    } = await response.json()
+
+    if (json.error) {
+      throw new Error(
+        json.error.code ?? 'Subscription uncancellation failed'
+      )
+    }
+
     await invalidateCustomerData(queryClient)
-    return data
+    return json.data
   }
 
   const adjust = async (
@@ -219,9 +239,19 @@ export const useSubscription = (): UseSubscriptionResult => {
       )
     }
 
-    const data = await response.json()
+    const json: {
+      data?: unknown
+      error?: { code: string; json: Record<string, unknown> }
+    } = await response.json()
+
+    if (json.error) {
+      throw new Error(
+        json.error.code ?? 'Subscription adjustment failed'
+      )
+    }
+
     await invalidateCustomerData(queryClient)
-    return data
+    return json.data
   }
 
   return {
