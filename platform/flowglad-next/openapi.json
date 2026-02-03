@@ -4463,6 +4463,666 @@
         }
       }
     },
+    "/api/v1/pricing-models/{id}/export": {
+      "get": {
+        "operationId": "pricingModels-export",
+        "summary": "Export a PricingModel",
+        "tags": ["Pricing Models"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pricingModel": {
+                      "description": "JSON structure of the pricing model configuration",
+                      "type": "object",
+                      "properties": {
+                        "isDefault": {
+                          "description": "Whether the pricingModel to be created will be the default pricingModel for all customers moving forward.",
+                          "default": false,
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "description": "The name of the pricing model",
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "features": {
+                          "type": "array",
+                          "items": {
+                            "description": "A feature that can be granted to a customer. Will be associated with products.",
+                            "oneOf": [
+                              {
+                                "description": "A feature that can be granted in a true / false boolean state. When granted to a customer, it will return true.",
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "toggle"
+                                  },
+                                  "slug": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "active": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "slug",
+                                  "name",
+                                  "description"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "description": "A credit grant to give for a usage meter.",
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "usage_credit_grant"
+                                  },
+                                  "slug": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "description": "A positive integer",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "renewalFrequency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "once",
+                                      "every_billing_period"
+                                    ]
+                                  },
+                                  "active": {
+                                    "type": "boolean"
+                                  },
+                                  "usageMeterSlug": {
+                                    "description": "The slug of the usage meter to grant credit for. Must be a valid slug for a usage meter.",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "slug",
+                                  "name",
+                                  "description",
+                                  "amount",
+                                  "renewalFrequency",
+                                  "usageMeterSlug"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "description": "A resource grant feature that allocates a specific amount of a resource.",
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "resource"
+                                  },
+                                  "slug": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "description": "A positive integer",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "active": {
+                                    "type": "boolean"
+                                  },
+                                  "resourceSlug": {
+                                    "description": "The slug of the resource to grant. Must be a valid slug for a resource in this pricing model.",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "slug",
+                                  "name",
+                                  "description",
+                                  "amount",
+                                  "resourceSlug"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ],
+                            "type": "object"
+                          }
+                        },
+                        "products": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "product": {
+                                "description": "The product to add to the pricingModel. Must be a subset of the products in the pricingModel.",
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "description": "The name of the product",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "description": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "imageURL": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "active": {
+                                    "type": "boolean"
+                                  },
+                                  "singularQuantityLabel": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "pluralQuantityLabel": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "default": {
+                                    "type": "boolean"
+                                  },
+                                  "slug": {
+                                    "description": "The slug of the product",
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "active",
+                                  "slug"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "price": {
+                                "description": "The price for the product. Must have active=true and isDefault=true.",
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "intervalUnit": {
+                                        "type": "string",
+                                        "enum": [
+                                          "day",
+                                          "week",
+                                          "month",
+                                          "year"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 255
+                                      },
+                                      "intervalCount": {
+                                        "description": "A positive integer",
+                                        "type": "integer",
+                                        "exclusiveMinimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "const": "subscription"
+                                      },
+                                      "trialPeriodDays": {
+                                        "description": "The trial period in days. If the trial period is 0 or null, there will be no trial period.",
+                                        "anyOf": [
+                                          {
+                                            "anyOf": [
+                                              {
+                                                "description": "A positive integer",
+                                                "type": "integer",
+                                                "exclusiveMinimum": 0,
+                                                "maximum": 9007199254740991
+                                              },
+                                              {
+                                                "type": "number",
+                                                "const": 0
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "isDefault": {
+                                        "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
+                                        "type": "boolean"
+                                      },
+                                      "unitPrice": {
+                                        "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
+                                        "anyOf": [
+                                          {
+                                            "description": "A positive integer",
+                                            "type": "integer",
+                                            "exclusiveMinimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "number",
+                                            "const": 0
+                                          }
+                                        ]
+                                      },
+                                      "usageEventsPerUnit": {
+                                        "description": "Omitted.",
+                                        "type": "null"
+                                      },
+                                      "active": {
+                                        "type": "boolean"
+                                      },
+                                      "slug": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 255
+                                      },
+                                      "usageMeterId": {
+                                        "description": "Omitted.",
+                                        "type": "null"
+                                      },
+                                      "currency": {
+                                        "$ref": "#/components/schemas/CurrencyCode"
+                                      }
+                                    },
+                                    "required": [
+                                      "intervalUnit",
+                                      "intervalCount",
+                                      "type",
+                                      "isDefault",
+                                      "unitPrice",
+                                      "usageEventsPerUnit",
+                                      "usageMeterId"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "intervalUnit": {
+                                        "description": "Omitted.",
+                                        "type": "null"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 255
+                                      },
+                                      "intervalCount": {
+                                        "description": "Omitted.",
+                                        "type": "null"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "const": "single_payment"
+                                      },
+                                      "trialPeriodDays": {
+                                        "description": "Omitted.",
+                                        "type": "null"
+                                      },
+                                      "isDefault": {
+                                        "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
+                                        "type": "boolean"
+                                      },
+                                      "unitPrice": {
+                                        "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
+                                        "anyOf": [
+                                          {
+                                            "description": "A positive integer",
+                                            "type": "integer",
+                                            "exclusiveMinimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          {
+                                            "type": "number",
+                                            "const": 0
+                                          }
+                                        ]
+                                      },
+                                      "usageEventsPerUnit": {
+                                        "description": "Omitted.",
+                                        "type": "null"
+                                      },
+                                      "active": {
+                                        "type": "boolean"
+                                      },
+                                      "slug": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 255
+                                      },
+                                      "usageMeterId": {
+                                        "description": "Omitted.",
+                                        "type": "null"
+                                      },
+                                      "currency": {
+                                        "$ref": "#/components/schemas/CurrencyCode"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "isDefault",
+                                      "unitPrice"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ],
+                                "type": "object"
+                              },
+                              "features": {
+                                "description": "The slugs of the features that will granted when they purchase the product. Must be a subset of the slugs of the features in the pricingModel.",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "product",
+                              "price",
+                              "features"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "usageMeters": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "usageMeter": {
+                                "description": "The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.",
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "aggregationType": {
+                                    "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+                                    "type": "string",
+                                    "enum": [
+                                      "sum",
+                                      "count_distinct_properties"
+                                    ]
+                                  }
+                                },
+                                "required": ["name", "slug"],
+                                "additionalProperties": false
+                              },
+                              "prices": {
+                                "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "intervalUnit": {
+                                      "type": "string",
+                                      "enum": [
+                                        "day",
+                                        "week",
+                                        "month",
+                                        "year"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 255
+                                    },
+                                    "intervalCount": {
+                                      "description": "A positive integer",
+                                      "type": "integer",
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "const": "usage"
+                                    },
+                                    "trialPeriodDays": {
+                                      "description": "Omitted.",
+                                      "type": "null"
+                                    },
+                                    "isDefault": {
+                                      "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
+                                      "type": "boolean"
+                                    },
+                                    "unitPrice": {
+                                      "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
+                                      "anyOf": [
+                                        {
+                                          "description": "A positive integer",
+                                          "type": "integer",
+                                          "exclusiveMinimum": 0,
+                                          "maximum": 9007199254740991
+                                        },
+                                        {
+                                          "type": "number",
+                                          "const": 0
+                                        }
+                                      ]
+                                    },
+                                    "usageEventsPerUnit": {
+                                      "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
+                                      "type": "integer",
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "active": {
+                                      "type": "boolean"
+                                    },
+                                    "slug": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 255
+                                    },
+                                    "currency": {
+                                      "$ref": "#/components/schemas/CurrencyCode"
+                                    }
+                                  },
+                                  "required": [
+                                    "intervalUnit",
+                                    "intervalCount",
+                                    "type",
+                                    "trialPeriodDays",
+                                    "isDefault",
+                                    "unitPrice",
+                                    "usageEventsPerUnit"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": ["usageMeter"],
+                            "additionalProperties": false
+                          }
+                        },
+                        "resources": {
+                          "type": "array",
+                          "items": {
+                            "description": "A resource that can be claimed by subscriptions via resource features.",
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "description": "The slug of the resource",
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "name": {
+                                "description": "The name of the resource",
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "active": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": ["slug", "name"],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "isDefault",
+                        "name",
+                        "features",
+                        "products",
+                        "usageMeters"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "updatedAt": {
+                      "description": "Epoch milliseconds timestamp of when the pricing model was last updated",
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": ["pricingModel", "updatedAt"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/api-keys/{id}": {
       "get": {
         "operationId": "apiKeys-get",
