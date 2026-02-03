@@ -131,6 +131,9 @@ describe('GET /api/cli/list-pricing-models', () => {
 
     expect(response.status).toBe(403)
     expect(data.error).toBe('Forbidden')
+    expect(data.message).toBe(
+      'You do not have access to this organization'
+    )
   })
 
   it('returns single PM with org info when pricingModelId is provided alone', async () => {
@@ -167,7 +170,8 @@ describe('GET /api/cli/list-pricing-models', () => {
     const data = await response.json()
 
     expect(response.status).toBe(404)
-    expect(data.error).toBe('Pricing model not found')
+    expect(data.error).toBe('Not Found')
+    expect(data.message).toBe('Pricing model not found')
   })
 
   it('returns 403 Forbidden when user does not have access to the pricing model org', async () => {
@@ -188,6 +192,9 @@ describe('GET /api/cli/list-pricing-models', () => {
 
     expect(response.status).toBe(403)
     expect(data.error).toBe('Forbidden')
+    expect(data.message).toBe(
+      'You do not have access to this pricing model'
+    )
   })
 
   it('returns 401 Unauthorized when session is invalid', async () => {
@@ -238,5 +245,62 @@ describe('GET /api/cli/list-pricing-models', () => {
     expect(response.status).toBe(200)
     expect(data.pricingModels).toHaveLength(1)
     expect(data.pricingModels[0].id).toBe(livemodePricingModel.id)
+  })
+
+  it('returns the specific PM when both organizationId and pricingModelId are provided and PM belongs to org', async () => {
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthUserId, email: user.email },
+      session: { id: 'session_123' },
+    }
+
+    const request = new Request(
+      `http://localhost/api/cli/list-pricing-models?organizationId=${organization1.id}&pricingModelId=${testmodePricingModel1.id}`
+    )
+    const response = await GET(request)
+    const data: ListPricingModelsResponse = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.pricingModels).toHaveLength(1)
+    expect(data.pricingModels[0].id).toBe(testmodePricingModel1.id)
+    // No organization field when organizationId is provided
+    expect(data.organization).toBeUndefined()
+  })
+
+  it('returns 404 when both organizationId and pricingModelId are provided but PM does not belong to org', async () => {
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthUserId, email: user.email },
+      session: { id: 'session_123' },
+    }
+
+    // Request PM from org1 but specify org2
+    const request = new Request(
+      `http://localhost/api/cli/list-pricing-models?organizationId=${organization2.id}&pricingModelId=${testmodePricingModel1.id}`
+    )
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(data.error).toBe('Not Found')
+    expect(data.message).toBe(
+      'Pricing model not found in this organization'
+    )
+  })
+
+  it('returns PM regardless of livemode param when pricingModelId is provided alone (direct lookup ignores livemode filter)', async () => {
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthUserId, email: user.email },
+      session: { id: 'session_123' },
+    }
+
+    // Request a testmode PM with livemode=true - should still return the PM
+    const request = new Request(
+      `http://localhost/api/cli/list-pricing-models?pricingModelId=${testmodePricingModel1.id}&livemode=true`
+    )
+    const response = await GET(request)
+    const data: ListPricingModelsResponse = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.pricingModels).toHaveLength(1)
+    expect(data.pricingModels[0].id).toBe(testmodePricingModel1.id)
   })
 })

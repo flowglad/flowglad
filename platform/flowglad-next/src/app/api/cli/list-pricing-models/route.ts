@@ -45,7 +45,7 @@ type SuccessResult =
       pricingModels: PricingModelInfo[]
     }
 
-type ErrorResult = { error: string; status: number }
+type ErrorResult = { error: string; message: string; status: number }
 
 export async function GET(request: Request): Promise<NextResponse> {
   // Get Better Auth session
@@ -70,7 +70,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       url.searchParams.get('organizationId') ?? undefined,
     pricingModelId:
       url.searchParams.get('pricingModelId') ?? undefined,
-    livemode: url.searchParams.get('livemode') ?? 'false',
+    livemode: url.searchParams.get('livemode') ?? undefined,
   })
 
   if (!parseResult.success) {
@@ -119,7 +119,8 @@ export async function GET(request: Request): Promise<NextResponse> {
         )
         if (Result.isError(pmResult)) {
           return Result.ok({
-            error: 'Pricing model not found',
+            error: 'Not Found',
+            message: 'Pricing model not found',
             status: 404,
           })
         }
@@ -130,7 +131,11 @@ export async function GET(request: Request): Promise<NextResponse> {
           (m) => m.organization.id === pm.organizationId
         )
         if (!pmOrg) {
-          return Result.ok({ error: 'Forbidden', status: 403 })
+          return Result.ok({
+            error: 'Forbidden',
+            message: 'You do not have access to this pricing model',
+            status: 403,
+          })
         }
 
         return Result.ok({
@@ -149,15 +154,53 @@ export async function GET(request: Request): Promise<NextResponse> {
         })
       }
 
-      // Standard case: list all PMs for given org
+      // Standard case: list all PMs for given org (or validate pricingModelId belongs to org)
       const hasAccess = memberships.some(
         (m) => m.organization.id === organizationId
       )
       if (!hasAccess) {
-        return Result.ok({ error: 'Forbidden', status: 403 })
+        return Result.ok({
+          error: 'Forbidden',
+          message: 'You do not have access to this organization',
+          status: 403,
+        })
       }
 
-      // Fetch pricing models
+      // If both organizationId and pricingModelId provided, validate PM belongs to org
+      if (pricingModelId) {
+        const pmResult = await selectPricingModelById(
+          pricingModelId,
+          transaction
+        )
+        if (Result.isError(pmResult)) {
+          return Result.ok({
+            error: 'Not Found',
+            message: 'Pricing model not found',
+            status: 404,
+          })
+        }
+        const pm = pmResult.value
+        if (pm.organizationId !== organizationId) {
+          return Result.ok({
+            error: 'Not Found',
+            message: 'Pricing model not found in this organization',
+            status: 404,
+          })
+        }
+        // Return just the requested PM
+        return Result.ok({
+          pricingModels: [
+            {
+              id: pm.id,
+              name: pm.name,
+              isDefault: pm.isDefault,
+              updatedAt: new Date(pm.updatedAt).toISOString(),
+            },
+          ],
+        })
+      }
+
+      // Fetch all pricing models for the org
       const pms = await selectPricingModels(
         { organizationId: organizationId!, livemode: isLivemode },
         transaction
@@ -190,7 +233,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if ('error' in data) {
     return NextResponse.json(
-      { error: data.error },
+      { error: data.error, message: data.message },
       { status: data.status }
     )
   }
