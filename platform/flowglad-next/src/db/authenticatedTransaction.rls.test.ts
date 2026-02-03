@@ -566,31 +566,31 @@ describe('RLS for selectProducts', () => {
   })
 
   it('cannot insert a product for a different organization (other than current_organization_id)', async () => {
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
-          await insertProduct(
-            {
-              name: 'Cross Org Product',
-              organizationId: prodOrg2.id,
-              pricingModelId: prodPricingModel2.id,
-              default: false,
-              description: null,
-              livemode: false,
-              externalId: null,
-              slug: 'cross-org-product',
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              active: true,
-            },
-            ctx
-          )
-        },
-        { apiKey: apiKeyAForOrg1.token }
-      )
-    ).rejects.toThrow()
+    const result = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
+        await insertProduct(
+          {
+            name: 'Cross Org Product',
+            organizationId: prodOrg2.id,
+            pricingModelId: prodPricingModel2.id,
+            default: false,
+            description: null,
+            livemode: false,
+            externalId: null,
+            slug: 'cross-org-product',
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            active: true,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: apiKeyAForOrg1.token }
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('can insert a product for the current organization', async () => {
@@ -1109,37 +1109,44 @@ describe('Second-order RLS defense in depth', () => {
         livemode: true,
       })
     ).apiKey
-    const prods = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectProducts({ organizationId: o1.id }, transaction),
-      { apiKey: onlyOrg2.token }
-    )
-    expect(prods).toHaveLength(0)
-    await expect(
-      authenticatedTransaction(
-        async (ctx) => {
-          const { transaction, livemode } = ctx
-          await insertProduct(
-            {
-              name: 'X',
-              description: null,
-              imageURL: null,
-              organizationId: o1.id,
-              active: true,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: o2.pricingModel.id,
-              externalId: null,
-              default: false,
-              slug: 'x-product',
-              livemode,
-            },
-            ctx
-          )
-        },
+    const prods = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          Result.ok(
+            await selectProducts(
+              { organizationId: o1.id },
+              transaction
+            )
+          ),
         { apiKey: onlyOrg2.token }
       )
-    ).rejects.toThrow()
+    ).unwrap()
+    expect(prods).toHaveLength(0)
+    const insertResult = await authenticatedTransaction(
+      async (ctx) => {
+        const { transaction, livemode } = ctx
+        await insertProduct(
+          {
+            name: 'X',
+            description: null,
+            imageURL: null,
+            organizationId: o1.id,
+            active: true,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            pricingModelId: o2.pricingModel.id,
+            externalId: null,
+            default: false,
+            slug: 'x-product',
+            livemode,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      },
+      { apiKey: onlyOrg2.token }
+    )
+    expect(Result.isError(insertResult)).toBe(true)
   })
 
   it('API key and session both set RLS context correctly: parity test', async () => {
