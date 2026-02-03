@@ -44,8 +44,38 @@ import {
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
+import { updatePricingModelTransaction } from '@/utils/pricingModels/updateTransaction'
 import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { getOrganizationCodebaseMarkdown } from '@/utils/textContent'
+
+/**
+ * Extended edit schema for full pricing model structure updates.
+ * Adds optional structure fields (features, products, usageMeters, resources)
+ * to enable CLI sync workflows where the entire pricing model structure is updated.
+ *
+ * When structure fields are provided, the update procedure uses the full
+ * diffing and update transaction logic. When only metadata fields are provided,
+ * it uses the simple update path for backward compatibility.
+ */
+const extendedEditPricingModelSchema = z.object({
+  id: z.string(),
+  pricingModel: z
+    .object({
+      name: z.string().min(1, 'Name is required'),
+      isDefault: z.boolean().optional(),
+      // Optional full structure fields for CLI sync
+      features: setupPricingModelSchema.shape.features.optional(),
+      products: setupPricingModelSchema.shape.products.optional(),
+      usageMeters:
+        setupPricingModelSchema.shape.usageMeters.optional(),
+      resources: setupPricingModelSchema.shape.resources.optional(),
+    })
+    .passthrough(), // Allow other fields from the base update schema
+})
+
+export type ExtendedEditPricingModelInput = z.infer<
+  typeof extendedEditPricingModelSchema
+>
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'pricingModel',
@@ -182,28 +212,108 @@ const createPricingModelProcedure = protectedProcedure
     return { pricingModel: result.pricingModel }
   })
 
+/**
+ * Update a pricing model.
+ *
+ * This procedure supports two modes:
+ * 1. **Metadata-only update** (existing behavior): When only `name` and/or `isDefault`
+ *    are provided, the procedure uses the simple update path.
+ * 2. **Full structure update** (CLI sync workflow): When `features`, `products`,
+ *    `usageMeters`, or `resources` fields are provided, the procedure uses the
+ *    full diff and update transaction to atomically update the entire pricing model.
+ *
+ * Uses adminTransaction to bypass RLS policies, as the full structure update
+ * may need to create/update/deactivate resources across pricing model scope.
+ */
 const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
-  .input(editPricingModelSchema)
+  .input(extendedEditPricingModelSchema)
   .output(
     z.object({
       pricingModel: pricingModelsClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
-        const pricingModel = await safelyUpdatePricingModel(
-          {
-            ...input.pricingModel,
-            id: input.id,
+  .mutation(async ({ input, ctx }) => {
+    const { pricingModel: pricingModelInput } = input
+    const pricingModelId = input.id
+
+    // Check if structure fields are provided
+    const hasStructureFields =
+      pricingModelInput.features !== undefined ||
+      pricingModelInput.products !== undefined ||
+      pricingModelInput.usageMeters !== undefined ||
+      pricingModelInput.resources !== undefined
+
+    // If no structure fields provided, use simple metadata update (existing behavior)
+    if (!hasStructureFields) {
+      return unwrapOrThrow(
+        await authenticatedTransaction(
+          async (transactionCtx) => {
+            const pricingModel = await safelyUpdatePricingModel(
+              {
+                name: pricingModelInput.name,
+                isDefault: pricingModelInput.isDefault,
+                id: pricingModelId,
+              },
+              transactionCtx
+            )
+            return Result.ok({ pricingModel })
           },
-          transactionCtx
+          {
+            apiKey: ctx.apiKey,
+          }
         )
-        return Result.ok({ pricingModel })
+      )
+    }
+
+    // Full structure update: use diff + update transaction
+    // Uses adminTransaction to bypass RLS policies for cross-resource updates
+    const result = await adminTransaction(async (transactionCtx) => {
+      // Build the proposed input from the request
+      // Required fields must come from the input
+      const proposedInput = {
+        name: pricingModelInput.name,
+        isDefault: pricingModelInput.isDefault ?? false,
+        features: pricingModelInput.features ?? [],
+        products: pricingModelInput.products ?? [],
+        usageMeters: pricingModelInput.usageMeters ?? [],
+        resources: pricingModelInput.resources,
       }
-    )
-  )
+
+      const updateResult = await updatePricingModelTransaction(
+        {
+          pricingModelId,
+          proposedInput,
+        },
+        transactionCtx
+      )
+
+      if (Result.isError(updateResult)) {
+        return updateResult
+      }
+
+      // Fetch the full pricing model with products and usage meters for the response
+      const [fullPricingModel] =
+        await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModelId },
+          transactionCtx.transaction
+        )
+
+      if (!fullPricingModel) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch updated pricing model',
+        })
+      }
+
+      // Return just the base pricing model fields for the output schema
+      return Result.ok({
+        pricingModel: updateResult.value.pricingModel,
+      })
+    })
+
+    return unwrapOrThrow(result)
+  })
 
 const getDefaultPricingModelProcedure = protectedProcedure
   .meta({
