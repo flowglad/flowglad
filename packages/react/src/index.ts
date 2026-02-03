@@ -20,6 +20,7 @@ export {
   useFeatures,
 } from './useFeatures'
 export {
+  isPaymentMethodsRouteResponse,
   PAYMENT_METHODS_QUERY_KEY,
   type UsePaymentMethodsResult,
   usePaymentMethods,
