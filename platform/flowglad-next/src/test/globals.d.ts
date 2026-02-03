@@ -26,16 +26,43 @@ export interface FileTestContext {
   inTransaction: boolean
 }
 
+/**
+ * Session object structure for auth session mocks.
+ * Includes user, session scope, and optional context organization.
+ */
+export interface MockedAuthSession {
+  user: { id: string; email: string }
+  session?: {
+    scope?: 'merchant' | 'customer'
+    contextOrganizationId?: string
+  }
+}
+
 declare global {
   /**
-   * Mocked auth session for testing.
+   * Mocked auth session for testing (legacy - for backward compatibility).
    * Set this in tests to control what getSession() returns.
+   * @deprecated Use __mockedMerchantSession or __mockedCustomerSession instead
    */
   // eslint-disable-next-line no-var
   var __mockedAuthSession:
     | null
     | { user: { id: string; email: string } }
     | undefined
+
+  /**
+   * Mocked merchant session for testing.
+   * Set this in tests to control what getMerchantSession() returns.
+   */
+  // eslint-disable-next-line no-var
+  var __mockedMerchantSession: MockedAuthSession | null | undefined
+
+  /**
+   * Mocked customer session for testing.
+   * Set this in tests to control what getCustomerSession() returns.
+   */
+  // eslint-disable-next-line no-var
+  var __mockedCustomerSession: MockedAuthSession | null | undefined
 
   /**
    * Map of test file paths to their database contexts.

@@ -2,7 +2,7 @@ import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
-import { getSession } from '@/utils/auth'
+import { getCustomerSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 
 interface BillingPortalRedirectPageProps {
@@ -15,11 +15,15 @@ const BillingPortalRedirectPage = async ({
   params,
 }: BillingPortalRedirectPageProps) => {
   const { organizationId } = await params
-  const session = await getSession()
+  // Use customer session for billing portal - not merchant session
+  const session = await getCustomerSession()
   if (!session) {
     redirect(`/billing-portal/${organizationId}/sign-in`)
   }
   const user = await betterAuthUserToApplicationUser(session.user)
+  // Use adminTransaction since customer billing portal users don't have merchant RLS context.
+  // Security is enforced by customerSessionProcedure (validates user session + organizationId)
+  // and the query filter (userId + organizationId + livemode).
   const customers = (
     await authenticatedTransaction(async ({ transaction }) => {
       return Result.ok(

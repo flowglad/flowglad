@@ -39,7 +39,8 @@ import {
   uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
 import { SubscriptionCancellationArrangement } from '@/types'
-import { auth } from '@/utils/auth'
+import { customerAuth } from '@/utils/auth/customerAuth'
+import { merchantAuth } from '@/utils/auth/merchantAuth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import {
   customerBillingCreateAddPaymentMethodSession,
@@ -50,7 +51,6 @@ import {
 import core from '@/utils/core'
 import {
   getCustomerBillingPortalEmail,
-  getCustomerBillingPortalOrganizationId,
   setCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
@@ -58,7 +58,7 @@ import { maskEmail } from '@/utils/email'
 import { unwrapOrThrow } from '@/utils/resultHelpers'
 import {
   customerProtectedProcedure,
-  protectedProcedure,
+  customerSessionProcedure,
   publicProcedure,
   router,
 } from '../trpc'
@@ -149,6 +149,7 @@ const getBillingProcedure = customerProtectedProcedure
         {
           apiKey: ctx.apiKey,
           customerId: customer.id,
+          authScope: 'customer',
         }
       )
     ).unwrap()
@@ -277,6 +278,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
         {
           apiKey: ctx.apiKey,
           customerId: customer.id,
+          authScope: 'customer',
         }
       )
     )
@@ -376,6 +378,7 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
         {
           apiKey: ctx.apiKey,
           customerId: customer.id,
+          authScope: 'customer',
         }
       )
     ).unwrap()
@@ -484,7 +487,7 @@ const requestMagicLinkProcedure = publicProcedure
 
             if (!user || !user.betterAuthId) {
               // Create new user account for the customer
-              const result = await auth.api.createUser({
+              const result = await merchantAuth.api.createUser({
                 body: {
                   email,
                   password: core.nanoid(),
@@ -517,17 +520,19 @@ const requestMagicLinkProcedure = publicProcedure
             }
 
             // Get better auth user for email verification status
-            await selectBetterAuthUserById(
-              user.betterAuthId!,
-              transaction
-            )
+            if (user?.betterAuthId) {
+              await selectBetterAuthUserById(
+                user.betterAuthId,
+                transaction
+              )
+            }
           }
           // Always return success (even if no customer found) for security
           return Result.ok({ success: true })
         })
       ).unwrap()
 
-      await auth.api.signInMagicLink({
+      await customerAuth.api.signInMagicLink({
         body: {
           email, // required
           callbackURL: core.safeUrl(
@@ -656,57 +661,58 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
         {
           apiKey: ctx.apiKey,
           customerId: customer.id,
+          authScope: 'customer',
         }
       )
     ).unwrap()
   })
 
-// Get all customers for an email at an organization
-// Uses protectedProcedure instead of customerProtectedProcedure because
-// this is called before a customer is selected (on the select-customer page)
-const getCustomersForUserAndOrganizationProcedure = protectedProcedure
-  .input(z.object({}))
-  .output(
-    z.object({
-      customers: customerClientSelectSchema.array(),
-    })
-  )
-  .query(async ({ ctx }) => {
-    if (!ctx.user) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'User is required',
+/**
+ * Get all customers for the authenticated user at the organization.
+ *
+ * Uses customerSessionProcedure instead of customerProtectedProcedure because
+ * this is called before a customer is selected (on the select-customer page).
+ * The organizationId is read from the customer session's contextOrganizationId,
+ * which was set during OTP/magic-link verification.
+ */
+const getCustomersForUserAndOrganizationProcedure =
+  customerSessionProcedure
+    .input(z.object({}))
+    .output(
+      z.object({
+        customers: customerClientSelectSchema.array(),
       })
-    }
+    )
+    .query(async ({ ctx }) => {
+      const userId = ctx.user.id
+      // organizationId comes from customer session's contextOrganizationId
+      // (set during OTP verification, validated by customerSessionProcedure)
+      const { organizationId } = ctx
 
-    const userId = ctx.user.id
-    const organizationId =
-      await getCustomerBillingPortalOrganizationId()
-    if (!organizationId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'organizationId is required',
-      })
-    }
-
-    // Note: Intentionally includes archived customers - they should still be able
-    // to access the billing portal to view historical invoices and billing data
-    const customers = (
-      await authenticatedTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await selectCustomers(
-            {
-              userId,
-              organizationId,
-              livemode: true,
-            },
-            transaction
+      // Note: Intentionally includes archived customers - they should still be able
+      // to access the billing portal to view historical invoices and billing data.
+      //
+      // Uses adminTransaction because customer billing portal users don't have
+      // merchant RLS context (authenticatedTransaction relies on merchant sessions
+      // and membership-based JWT claims). Security is enforced at the procedure
+      // level by customerSessionProcedure (validates user session + organizationId)
+      // and the query filter (userId + organizationId + livemode).
+      const customers = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectCustomers(
+              {
+                userId,
+                organizationId,
+                livemode: true,
+              },
+              transaction
+            )
           )
-        )
-      })
-    ).unwrap()
-    return { customers }
-  })
+        })
+      ).unwrap()
+      return { customers }
+    })
 
 const createCheckoutSessionWithPriceProcedure =
   customerProtectedProcedure
@@ -860,7 +866,7 @@ const sendOTPToCustomerProcedure = publicProcedure
 
             if (!user || !user.betterAuthId) {
               // Create new user account for the customer
-              const result = await auth.api.createUser({
+              const result = await merchantAuth.api.createUser({
                 body: {
                   email,
                   password: core.nanoid(),
@@ -910,7 +916,7 @@ const sendOTPToCustomerProcedure = publicProcedure
       await setCustomerBillingPortalEmail(customer.email)
 
       // 5. Send OTP using Better Auth
-      await auth.api.sendVerificationOTP({
+      await customerAuth.api.sendVerificationOTP({
         body: {
           email: customer.email,
           type: 'sign-in',

@@ -245,6 +245,7 @@ const createTestContext = (
   environment: 'live' as const,
   path: '',
   apiKey: apiKeyToken,
+  authScope: 'customer' as const,
 })
 
 describe('Customer Billing Portal Router', () => {
