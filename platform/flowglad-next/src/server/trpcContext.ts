@@ -39,14 +39,29 @@ export const createContext = async (
   let user: User.Record | undefined
 
   if (betterAuthUserId && isMerchantSession) {
-    const memberships = await adminTransaction(
+    const { memberships, fallbackUser } = await adminTransaction(
       async ({ transaction }) => {
-        return selectMembershipAndOrganizationsByBetterAuthUserId(
-          betterAuthUserId,
-          transaction
+        const memberships =
+          await selectMembershipAndOrganizationsByBetterAuthUserId(
+            betterAuthUserId,
+            transaction
+          )
+        // Only query user if no focused membership found
+        const hasFocusedMembership = memberships.some(
+          (m) => m.membership.focused
         )
+        const fallbackUser = hasFocusedMembership
+          ? undefined
+          : (
+              await selectUsers(
+                { betterAuthId: betterAuthUserId },
+                transaction
+              )
+            )[0]
+        return { memberships, fallbackUser }
       }
     )
+
     const maybeMembership = memberships.find(
       (membership) => membership.membership.focused
     )
@@ -56,18 +71,8 @@ export const createContext = async (
       organization = maybeMembership.organization
       organizationId = organization.id
       user = maybeMembership.user
-    } else {
-      const [maybeUser] = await adminTransaction(
-        async ({ transaction }) => {
-          return selectUsers(
-            { betterAuthId: betterAuthUserId },
-            transaction
-          )
-        }
-      )
-      if (maybeUser) {
-        user = maybeUser
-      }
+    } else if (fallbackUser) {
+      user = fallbackUser
     }
   }
 
@@ -122,29 +127,35 @@ export const createCustomerContext = async (
         | undefined
     )?.contextOrganizationId
 
-    // Look up user
-    const [maybeUser] = await adminTransaction(
+    // Look up user and organization in a single transaction
+    const { maybeUser, maybeOrganization } = await adminTransaction(
       async ({ transaction }) => {
-        return selectUsers(
+        const [maybeUser] = await selectUsers(
           { betterAuthId: betterAuthUserId },
           transaction
         )
+
+        // Only query organization if we have an organizationId
+        let maybeOrganization: Organization.Record | undefined
+        if (organizationId) {
+          const orgResult = await selectOrganizationById(
+            organizationId,
+            transaction
+          )
+          if (orgResult.status === 'ok') {
+            maybeOrganization = orgResult.value
+          }
+        }
+
+        return { maybeUser, maybeOrganization }
       }
     )
+
     if (maybeUser) {
       user = maybeUser
     }
-
-    // Look up organization if we have an organizationId
-    if (organizationId) {
-      const orgResult = await adminTransaction(
-        async ({ transaction }) => {
-          return selectOrganizationById(organizationId!, transaction)
-        }
-      )
-      if (orgResult.status === 'ok') {
-        organization = orgResult.value
-      }
+    if (maybeOrganization) {
+      organization = maybeOrganization
     }
   }
 
