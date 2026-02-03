@@ -2073,6 +2073,13 @@
       "when": 1770156133000,
       "tag": "0296_backfill-price-slugs",
       "breakpoints": true
+    },
+    {
+      "idx": 297,
+      "version": "7",
+      "when": 1770156200000,
+      "tag": "0297_price-slug-constraints",
+      "breakpoints": true
     }
   ]
 }
