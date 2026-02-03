@@ -30,12 +30,15 @@ export type EditPricingModelWithStructureInput = z.infer<
 >
 
 /**
- * Type guard to check if the input contains structure fields.
+ * Boolean predicate that returns true when any structure fields are present.
  * Used to determine whether to use simple metadata update or full structure update.
  *
- * Note: Returns true for non-empty arrays (including empty arrays `[]`), and false
- * only when fields are undefined. This is intentional - an empty array means
- * "clear all items" while undefined means "don't modify this field".
+ * Checks `pricingModel.features`, `pricingModel.products`, `pricingModel.usageMeters`,
+ * and `pricingModel.resources` for presence (not undefined).
+ *
+ * Empty array semantics: An empty array (e.g., `features: []`) is treated as present,
+ * meaning "clear all items". Only `undefined` means "don't modify this field".
+ * This allows callers to intentionally remove all items by passing an empty array.
  */
 export const hasStructureFields = (
   input: EditPricingModelWithStructureInput
