@@ -2,7 +2,6 @@ import { pricingModelWithProductsAndUsageMetersSchema } from '@db-core/schema/pr
 import {
   clonePricingModelInputSchema,
   createPricingModelSchema,
-  editPricingModelSchema,
   pricingModelsClientSelectSchema,
   pricingModelsPaginatedListSchema,
   pricingModelsPaginatedSelectSchema,
@@ -237,21 +236,8 @@ const updatePricingModelProcedure = protectedProcedure
       )
     }
 
-    // Full structure update requires ALL structure fields to prevent accidental data loss.
-    // This enforces PUT (full replacement) semantics rather than PATCH (partial update).
-    if (
-      pricingModelInput.features === undefined ||
-      pricingModelInput.products === undefined ||
-      pricingModelInput.usageMeters === undefined ||
-      pricingModelInput.resources === undefined
-    ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message:
-          'Full structure update requires all structure fields (features, products, usageMeters, resources) to be provided. ' +
-          'For metadata-only updates, omit all structure fields.',
-      })
-    }
+    // Full structure update: schema validation ensures ALL structure fields are provided
+    // to prevent accidental data loss. This enforces PUT (full replacement) semantics.
 
     // Authorization pre-check: verify the user can access this pricing model via RLS
     // before proceeding with the admin-level update
