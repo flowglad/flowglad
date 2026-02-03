@@ -38,6 +38,10 @@ import {
 } from '@/utils/openapi'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import {
+  editPricingModelWithStructureSchema,
+  hasStructureFields,
+} from '@/utils/pricingModels/editSchemas'
+import {
   constructIntegrationGuide,
   constructIntegrationGuideStream,
 } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
@@ -47,35 +51,6 @@ import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransac
 import { updatePricingModelTransaction } from '@/utils/pricingModels/updateTransaction'
 import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { getOrganizationCodebaseMarkdown } from '@/utils/textContent'
-
-/**
- * Extended edit schema for full pricing model structure updates.
- * Adds optional structure fields (features, products, usageMeters, resources)
- * to enable CLI sync workflows where the entire pricing model structure is updated.
- *
- * When structure fields are provided, the update procedure uses the full
- * diffing and update transaction logic. When only metadata fields are provided,
- * it uses the simple update path for backward compatibility.
- */
-const extendedEditPricingModelSchema = z.object({
-  id: z.string(),
-  pricingModel: z
-    .object({
-      name: z.string().min(1, 'Name is required'),
-      isDefault: z.boolean().optional(),
-      // Optional full structure fields for CLI sync
-      features: setupPricingModelSchema.shape.features.optional(),
-      products: setupPricingModelSchema.shape.products.optional(),
-      usageMeters:
-        setupPricingModelSchema.shape.usageMeters.optional(),
-      resources: setupPricingModelSchema.shape.resources.optional(),
-    })
-    .passthrough(), // Allow other fields from the base update schema
-})
-
-export type ExtendedEditPricingModelInput = z.infer<
-  typeof extendedEditPricingModelSchema
->
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'pricingModel',
@@ -230,7 +205,7 @@ const createPricingModelProcedure = protectedProcedure
  */
 const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
-  .input(extendedEditPricingModelSchema)
+  .input(editPricingModelWithStructureSchema)
   .output(
     z.object({
       pricingModel: pricingModelsClientSelectSchema,
@@ -240,15 +215,8 @@ const updatePricingModelProcedure = protectedProcedure
     const { pricingModel: pricingModelInput } = input
     const pricingModelId = input.id
 
-    // Check if structure fields are provided
-    const hasStructureFields =
-      pricingModelInput.features !== undefined ||
-      pricingModelInput.products !== undefined ||
-      pricingModelInput.usageMeters !== undefined ||
-      pricingModelInput.resources !== undefined
-
     // If no structure fields provided, use simple metadata update (existing behavior)
-    if (!hasStructureFields) {
+    if (!hasStructureFields(input)) {
       return unwrapOrThrow(
         await authenticatedTransaction(
           async (transactionCtx) => {
@@ -274,12 +242,13 @@ const updatePricingModelProcedure = protectedProcedure
     if (
       pricingModelInput.features === undefined ||
       pricingModelInput.products === undefined ||
-      pricingModelInput.usageMeters === undefined
+      pricingModelInput.usageMeters === undefined ||
+      pricingModelInput.resources === undefined
     ) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message:
-          'Full structure update requires all structure fields (features, products, usageMeters) to be provided. ' +
+          'Full structure update requires all structure fields (features, products, usageMeters, resources) to be provided. ' +
           'For metadata-only updates, omit all structure fields.',
       })
     }
@@ -320,7 +289,7 @@ const updatePricingModelProcedure = protectedProcedure
         features: pricingModelInput.features!,
         products: pricingModelInput.products!,
         usageMeters: pricingModelInput.usageMeters!,
-        resources: pricingModelInput.resources,
+        resources: pricingModelInput.resources!,
       }
 
       const updateResult = await updatePricingModelTransaction(

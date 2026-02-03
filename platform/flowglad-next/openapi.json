@@ -4189,12 +4189,17 @@
                   "pricingModel": {
                     "type": "object",
                     "properties": {
-                      "name": {
-                        "type": "string",
-                        "minLength": 1
+                      "id": {
+                        "type": "string"
                       },
                       "isDefault": {
                         "type": "boolean"
+                      },
+                      "name": {
+                        "description": "The name of the pricing model",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
                       },
                       "features": {
                         "type": "array",
@@ -4716,8 +4721,7 @@
                         }
                       }
                     },
-                    "required": ["name"],
-                    "additionalProperties": {}
+                    "required": ["id", "name"]
                   }
                 },
                 "required": ["pricingModel"]
