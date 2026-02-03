@@ -43,6 +43,7 @@ describe('beforeEach setup', () => {
       environment: 'live',
       isApi: true,
       path: '',
+      authScope: 'merchant' as const,
     } as any
   })
 
@@ -76,6 +77,7 @@ describe('pricingModelsRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
 
@@ -127,6 +129,7 @@ describe('pricingModelsRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
@@ -170,6 +173,7 @@ describe('pricingModelsRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
     const first = await pricingModelsRouter.createCaller(ctx).create({
@@ -209,6 +213,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
     // Create pricing model outside of adminTransaction to use the correct ctx
@@ -229,6 +234,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: true as const,
       path: '',
+      authScope: 'merchant' as const,
     }
     const product = (
       await adminTransactionWithResult(async (txCtx) => {
@@ -287,6 +293,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
@@ -304,6 +311,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: true as const,
       path: '',
+      authScope: 'merchant' as const,
     }
 
     // Create a non-default product under the pricing model
@@ -401,6 +409,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
     // Create a pricing model first, which will automatically create a default product with default price
@@ -448,6 +457,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
@@ -465,6 +475,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: true as const,
       path: '',
+      authScope: 'merchant' as const,
     }
     const productAndPrices = (
       await adminTransactionWithResult(async (ctx) => {
@@ -519,6 +530,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: false as any,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
@@ -536,6 +548,7 @@ describe('pricesRouter.create', () => {
       environment: 'test' as const,
       isApi: true as const,
       path: '',
+      authScope: 'merchant' as const,
     }
     // Create a regular (non-default) product to test currency and livemode
     const product = (
@@ -614,6 +627,7 @@ describe('pricingModelsRouter.clone', () => {
       environment: 'test' as const,
       isApi: false as const,
       path: '',
+      authScope: 'merchant' as const,
       user: org1User, // Required for auth middleware
     }
 
@@ -624,6 +638,7 @@ describe('pricingModelsRouter.clone', () => {
       environment: 'test' as const,
       isApi: false as const,
       path: '',
+      authScope: 'merchant' as const,
       user: org2User, // Required for auth middleware
     }
 
@@ -671,6 +686,7 @@ describe('pricingModelsRouter.clone', () => {
       environment: 'test' as const,
       isApi: false as const,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
 
@@ -711,6 +727,7 @@ describe('pricingModelsRouter.clone', () => {
       environment: 'test' as const,
       isApi: false as const,
       path: '',
+      authScope: 'merchant' as const,
       user, // Required for auth middleware
     }
 
@@ -766,6 +783,7 @@ describe('pricingModelsRouter.clone', () => {
       environment: 'live' as const,
       isApi: true as const,
       path: '',
+      authScope: 'merchant' as const,
     }
 
     // Use the existing livemode pricing model from setupOrg
