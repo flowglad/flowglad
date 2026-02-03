@@ -9,8 +9,7 @@ const { users } = betterAuthSchema
 
 export const flowglad = (customerExternalId: string) => {
   return new FlowgladServer({
-    // rm for production
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.FLOWGLAD_API_URL || 'http://localhost:3000',
     customerExternalId,
     getCustomerDetails: async (externalId: string) => {
       // Try to get organization first (since customerType is 'organization')
