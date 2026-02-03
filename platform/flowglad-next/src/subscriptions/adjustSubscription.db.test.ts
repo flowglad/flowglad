@@ -513,8 +513,8 @@ describe('adjustSubscription Integration Tests', async () => {
           organization,
           ctx
         )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
           expect(result.error._tag).toBe('ValidationError')
           expect(result.error.message).toContain(
             'scheduled adjustment'
@@ -569,8 +569,8 @@ describe('adjustSubscription Integration Tests', async () => {
           organization,
           ctx
         )
-        expect(result.status).toBe('error')
-        if (result.status === 'error') {
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
           expect(result.error._tag).toBe('ValidationError')
           expect(result.error.message).toContain(
             'cancellation is scheduled'
@@ -646,7 +646,7 @@ describe('adjustSubscription Integration Tests', async () => {
           organization,
           ctx
         )
-        expect(result.status).toBe('ok')
+        expect(Result.isOk(result)).toBe(true)
         return Result.ok(null)
       })
     })

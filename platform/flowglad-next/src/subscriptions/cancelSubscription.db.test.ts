@@ -1493,8 +1493,8 @@ describe('Subscription Cancellation Test Suite', async () => {
             createDiscardingEffectsContext(transaction)
           )
 
-          expect(result.status).toBe('error')
-          if (result.status === 'error') {
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
             expect(result.error).toBeInstanceOf(ValidationError)
             expect(result.error.message).toContain(
               'scheduled adjustment is pending'
@@ -1961,8 +1961,8 @@ describe('Subscription Cancellation Test Suite', async () => {
             createDiscardingEffectsContext(transaction)
           )
 
-          expect(result.status).toBe('error')
-          if (result.status === 'error') {
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
             expect(result.error).toBeInstanceOf(ValidationError)
             expect(result.error.message).toContain(
               'scheduled adjustment is pending'

@@ -47,7 +47,10 @@ import {
   TerminalStateError,
   ValidationError,
 } from '@/errors'
-import { hasScheduledAdjustment } from '@/subscriptions/scheduledAdjustmentHelpers'
+import {
+  hasScheduledAdjustment,
+  hasScheduledCancellation,
+} from '@/subscriptions/scheduledAdjustmentHelpers'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -483,9 +486,7 @@ export const calculateAdjustmentPreview = async (
   }
 
   // Check for pending scheduled cancellation
-  if (
-    subscription.status === SubscriptionStatus.CancellationScheduled
-  ) {
+  if (hasScheduledCancellation(subscription)) {
     return {
       canAdjust: false,
       previewGeneratedAt,
