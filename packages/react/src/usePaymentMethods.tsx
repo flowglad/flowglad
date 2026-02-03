@@ -28,8 +28,12 @@ export const isPaymentMethodsRouteResponse = (
   value: unknown
 ): value is PaymentMethodsRouteResponse => {
   // undefined is valid
-  if (value === undefined || value === null) {
+  if (value === undefined) {
     return true
+  }
+
+  if (value === null) {
+    return false
   }
 
   // Must be an object

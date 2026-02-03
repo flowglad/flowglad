@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import {
   afterEach,
   beforeEach,
@@ -10,7 +6,10 @@ import {
   it,
   mock,
 } from 'bun:test'
-import type { CustomerBillingDetails } from '@flowglad/shared'
+import type {
+  CustomerBillingDetails,
+  PaymentMethodDetails,
+} from '@flowglad/shared'
 import {
   QueryClient,
   QueryClientProvider,
@@ -20,83 +19,53 @@ import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
 import { usePaymentMethods } from './usePaymentMethods'
 
-/**
- * Test-only partial payment method type.
- * Contains only the fields needed for test assertions.
- */
-interface TestPaymentMethod {
-  id: string
-  type: string
-  card?: {
-    brand: string
-    last4: string
-    expMonth: number
-    expYear: number
-  }
-}
-
-/**
- * Test billing data type - a partial CustomerBillingDetails
- * that includes the minimum fields needed for testing.
- */
-interface TestBillingData {
-  customer: {
-    id: string
-    email: string
-    name: string
-    externalId: string
-    livemode: boolean
-    organizationId: string
-    createdAt: number
-    updatedAt: number
-    catalog: null
-  }
-  subscriptions: never[]
-  currentSubscription: null
-  currentSubscriptions: never[]
-  purchases: never[]
-  invoices: never[]
-  paymentMethods: TestPaymentMethod[] | undefined
-  billingPortalUrl: string | null
-  pricingModel: {
-    id: string
-    products: never[]
-    prices: never[]
-    usageMeters: never[]
-    features: never[]
-    resources: never[]
-  }
-  catalog: {
-    id: string
-    products: never[]
-    prices: never[]
-    usageMeters: never[]
-    features: never[]
-    resources: never[]
-  }
-}
-
 // Mock payment methods data with explicit type
-const mockPaymentMethods: TestPaymentMethod[] = [
+const mockPaymentMethods: PaymentMethodDetails[] = [
   {
     id: 'pm_1',
-    type: 'card',
-    card: {
-      brand: 'visa',
-      last4: '4242',
-      expMonth: 12,
-      expYear: 2025,
+    billingDetails: {
+      address: {
+        country: 'US',
+      },
     },
+    createdAt: Date.now(),
+    customerId: 'cust_123',
+    default: true,
+    livemode: false,
+    paymentMethodData: {
+      card: {
+        brand: 'visa',
+        last4: '4242',
+        expMonth: 12,
+        expYear: 2025,
+      },
+    },
+    pricingModelId: 'pm_123',
+    type: 'card',
+    updatedAt: Date.now(),
   },
   {
     id: 'pm_2',
-    type: 'card',
-    card: {
-      brand: 'mastercard',
-      last4: '5555',
-      expMonth: 6,
-      expYear: 2026,
+    billingDetails: {
+      address: {
+        country: 'US',
+      },
     },
+    createdAt: Date.now(),
+    customerId: 'cust_123',
+    default: false,
+    livemode: false,
+    paymentMethodData: {
+      card: {
+        brand: 'mastercard',
+        last4: '5555',
+        expMonth: 6,
+        expYear: 2026,
+      },
+    },
+    pricingModelId: 'pm_123',
+    type: 'card',
+    updatedAt: Date.now(),
   },
 ]
 
@@ -112,54 +81,69 @@ const mockPaymentMethodsResponse = {
 
 /**
  * Creates mock billing data for dev mode testing.
- * Returns a TestBillingData that satisfies the shape expected by the provider.
+ * Returns a CustomerBillingDetails object that satisfies the provider requirements.
  */
 const createMockBillingData = (
-  paymentMethods:
-    | TestPaymentMethod[]
-    | undefined = mockPaymentMethods,
-  billingPortalUrl: string | null = mockBillingPortalUrl
-): TestBillingData => ({
-  customer: {
-    id: 'cust_123',
-    email: 'test@example.com',
-    name: 'Test Customer',
-    externalId: 'ext_123',
+  options: {
+    paymentMethods?: PaymentMethodDetails[] | undefined
+    billingPortalUrl?: string
+  } = {}
+): CustomerBillingDetails => {
+  const now = Date.now()
+  const hasPaymentMethods = Object.prototype.hasOwnProperty.call(
+    options,
+    'paymentMethods'
+  )
+  const resolvedPaymentMethods = hasPaymentMethods
+    ? (options.paymentMethods ?? [])
+    : mockPaymentMethods
+
+  const pricingModel: CustomerBillingDetails['pricingModel'] = {
+    id: 'pm_123',
+    createdAt: now,
+    isDefault: true,
     livemode: false,
+    name: 'Default Pricing Model',
     organizationId: 'org_123',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    catalog: null,
-  },
-  subscriptions: [],
-  currentSubscription: null,
-  currentSubscriptions: [],
-  purchases: [],
-  invoices: [],
-  paymentMethods,
-  billingPortalUrl,
-  pricingModel: {
-    id: 'pm_123',
     products: [],
-    prices: [],
+    updatedAt: now,
     usageMeters: [],
-    features: [],
-    resources: [],
-  },
-  catalog: {
-    id: 'pm_123',
-    products: [],
-    prices: [],
-    usageMeters: [],
-    features: [],
-    resources: [],
-  },
-})
+  }
+
+  return {
+    billingPortalUrl:
+      options.billingPortalUrl ?? mockBillingPortalUrl,
+    catalog: pricingModel,
+    customer: {
+      id: 'cust_123',
+      archived: false,
+      createdAt: now,
+      domain: null,
+      email: 'test@example.com',
+      externalId: 'ext_123',
+      iconURL: null,
+      invoiceNumberBase: null,
+      livemode: false,
+      logoURL: null,
+      name: 'Test Customer',
+      organizationId: 'org_123',
+      pricingModelId: 'pm_123',
+      updatedAt: now,
+      userId: null,
+      billingAddress: null,
+    },
+    invoices: [],
+    paymentMethods: resolvedPaymentMethods,
+    pricingModel,
+    purchases: [],
+    subscriptions: [],
+  }
+}
 
 // Create wrapper for hooks
 const createWrapper = (
   devMode = false,
-  billingMocks?: TestBillingData
+  billingMocks?: CustomerBillingDetails
 ) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -169,18 +153,12 @@ const createWrapper = (
     },
   })
 
-  // Cast to CustomerBillingDetails - safe because TestBillingData
-  // is structurally compatible with the fields the hook accesses
-  const typedBillingMocks = billingMocks as
-    | CustomerBillingDetails
-    | undefined
-
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <FlowgladConfigProvider
         baseURL="https://test.example.com"
         __devMode={devMode}
-        billingMocks={typedBillingMocks}
+        billingMocks={billingMocks}
       >
         {children}
       </FlowgladConfigProvider>
@@ -298,44 +276,9 @@ describe('usePaymentMethods', () => {
   })
 
   it('returns empty array when billingMocks.paymentMethods missing', async () => {
-    // Create billing data inline to avoid default parameter behavior
-    // (passing undefined to createMockBillingData triggers the default value)
-    const billingMocksWithoutPaymentMethods: TestBillingData = {
-      customer: {
-        id: 'cust_123',
-        email: 'test@example.com',
-        name: 'Test Customer',
-        externalId: 'ext_123',
-        livemode: false,
-        organizationId: 'org_123',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        catalog: null,
-      },
-      subscriptions: [],
-      currentSubscription: null,
-      currentSubscriptions: [],
-      purchases: [],
-      invoices: [],
+    const billingMocksWithoutPaymentMethods = createMockBillingData({
       paymentMethods: undefined,
-      billingPortalUrl: null,
-      pricingModel: {
-        id: 'pm_123',
-        products: [],
-        prices: [],
-        usageMeters: [],
-        features: [],
-        resources: [],
-      },
-      catalog: {
-        id: 'pm_123',
-        products: [],
-        prices: [],
-        usageMeters: [],
-        features: [],
-        resources: [],
-      },
-    }
+    })
 
     const { result } = renderHook(() => usePaymentMethods(), {
       wrapper: createWrapper(true, billingMocksWithoutPaymentMethods),
@@ -344,7 +287,7 @@ describe('usePaymentMethods', () => {
     expect(result.current.isLoading).toBe(false)
     expect(result.current.error).toBe(null)
     expect(result.current.paymentMethods).toEqual([])
-    expect(result.current.billingPortalUrl).toBe(null)
+    expect(result.current.billingPortalUrl).toBe(mockBillingPortalUrl)
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
@@ -449,6 +392,7 @@ describe('usePaymentMethods', () => {
 
 describe('subscription mutations', () => {
   it.skip('invalidate payment methods query key', () => {
+    // TODO: implement once subscription mutations are wired to invalidate this query.
     // Setup: Pre-populate query cache with payment methods
     // Action: Trigger subscription mutation
     // Assert: Payment methods query is invalidated
