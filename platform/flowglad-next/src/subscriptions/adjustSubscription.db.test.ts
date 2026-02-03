@@ -3378,6 +3378,7 @@ describe('adjustSubscription Integration Tests', async () => {
               ...nulledPriceColumns,
               productId: product.id,
               name: 'Standard Price',
+              slug: `standard-price-${Date.now()}`,
               type: PriceType.Subscription,
               unitPrice: 1500,
               currency: CurrencyCode.USD,

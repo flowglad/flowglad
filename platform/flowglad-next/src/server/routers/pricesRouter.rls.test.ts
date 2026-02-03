@@ -1356,6 +1356,7 @@ describe('pricesRouter - API Contract Updates', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             name: 'Subscription Price',
+            slug: 'subscription_price_with_product',
             trialPeriodDays: 0,
           },
         })
