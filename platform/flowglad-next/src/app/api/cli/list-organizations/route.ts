@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -12,6 +13,12 @@ export interface ListOrganizationsResponse {
     name: string
     createdAt: string
   }>
+}
+
+type OrganizationInfo = {
+  id: string
+  name: string
+  createdAt: string
 }
 
 export async function GET(): Promise<NextResponse> {
@@ -32,8 +39,10 @@ export async function GET(): Promise<NextResponse> {
 
   const betterAuthUserId = session.user.id
 
-  const organizations = await adminTransaction(
-    async ({ transaction }) => {
+  const result = await adminTransaction(
+    async ({
+      transaction,
+    }): Promise<Result<OrganizationInfo[], Error>> => {
       // Get memberships and orgs - deactivated memberships are filtered out by default
       const memberships =
         await selectMembershipAndOrganizationsByBetterAuthUserId(
@@ -41,15 +50,29 @@ export async function GET(): Promise<NextResponse> {
           transaction
         )
 
-      return memberships.map(({ organization }) => ({
+      const organizations = memberships.map(({ organization }) => ({
         id: organization.id,
         name: organization.name,
         createdAt: new Date(organization.createdAt).toISOString(),
       }))
+
+      return Result.ok(organizations)
     },
     { livemode: false }
   )
 
-  const response: ListOrganizationsResponse = { organizations }
+  if (Result.isError(result)) {
+    return NextResponse.json(
+      {
+        error: 'Internal Server Error',
+        message: result.error.message,
+      },
+      { status: 500 }
+    )
+  }
+
+  const response: ListOrganizationsResponse = {
+    organizations: result.value,
+  }
   return NextResponse.json(response)
 }

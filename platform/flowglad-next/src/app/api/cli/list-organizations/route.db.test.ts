@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 
 // Mock next/headers BEFORE importing route
 mock.module('next/headers', () => ({
@@ -68,6 +69,7 @@ describe('GET /api/cli/list-organizations', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
   })
 
@@ -120,6 +122,7 @@ describe('GET /api/cli/list-organizations', () => {
         { id: membership.id, deactivatedAt: new Date() },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     // Mock the auth session
