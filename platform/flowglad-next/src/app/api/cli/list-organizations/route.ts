@@ -62,10 +62,11 @@ export async function GET(): Promise<NextResponse> {
   )
 
   if (Result.isError(result)) {
+    console.error('list-organizations error:', result.error)
     return NextResponse.json(
       {
         error: 'Internal Server Error',
-        message: result.error.message,
+        message: 'Failed to retrieve organizations',
       },
       { status: 500 }
     )
