@@ -1,8 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
-
-import { describe, it } from 'vitest'
+import { describe, it } from 'bun:test'
 
 describe('usePaymentMethods', () => {
   it.skip('returns payment methods after successful fetch', () => {
