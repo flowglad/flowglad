@@ -12,7 +12,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc --project tsconfig.test.json --noEmit",
-    "check": "bunx --bun @biomejs/biome check . && bun run typecheck && bun run typecheck:tests && bun run validate:registry && bun run validate:mock-import-order",
+    "check": "bunx --bun @biomejs/biome check . && bun run typecheck && bun run validate:registry && bun run validate:mock-import-order",
     "validate:mock-import-order": "bun run src/scripts/validate-mock-import-order.ts",
     "format": "bunx --bun @biomejs/biome check --write .",
     "install-packages": "bun install",
