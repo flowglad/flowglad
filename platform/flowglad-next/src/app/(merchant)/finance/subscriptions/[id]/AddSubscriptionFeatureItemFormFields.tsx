@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  type CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
 } from '@db-core/enums'
@@ -29,98 +28,29 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import type { RichSubscription } from '@/subscriptions/schemas'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import type { AddSubscriptionFeatureFormValues } from './addSubscriptionFeatureFormSchema'
 
 interface AddSubscriptionFeatureItemFormFieldsProps {
-  subscriptionItems: RichSubscription['subscriptionItems']
   featureItems?: z.infer<
     typeof subscriptionItemFeaturesClientSelectSchema
   >[]
 }
 
-const getSubscriptionItemDisplayName = (
-  item: RichSubscription['subscriptionItems'][number]
-) => {
-  if (item.name) return item.name
-  if (item.price?.name) return item.price.name
-  return `Subscription item ${item.id.slice(0, 8)}`
-}
-
-const getSubscriptionItemPriceDisplay = (
-  item: RichSubscription['subscriptionItems'][number]
-) => {
-  if (
-    !item.price ||
-    item.price.unitPrice === null ||
-    item.price.unitPrice === undefined
-  ) {
-    return 'N/A'
-  }
-  return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-    (item.price.currency ?? 'USD') as CurrencyCode,
-    item.price.unitPrice
-  )
-}
-
 export const AddSubscriptionFeatureItemFormFields = ({
-  subscriptionItems,
   featureItems = [],
 }: AddSubscriptionFeatureItemFormFieldsProps) => {
-  const activeSubscriptionItems = subscriptionItems.filter(
-    (item) => !item.expiredAt
-  )
-  const hasSingleActiveItem = activeSubscriptionItems.length === 1
   const form = useFormContext<AddSubscriptionFeatureFormValues>()
-  const subscriptionItemId = form.watch('subscriptionItemId')
-  useEffect(() => {
-    if (
-      hasSingleActiveItem &&
-      activeSubscriptionItems[0]?.id !== subscriptionItemId
-    ) {
-      form.setValue(
-        'subscriptionItemId',
-        activeSubscriptionItems[0]?.id
-      )
-      return
+  const subscriptionId = form.watch('id')
+
+  const { data: pricingModelData } = trpc.subscriptions.get.useQuery(
+    { id: subscriptionId },
+    {
+      enabled: Boolean(subscriptionId),
+      staleTime: 0,
     }
-    if (
-      (!subscriptionItemId ||
-        !activeSubscriptionItems.some(
-          (item) => item.id === subscriptionItemId
-        )) &&
-      activeSubscriptionItems[0]
-    ) {
-      form.setValue(
-        'subscriptionItemId',
-        activeSubscriptionItems[0].id
-      )
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    subscriptionItemId,
-    activeSubscriptionItems,
-    hasSingleActiveItem,
-  ])
+  )
 
-  const selectedSubscriptionItem =
-    activeSubscriptionItems.find(
-      (item) => item.id === subscriptionItemId
-    ) ?? activeSubscriptionItems[0]
-
-  const productId = selectedSubscriptionItem?.price?.productId
-
-  const { data: productData, isLoading: isLoadingProduct } =
-    trpc.products.get.useQuery(
-      { id: productId ?? '' },
-      {
-        enabled: Boolean(productId),
-        staleTime: 0,
-      }
-    )
-
-  const pricingModelId = productData?.pricingModelId
+  const pricingModelId = pricingModelData?.subscription.pricingModelId
 
   const { data: featuresData, isLoading: isLoadingFeatures } =
     trpc.features.getFeaturesForPricingModel.useQuery(
@@ -137,19 +67,13 @@ export const AddSubscriptionFeatureItemFormFields = ({
   )
 
   useEffect(() => {
-    if (!selectedSubscriptionItem?.id) {
-      return
-    }
     form.setValue('featureId', '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubscriptionItem?.id])
+  }, [subscriptionId])
 
   // Get feature IDs of toggle features already added to this subscription
   const toggleFeatures = featureItems.filter(
-    (item) =>
-      item.type === FeatureType.Toggle &&
-      !item.expiredAt &&
-      item.subscriptionItemId === selectedSubscriptionItem?.id
+    (item) => item.type === FeatureType.Toggle && !item.expiredAt
   )
   const existingToggleFeatureIds = new Set(
     toggleFeatures.map((item) => item.featureId)
@@ -168,9 +92,7 @@ export const AddSubscriptionFeatureItemFormFields = ({
   })
 
   const isFeatureSelectDisabled =
-    isLoadingProduct ||
     isLoadingFeatures ||
-    !productId ||
     !pricingModelId ||
     featureOptions.length === 0
 
@@ -181,6 +103,7 @@ export const AddSubscriptionFeatureItemFormFields = ({
     selectedFeature?.type === FeatureType.UsageCreditGrant &&
     selectedFeature.renewalFrequency ===
       FeatureUsageGrantFrequency.EveryBillingPeriod
+
   useEffect(() => {
     if (!showImmediateGrantToggle && grantCreditsImmediatelyValue) {
       form.setValue('grantCreditsImmediately', false)
@@ -206,9 +129,8 @@ export const AddSubscriptionFeatureItemFormFields = ({
     selectedFeature.renewalFrequency ===
       FeatureUsageGrantFrequency.EveryBillingPeriod
   const newAmount =
-    isSelectedFeatureARecurringUsageGrant && selectedSubscriptionItem
-      ? (selectedFeature.amount ?? 0) *
-        selectedSubscriptionItem.quantity
+    isSelectedFeatureARecurringUsageGrant && selectedFeature
+      ? (selectedFeature.amount ?? 0)
       : 0
 
   const showExistingFeatureCallout =
@@ -216,77 +138,12 @@ export const AddSubscriptionFeatureItemFormFields = ({
     existingRecurringUsageGrants.length > 0 &&
     currentAmount > 0
 
-  if (activeSubscriptionItems.length === 0) {
-    return (
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          This subscription does not have any active subscription
-          items. Add an item before granting additional features.
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
   return (
     <div className="space-y-2">
       <p className="mb-5 text-sm text-muted-foreground">
         Grant an additional feature to this subscription. Action
         cannot be undone.
       </p>
-      {!hasSingleActiveItem && (
-        <FormField
-          control={form.control}
-          name="subscriptionItemId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Subscription item</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value)
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a subscription item" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeSubscriptionItems.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        <div className="flex flex-col gap-1 text-left">
-                          <span className="font-medium">
-                            {getSubscriptionItemDisplayName(item)}
-                          </span>
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span>Quantity: {item.quantity}</span>
-                            <span className="text-muted-foreground">
-                              •
-                            </span>
-                            <span>
-                              Price:{' '}
-                              {getSubscriptionItemPriceDisplay(item)}
-                            </span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-              {!isLoadingFeatures &&
-                pricingModelId &&
-                featureOptions.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    No active features are available for the selected
-                    pricing model.
-                  </p>
-                )}
-            </FormItem>
-          )}
-        />
-      )}
 
       <FormField
         control={form.control}

@@ -4,16 +4,16 @@ import { addSubscriptionFeatureFormSchema } from './addSubscriptionFeatureFormSc
 describe('addSubscriptionFeatureFormSchema', () => {
   it('validates required fields', () => {
     const result = addSubscriptionFeatureFormSchema.safeParse({
-      subscriptionItemId: 'si_123',
+      id: 'sub_123',
       featureId: 'feature_123',
       grantCreditsImmediately: false,
     })
     expect(result.success).toBe(true)
   })
 
-  it('rejects missing subscription item id', () => {
+  it('rejects missing subscription id', () => {
     const result = addSubscriptionFeatureFormSchema.safeParse({
-      subscriptionItemId: '',
+      id: '',
       featureId: 'feature_123',
       grantCreditsImmediately: false,
     })

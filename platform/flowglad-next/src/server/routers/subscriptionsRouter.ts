@@ -116,6 +116,9 @@ export const subscriptionsRouteConfigs = [
   trpcToRest('subscriptions.cancelScheduledAdjustment', {
     routeParams: ['id'],
   }),
+  trpcToRest('subscriptions.addFeatureToSubscription', {
+    routeParams: ['id'],
+  }),
 ]
 
 const adjustSubscriptionOutputSchema = z

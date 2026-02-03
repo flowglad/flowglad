@@ -37,10 +37,7 @@ import {
   updateSubscriptionItemFeature,
   upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import {
-  selectSubscriptionItemById,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   derivePricingModelIdFromSubscription,
   selectSubscriptionById,
@@ -366,16 +363,6 @@ export const createSubscriptionFeatureItems = async (
   return Result.ok([])
 }
 
-const ensureSubscriptionItemIsActive = (
-  subscriptionItem: SubscriptionItem.Record
-) => {
-  if (subscriptionItem.expiredAt !== null) {
-    throw new Error(
-      `Subscription item ${subscriptionItem.id} is expired and cannot accept new features.`
-    )
-  }
-}
-
 const ensureFeatureIsEligible = (feature: Feature.Record) => {
   if (!feature.active) {
     throw new Error(
@@ -386,21 +373,14 @@ const ensureFeatureIsEligible = (feature: Feature.Record) => {
 
 const ensureOrganizationAndLivemodeMatch = ({
   subscription,
-  subscriptionItem,
   feature,
 }: {
   subscription: Subscription.Record
-  subscriptionItem: SubscriptionItem.Record
   feature: Feature.Record
 }) => {
   if (subscription.organizationId !== feature.organizationId) {
     throw new Error(
       `Feature ${feature.id} does not belong to the same organization as subscription ${subscription.id}.`
-    )
-  }
-  if (subscriptionItem.livemode !== feature.livemode) {
-    throw new Error(
-      'Feature livemode does not match subscription item livemode.'
     )
   }
   if (subscription.livemode !== feature.livemode) {
@@ -643,25 +623,10 @@ export const addFeatureToSubscriptionItem = async (
 > => {
   try {
     const { transaction } = ctx
-    const {
-      subscriptionItemId,
-      featureId,
-      grantCreditsImmediately = false,
-    } = input
-
-    const providedSubscriptionItem = (
-      await selectSubscriptionItemById(
-        subscriptionItemId,
-        transaction
-      )
-    ).unwrap()
-    ensureSubscriptionItemIsActive(providedSubscriptionItem)
+    const { id, featureId, grantCreditsImmediately = false } = input
 
     const subscription = (
-      await selectSubscriptionById(
-        providedSubscriptionItem.subscriptionId,
-        transaction
-      )
+      await selectSubscriptionById(id, transaction)
     ).unwrap()
 
     const feature = (
@@ -670,7 +635,6 @@ export const addFeatureToSubscriptionItem = async (
     ensureFeatureIsEligible(feature)
     ensureOrganizationAndLivemodeMatch({
       subscription,
-      subscriptionItem: providedSubscriptionItem,
       feature,
     })
 

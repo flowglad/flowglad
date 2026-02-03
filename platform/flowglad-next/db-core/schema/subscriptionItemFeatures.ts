@@ -481,9 +481,15 @@ export type DeactivateSubscriptionItemFeatureInput = z.infer<
 >
 
 export const addFeatureToSubscriptionInputSchema = z.object({
-  subscriptionItemId: z.string(),
-  featureId: z.string(),
-  grantCreditsImmediately: z.boolean().optional().default(false),
+  id: z.string().describe('The subscription ID'),
+  featureId: z.string().describe('The feature ID to add'),
+  grantCreditsImmediately: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'If true and the feature is a usage credit grant, credits will be granted immediately for the current billing period'
+    ),
 })
 
 export type AddFeatureToSubscriptionInput = z.infer<

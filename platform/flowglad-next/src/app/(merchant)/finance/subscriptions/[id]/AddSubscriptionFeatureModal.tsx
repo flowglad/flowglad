@@ -7,7 +7,6 @@ import { trpc } from '@/app/_trpc/client'
 import FormModal, {
   type ModalInterfaceProps,
 } from '@/components/forms/FormModal'
-import type { RichSubscription } from '@/subscriptions/schemas'
 import { AddSubscriptionFeatureItemFormFields } from './AddSubscriptionFeatureItemFormFields'
 import {
   type AddSubscriptionFeatureFormValues,
@@ -16,7 +15,7 @@ import {
 
 interface AddSubscriptionFeatureModalProps
   extends ModalInterfaceProps {
-  subscriptionItems: RichSubscription['subscriptionItems']
+  subscriptionId: string
   featureItems?: z.infer<
     typeof subscriptionItemFeaturesClientSelectSchema
   >[]
@@ -25,20 +24,14 @@ interface AddSubscriptionFeatureModalProps
 export const AddSubscriptionFeatureModal = ({
   isOpen,
   setIsOpen,
-  subscriptionItems,
+  subscriptionId,
   featureItems = [],
 }: AddSubscriptionFeatureModalProps) => {
   const addFeatureMutation =
     trpc.subscriptions.addFeatureToSubscription.useMutation()
 
-  const activeSubscriptionItems = subscriptionItems.filter(
-    (item) => !item.expiredAt
-  )
-  const defaultSubscriptionItemId =
-    activeSubscriptionItems[0]?.id ?? ''
-
   const getDefaultValues = () => ({
-    subscriptionItemId: defaultSubscriptionItemId,
+    id: subscriptionId,
     featureId: '',
     grantCreditsImmediately: false,
   })
@@ -48,12 +41,12 @@ export const AddSubscriptionFeatureModal = ({
   ) => {
     try {
       await addFeatureMutation.mutateAsync(values)
-      toast.success('Feature added to subscription item')
+      toast.success('Feature added to subscription')
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : 'Failed to add feature to subscription item'
+          : 'Failed to add feature to subscription'
       )
       throw error
     }
@@ -71,7 +64,6 @@ export const AddSubscriptionFeatureModal = ({
       allowContentOverflow
     >
       <AddSubscriptionFeatureItemFormFields
-        subscriptionItems={subscriptionItems}
         featureItems={featureItems}
       />
     </FormModal>

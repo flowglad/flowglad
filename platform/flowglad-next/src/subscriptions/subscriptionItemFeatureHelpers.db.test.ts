@@ -624,7 +624,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const firstResult = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: toggleFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -634,7 +634,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const secondResult = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: toggleFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -683,7 +683,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const result = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -783,7 +783,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const firstResult = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -795,7 +795,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const secondResult = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -933,7 +933,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
           const result = await addFeatureToSubscriptionItem(
             {
-              subscriptionItemId: subscriptionItem.id,
+              id: subscription.id,
               featureId: mismatchedFeature.id,
               grantCreditsImmediately: false,
             },
@@ -969,7 +969,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const result = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: standaloneFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -1018,7 +1018,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const result = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: toggleFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -1066,7 +1066,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const result = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -1107,7 +1107,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const result = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: toggleFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -1145,7 +1145,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const result1 = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: feature1.id,
                 grantCreditsImmediately: false,
               },
@@ -1156,7 +1156,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           const result2 = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: feature2.id,
                 grantCreditsImmediately: false,
               },
@@ -1219,7 +1219,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -1235,7 +1235,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -1291,7 +1291,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             for (let i = 0; i < 5; i++) {
               await addFeatureToSubscriptionItem(
                 {
-                  subscriptionItemId: subscriptionItem.id,
+                  id: subscription.id,
                   featureId: usageFeature.id,
                   grantCreditsImmediately: true,
                 },
@@ -1364,7 +1364,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: featureA.id,
                 grantCreditsImmediately: true,
               },
@@ -1380,7 +1380,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: featureB.id,
                 grantCreditsImmediately: true,
               },
@@ -1446,7 +1446,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             const result1 = (
               await addFeatureToSubscriptionItem(
                 {
-                  subscriptionItemId: subscriptionItem.id,
+                  id: subscription.id,
                   featureId: usageFeature.id,
                   grantCreditsImmediately: true,
                 },
@@ -1463,7 +1463,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             const result2 = (
               await addFeatureToSubscriptionItem(
                 {
-                  subscriptionItemId: subscriptionItem.id,
+                  id: subscription.id,
                   featureId: usageFeature.id,
                   grantCreditsImmediately: true,
                 },
@@ -1533,7 +1533,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -1560,7 +1560,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -1626,7 +1626,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -1655,7 +1655,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -1730,7 +1730,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
             const manualFeatureResult = (
               await addFeatureToSubscriptionItem(
                 {
-                  subscriptionItemId: subscriptionItem.id,
+                  id: subscription.id,
                   featureId: usageFeature.id,
                   grantCreditsImmediately: false, // Don't grant yet
                 },
@@ -1782,7 +1782,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               createCapturingEffectsContext(transaction)
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageFeature.id,
                 grantCreditsImmediately: true,
               },
