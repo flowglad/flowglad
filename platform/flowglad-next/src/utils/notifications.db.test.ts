@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { MembershipRole } from '@db-core/enums'
 import {
   type Membership,
   type NotificationPreferences,
@@ -28,24 +29,23 @@ const createMockUser = (
 const createMockMembership = (
   overrides: Partial<Membership.Record> = {},
   notificationPreferences: Partial<NotificationPreferences> = {}
-): Membership.Record =>
-  ({
-    id: `memb_${Math.random().toString(36).slice(2)}`,
-    userId: `user_${Math.random().toString(36).slice(2)}`,
-    organizationId: `org_${Math.random().toString(36).slice(2)}`,
-    focused: true,
-    livemode: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    createdByCommit: null,
-    updatedByCommit: null,
-    position: 0,
-    notificationPreferences,
-    focusedPricingModelId: null,
-    role: 'owner',
-    deactivatedAt: null,
-    ...overrides,
-  }) as Membership.Record
+): Membership.Record => ({
+  id: `memb_${Math.random().toString(36).slice(2)}`,
+  userId: `user_${Math.random().toString(36).slice(2)}`,
+  organizationId: `org_${Math.random().toString(36).slice(2)}`,
+  focused: true,
+  livemode: true,
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  createdByCommit: null,
+  updatedByCommit: null,
+  position: 0,
+  notificationPreferences,
+  focusedPricingModelId: `pm_${Math.random().toString(36).slice(2)}`,
+  role: MembershipRole.Owner,
+  deactivatedAt: null,
+  ...overrides,
+})
 
 describe('filterEligibleRecipients', () => {
   it('returns only users whose notification type preference is true for livemode events', () => {
