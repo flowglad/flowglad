@@ -2,7 +2,6 @@ import { pricingModelWithProductsAndUsageMetersSchema } from '@db-core/schema/pr
 import {
   clonePricingModelInputSchema,
   createPricingModelSchema,
-  editPricingModelSchema,
   pricingModelsClientSelectSchema,
   pricingModelsPaginatedListSchema,
   pricingModelsPaginatedSelectSchema,
@@ -38,12 +37,17 @@ import {
 } from '@/utils/openapi'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import {
+  editPricingModelWithStructureSchema,
+  hasAllStructureFields,
+} from '@/utils/pricingModels/editSchemas'
+import {
   constructIntegrationGuide,
   constructIntegrationGuideStream,
 } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
+import { updatePricingModelTransaction } from '@/utils/pricingModels/updateTransaction'
 import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { getOrganizationCodebaseMarkdown } from '@/utils/textContent'
 
@@ -182,28 +186,118 @@ const createPricingModelProcedure = protectedProcedure
     return { pricingModel: result.pricingModel }
   })
 
+/**
+ * Update a pricing model.
+ *
+ * This procedure supports two modes:
+ * 1. **Metadata-only update** (existing behavior): When only `name` and/or `isDefault`
+ *    are provided, the procedure uses the simple update path.
+ * 2. **Full structure update** (CLI sync workflow): When `features`, `products`,
+ *    `usageMeters`, or `resources` fields are provided, the procedure uses the
+ *    full diff and update transaction to atomically update the entire pricing model.
+ *    This is a FULL REPLACEMENT - all structure fields must be provided to prevent
+ *    accidental data loss. The CLI always sends the complete structure.
+ *
+ * Uses adminTransaction for full structure updates to bypass RLS policies, as the
+ * update may need to create/update/deactivate resources across pricing model scope.
+ * Authorization is enforced via a pre-check using authenticatedTransaction.
+ */
 const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
-  .input(editPricingModelSchema)
+  .input(editPricingModelWithStructureSchema)
   .output(
     z.object({
       pricingModel: pricingModelsClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
-        const pricingModel = await safelyUpdatePricingModel(
-          {
-            ...input.pricingModel,
-            id: input.id,
+  .mutation(async ({ input, ctx }) => {
+    const { pricingModel: pricingModelInput } = input
+    const pricingModelId = input.id
+
+    // If no structure fields provided, use simple metadata update (existing behavior)
+    // hasAllStructureFields is a type predicate that narrows the input type
+    if (!hasAllStructureFields(input)) {
+      return unwrapOrThrow(
+        await authenticatedTransaction(
+          async (transactionCtx) => {
+            const pricingModel = await safelyUpdatePricingModel(
+              {
+                name: pricingModelInput.name,
+                isDefault: pricingModelInput.isDefault,
+                id: pricingModelId,
+              },
+              transactionCtx
+            )
+            return Result.ok({ pricingModel })
           },
-          transactionCtx
+          {
+            apiKey: ctx.apiKey,
+          }
         )
-        return Result.ok({ pricingModel })
-      }
+      )
+    }
+
+    // Full structure update: schema validation ensures ALL structure fields are provided
+    // to prevent accidental data loss. This enforces PUT (full replacement) semantics.
+    // After the type predicate check above, TypeScript knows all structure fields are defined.
+
+    // Authorization pre-check: verify the user can access this pricing model via RLS
+    // before proceeding with the admin-level update
+    unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModelResult = await selectPricingModelById(
+            pricingModelId,
+            transaction
+          )
+          if (Result.isError(pricingModelResult)) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message:
+                'The pricing model you are trying to update either does not exist or you do not have permission to update it.',
+            })
+          }
+          return Result.ok(undefined)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
     )
-  )
+
+    // Full structure update: use diff + update transaction
+    // Uses adminTransaction to bypass RLS policies for cross-resource updates
+    const result = await adminTransaction(async (transactionCtx) => {
+      // Build the proposed input from the request
+      // Type predicate hasAllStructureFields guarantees all structure fields are defined
+      const proposedInput = {
+        name: input.pricingModel.name,
+        isDefault: input.pricingModel.isDefault ?? false,
+        features: input.pricingModel.features,
+        products: input.pricingModel.products,
+        usageMeters: input.pricingModel.usageMeters,
+        resources: input.pricingModel.resources,
+      }
+
+      const updateResult = await updatePricingModelTransaction(
+        {
+          pricingModelId,
+          proposedInput,
+        },
+        transactionCtx
+      )
+
+      if (Result.isError(updateResult)) {
+        return updateResult
+      }
+
+      return Result.ok({
+        pricingModel: updateResult.value.pricingModel,
+      })
+    })
+
+    return unwrapOrThrow(result)
+  })
 
 const getDefaultPricingModelProcedure = protectedProcedure
   .meta({
