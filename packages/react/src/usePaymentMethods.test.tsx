@@ -298,11 +298,47 @@ describe('usePaymentMethods', () => {
   })
 
   it('returns empty array when billingMocks.paymentMethods missing', async () => {
-    // Create billing data with undefined paymentMethods to test default behavior
-    const billingMocks = createMockBillingData(undefined, null)
+    // Create billing data inline to avoid default parameter behavior
+    // (passing undefined to createMockBillingData triggers the default value)
+    const billingMocksWithoutPaymentMethods: TestBillingData = {
+      customer: {
+        id: 'cust_123',
+        email: 'test@example.com',
+        name: 'Test Customer',
+        externalId: 'ext_123',
+        livemode: false,
+        organizationId: 'org_123',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        catalog: null,
+      },
+      subscriptions: [],
+      currentSubscription: null,
+      currentSubscriptions: [],
+      purchases: [],
+      invoices: [],
+      paymentMethods: undefined,
+      billingPortalUrl: null,
+      pricingModel: {
+        id: 'pm_123',
+        products: [],
+        prices: [],
+        usageMeters: [],
+        features: [],
+        resources: [],
+      },
+      catalog: {
+        id: 'pm_123',
+        products: [],
+        prices: [],
+        usageMeters: [],
+        features: [],
+        resources: [],
+      },
+    }
 
     const { result } = renderHook(() => usePaymentMethods(), {
-      wrapper: createWrapper(true, billingMocks),
+      wrapper: createWrapper(true, billingMocksWithoutPaymentMethods),
     })
 
     expect(result.current.isLoading).toBe(false)
