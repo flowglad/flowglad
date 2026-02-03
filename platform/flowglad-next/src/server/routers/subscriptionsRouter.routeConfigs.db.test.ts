@@ -519,7 +519,7 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/cancel-scheduled-adjustment'
       ) // custom cancel-scheduled-adjustment
       expect(routeKeys).toContain(
-        'POST /subscriptions/:id/add-feature-to-subscription'
+        'POST /subscriptions/:id/add-feature'
       ) // custom add-feature
 
       // Check that we have exactly 11 routes (5 CRUD + 6 custom)

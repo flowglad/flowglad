@@ -118,6 +118,7 @@ export const subscriptionsRouteConfigs = [
   }),
   trpcToRest('subscriptions.addFeatureToSubscription', {
     routeParams: ['id'],
+    routeSuffix: 'add-feature',
   }),
 ]
 
