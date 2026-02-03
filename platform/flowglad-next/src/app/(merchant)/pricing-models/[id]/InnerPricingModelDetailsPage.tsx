@@ -188,6 +188,8 @@ function InnerPricingModelDetailsPage({
                     icon: <Check className="h-3.5 w-3.5" />,
                     label: 'Live',
                     variant: 'active' as const,
+                    tooltip:
+                      'Production pricing. Changes here affect customers paying real money.',
                   },
                 ]
               : [
@@ -197,10 +199,9 @@ function InnerPricingModelDetailsPage({
                       ? 'Test - Default'
                       : 'Test',
                     variant: 'warning' as const,
-                    ...(pricingModel.isDefault && {
-                      tooltip:
-                        'New customers without an explicit pricing model are assigned here',
-                    }),
+                    tooltip: pricingModel.isDefault
+                      ? 'Your sandbox. Test changes risk-free before going live. New customers without a specified pricing model are assigned here.'
+                      : 'Your sandbox. Test changes risk-free before going live.',
                   },
                 ]
           }
