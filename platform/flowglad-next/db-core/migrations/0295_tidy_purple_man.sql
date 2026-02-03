@@ -1,5 +1,5 @@
--- Patch 3: Add NOT NULL and CHECK constraints to products.slug
--- Requires Patch 1 (backfill) to have run first
+-- Add NOT NULL and CHECK constraints to products.slug
+-- Requires migration 0294 (backfill) to have run first
 
 -- Validation block: Ensure no products have invalid slugs
 DO $$
