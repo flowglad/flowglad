@@ -36,7 +36,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useOrganizationList } from '@/hooks/useOrganizationList'
 import { usePricingModelList } from '@/hooks/usePricingModelList'
@@ -185,7 +184,7 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="w-56"
                   data-testid="nav-user-org-submenu"
                 >
-                  <ScrollArea className="max-h-64">
+                  <div className="max-h-64 overflow-y-auto">
                     {organizations.map((org) => (
                       <DropdownMenuItem
                         key={org.id}
@@ -219,7 +218,7 @@ export const NavUser: React.FC<NavUserProps> = ({
                         />
                       </DropdownMenuItem>
                     ))}
-                  </ScrollArea>
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="flex items-center gap-2 cursor-pointer"
@@ -250,7 +249,7 @@ export const NavUser: React.FC<NavUserProps> = ({
                   className="w-64"
                   data-testid="nav-user-pricing-submenu"
                 >
-                  <ScrollArea className="max-h-64">
+                  <div className="max-h-64 overflow-y-auto">
                     {pricingModels.map(({ pricingModel: pm }) => {
                       const isSelected =
                         currentPricingModelId === pm.id
@@ -293,7 +292,7 @@ export const NavUser: React.FC<NavUserProps> = ({
                         </DropdownMenuItem>
                       )
                     })}
-                  </ScrollArea>
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="flex items-center gap-2 cursor-pointer"
