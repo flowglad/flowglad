@@ -147,10 +147,24 @@ export const IS_TEST =
   process.env.VERCEL_ENV !== 'production'
 
 /**
+ * Local playground mode flag.
+ *
+ * When enabled, the platform validates API keys against the local database
+ * instead of calling Unkey. This allows playground projects to work with
+ * locally-seeded API keys.
+ *
+ * Set FLOWGLAD_LOCAL_PLAYGROUND=true to enable.
+ */
+export const IS_LOCAL_PLAYGROUND =
+  process.env.FLOWGLAD_LOCAL_PLAYGROUND === 'true'
+
+/**
  * Test database URL used by both local docker-compose and CI service containers.
  * Both environments provide PostgreSQL at localhost:5432 with identical credentials.
+ * Can be overridden via TEST_DB_URL environment variable for playground development.
  */
 export const TEST_DB_URL =
+  process.env.TEST_DB_URL ||
   'postgresql://test:test@localhost:5432/test_db'
 export const IS_DEV =
   !IS_PROD && process.env.NODE_ENV === 'development'
@@ -528,6 +542,7 @@ export const safeZodSanitizedString = z
 export const core = {
   IS_PROD,
   IS_TEST,
+  IS_LOCAL_PLAYGROUND,
   TEST_DB_URL,
   DEV_ENVIRONMENT_NOTIF_PREFIX,
   NEXT_PUBLIC_APP_URL,

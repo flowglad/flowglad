@@ -15,7 +15,8 @@
     "ghcr:login": "bun run src/scripts/ghcr-login.ts"
   },
   "dependencies": {
-    "nanoid": "^3.3.11"
+    "nanoid": "^3.3.11",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6",

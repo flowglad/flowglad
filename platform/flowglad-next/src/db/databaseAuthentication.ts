@@ -60,7 +60,7 @@ const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
  * @returns
  */
 async function keyVerify(key: string): Promise<KeyVerifyResult> {
-  if (!core.IS_TEST) {
+  if (!core.IS_TEST && !core.IS_LOCAL_PLAYGROUND) {
     const verificationResponse = await unkey().keys.verifyKey({
       key,
     })
