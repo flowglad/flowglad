@@ -73,7 +73,7 @@ const columns = {
    */
   externalId: text('external_id'),
   default: boolean('default').notNull().default(false),
-  slug: text('slug'),
+  slug: text('slug').notNull(),
 }
 
 export const products = pgTable(

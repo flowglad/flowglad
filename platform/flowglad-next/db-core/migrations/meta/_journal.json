@@ -2059,6 +2059,13 @@
       "when": 1770000000000,
       "tag": "0294_backfill-product-slugs",
       "breakpoints": true
+    },
+    {
+      "idx": 295,
+      "version": "7",
+      "when": 1770000000001,
+      "tag": "0295_add-product-slug-notnull",
+      "breakpoints": true
     }
   ]
 }
