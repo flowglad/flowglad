@@ -38,6 +38,7 @@ import type { RichSubscription } from '@/subscriptions/schemas'
 import core from '@/utils/core'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
+import { AdjustSubscriptionModal } from './AdjustSubscriptionModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
@@ -85,6 +86,7 @@ const InnerSubscriptionPage = ({
   const [isAddFeatureModalOpen, setIsAddFeatureModalOpen] =
     useState(false)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false)
 
   const canAddFeature = subscription.subscriptionItems.length > 0
 
@@ -112,6 +114,54 @@ const InnerSubscriptionPage = ({
 
   const handleCancel = () => {
     setIsCancelModalOpen(true)
+  }
+
+  const handleAdjust = () => {
+    setIsAdjustModalOpen(true)
+  }
+
+  // Determine if adjust should be disabled and why
+  const isTerminal =
+    subscription.status === SubscriptionStatus.Canceled
+  const hasPendingCancellation =
+    subscription.status === SubscriptionStatus.CancellationScheduled
+  const hasPendingAdjustment =
+    subscription.scheduledAdjustmentAt !== null
+  // Check if all subscription items are usage-based (nothing to adjust to)
+  const isUsageOnlySubscription =
+    subscription.subscriptionItems.length > 0 &&
+    subscription.subscriptionItems.every(
+      (item) => item.price.type === PriceType.Usage
+    )
+  const cannotAdjust =
+    isTerminal ||
+    isFreePlan ||
+    hasPendingCancellation ||
+    hasPendingAdjustment ||
+    isUsageOnlySubscription ||
+    !pricingModel
+
+  // Get the appropriate tooltip message for why adjust is disabled
+  const getAdjustDisabledTooltip = (): string | undefined => {
+    if (isTerminal) {
+      return 'Cannot adjust a canceled subscription.'
+    }
+    if (isFreePlan) {
+      return 'Free plans cannot be adjusted.'
+    }
+    if (hasPendingCancellation) {
+      return 'Cannot adjust while a cancellation is scheduled. Uncancel first.'
+    }
+    if (hasPendingAdjustment) {
+      return 'A scheduled adjustment is already pending. Cancel it first.'
+    }
+    if (isUsageOnlySubscription) {
+      return 'Usage-based subscriptions cannot be adjusted.'
+    }
+    if (!pricingModel) {
+      return 'No pricing model associated with this subscription.'
+    }
+    return undefined
   }
 
   if (!organization) {
@@ -171,6 +221,13 @@ const InnerSubscriptionPage = ({
             />
           }
           actions={[
+            {
+              label: 'Adjust Plan',
+              onClick: handleAdjust,
+              variant: 'secondary',
+              disabled: cannotAdjust,
+              disabledTooltip: getAdjustDisabledTooltip(),
+            },
             {
               label: 'Change Payment Method',
               onClick: handleChangePaymentMethod,
@@ -304,6 +361,14 @@ const InnerSubscriptionPage = ({
         setIsOpen={setIsCancelModalOpen}
         subscriptionId={subscription.id}
       />
+      {pricingModel && (
+        <AdjustSubscriptionModal
+          isOpen={isAdjustModalOpen}
+          setIsOpen={setIsAdjustModalOpen}
+          subscription={subscription}
+          pricingModelId={pricingModel.id}
+        />
+      )}
     </PageContainer>
   )
 }
