@@ -578,7 +578,7 @@ describe('RLS for selectProducts', () => {
             description: null,
             livemode: false,
             externalId: null,
-            slug: null,
+            slug: 'cross-org-product',
             imageURL: null,
             singularQuantityLabel: null,
             pluralQuantityLabel: null,
@@ -608,7 +608,7 @@ describe('RLS for selectProducts', () => {
                 description: null,
                 livemode,
                 externalId: null,
-                slug: null,
+                slug: 'org1-new-product',
                 imageURL: null,
                 singularQuantityLabel: null,
                 pluralQuantityLabel: null,
@@ -1122,7 +1122,7 @@ describe('Second-order RLS defense in depth', () => {
       )
     ).unwrap()
     expect(prods).toHaveLength(0)
-    const result = await authenticatedTransaction(
+    const insertResult = await authenticatedTransaction(
       async (ctx) => {
         const { transaction, livemode } = ctx
         await insertProduct(
@@ -1137,7 +1137,7 @@ describe('Second-order RLS defense in depth', () => {
             pricingModelId: o2.pricingModel.id,
             externalId: null,
             default: false,
-            slug: null,
+            slug: 'x-product',
             livemode,
           },
           ctx
@@ -1146,7 +1146,7 @@ describe('Second-order RLS defense in depth', () => {
       },
       { apiKey: onlyOrg2.token }
     )
-    expect(Result.isError(result)).toBe(true)
+    expect(Result.isError(insertResult)).toBe(true)
   })
 
   it('API key and session both set RLS context correctly: parity test', async () => {

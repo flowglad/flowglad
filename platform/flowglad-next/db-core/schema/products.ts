@@ -27,6 +27,7 @@ import {
   type SelectConditions,
   tableBase,
 } from '../tableUtils'
+import { safeZodSanitizedString } from '../utils'
 import { organizations } from './organizations'
 import { pricingModels } from './pricingModels'
 
@@ -72,7 +73,7 @@ const columns = {
    */
   externalId: text('external_id'),
   default: boolean('default').notNull().default(false),
-  slug: text('slug'),
+  slug: text('slug').notNull(),
 }
 
 export const products = pgTable(
@@ -109,6 +110,9 @@ export const products = pgTable(
 const refinement = {
   name: z.string(),
   active: z.boolean(),
+  slug: safeZodSanitizedString.describe(
+    'Unique identifier for the product within its pricing model'
+  ),
 }
 
 export const {
@@ -122,6 +126,9 @@ export const {
   },
 } = buildSchemas(products, {
   refine: refinement,
+  updateRefine: {
+    slug: safeZodSanitizedString.optional(),
+  },
   client: {
     hiddenColumns: {
       externalId: true,

@@ -2052,6 +2052,20 @@
       "when": 1769805748357,
       "tag": "0293_add-cli-session-api-key-type",
       "breakpoints": true
+    },
+    {
+      "idx": 294,
+      "version": "7",
+      "when": 1770145512596,
+      "tag": "0294_backfill-product-slugs",
+      "breakpoints": true
+    },
+    {
+      "idx": 295,
+      "version": "7",
+      "when": 1770145534300,
+      "tag": "0295_tidy_purple_man",
+      "breakpoints": true
     }
   ]
 }

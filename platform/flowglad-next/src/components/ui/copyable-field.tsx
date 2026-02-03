@@ -90,7 +90,11 @@ export function CopyableField({
             </span>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent
+          side="bottom"
+          variant="muted"
+          className="px-3 py-2 text-sm font-medium"
+        >
           <p className="font-sans">{value}</p>
         </TooltipContent>
       </Tooltip>

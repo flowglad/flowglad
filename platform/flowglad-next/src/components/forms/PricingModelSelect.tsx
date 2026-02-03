@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { type Control, useFormContext } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import { useListPricingModelsQuery } from '@/app/hooks/useListPricingModelsQuery'
-import { Badge } from '@/components/ui/badge'
 import {
   FormControl,
   FormField,
@@ -70,13 +69,7 @@ const PricingModelSelect = ({
                       key={pricingModel.id}
                       value={pricingModel.id}
                     >
-                      <span className="flex items-center gap-2">
-                        {pricingModel.name}
-                        {pricingModel.id ===
-                          defaultPricingModelId && (
-                          <Badge variant="outline">Default</Badge>
-                        )}
-                      </span>
+                      {pricingModel.name}
                     </SelectItem>
                   )) || []}
                 </SelectContent>
