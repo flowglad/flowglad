@@ -94,7 +94,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
             externalId: null,
-            slug: null,
+            slug: 'regular-price',
           },
           ctx
         )
@@ -406,7 +406,7 @@ describe('pricesRouter - Default Price Constraints', () => {
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
-              slug: null,
+              slug: 'other-price',
             },
             ctx
           )
@@ -519,7 +519,7 @@ describe('pricesRouter - Default Price Constraints', () => {
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
-              slug: null,
+              slug: 'another-price',
             },
             ctx
           )
@@ -683,7 +683,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
             externalId: null,
-            slug: null,
+            slug: 'another-default',
           },
           ctx
         )
