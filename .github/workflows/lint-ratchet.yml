@@ -75,8 +75,8 @@ jobs:
     name: All lint ratchet checks succeeded
     if: always()
     runs-on: ubuntu-latest
-    needs: [ratchet-check]
+    needs: [ratchet-check, ratchet-update]
     steps:
       - name: Mark the job as failed
-        if: needs.ratchet-check.result == 'failure'
+        if: needs.ratchet-check.result == 'failure' || needs.ratchet-update.result == 'failure'
         run: exit 1
