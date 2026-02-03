@@ -26,13 +26,15 @@ export const saveOrganizationCodebaseMarkdown = async ({
   markdown: string
 }): Promise<void> => {
   // Fetch organization to get securitySalt
-  const organization = await adminTransaction(
-    async ({ transaction }) => {
-      return (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
-    }
-  )
+  const organization = (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+      )
+    })
+  ).unwrap()
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({
@@ -50,15 +52,18 @@ export const saveOrganizationCodebaseMarkdown = async ({
   })
 
   // Store hash in database after successful R2 upload
-  await adminTransaction(async ({ transaction }) => {
-    await updateOrganization(
-      {
-        id: organizationId,
-        codebaseMarkdownHash: contentHash,
-      },
-      transaction
-    )
-  })
+  ;(
+    await adminTransaction(async ({ transaction }) => {
+      await updateOrganization(
+        {
+          id: organizationId,
+          codebaseMarkdownHash: contentHash,
+        },
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+  ).unwrap()
 }
 
 /**
@@ -69,13 +74,15 @@ export const getOrganizationCodebaseMarkdown = async (
   organizationId: string
 ): Promise<string | null> => {
   // Fetch hash from database
-  const organization = await adminTransaction(
-    async ({ transaction }) => {
-      return (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
-    }
-  )
+  const organization = (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+      )
+    })
+  ).unwrap()
 
   const contentHash = organization.codebaseMarkdownHash ?? null
   if (!contentHash) {
@@ -105,13 +112,15 @@ export const savePricingModelIntegrationMarkdown = async ({
   markdown: string
 }): Promise<void> => {
   // Fetch organization to get securitySalt
-  const organization = await adminTransaction(
-    async ({ transaction }) => {
-      return (
-        await selectOrganizationById(organizationId, transaction)
-      ).unwrap()
-    }
-  )
+  const organization = (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
+      )
+    })
+  ).unwrap()
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({
@@ -129,31 +138,34 @@ export const savePricingModelIntegrationMarkdown = async ({
   })
 
   // Store hash in database after successful R2 upload
-  await adminTransaction(
-    async ({
-      transaction,
-      cacheRecomputationContext,
-      invalidateCache,
-      emitEvent,
-      enqueueLedgerCommand,
-      enqueueTriggerTask,
-    }) => {
-      await updatePricingModel(
-        {
-          id: pricingModelId,
-          integrationGuideHash: contentHash,
-        },
-        {
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-          enqueueTriggerTask,
-        }
-      )
-    }
-  )
+  ;(
+    await adminTransaction(
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+        enqueueTriggerTask,
+      }) => {
+        await updatePricingModel(
+          {
+            id: pricingModelId,
+            integrationGuideHash: contentHash,
+          },
+          {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+            enqueueTriggerTask,
+          }
+        )
+        return Result.ok(undefined)
+      }
+    )
+  ).unwrap()
 }
 
 /**
@@ -168,11 +180,15 @@ export const getPricingModelIntegrationMarkdown = async ({
   pricingModelId: string
 }): Promise<string | null> => {
   // Fetch hash from database
-  const pricingModelResult = await adminTransaction(
-    async ({ transaction }) => {
-      return selectPricingModelById(pricingModelId, transaction)
-    }
-  )
+  // selectPricingModelById returns Result<PricingModel, Error>, and we need to preserve
+  // that Result to check if the pricing model was found
+  const pricingModelResult = (
+    await adminTransaction(async ({ transaction }) => {
+      return Result.ok(
+        await selectPricingModelById(pricingModelId, transaction)
+      )
+    })
+  ).unwrap()
 
   const contentHash = Result.isOk(pricingModelResult)
     ? pricingModelResult.value.integrationGuideHash

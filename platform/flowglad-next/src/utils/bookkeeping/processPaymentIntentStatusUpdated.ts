@@ -290,7 +290,7 @@ export const upsertPaymentForStripeCharge = async (
 
   const paymentMethodResult = paymentMethodFromStripeCharge(charge)
   if (Result.isError(paymentMethodResult)) {
-    throw paymentMethodResult.error
+    return Result.err(paymentMethodResult.error)
   }
 
   const paymentInsert: Payment.Insert = {

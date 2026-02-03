@@ -24,7 +24,7 @@ import {
   setupUsageLedgerScenario,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { processCreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/creditGrantRecognizedLedgerCommand'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
@@ -62,7 +62,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
   })
   it('should successfully process a credit grant with all fields provided', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -210,7 +210,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant without transactionDescription', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -346,7 +346,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant without transactionMetadata', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -446,7 +446,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant without billingPeriodId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -566,25 +566,23 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       },
     }
 
-    const result = await adminTransactionWithResult(
-      async ({ transaction }) => {
-        return processCreditGrantRecognizedLedgerCommand(
-          command,
-          transaction
-        )
-      }
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      return processCreditGrantRecognizedLedgerCommand(
+        command,
+        transaction
+      )
+    })
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
       expect(result.error.message).toContain(
-        'No subscriptions found with id'
+        'subscriptions not found'
       )
     }
 
     // Verify that no partial/rogue transactions were persisted due to the error.
     // This ensures the database transaction was properly rolled back.
     const rogueTransactions = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectLedgerTransactions(
             {
@@ -601,7 +599,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should throw an error when usage credit has no usageMeterId', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -651,7 +649,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant with livemode true', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const scenarioData = await setupUsageLedgerScenario({
           livemode: true,
         })
@@ -746,7 +744,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant with livemode false', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const scenarioData = await setupUsageLedgerScenario({
           livemode: false,
         })
@@ -844,7 +842,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant with small amount', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -916,7 +914,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant with large amount', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -988,7 +986,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should successfully process a credit grant with different usage meter', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const secondUsageMeter = await setupUsageMeter({
           organizationId: organization.id,
           name: 'Second Usage Meter',
@@ -1080,7 +1078,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should use existing ledger account when one already exists', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // The ledgerAccount from beforeEach already exists for this subscription and usageMeter
         // The function should find and use it rather than creating a duplicate
 
@@ -1159,7 +1157,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
 
   it('should correctly process credit grant with existing ledger entries', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const existingUsageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,

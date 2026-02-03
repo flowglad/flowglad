@@ -9,7 +9,7 @@ import {
   setupOrg,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import * as actualEmail from '@/utils/email'
 import { runSendCustomerSubscriptionCanceledNotification } from './send-customer-subscription-canceled-notification'
@@ -79,7 +79,7 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
 
     // Update customer to have empty email (null is not allowed by schema)
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customerWithEmail.id, email: '' },
           transaction

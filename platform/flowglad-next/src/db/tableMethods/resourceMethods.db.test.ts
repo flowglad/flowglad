@@ -4,10 +4,7 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Resource } from '@db-core/schema/resources'
 import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug,
   insertResource,
@@ -49,7 +46,7 @@ describe('resourceMethods', () => {
   describe('insertResource and selectResourceById', () => {
     it('should insert a resource and return it with generated id', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const inserted = await insertResource(
             createResourceInsert(),
             transaction
@@ -69,7 +66,7 @@ describe('resourceMethods', () => {
 
     it('should select a resource by id and return the same record', async () => {
       const inserted = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResource(createResourceInsert(), transaction)
           )
@@ -77,7 +74,7 @@ describe('resourceMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const selected = (
             await selectResourceById(inserted.id, transaction)
           ).unwrap()
@@ -95,7 +92,7 @@ describe('resourceMethods', () => {
 
     it('should return an error when selecting a non-existent resource', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectResourceById(
             'non-existent-id',
             transaction
@@ -110,7 +107,7 @@ describe('resourceMethods', () => {
   describe('selectResources', () => {
     it('should select resources by organizationId', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await insertResource(
             createResourceInsert({ slug: 'seats', name: 'Seats' }),
             transaction
@@ -140,7 +137,7 @@ describe('resourceMethods', () => {
 
     it('should select resources by pricingModelId', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await insertResource(
             createResourceInsert({
               slug: 'seats',
@@ -172,7 +169,7 @@ describe('resourceMethods', () => {
   describe('updateResource', () => {
     it('should update a resource name', async () => {
       const inserted = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResource(createResourceInsert(), transaction)
           )
@@ -180,7 +177,7 @@ describe('resourceMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updated = await updateResource(
             { id: inserted.id, name: 'Team Seats' },
             transaction
@@ -196,7 +193,7 @@ describe('resourceMethods', () => {
 
     it('should deactivate a resource', async () => {
       const inserted = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResource(createResourceInsert(), transaction)
           )
@@ -204,7 +201,7 @@ describe('resourceMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updated = await updateResource(
             { id: inserted.id, active: false },
             transaction
@@ -220,7 +217,7 @@ describe('resourceMethods', () => {
   describe('unique constraint on slug within pricing model', () => {
     it('should not allow two resources with the same slug in the same pricing model', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await insertResource(
             createResourceInsert({ slug: 'seats' }),
             transaction
@@ -229,8 +226,8 @@ describe('resourceMethods', () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await insertResource(
             createResourceInsert({
               slug: 'seats',
@@ -238,13 +235,15 @@ describe('resourceMethods', () => {
             }),
             transaction
           )
-        })
-      ).rejects.toThrow()
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should allow the same slug in different pricing models', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resource1 = await insertResource(
             createResourceInsert({
               slug: 'seats',
@@ -272,7 +271,7 @@ describe('resourceMethods', () => {
 
     it('should allow different slugs in the same pricing model', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resource1 = await insertResource(
             createResourceInsert({ slug: 'seats' }),
             transaction
@@ -293,7 +292,7 @@ describe('resourceMethods', () => {
   describe('upsertResourceByPricingModelIdAndSlug', () => {
     it('should insert a new resource when none exists', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const upsertedArray =
             await upsertResourceByPricingModelIdAndSlug(
               createResourceInsert({ slug: 'new-resource' }),
@@ -310,7 +309,7 @@ describe('resourceMethods', () => {
 
     it('should do nothing when resource with same slug and pricingModelId exists (onConflictDoNothing)', async () => {
       const inserted = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertResource(
               createResourceInsert({
@@ -324,7 +323,7 @@ describe('resourceMethods', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // The upsert with onConflictDoNothing returns empty array when conflict occurs
           const upsertedArray =
             await upsertResourceByPricingModelIdAndSlug(
@@ -354,7 +353,7 @@ describe('resourceMethods', () => {
   describe('selectResourcesTableRowData', () => {
     it('should return resources with joined pricing model data', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resource1 = await insertResource(
             createResourceInsert({
               slug: 'table-row-resource-1',
@@ -413,7 +412,7 @@ describe('resourceMethods', () => {
 
     it('should support search by resource name via ILIKE', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await insertResource(
             createResourceInsert({
               slug: 'searchable-seats',
@@ -452,7 +451,7 @@ describe('resourceMethods', () => {
 
     it('should support search by exact resource ID match', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const targetResource = await insertResource(
             createResourceInsert({
               slug: 'id-searchable',
@@ -489,7 +488,7 @@ describe('resourceMethods', () => {
 
     it('should trim whitespace from search queries when searching by exact ID', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resource = await insertResource(
             createResourceInsert({
               slug: 'trim-test',
@@ -524,7 +523,7 @@ describe('resourceMethods', () => {
   describe('bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug', () => {
     it('should insert multiple resources when no conflicts exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const inserts: Resource.Insert[] = [
             createResourceInsert({
               slug: 'bulk-resource-1',
@@ -564,7 +563,7 @@ describe('resourceMethods', () => {
 
     it('should skip inserting resources that conflict on pricingModelId + slug + organizationId', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Insert an existing resource
           const existing = await insertResource(
             createResourceInsert({
@@ -608,7 +607,7 @@ describe('resourceMethods', () => {
 
     it('should allow same slug across different pricing models', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Insert resource in first pricing model
           await insertResource(
             createResourceInsert({
@@ -647,7 +646,7 @@ describe('resourceMethods', () => {
 
     it('should return empty array when all inserts conflict', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Pre-insert resources
           await insertResource(
             createResourceInsert({

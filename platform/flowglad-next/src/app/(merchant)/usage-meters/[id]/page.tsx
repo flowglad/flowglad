@@ -2,7 +2,7 @@ import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import InnerUsageMeterDetailsPage from './InnerUsageMeterDetailsPage'
@@ -20,7 +20,7 @@ const UsageMeterPage = async ({ params }: UsageMeterPageProps) => {
   const { id } = await params
 
   const { usageMeter, pricingModel } = (
-    await authenticatedTransactionWithResult(
+    await authenticatedTransaction(
       async ({
         transaction,
       }): Promise<Result<UsageMeterPageData, Error>> => {

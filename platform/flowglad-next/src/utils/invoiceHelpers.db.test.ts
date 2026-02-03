@@ -10,10 +10,7 @@ import {
   setupInvoice,
   setupOrg,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import { updateInvoiceTransaction } from './invoiceHelpers'
 
@@ -41,26 +38,32 @@ describe('updateInvoiceTransaction', () => {
 
       // Attempt to exploit by passing draft invoice ID for validation
       // but paid invoice ID in the invoice object for the actual update
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await updateInvoiceTransaction(
-            {
-              id: draftInvoice.id, // Use draft invoice ID for terminal check
-              invoice: {
-                id: paidInvoice.id, // But try to update paid invoice
-                type: InvoiceType.Purchase,
-                status: InvoiceStatus.Open,
-                currency: paidInvoice.currency,
-                dueDate: paidInvoice.dueDate,
-                invoiceDate: paidInvoice.invoiceDate,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await updateInvoiceTransaction(
+              {
+                id: draftInvoice.id, // Use draft invoice ID for terminal check
+                invoice: {
+                  id: paidInvoice.id, // But try to update paid invoice
+                  type: InvoiceType.Purchase,
+                  status: InvoiceStatus.Open,
+                  currency: paidInvoice.currency,
+                  dueDate: paidInvoice.dueDate,
+                  invoiceDate: paidInvoice.invoiceDate,
+                },
+                invoiceLineItems: [],
               },
-              invoiceLineItems: [],
-            },
-            true,
-            transaction
+              true,
+              transaction
+            )
           )
-        })
-      ).rejects.toThrow(/ID mismatch/)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/ID mismatch/)
+      }
     })
 
     it('should succeed when id parameter matches invoice.id', async () => {
@@ -75,7 +78,7 @@ describe('updateInvoiceTransaction', () => {
         priceId: price.id,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await updateInvoiceTransaction(
             {
               id: invoice.id,
@@ -123,7 +126,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -231,7 +234,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -273,7 +276,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -317,7 +320,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -368,7 +371,7 @@ describe('updateInvoiceTransaction', () => {
     //         priceId: price.id,
     //       })
 
-    //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+    //       ;(await adminTransaction(async ({ transaction }) => {
     //         const result = await updateInvoiceTransaction(
     //           {
     //             invoice: {
@@ -400,7 +403,7 @@ describe('updateInvoiceTransaction', () => {
         priceId: price.id,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // First update to set up multiple line items
           const { invoiceLineItems: updatedInvoiceLineItems } =
             await updateInvoiceTransaction(
@@ -553,7 +556,7 @@ describe('updateInvoiceTransaction', () => {
   //       ).rejects.toThrow()
 
   //       // Verify the invoice wasn't changed
-  //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+  //       ;(await adminTransaction(async ({ transaction }) => {
   //         const result = await updateInvoiceTransaction(
   //           {
   //             invoice: {
@@ -596,7 +599,7 @@ describe('updateInvoiceTransaction', () => {
   //         livemode: false,
   //       })
 
-  //       ;(await adminTransactionWithResult(async ({ transaction }) => {
+  //       ;(await adminTransaction(async ({ transaction }) => {
   //         const result = await updateInvoiceTransaction(
   //           {
   //             invoice: {

@@ -15,7 +15,7 @@ import {
   setupOrg,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   databaseAuthenticationInfoForApiKeyResult,
   databaseAuthenticationInfoForWebappRequest,
@@ -68,7 +68,7 @@ beforeEach(async () => {
   webBetterAuthId = `bau_${core.nanoid()}`
   webUserEmail = `webapp+${core.nanoid()}@test.com`
   ;(
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const [insertedUser]: [User.Record] = (await transaction
         .insert(users)
         .values({
@@ -124,7 +124,7 @@ beforeEach(async () => {
   secretOrgTestPricingModelId = secretOrgSetup.testmodePricingModel.id
   secretClerkId = `clerk_${core.nanoid()}`
   ;(
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const [insertedSecretUser] = await transaction
         .insert(users)
         .values({
@@ -221,7 +221,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     } as unknown as BetterAuthUserWithRole
     // flip focused=false for the previously focused membership
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await transaction
           .update(memberships)
           .set({ focused: false })
@@ -254,7 +254,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     const lonelyEmail = `lonely+${core.nanoid()}@test.com`
     let lonelyUserId: string
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [lonelyUser] = (await transaction
           .insert(users)
           .values({
@@ -294,7 +294,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
       await setupOrg()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [testUser] = await transaction
           .insert(users)
           .values({
@@ -353,7 +353,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
 
     let testUserId: string
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [testUser] = await transaction
           .insert(users)
           .values({
@@ -404,7 +404,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
       await setupOrg()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [testUser] = await transaction
           .insert(users)
           .values({
@@ -833,7 +833,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
     merchantUser = merchantSetup.user
     // Ensure merchantUser has a betterAuthId for authentication
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         if (!merchantUser.betterAuthId) {
           const betterAuthId = `bau_${core.nanoid()}`
           await transaction
@@ -851,7 +851,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
     // Create customer users
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [user] = await transaction
           .insert(users)
           .values({
@@ -945,7 +945,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
     it('should fail when user has no customer record in the organization', async () => {
       // Create a user with no customer record
       const userWithoutCustomer = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -971,7 +971,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
     it('should handle customer authentication across different organizations', async () => {
       // Create same user with customer in different org
       const userWithMultipleCustomers = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1040,7 +1040,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       })
 
       const testModeUser = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1077,7 +1077,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         livemode: true,
       })
       const liveModeUser = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1101,7 +1101,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         livemode: false,
       })
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1233,7 +1233,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
       // Create a user that doesn't match the customer
       const unrelatedUser = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [user] = await transaction
             .insert(users)
             .values({
@@ -1282,7 +1282,7 @@ describe('Focused membership consistency between databaseAuthentication and trpc
     const { organization: org2, pricingModel: pm2 } = await setupOrg()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [testUser] = await transaction
           .insert(users)
           .values({
@@ -1328,7 +1328,7 @@ describe('Focused membership consistency between databaseAuthentication and trpc
 
     // Simulate trpcContext.ts behavior (which uses .find())
     const allMemberships = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectMembershipAndOrganizationsByBetterAuthUserId(
             testBetterAuthId,
@@ -1362,7 +1362,7 @@ describe('Focused membership consistency between databaseAuthentication and trpc
     let testUserId: string
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const [testUser] = await transaction
           .insert(users)
           .values({
@@ -1417,7 +1417,7 @@ describe('Focused membership consistency between databaseAuthentication and trpc
 
     // Simulate trpcContext.ts behavior
     const allMemberships = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectMembershipAndOrganizationsByBetterAuthUserId(
             testBetterAuthId,

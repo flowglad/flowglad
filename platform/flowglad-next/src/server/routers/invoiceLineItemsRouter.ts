@@ -3,7 +3,9 @@ import {
   invoiceLineItemsPaginatedListSchema,
   invoiceLineItemsPaginatedSelectSchema,
 } from '@db-core/schema/invoiceLineItems'
+
 import { idInputSchema } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectInvoiceLineItemById,
@@ -11,6 +13,7 @@ import {
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'invoiceLineItem',
@@ -24,14 +27,18 @@ const listInvoiceLineItemsProcedure = protectedProcedure
   .input(invoiceLineItemsPaginatedSelectSchema)
   .output(invoiceLineItemsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectInvoiceLineItemsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectInvoiceLineItemsPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getInvoiceLineItemProcedure = protectedProcedure
@@ -39,16 +46,20 @@ const getInvoiceLineItemProcedure = protectedProcedure
   .input(idInputSchema)
   .output(invoiceLineItemsClientSelectSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectInvoiceLineItemById(input.id, transaction)
-        ).unwrap()
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectInvoiceLineItemById(input.id, transaction)
+            ).unwrap()
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 export const invoiceLineItemsRouter = router({

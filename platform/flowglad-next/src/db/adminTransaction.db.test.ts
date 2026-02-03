@@ -3,21 +3,10 @@ import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
 import {
+  adminTransaction,
   adminTransactionUnwrap,
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
 } from './adminTransaction'
 import { selectOrganizations } from './tableMethods/organizationMethods'
-
-describe('comprehensiveAdminTransaction', () => {
-  it('propagates errors from transaction callback', async () => {
-    await expect(
-      comprehensiveAdminTransaction(async () => {
-        throw new Error('Admin transaction rolled back')
-      })
-    ).rejects.toThrow('Admin transaction rolled back')
-  })
-})
 
 describe('adminTransactionUnwrap', () => {
   let testOrg: Organization.Record
@@ -36,7 +25,9 @@ describe('adminTransactionUnwrap', () => {
       async (ctx) => {
         const { transaction } = ctx
         const orgs = await selectOrganizations({}, transaction)
-        const foundOrg = orgs.find((o) => o.id === testOrg.id)
+        const foundOrg = orgs.find(
+          (o: Organization.Record) => o.id === testOrg.id
+        )
         return Result.ok({ found: !!foundOrg, count: orgs.length })
       },
       { livemode: true }
@@ -112,7 +103,7 @@ describe('adminTransactionUnwrap', () => {
   })
 })
 
-describe('adminTransactionWithResult', () => {
+describe('adminTransaction', () => {
   let testOrg: Organization.Record
 
   beforeEach(async () => {
@@ -122,13 +113,15 @@ describe('adminTransactionWithResult', () => {
 
   it('returns Result.ok on successful transaction', async () => {
     // setup:
-    // - call adminTransactionWithResult with a function that returns Result.ok
+    // - call adminTransaction with a function that returns Result.ok
     // expects:
     // - the result should be Result.ok with the value
-    const result = await adminTransactionWithResult(
+    const result = await adminTransaction(
       async ({ transaction }) => {
         const orgs = await selectOrganizations({}, transaction)
-        const foundOrg = orgs.find((o) => o.id === testOrg.id)
+        const foundOrg = orgs.find(
+          (o: Organization.Record) => o.id === testOrg.id
+        )
         return Result.ok({ found: !!foundOrg, count: orgs.length })
       },
       { livemode: true }
@@ -143,13 +136,13 @@ describe('adminTransactionWithResult', () => {
 
   it('returns Result.err when callback returns Result.err (does not throw)', async () => {
     // setup:
-    // - call adminTransactionWithResult with a function that returns Result.err
+    // - call adminTransaction with a function that returns Result.err
     // expects:
     // - the result should be Result.err with the error (not thrown)
     const errorMessage =
       'Admin validation failed: business rule violated'
 
-    const result = await adminTransactionWithResult(
+    const result = await adminTransaction(
       async () => Result.err(new Error(errorMessage)),
       { livemode: true }
     )
@@ -167,7 +160,7 @@ describe('adminTransactionWithResult', () => {
     // - the result should be Result.err with the error (not thrown to caller)
     const directErrorMessage = 'Direct throw converted to Result.err'
 
-    const result = await adminTransactionWithResult(
+    const result = await adminTransaction(
       async () => {
         throw new Error(directErrorMessage)
       },
@@ -180,12 +173,12 @@ describe('adminTransactionWithResult', () => {
     }
   })
 
-  it('provides ComprehensiveAdminTransactionParams with all required callbacks', async () => {
+  it('provides AdminTransactionParams with all required callbacks', async () => {
     // setup:
     // - verify the params have all expected properties
     // expects:
     // - params should have transaction, invalidateCache, emitEvent, enqueueLedgerCommand
-    const result = await adminTransactionWithResult(
+    const result = await adminTransaction(
       async (params) => {
         expect(typeof params.transaction.execute).toBe('function')
         expect(typeof params.invalidateCache).toBe('function')
@@ -209,7 +202,7 @@ describe('adminTransactionWithResult', () => {
     // - call with livemode: false
     // expects:
     // - transaction should complete successfully with test mode context
-    const result = await adminTransactionWithResult(
+    const result = await adminTransaction(
       async (params) => {
         expect(params.livemode).toBe(false)
         return Result.ok('testmode_success')
@@ -225,10 +218,10 @@ describe('adminTransactionWithResult', () => {
 
   it('can be unwrapped at the caller level', async () => {
     // setup:
-    // - call adminTransactionWithResult and then unwrap the result
+    // - call adminTransaction and then unwrap the result
     // expects:
     // - unwrap should return the value directly on success
-    const result = await adminTransactionWithResult(
+    const result = await adminTransaction(
       async () => Result.ok('unwrap_test'),
       { livemode: true }
     )
@@ -239,12 +232,12 @@ describe('adminTransactionWithResult', () => {
 
   it('unwrap throws when result is an error', async () => {
     // setup:
-    // - call adminTransactionWithResult with Result.err and then try to unwrap
+    // - call adminTransaction with Result.err and then try to unwrap
     // expects:
     // - unwrap should throw the error
     const errorMessage = 'Error to be thrown by unwrap'
 
-    const result = await adminTransactionWithResult(
+    const result = await adminTransaction(
       async () => Result.err(new Error(errorMessage)),
       { livemode: true }
     )

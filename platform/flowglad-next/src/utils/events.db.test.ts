@@ -19,7 +19,7 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from './core'
@@ -46,7 +46,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
     // Call the actual function
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitCustomerCreatedEvent(customer, transaction)
         return Result.ok(undefined)
       })
@@ -54,7 +54,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
     // Query the database to get the actual event that was created
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },
@@ -89,14 +89,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitCustomerUpdatedEvent(customer, transaction)
         return Result.ok(undefined)
       })
     ).unwrap()
 
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },
@@ -159,7 +159,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const payment = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertPayment(
             {
@@ -184,14 +184,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       .unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitPaymentSucceededEvent(payment, transaction)
         return Result.ok(undefined)
       })
     ).unwrap()
 
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },
@@ -254,7 +254,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const payment = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await insertPayment(
             {
@@ -279,14 +279,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       .unwrap()
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitPaymentCanceledEvent(payment, transaction)
         return Result.ok(undefined)
       })
     ).unwrap()
 
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },
@@ -343,14 +343,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitPurchaseCompletedEvent(purchase, transaction)
         return Result.ok(undefined)
       })
     ).unwrap()
 
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },
@@ -413,7 +413,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitSubscriptionCreatedEvent(
           subscription,
           transaction
@@ -423,7 +423,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },
@@ -486,7 +486,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitSubscriptionUpdatedEvent(
           subscription,
           transaction
@@ -496,7 +496,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },
@@ -559,7 +559,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await commitSubscriptionCanceledEvent(
           subscription,
           transaction
@@ -569,7 +569,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     ).unwrap()
 
     const events = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectEvents(
             { organizationId: orgData.organization.id },

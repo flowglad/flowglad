@@ -174,21 +174,8 @@ export interface BaseTransactionParams {
 }
 
 /**
- * Effects fields with optional callbacks.
- * Used by standard transaction wrappers where callbacks may not be provided.
- * @internal
- */
-type OptionalEffectsFields = {
-  /**
-   * Accumulated side effects. Only available when using transaction wrappers.
-   * Prefer using the callback methods.
-   */
-  effects?: TransactionEffects
-} & Partial<TransactionCallbacks>
-
-/**
  * Effects fields with required callbacks.
- * Used by comprehensive transaction wrappers that always provide callbacks.
+ * Transaction wrappers always provide these callbacks at runtime.
  * @internal
  */
 type RequiredEffectsFields = {
@@ -222,38 +209,26 @@ export interface TransactionEffectsContext
     >,
     TransactionCallbacks {}
 
+/**
+ * Parameters for authenticated database transactions.
+ * All callback methods are required since they're always provided at runtime by the transaction wrapper.
+ */
 export interface AuthenticatedTransactionParams
   extends BaseTransactionParams,
-    OptionalEffectsFields {
+    RequiredEffectsFields {
   userId: string
   organizationId: string
 }
 
+/**
+ * Parameters for admin database transactions.
+ * All callback methods are required since they're always provided at runtime by the transaction wrapper.
+ */
 export interface AdminTransactionParams
   extends BaseTransactionParams,
-    OptionalEffectsFields {
+    RequiredEffectsFields {
   userId: 'ADMIN'
 }
-
-/**
- * Stricter version of AuthenticatedTransactionParams used by comprehensiveAuthenticatedTransaction.
- * All callback methods are required (not optional) since they're always provided at runtime.
- */
-export type ComprehensiveAuthenticatedTransactionParams = Omit<
-  AuthenticatedTransactionParams,
-  keyof OptionalEffectsFields
-> &
-  RequiredEffectsFields
-
-/**
- * Stricter version of AdminTransactionParams used by comprehensiveAdminTransaction.
- * All callback methods are required (not optional) since they're always provided at runtime.
- */
-export type ComprehensiveAdminTransactionParams = Omit<
-  AdminTransactionParams,
-  keyof OptionalEffectsFields
-> &
-  RequiredEffectsFields
 
 /**
  * No-op transaction callbacks for use in contexts where cache invalidation,

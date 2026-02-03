@@ -1,8 +1,8 @@
 import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
 import type {
+  AuthenticatedTransactionParams,
   CacheRecomputationContext,
-  ComprehensiveAuthenticatedTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
 import core from '@/utils/core'
@@ -30,28 +30,12 @@ interface AuthenticatedTransactionOptions {
 }
 
 /**
- * Executes a function within an authenticated database transaction.
- * Delegates to comprehensiveAuthenticatedTransaction by wrapping the result.
- */
-export async function authenticatedTransaction<T>(
-  fn: (
-    params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<T>,
-  options?: AuthenticatedTransactionOptions
-): Promise<T> {
-  return comprehensiveAuthenticatedTransaction(async (params) => {
-    const result = await fn(params)
-    return Result.ok(result)
-  }, options)
-}
-
-/**
  * Core comprehensive authenticated transaction logic without tracing.
  * Returns the full Result plus auth info and processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
-    params: ComprehensiveAuthenticatedTransactionParams
+    params: AuthenticatedTransactionParams
   ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
@@ -104,19 +88,18 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       const cacheRecomputationContext: CacheRecomputationContext = {
         livemode,
       }
-      const paramsForFn: ComprehensiveAuthenticatedTransactionParams =
-        {
-          transaction,
-          userId,
-          livemode,
-          organizationId,
-          cacheRecomputationContext,
-          effects,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-          enqueueTriggerTask,
-        }
+      const paramsForFn: AuthenticatedTransactionParams = {
+        transaction,
+        userId,
+        livemode,
+        organizationId,
+        cacheRecomputationContext,
+        effects,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+        enqueueTriggerTask,
+      }
 
       const output = await fn(paramsForFn)
 
@@ -148,45 +131,6 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     processedEventsCount,
     processedLedgerCommandsCount,
   }
-}
-
-/**
- * Executes a function within an authenticated database transaction and automatically
- * processes events and ledger commands from the transaction output.
- */
-export async function comprehensiveAuthenticatedTransaction<T>(
-  fn: (
-    params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<Result<T, Error>>,
-  options?: AuthenticatedTransactionOptions
-): Promise<T> {
-  // Static attributes are set at span creation for debugging failed transactions
-  const { output } = await traced(
-    {
-      options: {
-        spanName: 'db.comprehensiveAuthenticatedTransaction',
-        tracerName: 'db.transaction',
-        kind: SpanKind.CLIENT,
-        attributes: {
-          'db.transaction.type': 'authenticated',
-        },
-      },
-      extractResultAttributes: (data) => ({
-        'db.user_id': data.userId,
-        'db.organization_id': data.organizationId,
-        'db.livemode': data.livemode,
-        // Use the actual processed counts, which include both effects callbacks and output
-        'db.events_count': data.processedEventsCount,
-        'db.ledger_commands_count': data.processedLedgerCommandsCount,
-      }),
-    },
-    () => executeComprehensiveAuthenticatedTransaction(fn, options)
-  )()
-
-  if (output.status === 'error') {
-    throw output.error
-  }
-  return output.value
 }
 
 export type AuthenticatedProcedureResolver<
@@ -241,7 +185,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
   ) => Promise<Result<TOutput, Error>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
-    return comprehensiveAuthenticatedTransaction(
+    const result = await authenticatedTransaction(
       (params) => {
         const transactionCtx: TransactionEffectsContext = {
           transaction: params.transaction,
@@ -262,6 +206,12 @@ export const authenticatedProcedureComprehensiveTransaction = <
         customerId: opts.ctx.customerId,
       }
     )
+    // Throw the original error directly to preserve TRPCError type
+    // (using .unwrap() would wrap it in a Panic error)
+    if (result.status === 'error') {
+      throw result.error
+    }
+    return result.value
   }
 }
 
@@ -290,7 +240,7 @@ export async function authenticatedTransactionUnwrap<T>(
   fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
   options: AuthenticatedTransactionOptions
 ): Promise<T> {
-  return comprehensiveAuthenticatedTransaction(async (params) => {
+  const result = await authenticatedTransaction(async (params) => {
     const ctx: TransactionEffectsContext = {
       transaction: params.transaction,
       cacheRecomputationContext: params.cacheRecomputationContext,
@@ -301,43 +251,39 @@ export async function authenticatedTransactionUnwrap<T>(
     }
     return fn(ctx)
   }, options)
+  // Throw the original error directly to preserve TRPCError type
+  // (using .unwrap() would wrap it in a Panic error)
+  if (result.status === 'error') {
+    throw result.error
+  }
+  return result.value
 }
 
 /**
- * Executes a function within an authenticated database transaction and returns the Result directly.
+ * Executes a function within an authenticated database transaction.
+ * The callback receives full transaction parameters including userId, organizationId, and livemode.
  *
- * Unlike `comprehensiveAuthenticatedTransaction` which unwraps and throws on error, this function
- * returns the Result for explicit error handling by the caller via `.unwrap()`.
- *
- * Use this when you need to:
- * - Chain multiple transactions and handle errors between them
- * - Return errors to callers without throwing
- * - Migrate code towards explicit Result handling
+ * The callback is responsible for returning a Result - this function passes through whatever
+ * Result the callback returns.
  *
  * @param fn - Function that receives authenticated transaction parameters and returns a Result
  * @param options - Authentication options including apiKey
- * @returns Promise resolving to the Result (not unwrapped)
+ * @returns Promise resolving to the Result returned by the callback
  *
  * @example
  * ```ts
- * const result = await authenticatedTransactionWithResult(async ({ transaction, emitEvent, organizationId }) => {
- *   // ... perform operations ...
- *   emitEvent(event1)
- *   return Result.ok(someValue)
+ * const result = await authenticatedTransaction(async ({ transaction, organizationId }) => {
+ *   const customer = await selectCustomerById(customerId, transaction)
+ *   if (!customer) {
+ *     return Result.err(new NotFoundError('Customer', customerId))
+ *   }
+ *   return Result.ok(customer)
  * }, { apiKey })
- *
- * // At router/API boundary, unwrap to convert to exceptions:
- * return result.unwrap()
- *
- * // Or handle errors explicitly:
- * if (Result.isError(result)) {
- *   // handle error
- * }
  * ```
  */
-export async function authenticatedTransactionWithResult<T>(
+export async function authenticatedTransaction<T>(
   fn: (
-    params: ComprehensiveAuthenticatedTransactionParams
+    params: AuthenticatedTransactionParams
   ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<Result<T, Error>> {
@@ -345,7 +291,7 @@ export async function authenticatedTransactionWithResult<T>(
     const { output } = await traced(
       {
         options: {
-          spanName: 'db.authenticatedTransactionWithResult',
+          spanName: 'db.authenticatedTransaction',
           tracerName: 'db.transaction',
           kind: SpanKind.CLIENT,
           attributes: {

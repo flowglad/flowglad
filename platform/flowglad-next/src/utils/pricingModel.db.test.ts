@@ -31,11 +31,8 @@ import {
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
-import { comprehensiveAuthenticatedTransaction } from '@/db/authenticatedTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
@@ -129,7 +126,7 @@ describe('clonePricingModelTransaction', () => {
   describe('Basic Functionality', () => {
     it('should successfully clone a pricing model with all its products and prices', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -150,7 +147,7 @@ describe('clonePricingModelTransaction', () => {
     it('should create a new pricing model with the specified name', async () => {
       const newName = 'New PricingModel Name'
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -168,7 +165,7 @@ describe('clonePricingModelTransaction', () => {
 
     it('should set isDefault to false on the cloned pricing model', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -186,7 +183,7 @@ describe('clonePricingModelTransaction', () => {
 
     it('should preserve the livemode value from the source pricing model', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -206,7 +203,7 @@ describe('clonePricingModelTransaction', () => {
 
     it('should maintain the same organizationId as the source pricing model', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -234,7 +231,7 @@ describe('clonePricingModelTransaction', () => {
       })
 
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -272,7 +269,7 @@ describe('clonePricingModelTransaction', () => {
       })
 
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -294,7 +291,7 @@ describe('clonePricingModelTransaction', () => {
   describe('Product Cloning', () => {
     it('should clone all products from the source pricing model', async () => {
       const sourceProducts = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const productsWithPrices =
             await selectPricesAndProductsByProductWhere(
               {
@@ -307,7 +304,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -328,7 +325,7 @@ describe('clonePricingModelTransaction', () => {
     it('should assign new IDs to the cloned products', async () => {
       const sourceProductId = product.id
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -347,7 +344,7 @@ describe('clonePricingModelTransaction', () => {
 
     it('should preserve all product attributes except ID and pricingModelId', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -378,7 +375,7 @@ describe('clonePricingModelTransaction', () => {
 
     it('should correctly set the pricingModelId on cloned products to the new pricing model ID', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -400,7 +397,7 @@ describe('clonePricingModelTransaction', () => {
   describe('Price Cloning', () => {
     it('should clone all prices for each product', async () => {
       const sourcePrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const productsWithPrices =
             await selectPricesAndProductsByProductWhere(
               {
@@ -415,7 +412,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -437,7 +434,7 @@ describe('clonePricingModelTransaction', () => {
     it('should assign new IDs to the cloned prices', async () => {
       const sourcePriceId = price.id
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -457,7 +454,7 @@ describe('clonePricingModelTransaction', () => {
 
     it('should preserve all price attributes except ID and productId', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -488,7 +485,7 @@ describe('clonePricingModelTransaction', () => {
 
     it('should associate prices with the correct new product IDs', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -511,7 +508,7 @@ describe('clonePricingModelTransaction', () => {
   describe('Data Integrity', () => {
     it('should not modify the original pricing model, its products, or prices', async () => {
       const originalPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPricingModelById(
@@ -524,7 +521,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       const originalProducts = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPricesAndProductsByProductWhere(
               {
@@ -537,7 +534,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -551,7 +548,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       const pricingModelAfterClone = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPricingModelById(
@@ -564,7 +561,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       const productsAfterClone = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPricesAndProductsByProductWhere(
               {
@@ -584,7 +581,7 @@ describe('clonePricingModelTransaction', () => {
   describe('Transaction Handling', () => {
     it('should execute all operations within the provided transaction', async () => {
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -598,7 +595,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
       expect(clonedPricingModel).toMatchObject({})
       const clonedProducts = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPricesAndProductsByProductWhere(
               { pricingModelId: clonedPricingModel.id },
@@ -633,7 +630,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -648,7 +645,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify usage meters were cloned
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -684,7 +681,7 @@ describe('clonePricingModelTransaction', () => {
     it('should handle pricing model with no usage meters', async () => {
       // Clone pricing model without any usage meters
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -698,7 +695,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -748,7 +745,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -763,7 +760,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify features were cloned
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -812,7 +809,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify usage meter was also cloned
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -851,7 +848,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -866,7 +863,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get cloned usage meter
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -882,7 +879,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get cloned features
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -941,7 +938,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -956,7 +953,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get cloned product
       const clonedProducts = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPricesAndProductsByProductWhere(
               { pricingModelId: clonedPricingModel.id },
@@ -970,7 +967,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get cloned features
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -982,7 +979,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get product features for cloned product
       const clonedProductFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectProductFeatures(
               { productId: clonedProduct.id },
@@ -1030,7 +1027,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Create expired product feature
       const expiredProductFeature = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const pf = await setupProductFeature({
             productId: product.id,
             featureId: features[1].id,
@@ -1051,7 +1048,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1066,7 +1063,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get cloned product
       const clonedProducts = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPricesAndProductsByProductWhere(
               { pricingModelId: clonedPricingModel.id },
@@ -1079,7 +1076,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get product features for cloned product
       const clonedProductFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectProductFeatures(
               { productId: clonedProduct.id },
@@ -1167,7 +1164,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the comprehensive pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1203,7 +1200,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Check features
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -1216,7 +1213,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Check product features
       const basicProductFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectProductFeatures(
               { productId: basicProduct!.id },
@@ -1228,7 +1225,7 @@ describe('clonePricingModelTransaction', () => {
       expect(basicProductFeatures).toHaveLength(1)
 
       const proProductFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectProductFeatures(
               { productId: proProduct!.id },
@@ -1276,7 +1273,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone without specifying destinationEnvironment
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1295,7 +1292,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify usage meters livemode
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -1309,7 +1306,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify features livemode
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -1336,7 +1333,7 @@ describe('clonePricingModelTransaction', () => {
     it('should use specified destinationEnvironment (Testmode) when provided to override source livemode', async () => {
       // Get the livemode PM from setupOrg to use as source
       const livemodeSource = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const [pm] = await selectPricingModels(
             { organizationId: organization.id, livemode: true },
             ctx.transaction
@@ -1391,7 +1388,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone with destinationEnvironment = Testmode (should override source's livemode)
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1411,7 +1408,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify usage meters livemode
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -1425,7 +1422,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify features livemode
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -1448,7 +1445,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify product features livemode
       const clonedProductFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectProductFeatures(
               { productId: clonedProducts[0].id },
@@ -1480,7 +1477,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone without specifying destinationEnvironment
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1498,7 +1495,7 @@ describe('clonePricingModelTransaction', () => {
       expect(clonedPricingModel.livemode).toBe(false)
 
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -1514,7 +1511,7 @@ describe('clonePricingModelTransaction', () => {
     it('should not affect default pricing models across livemode boundaries when cloning', async () => {
       // Get the livemode default pricing model from setupOrg
       const livemodeDefaultPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const [pm] = await selectPricingModels(
             {
               organizationId: organization.id,
@@ -1529,7 +1526,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get the testmode pricing model that setupOrg already created
       const testmodeDefaultPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const [pricingModel] = await selectPricingModels(
             {
               organizationId: organization.id,
@@ -1551,7 +1548,7 @@ describe('clonePricingModelTransaction', () => {
       // Clone the livemode default pricing model TO TESTMODE
       // (Can't clone to livemode due to uniqueness constraint)
       const clonedToTestmode = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1572,7 +1569,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify the original livemode default is still default (unchanged by cloning)
       const refreshedLivemodeDefault = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPricingModelById(
@@ -1588,7 +1585,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify the testmode default is still default (unchanged by cloning to testmode)
       const refreshedTestmodeDefault = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPricingModelById(
@@ -1604,7 +1601,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone testmode PM to testmode (verify cross-PM cloning doesn't affect defaults)
       const clonedTestmodeToTestmode = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1625,7 +1622,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Verify both original defaults are still default
       const finalLivemodeDefault = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPricingModelById(
@@ -1640,7 +1637,7 @@ describe('clonePricingModelTransaction', () => {
       expect(finalLivemodeDefault.livemode).toBe(true)
 
       const finalTestmodeDefault = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPricingModelById(
@@ -1659,22 +1656,23 @@ describe('clonePricingModelTransaction', () => {
       // setupOrg creates a livemode pricing model, so attempting to clone
       // another pricing model to livemode should fail with the expected error
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          await clonePricingModelTransaction(
-            {
-              id: sourcePricingModel.id,
-              name: 'Attempted Livemode Clone',
-              destinationEnvironment: DestinationEnvironment.Livemode,
-            },
-            ctx
-          )
-        })
-      ).rejects.toThrow(
-        'Cannot clone to livemode: Your organization already has a livemode pricing model. ' +
-          'Each organization can have at most one livemode pricing model. ' +
-          'To clone this pricing model, please select "Test mode" as the destination environment instead.'
-      )
+      const result = await adminTransaction(async (ctx) => {
+        await clonePricingModelTransaction(
+          {
+            id: sourcePricingModel.id,
+            name: 'Attempted Livemode Clone',
+            destinationEnvironment: DestinationEnvironment.Livemode,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Cannot clone to livemode: Your organization already has a livemode pricing model.'
+        )
+      }
     })
   })
 
@@ -1764,7 +1762,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -1782,7 +1780,7 @@ describe('clonePricingModelTransaction', () => {
 
       // 1. Validate Usage Meters - should reference new pricing model only
       const clonedUsageMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -1805,7 +1803,7 @@ describe('clonePricingModelTransaction', () => {
 
       // 2. Validate Features - should reference new pricing model and new usage meters
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -1863,7 +1861,7 @@ describe('clonePricingModelTransaction', () => {
 
       // 3. Validate Products - should reference new pricing model
       const clonedProducts = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPricesAndProductsByProductWhere(
               { pricingModelId: clonedPricingModel.id },
@@ -1891,7 +1889,7 @@ describe('clonePricingModelTransaction', () => {
 
       // 5. Validate Product Features - should reference new products and new features
       const clonedProductFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectProductFeatures(
               { productId: clonedProduct.id },
@@ -2019,7 +2017,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Clone the pricing model
       const clonedPricingModel = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await clonePricingModelTransaction(
               {
@@ -2034,7 +2032,7 @@ describe('clonePricingModelTransaction', () => {
 
       // Get cloned meters and features
       const clonedMeters = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectUsageMeters(
               { pricingModelId: clonedPricingModel.id },
@@ -2045,7 +2043,7 @@ describe('clonePricingModelTransaction', () => {
       ).unwrap()
 
       const clonedFeatures = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectFeatures(
               { pricingModelId: clonedPricingModel.id },
@@ -2124,7 +2122,7 @@ describe('createPriceTransaction', () => {
     })
 
     const createdPrice = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await createPriceTransaction(
             {
@@ -2158,34 +2156,37 @@ describe('createPriceTransaction', () => {
   })
 
   it('rejects creating additional prices for a default product', async () => {
-    await expect(
-      adminTransaction(async (ctx) => {
-        await createPriceTransaction(
-          {
-            price: {
-              name: 'Disallowed Additional Price',
-              productId: defaultProduct.id,
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              unitPrice: 3000,
-              trialPeriodDays: 0,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              isDefault: false,
-              slug: `disallowed-price-${core.nanoid()}`,
-            },
+    const result = await adminTransaction(async (ctx) => {
+      await createPriceTransaction(
+        {
+          price: {
+            name: 'Disallowed Additional Price',
+            productId: defaultProduct.id,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 3000,
+            trialPeriodDays: 0,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            isDefault: false,
+            slug: `disallowed-price-${core.nanoid()}`,
           },
-          {
-            ...ctx,
-            livemode: true,
-            organizationId: organization.id,
-          }
-        )
-      })
-    ).rejects.toThrow(
-      'Cannot create additional prices for the default plan'
-    )
+        },
+        {
+          ...ctx,
+          livemode: true,
+          organizationId: organization.id,
+        }
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot create additional prices for the default plan'
+      )
+    }
   })
 
   it('allows creating an additional price with the same type', async () => {
@@ -2196,7 +2197,7 @@ describe('createPriceTransaction', () => {
       livemode: true,
     })
     const firstPrice = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await createPriceTransaction(
             {
@@ -2229,7 +2230,7 @@ describe('createPriceTransaction', () => {
 
     const updatedUnitPrice = 3500
     const updatedPrice = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await createPriceTransaction(
             {
@@ -2274,7 +2275,7 @@ describe('createPriceTransaction', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await createPriceTransaction(
             {
@@ -2302,34 +2303,37 @@ describe('createPriceTransaction', () => {
       })
     ).unwrap()
 
-    await expect(
-      adminTransaction(async (ctx) => {
-        await createPriceTransaction(
-          {
-            price: {
-              name: 'Mismatched Type Price',
-              productId: nonDefaultProduct.id,
-              type: PriceType.SinglePayment,
-              unitPrice: 3500,
-              intervalUnit: null,
-              intervalCount: null,
-              trialPeriodDays: null,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              isDefault: false,
-              slug: `mismatched-type-price-${core.nanoid()}`,
-            },
+    const result = await adminTransaction(async (ctx) => {
+      await createPriceTransaction(
+        {
+          price: {
+            name: 'Mismatched Type Price',
+            productId: nonDefaultProduct.id,
+            type: PriceType.SinglePayment,
+            unitPrice: 3500,
+            intervalUnit: null,
+            intervalCount: null,
+            trialPeriodDays: null,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            isDefault: false,
+            slug: `mismatched-type-price-${core.nanoid()}`,
           },
-          {
-            ...ctx,
-            livemode: true,
-            organizationId: organization.id,
-          }
-        )
-      })
-    ).rejects.toThrow(
-      'Cannot create price of a different type than the existing prices for the product'
-    )
+        },
+        {
+          ...ctx,
+          livemode: true,
+          organizationId: organization.id,
+        }
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot create price of a different type than the existing prices for the product'
+      )
+    }
   })
 })
 
@@ -2375,45 +2379,47 @@ describe('createProductTransaction', () => {
     features = [featureA, featureB]
   })
   it('should create a product with a default price', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await createProductTransaction(
-          {
-            product: {
-              name: 'Test Product',
-              description: 'Test Description',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: 'singular',
-              pluralQuantityLabel: 'plural',
-              pricingModelId: sourcePricingModel.id,
-              default: false,
-              slug: `flowglad-test-product-price+${core.nanoid()}`,
-            },
-            prices: [
-              {
-                name: 'Test Price',
-                type: PriceType.Subscription,
-                intervalCount: 1,
-                intervalUnit: IntervalUnit.Month,
-                unitPrice: 1000,
-                trialPeriodDays: 0,
+    const result = (
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await createProductTransaction(
+            {
+              product: {
+                name: 'Test Product',
+                description: 'Test Description',
                 active: true,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
-                isDefault: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
-            ],
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      {
-        apiKey: org1ApiKeyToken,
-      }
-    )
+              prices: [
+                {
+                  name: 'Test Price',
+                  type: PriceType.Subscription,
+                  intervalCount: 1,
+                  intervalUnit: IntervalUnit.Month,
+                  unitPrice: 1000,
+                  trialPeriodDays: 0,
+                  active: true,
+                  usageMeterId: null,
+                  usageEventsPerUnit: null,
+                  isDefault: true,
+                  slug: `flowglad-test-product-price+${core.nanoid()}`,
+                },
+              ],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).unwrap()
     const { product, prices } = result
     const price = prices[0]
     expect(product.name).toBe('Test Product')
@@ -2440,50 +2446,52 @@ describe('createProductTransaction', () => {
 
   it('should create a product and associate features with it', async () => {
     const featureIds = features.map((f) => f.id)
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await createProductTransaction(
-          {
-            product: {
-              name: 'Test Product with Features',
-              description: 'Test Description',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: 'singular',
-              pluralQuantityLabel: 'plural',
-              pricingModelId: sourcePricingModel.id,
-              default: false,
-              slug: `flowglad-test-product-price+${core.nanoid()}`,
-            },
-            prices: [
-              {
-                name: 'Test Price',
-                type: PriceType.Subscription,
-                intervalCount: 1,
-                intervalUnit: IntervalUnit.Month,
-                unitPrice: 1000,
-                trialPeriodDays: 0,
+    const result = (
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await createProductTransaction(
+            {
+              product: {
+                name: 'Test Product with Features',
+                description: 'Test Description',
                 active: true,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
-                isDefault: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
-            ],
-            featureIds,
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      {
-        apiKey: org1ApiKeyToken,
-      }
-    )
+              prices: [
+                {
+                  name: 'Test Price',
+                  type: PriceType.Subscription,
+                  intervalCount: 1,
+                  intervalUnit: IntervalUnit.Month,
+                  unitPrice: 1000,
+                  trialPeriodDays: 0,
+                  active: true,
+                  usageMeterId: null,
+                  usageEventsPerUnit: null,
+                  isDefault: true,
+                  slug: `flowglad-test-product-price+${core.nanoid()}`,
+                },
+              ],
+              featureIds,
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).unwrap()
 
     const { product } = result
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: product.id },
@@ -2500,49 +2508,51 @@ describe('createProductTransaction', () => {
   })
 
   it('should create a product without features if featureIds is not provided', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await createProductTransaction(
-          {
-            product: {
-              name: 'Test Product No Features',
-              description: 'Test Description',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: 'singular',
-              pluralQuantityLabel: 'plural',
-              pricingModelId: sourcePricingModel.id,
-              default: false,
-              slug: `flowglad-test-product-price+${core.nanoid()}`,
-            },
-            prices: [
-              {
-                name: 'Test Price',
-                type: PriceType.Subscription,
-                intervalCount: 1,
-                intervalUnit: IntervalUnit.Month,
-                unitPrice: 1000,
-                trialPeriodDays: 0,
+    const result = (
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await createProductTransaction(
+            {
+              product: {
+                name: 'Test Product No Features',
+                description: 'Test Description',
                 active: true,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
-                isDefault: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
-            ],
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      {
-        apiKey: org1ApiKeyToken,
-      }
-    )
+              prices: [
+                {
+                  name: 'Test Price',
+                  type: PriceType.Subscription,
+                  intervalCount: 1,
+                  intervalUnit: IntervalUnit.Month,
+                  unitPrice: 1000,
+                  trialPeriodDays: 0,
+                  active: true,
+                  usageMeterId: null,
+                  usageEventsPerUnit: null,
+                  isDefault: true,
+                  slug: `flowglad-test-product-price+${core.nanoid()}`,
+                },
+              ],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).unwrap()
 
     const { product } = result
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: product.id },
@@ -2568,50 +2578,52 @@ describe('createProductTransaction', () => {
     const featureIds = features.map((f) => f.id)
 
     // Test: Attempting to create a usage price with featureIds should throw
-    await expect(
-      comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await createProductTransaction(
-            {
-              product: {
-                name: 'Test Product Usage Price with Features',
-                description: 'Test Description',
-                active: true,
-                imageURL: null,
-                singularQuantityLabel: 'singular',
-                pluralQuantityLabel: 'plural',
-                pricingModelId: sourcePricingModel.id,
-                default: false,
-                slug: `flowglad-test-product-price+${core.nanoid()}`,
-              },
-              prices: [
-                {
-                  name: 'Usage Price',
-                  type: PriceType.Usage,
-                  intervalCount: 1,
-                  intervalUnit: IntervalUnit.Month,
-                  unitPrice: 100,
-                  trialPeriodDays: null,
-                  active: true,
-                  usageMeterId: usageMeter.id,
-                  usageEventsPerUnit: 1,
-                  isDefault: true,
-                  slug: `flowglad-test-usage-price+${core.nanoid()}`,
-                },
-              ],
-              featureIds, // This should cause an error
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const txResult = await createProductTransaction(
+          {
+            product: {
+              name: 'Test Product Usage Price with Features',
+              description: 'Test Description',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'singular',
+              pluralQuantityLabel: 'plural',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        {
-          apiKey: org1ApiKeyToken,
-        }
-      )
-    ).rejects.toThrow(
-      'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+            prices: [
+              {
+                name: 'Usage Price',
+                type: PriceType.Usage,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 100,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: usageMeter.id,
+                usageEventsPerUnit: 1,
+                isDefault: true,
+                slug: `flowglad-test-usage-price+${core.nanoid()}`,
+              },
+            ],
+            featureIds, // This should cause an error
+          },
+          params
+        )
+        return Result.ok(txResult)
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
     )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+      )
+    }
   })
 
   it('should create a product with a usage price when there are no featureIds', async () => {
@@ -2627,46 +2639,48 @@ describe('createProductTransaction', () => {
     })
 
     // Test: Create a usage price product without featureIds - should succeed
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await createProductTransaction(
-          {
-            product: {
-              name: 'API Usage Product',
-              description: 'Product with usage-based pricing',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: 'request',
-              pluralQuantityLabel: 'requests',
-              pricingModelId: sourcePricingModel.id,
-              default: false,
-              slug: `flowglad-usage-product+${core.nanoid()}`,
-            },
-            prices: [
-              {
-                name: 'Per-Request Pricing',
-                type: PriceType.Usage,
-                intervalCount: 1,
-                intervalUnit: IntervalUnit.Month,
-                unitPrice: 50,
-                trialPeriodDays: null,
+    const result = (
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await createProductTransaction(
+            {
+              product: {
+                name: 'API Usage Product',
+                description: 'Product with usage-based pricing',
                 active: true,
-                usageMeterId: usageMeter.id,
-                usageEventsPerUnit: 1,
-                isDefault: true,
-                slug: `flowglad-usage-price+${core.nanoid()}`,
+                imageURL: null,
+                singularQuantityLabel: 'request',
+                pluralQuantityLabel: 'requests',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
+                slug: `flowglad-usage-product+${core.nanoid()}`,
               },
-            ],
-            // featureIds intentionally omitted - should be allowed for usage prices
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      {
-        apiKey: org1ApiKeyToken,
-      }
-    )
+              prices: [
+                {
+                  name: 'Per-Request Pricing',
+                  type: PriceType.Usage,
+                  intervalCount: 1,
+                  intervalUnit: IntervalUnit.Month,
+                  unitPrice: 50,
+                  trialPeriodDays: null,
+                  active: true,
+                  usageMeterId: usageMeter.id,
+                  usageEventsPerUnit: 1,
+                  isDefault: true,
+                  slug: `flowglad-usage-price+${core.nanoid()}`,
+                },
+              ],
+              // featureIds intentionally omitted - should be allowed for usage prices
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).unwrap()
 
     const { product, prices } = result
     const price = prices[0]
@@ -2692,7 +2706,7 @@ describe('createProductTransaction', () => {
 
     // Verify no product features are associated (since featureIds was not provided)
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: product.id },
@@ -2725,50 +2739,52 @@ describe('createProductTransaction', () => {
       livemodeToggleFeatureB.id,
     ]
 
-    await expect(
-      comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await createProductTransaction(
-            {
-              product: {
-                name: 'Single Payment Product with Toggle Features',
-                description: 'Test Description',
-                active: true,
-                imageURL: null,
-                singularQuantityLabel: 'singular',
-                pluralQuantityLabel: 'plural',
-                pricingModelId: sourcePricingModel.id,
-                default: false,
-                slug: `flowglad-test-product+${core.nanoid()}`,
-              },
-              prices: [
-                {
-                  name: 'One-time Payment',
-                  type: PriceType.SinglePayment,
-                  intervalCount: null,
-                  intervalUnit: null,
-                  unitPrice: 9900,
-                  trialPeriodDays: null,
-                  active: true,
-                  usageMeterId: null,
-                  usageEventsPerUnit: null,
-                  isDefault: true,
-                  slug: `flowglad-test-price+${core.nanoid()}`,
-                },
-              ],
-              featureIds: toggleFeatureIds,
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const txResult = await createProductTransaction(
+          {
+            product: {
+              name: 'Single Payment Product with Toggle Features',
+              description: 'Test Description',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'singular',
+              pluralQuantityLabel: 'plural',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-test-product+${core.nanoid()}`,
             },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        {
-          apiKey: org1ApiKeyToken,
-        }
-      )
-    ).rejects.toThrow(
-      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+            prices: [
+              {
+                name: 'One-time Payment',
+                type: PriceType.SinglePayment,
+                intervalCount: null,
+                intervalUnit: null,
+                unitPrice: 9900,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                isDefault: true,
+                slug: `flowglad-test-price+${core.nanoid()}`,
+              },
+            ],
+            featureIds: toggleFeatureIds,
+          },
+          params
+        )
+        return Result.ok(txResult)
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
     )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+      )
+    }
   })
 
   it('should allow creating a SinglePayment product with usage credit grant features', async () => {
@@ -2793,54 +2809,56 @@ describe('createProductTransaction', () => {
         amount: 1000,
       })
 
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await createProductTransaction(
-          {
-            product: {
-              name: 'Single Payment Product with Credits',
-              description:
-                'Product that grants usage credits on purchase',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: 'purchase',
-              pluralQuantityLabel: 'purchases',
-              pricingModelId: sourcePricingModel.id,
-              default: false,
-              slug: `flowglad-test-product+${core.nanoid()}`,
-            },
-            prices: [
-              {
-                name: 'Credit Bundle',
-                type: PriceType.SinglePayment,
-                intervalCount: null,
-                intervalUnit: null,
-                unitPrice: 4900,
-                trialPeriodDays: null,
+    const result = (
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await createProductTransaction(
+            {
+              product: {
+                name: 'Single Payment Product with Credits',
+                description:
+                  'Product that grants usage credits on purchase',
                 active: true,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
-                isDefault: true,
-                slug: `flowglad-test-price+${core.nanoid()}`,
+                imageURL: null,
+                singularQuantityLabel: 'purchase',
+                pluralQuantityLabel: 'purchases',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
+                slug: `flowglad-test-product+${core.nanoid()}`,
               },
-            ],
-            featureIds: [usageCreditGrantFeature.id],
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      {
-        apiKey: org1ApiKeyToken,
-      }
-    )
+              prices: [
+                {
+                  name: 'Credit Bundle',
+                  type: PriceType.SinglePayment,
+                  intervalCount: null,
+                  intervalUnit: null,
+                  unitPrice: 4900,
+                  trialPeriodDays: null,
+                  active: true,
+                  usageMeterId: null,
+                  usageEventsPerUnit: null,
+                  isDefault: true,
+                  slug: `flowglad-test-price+${core.nanoid()}`,
+                },
+              ],
+              featureIds: [usageCreditGrantFeature.id],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).unwrap()
 
     const { product } = result
     expect(product.name).toBe('Single Payment Product with Credits')
 
     // Verify the usage credit grant feature was associated
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: product.id },
@@ -2902,22 +2920,24 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should add features to a product', async () => {
     const featureIds = [features[0].id, features[1].id]
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: { id: product.id, name: 'Updated Product' },
-            featureIds,
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: product.id, name: 'Updated Product' },
+              featureIds,
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: product.id },
@@ -2935,37 +2955,41 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should remove features from a product', async () => {
     // First, add features
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: { id: product.id },
-            featureIds: [features[0].id, features[1].id],
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: product.id },
+              featureIds: [features[0].id, features[1].id],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     // Then, remove one
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: { id: product.id },
-            featureIds: [features[0].id],
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: product.id },
+              featureIds: [features[0].id],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: product.id },
@@ -2988,36 +3012,40 @@ describe('editProductTransaction - Feature Updates', () => {
 
   it('should not change features if featureIds is not provided', async () => {
     // First, add features
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: { id: product.id },
-            featureIds: [features[0].id, features[1].id],
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: product.id },
+              featureIds: [features[0].id, features[1].id],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     // Then, edit product without featureIds
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: { id: product.id, name: 'New Name' },
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: product.id, name: 'New Name' },
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: product.id },
@@ -3051,23 +3079,25 @@ describe('editProductTransaction - Feature Updates', () => {
 
     const toggleFeatureIds = [features[0].id]
 
-    await expect(
-      comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: { id: singlePaymentProduct.id },
-              featureIds: toggleFeatureIds,
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
-    ).rejects.toThrow(
-      'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+    const result = await authenticatedTransaction(
+      async (params) => {
+        const txResult = await editProductTransaction(
+          {
+            product: { id: singlePaymentProduct.id },
+            featureIds: toggleFeatureIds,
+          },
+          params
+        )
+        return Result.ok(txResult)
+      },
+      { apiKey: apiKeyToken }
     )
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+      )
+    }
   })
 
   it('should allow adding usage credit grant features to a SinglePayment product', async () => {
@@ -3107,22 +3137,24 @@ describe('editProductTransaction - Feature Updates', () => {
         amount: 500,
       })
 
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: { id: singlePaymentProduct.id },
-            featureIds: [usageCreditGrantFeature.id],
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: { id: singlePaymentProduct.id },
+              featureIds: [usageCreditGrantFeature.id],
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     const productFeatures = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectProductFeatures(
             { productId: singlePaymentProduct.id },
@@ -3162,7 +3194,7 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Create a regular (non-default) product and price for testing
     const regularSetup = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const product = await setupProduct({
           organizationId,
           livemode,
@@ -3199,7 +3231,7 @@ describe('editProductTransaction - Price Updates', () => {
 
   it('should silently ignore price updates when editing default products', async () => {
     const currentPrice = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await selectPriceById(defaultPriceId, ctx.transaction)
@@ -3212,7 +3244,7 @@ describe('editProductTransaction - Price Updates', () => {
     }
 
     const initialPriceCount = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const prices = await selectPrices(
           { productId: defaultProductId },
           ctx.transaction
@@ -3240,24 +3272,26 @@ describe('editProductTransaction - Price Updates', () => {
     }
 
     // Should succeed without error - price updates are silently ignored for default products
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: {
-              id: defaultProductId,
-              name: 'Updated Name',
-              active: true,
-              default: true,
+    const result = (
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: defaultProductId,
+                name: 'Updated Name',
+                active: true,
+                default: true,
+              },
+              price: modifiedPrice,
             },
-            price: modifiedPrice,
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     // Verify product was updated successfully
     expect(result.name).toBe('Updated Name')
@@ -3265,7 +3299,7 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Verify no new price was created - price updates are ignored for default products
     const finalPriceCount = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const prices = await selectPrices(
           { productId: defaultProductId },
           ctx.transaction
@@ -3277,7 +3311,7 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Verify the original price was not modified
     const priceAfterUpdate = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await selectPriceById(defaultPriceId, ctx.transaction)
@@ -3294,24 +3328,26 @@ describe('editProductTransaction - Price Updates', () => {
   })
 
   it('should allow updating allowed fields on default products', async () => {
-    const result = await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: {
-              id: defaultProductId,
-              name: 'Updated Base Plan Name',
-              description: 'Updated description',
-              active: true,
-              default: true,
+    const result = (
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: defaultProductId,
+                name: 'Updated Base Plan Name',
+                description: 'Updated description',
+                active: true,
+                default: true,
+              },
             },
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     expect(result).toMatchObject({})
     expect(result.name).toBe('Updated Base Plan Name')
@@ -3322,7 +3358,7 @@ describe('editProductTransaction - Price Updates', () => {
   it('should insert new price record when price immutable fields are updated on non-default products', async () => {
     // Get initial price count
     const initialPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectPrices(
             { productId: regularProductId },
@@ -3335,7 +3371,7 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Get the current default price
     const currentPrice = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await selectPriceById(regularPriceId, ctx.transaction)
@@ -3364,29 +3400,30 @@ describe('editProductTransaction - Price Updates', () => {
       usageMeterId: null,
       active: currentPrice.active,
     }
-
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: {
-              id: regularProductId,
-              name: 'Updated Regular Product',
-              active: true,
-              default: false,
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                active: true,
+                default: false,
+              },
+              price: modifiedPrice,
             },
-            price: modifiedPrice,
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     // Verify a new price was inserted
     const finalPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectPrices(
             { productId: regularProductId },
@@ -3411,7 +3448,7 @@ describe('editProductTransaction - Price Updates', () => {
   it('should not insert new price record when no important price fields are updated', async () => {
     // Get initial price count
     const initialPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectPrices(
             { productId: regularProductId },
@@ -3424,7 +3461,7 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Get the current default price
     const currentPrice = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await selectPriceById(regularPriceId, ctx.transaction)
@@ -3453,29 +3490,30 @@ describe('editProductTransaction - Price Updates', () => {
       active: currentPrice.active, // Same - non-immutable field
       slug: currentPrice.slug ?? null, // Same - preserve slug
     }
-
-    await comprehensiveAuthenticatedTransaction(
-      async (params) => {
-        const txResult = await editProductTransaction(
-          {
-            product: {
-              id: regularProductId,
-              name: 'Updated Regular Product',
-              active: true,
-              default: false,
+    ;(
+      await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                active: true,
+                default: false,
+              },
+              price: modifiedPrice,
             },
-            price: modifiedPrice,
-          },
-          params
-        )
-        return Result.ok(txResult)
-      },
-      { apiKey: apiKeyToken }
-    )
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).unwrap()
 
     // Verify no new price was inserted
     const finalPrices = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await selectPrices(
             { productId: regularProductId },
@@ -3511,7 +3549,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     // Create a regular (non-default) product and price for testing
     const regularSetup = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const product = await setupProduct({
           organizationId,
           livemode,
@@ -3551,28 +3589,30 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
   describe('when product slug is mutating', () => {
     it('should update active default price slug when no price input is provided', async () => {
       // Update product with new slug, no price input
-      await comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: {
-                id: regularProductId,
-                name: 'Updated Regular Product',
-                slug: 'new-product-slug',
-                active: true,
-                default: false,
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Regular Product',
+                  slug: 'new-product-slug',
+                  active: true,
+                  default: false,
+                },
               },
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -3587,7 +3627,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify active default price slug is updated
       const updatedPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)
@@ -3599,7 +3639,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify no new price record is created
       const finalPrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPrices(
               { productId: regularProductId },
@@ -3613,7 +3653,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     it('should set new price slug to product slug when price input is provided', async () => {
       const currentPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)
@@ -3640,30 +3680,31 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         active: currentPrice.active,
         slug: 'different-slug', // This should be overridden
       }
-
-      await comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: {
-                id: regularProductId,
-                name: 'Updated Regular Product',
-                slug: 'new-product-slug',
-                active: true,
-                default: false,
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Regular Product',
+                  slug: 'new-product-slug',
+                  active: true,
+                  default: false,
+                },
+                price: modifiedPrice,
               },
-              price: modifiedPrice,
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -3678,7 +3719,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify new price is inserted with product slug (not the slug from price input)
       const finalPrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPrices(
               { productId: regularProductId },
@@ -3695,28 +3736,30 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     it('should not update price slug when product slug is not changing', async () => {
       // Update product name but keep same slug, no price input
-      await comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: {
-                id: regularProductId,
-                name: 'Updated Product Name',
-                slug: 'old-product-slug', // Same slug
-                active: true,
-                default: false,
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Product Name',
+                  slug: 'old-product-slug', // Same slug
+                  active: true,
+                  default: false,
+                },
               },
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).unwrap()
 
       // Verify product name is updated but slug remains same
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -3732,7 +3775,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify price slug remains unchanged
       const updatedPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)
@@ -3744,7 +3787,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify no new price record is created
       const finalPrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPrices(
               { productId: regularProductId },
@@ -3759,7 +3802,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should handle slug update when product has multiple prices', async () => {
       // Create an inactive price (must use insertPrice directly since safelyInsertPrice always creates active prices)
       const inactivePrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const organization = (
             await selectOrganizationById(
               organizationId,
@@ -3791,28 +3834,30 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       ).unwrap()
 
       // Update product slug
-      await comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: {
-                id: regularProductId,
-                name: 'Updated Regular Product',
-                slug: 'new-slug',
-                active: true,
-                default: false,
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Regular Product',
+                  slug: 'new-slug',
+                  active: true,
+                  default: false,
+                },
               },
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -3827,7 +3872,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify active default price slug is updated
       const updatedActivePrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)
@@ -3839,7 +3884,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify inactive price slug remains unchanged
       const updatedInactivePrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(inactivePrice.id, ctx.transaction)
@@ -3853,7 +3898,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should respect price slug uniqueness constraint', async () => {
       // Create another product in the same pricing model with a price that has a slug
       const otherProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const product = await setupProduct({
             organizationId,
             livemode,
@@ -3877,30 +3922,29 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       ).unwrap()
 
       // Try to update product slug to conflict with existing price slug
-      await expect(
-        comprehensiveAuthenticatedTransaction(
-          async (params) => {
-            const txResult = await editProductTransaction(
-              {
-                product: {
-                  id: regularProductId,
-                  name: 'Updated Regular Product',
-                  slug: 'target-slug', // This conflicts with other product's price slug
-                  active: true,
-                  default: false,
-                },
+      const result = await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: regularProductId,
+                name: 'Updated Regular Product',
+                slug: 'target-slug', // This conflicts with other product's price slug
+                active: true,
+                default: false,
               },
-              params
-            )
-            return Result.ok(txResult)
-          },
-          { apiKey: apiKeyToken }
-        )
-      ).rejects.toThrow()
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+      expect(Result.isError(result)).toBe(true)
 
       // Verify product slug was not updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -3915,7 +3959,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify price slug was not updated
       const updatedPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)
@@ -3929,30 +3973,29 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should not sync slug for default products', async () => {
       // Use the default product from setupOrg (already exists in beforeEach)
       // Try to update default product slug (should be blocked by existing validation)
-      await expect(
-        comprehensiveAuthenticatedTransaction(
-          async (params) => {
-            const txResult = await editProductTransaction(
-              {
-                product: {
-                  id: defaultProductId,
-                  name: 'Updated Default Product',
-                  slug: 'new-default-slug',
-                  active: true,
-                  default: true,
-                },
+      const result = await authenticatedTransaction(
+        async (params) => {
+          const txResult = await editProductTransaction(
+            {
+              product: {
+                id: defaultProductId,
+                name: 'Updated Default Product',
+                slug: 'new-default-slug',
+                active: true,
+                default: true,
               },
-              params
-            )
-            return Result.ok(txResult)
-          },
-          { apiKey: apiKeyToken }
-        )
-      ).rejects.toThrow()
+            },
+            params
+          )
+          return Result.ok(txResult)
+        },
+        { apiKey: apiKeyToken }
+      )
+      expect(Result.isError(result)).toBe(true)
 
       // Verify product slug was not updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -3968,7 +4011,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify price slug was not updated
       const updatedPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(defaultPriceId, ctx.transaction)
@@ -3983,7 +4026,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should sync slug when product slug changes from null to a value', async () => {
       // Create product with null slug
       const productWithNullSlug = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await setupProduct({
               organizationId,
@@ -3997,7 +4040,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       ).unwrap()
 
       const priceWithSlug = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await setupPrice({
               productId: productWithNullSlug.id,
@@ -4015,28 +4058,30 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       ).unwrap()
 
       // Update product slug from null to a value
-      await comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: {
-                id: productWithNullSlug.id,
-                name: 'Product Without Slug',
-                slug: 'new-product-slug',
-                active: true,
-                default: false,
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: productWithNullSlug.id,
+                  name: 'Product Without Slug',
+                  slug: 'new-product-slug',
+                  active: true,
+                  default: false,
+                },
               },
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -4051,7 +4096,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify active default price slug is updated
       const updatedPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(priceWithSlug.id, ctx.transaction)
@@ -4064,7 +4109,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     it('should sync slug when price input causes new price insertion', async () => {
       const currentPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)
@@ -4090,30 +4135,31 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         usageMeterId: null,
         active: currentPrice.active,
       }
-
-      await comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: {
-                id: regularProductId,
-                name: 'Updated Regular Product',
-                slug: 'new-slug',
-                active: true,
-                default: false,
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Regular Product',
+                  slug: 'new-slug',
+                  active: true,
+                  default: false,
+                },
+                price: modifiedPrice,
               },
-              price: modifiedPrice,
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -4128,7 +4174,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify new price is inserted with product slug
       const finalPrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPrices(
               { productId: regularProductId },
@@ -4146,7 +4192,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     it('should update existing price slug when price input does not cause new price insertion', async () => {
       const currentPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)
@@ -4173,30 +4219,31 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
         active: currentPrice.active,
         // Note: slug is not provided, but will be synced to product slug if product slug changes
       }
-
-      await comprehensiveAuthenticatedTransaction(
-        async (params) => {
-          const txResult = await editProductTransaction(
-            {
-              product: {
-                id: regularProductId,
-                name: 'Updated Regular Product',
-                slug: 'new-slug',
-                active: true,
-                default: false,
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            const txResult = await editProductTransaction(
+              {
+                product: {
+                  id: regularProductId,
+                  name: 'Updated Regular Product',
+                  slug: 'new-slug',
+                  active: true,
+                  default: false,
+                },
+                price: modifiedPrice,
               },
-              price: modifiedPrice,
-            },
-            params
-          )
-          return Result.ok(txResult)
-        },
-        { apiKey: apiKeyToken }
-      )
+              params
+            )
+            return Result.ok(txResult)
+          },
+          { apiKey: apiKeyToken }
+        )
+      ).unwrap()
 
       // Verify product slug is updated
       const updatedProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectProductById(
@@ -4211,7 +4258,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify no new price was inserted
       const finalPrices = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await selectPrices(
               { productId: regularProductId },
@@ -4224,7 +4271,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify existing active price slug is updated
       const updatedPrice = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await selectPriceById(regularPriceId, ctx.transaction)

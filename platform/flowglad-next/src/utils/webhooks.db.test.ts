@@ -3,10 +3,7 @@ import { FlowgladEventType } from '@db-core/enums'
 import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { createWebhookTransaction } from './webhooks'
 
 describe('createWebhookTransaction', () => {
@@ -24,7 +21,7 @@ describe('createWebhookTransaction', () => {
   describe('pricingModelId validation', () => {
     it('creates webhook when pricingModelId belongs to the same organization and matches livemode', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await createWebhookTransaction({
               webhook: {
@@ -53,7 +50,7 @@ describe('createWebhookTransaction', () => {
 
     it('creates webhook with testmode pricingModelId when webhook is testmode', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await createWebhookTransaction({
               webhook: {
@@ -84,8 +81,8 @@ describe('createWebhookTransaction', () => {
       const otherOrgSetup = await setupOrg()
       const otherOrgPricingModelId = otherOrgSetup.pricingModel.id
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createWebhookTransaction({
             webhook: {
               name: 'Should Not Create',
@@ -98,15 +95,20 @@ describe('createWebhookTransaction', () => {
             livemode: true,
             transaction,
           })
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model for this organization and mode'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid pricing model for this organization and mode'
+        )
+      }
     })
 
     it('rejects webhook creation when pricingModelId has different livemode than the webhook', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createWebhookTransaction({
             webhook: {
               name: 'Should Not Create',
@@ -119,15 +121,20 @@ describe('createWebhookTransaction', () => {
             livemode: true, // but livemode webhook
             transaction,
           })
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model for this organization and mode'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid pricing model for this organization and mode'
+        )
+      }
     })
 
     it('rejects webhook creation when livemode pricingModelId is used with testmode webhook', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createWebhookTransaction({
             webhook: {
               name: 'Should Not Create',
@@ -140,10 +147,15 @@ describe('createWebhookTransaction', () => {
             livemode: false, // but testmode webhook
             transaction,
           })
-        })
-      ).rejects.toThrow(
-        'Invalid pricing model for this organization and mode'
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid pricing model for this organization and mode'
+        )
+      }
     })
   })
 
@@ -157,7 +169,7 @@ describe('createWebhookTransaction', () => {
       ]
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await createWebhookTransaction({
               webhook: {
@@ -181,7 +193,7 @@ describe('createWebhookTransaction', () => {
 
     it('creates webhook with empty filter types array (subscribes to all events)', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await createWebhookTransaction({
               webhook: {
@@ -208,7 +220,7 @@ describe('createWebhookTransaction', () => {
       // Note: There's a unique constraint that only allows one livemode=true pricing model per org
       // So we test with the existing livemode and testmode pricing models from setupOrg
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Create webhook for livemode pricing model
           const result1 = await createWebhookTransaction({
             webhook: {

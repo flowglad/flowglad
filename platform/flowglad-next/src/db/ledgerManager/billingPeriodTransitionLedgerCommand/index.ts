@@ -67,7 +67,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     ),
   ]
 
-  const entitlementLedgerAccounts =
+  const entitlementLedgerAccountsResult =
     entitlementUsageMeterIds.length > 0
       ? await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
           {
@@ -76,7 +76,10 @@ export const processBillingPeriodTransitionLedgerCommand = async (
           },
           transaction
         )
-      : []
+      : Result.ok([])
+  // If subscription doesn't exist, throw (shouldn't happen during billing period transition)
+  const entitlementLedgerAccounts =
+    entitlementLedgerAccountsResult.unwrap()
 
   const ledgerAccountsByUsageMeterId = new Map<
     string,

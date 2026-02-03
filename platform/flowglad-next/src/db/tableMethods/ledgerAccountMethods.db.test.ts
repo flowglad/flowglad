@@ -18,7 +18,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase' // Corrected path
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { core } from '@/utils/core'
 import {
   bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId,
@@ -98,7 +98,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should return existing ledger accounts and not attempt to create new ones if all specified ledger accounts already exist', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const ledgerAccountForUsageMeter2 = await setupLedgerAccount({
           organizationId: organization.id,
@@ -127,12 +127,16 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toHaveLength(2)
+        expect(Result.isOk(result)).toBe(true)
+        const accounts = result.unwrap()
+        expect(accounts).toHaveLength(2)
         expect(
-          result.find((la) => la.usageMeterId === usageMeter1.id)?.id
+          accounts.find((la) => la.usageMeterId === usageMeter1.id)
+            ?.id
         ).toBe(ledgerAccountForUsageMeter1.id)
         expect(
-          result.find((la) => la.usageMeterId === usageMeter2.id)?.id
+          accounts.find((la) => la.usageMeterId === usageMeter2.id)
+            ?.id
         ).toBe(ledgerAccountForUsageMeter2.id)
 
         const finalLedgerAccounts = await selectLedgerAccounts(
@@ -155,7 +159,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should create new ledger accounts for all usage meters if none exist', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const usageMeterIdsToCreateFor = [
           usageMeter2.id,
@@ -181,7 +185,8 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toHaveLength(2)
+        expect(Result.isOk(result)).toBe(true)
+        expect(result.unwrap()).toHaveLength(2)
 
         const createdLedgerAccounts = await selectLedgerAccounts(
           {
@@ -219,7 +224,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should create missing ledger accounts and return the initially existing accounts and the newly created ones', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const usageMeterIdsToProcess = [
           usageMeter1.id,
@@ -258,16 +263,18 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toHaveLength(2)
-        expect(result[0].id).toBe(ledgerAccountForUsageMeter1.id)
-        expect(result[0].usageMeterId).toBe(usageMeter1.id)
+        expect(Result.isOk(result)).toBe(true)
+        const accounts = result.unwrap()
+        expect(accounts).toHaveLength(2)
+        expect(accounts[0].id).toBe(ledgerAccountForUsageMeter1.id)
+        expect(accounts[0].usageMeterId).toBe(usageMeter1.id)
         // Verify pricingModelId is correctly derived from usage meter
-        expect(result[0].pricingModelId).toBe(
+        expect(accounts[0].pricingModelId).toBe(
           usageMeter1.pricingModelId
         )
-        expect(result[1].usageMeterId).toBe(usageMeter2.id)
+        expect(accounts[1].usageMeterId).toBe(usageMeter2.id)
         // Verify pricingModelId is correctly derived from usage meter
-        expect(result[1].pricingModelId).toBe(
+        expect(accounts[1].pricingModelId).toBe(
           usageMeter2.pricingModelId
         )
 
@@ -307,7 +314,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
 
   it('should return an empty array and not attempt to create accounts if usageMeterIds is empty', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // setup:
         const initialTotalLedgerAccountsForSub = (
           await selectLedgerAccounts(
@@ -327,7 +334,8 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
           )
 
         // expectations:
-        expect(result).toEqual([])
+        expect(Result.isOk(result)).toBe(true)
+        expect(result.unwrap()).toEqual([])
 
         const finalTotalLedgerAccountsForSub = (
           await selectLedgerAccounts(
@@ -392,7 +400,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
   describe('insertLedgerAccount', () => {
     it('should successfully insert ledger account and derive pricingModelId from usage meter', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccount = await insertLedgerAccount(
             {
               organizationId: organization.id,
@@ -417,7 +425,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccount = await insertLedgerAccount(
             {
               organizationId: organization.id,
@@ -440,7 +448,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should throw an error when usageMeterId does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
           await expect(
@@ -476,7 +484,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should bulk insert ledger accounts and derive pricingModelId for each', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccounts =
             await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
               [
@@ -514,7 +522,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should honor pre-provided pricingModelId in bulk insert', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccounts =
             await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
               [
@@ -554,7 +562,7 @@ describe('Ledger Account Methods with pricingModelId', () => {
 
     it('should throw an error if a usage meter does not exist for derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
           await expect(

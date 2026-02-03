@@ -1,5 +1,5 @@
 import { Result } from 'better-result'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
@@ -14,27 +14,25 @@ interface ProductPageProps {
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params
   const { product, prices, pricingModel, features } = (
-    await authenticatedTransactionWithResult(
-      async ({ transaction }) => {
-        const { prices, ...product } =
-          await selectPricesAndProductByProductId(id, transaction)
-        const pricingModel = (
-          await selectPricingModelById(
-            product.pricingModelId,
-            transaction
-          )
-        ).unwrap()
-        const productFeaturesWithDetails =
-          await selectFeaturesByProductFeatureWhere(
-            { productId: id },
-            transaction
-          )
-        const features = productFeaturesWithDetails.map(
-          ({ feature }) => feature
+    await authenticatedTransaction(async ({ transaction }) => {
+      const { prices, ...product } =
+        await selectPricesAndProductByProductId(id, transaction)
+      const pricingModel = (
+        await selectPricingModelById(
+          product.pricingModelId,
+          transaction
         )
-        return Result.ok({ product, prices, pricingModel, features })
-      }
-    )
+      ).unwrap()
+      const productFeaturesWithDetails =
+        await selectFeaturesByProductFeatureWhere(
+          { productId: id },
+          transaction
+        )
+      const features = productFeaturesWithDetails.map(
+        ({ feature }) => feature
+      )
+      return Result.ok({ product, prices, pricingModel, features })
+    })
   ).unwrap()
   return (
     <InternalProductDetailsPage

@@ -19,7 +19,7 @@ import {
   setupOrg,
   setupPrice,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
@@ -84,40 +84,41 @@ describe('processNonPaymentCheckoutSession', () => {
       })
 
       // Update checkout session to include the full discount
-      const updatedCheckoutSession =
-        await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const result = await updateCheckoutSession(
-              {
-                ...checkoutSession,
-                discountId: fullDiscount.id,
-              } as CheckoutSession.Update,
-              transaction
-            )
-            return Result.ok(result)
-          }
-        )
+      const updatedCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
+          const result = await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              discountId: fullDiscount.id,
+            } as CheckoutSession.Update,
+            transaction
+          )
+          return Result.ok(result)
+        })
+      ).unwrap()
 
       // Create fee calculation with the discount applied
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        const result = await createFeeCalculationForCheckoutSession(
-          updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        return Result.ok(result)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await createFeeCalculationForCheckoutSession(
+            updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          return Result.ok(result)
+        })
+      ).unwrap()
 
       // Process the non-payment checkout session
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await adminTransaction(async (params) => {
           return Result.ok(
             await processNonPaymentCheckoutSession(
               updatedCheckoutSession,
               createProcessingEffectsContext(params)
             )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify purchase status is Paid
       expect(result.purchase.status).toEqual(PurchaseStatus.Paid)
@@ -141,25 +142,34 @@ describe('processNonPaymentCheckoutSession', () => {
 
     it('throws error when total due is not zero', async () => {
       // Create fee calculation without discount (non-zero total)
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        const result = await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        return Result.ok(result)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          return Result.ok(result)
+        })
+      ).unwrap()
 
       // Attempt to process non-payment checkout should fail
-      await expect(
-        comprehensiveAdminTransaction(async (params) => {
-          return Result.ok(
-            await processNonPaymentCheckoutSession(
-              checkoutSession,
-              createProcessingEffectsContext(params)
-            )
+      const result = await adminTransaction(async (params) => {
+        try {
+          await processNonPaymentCheckoutSession(
+            checkoutSession,
+            createProcessingEffectsContext(params)
           )
-        })
-      ).rejects.toThrow('Total due for purchase session')
+          return Result.ok('should have thrown')
+        } catch (error) {
+          return Result.err(error as Error)
+        }
+      })
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Total due for purchase session'
+        )
+      }
     })
   })
 })

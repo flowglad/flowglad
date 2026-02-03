@@ -20,7 +20,7 @@ import {
   setupProduct,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { insertSubscriptionAndItems } from './initializers'
 
 describe('insertSubscriptionAndItems', () => {
@@ -75,7 +75,7 @@ describe('insertSubscriptionAndItems', () => {
       // - The call to insertSubscriptionAndItems should return an Err Result.
       // - The error message should contain "Price is not a subscription".
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -125,7 +125,7 @@ describe('insertSubscriptionAndItems', () => {
       // expects:
       // - The call should succeed and create a non-renewing subscription
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -185,7 +185,7 @@ describe('insertSubscriptionAndItems', () => {
       // expects:
       // - The call to insertSubscriptionAndItems should succeed.
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -218,7 +218,7 @@ describe('insertSubscriptionAndItems', () => {
       // expects:
       // - The call to insertSubscriptionAndItems should succeed.
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -258,7 +258,7 @@ describe('insertSubscriptionAndItems', () => {
       // expects:
       // - The call should succeed.
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -299,7 +299,7 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -332,7 +332,7 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -380,7 +380,7 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -425,7 +425,7 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -455,7 +455,7 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -483,7 +483,7 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
@@ -527,7 +527,7 @@ describe('insertSubscriptionAndItems', () => {
 
       // expects:
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await insertSubscriptionAndItems(params, transaction)
           )
