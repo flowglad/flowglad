@@ -3,6 +3,13 @@ import type { CacheDependencyKey } from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 
 /**
+ * Options passed to task.trigger() when dispatching.
+ */
+export interface TriggerTaskOptions {
+  idempotencyKey?: string
+}
+
+/**
  * Represents a trigger task invocation to be dispatched after transaction commit.
  * Generic over the task type to preserve payload type safety.
  */
@@ -14,13 +21,13 @@ export interface QueuedTriggerTask<TPayload = unknown> {
     id: string
     trigger: (
       payload: TPayload,
-      options?: { idempotencyKey?: string }
+      options?: TriggerTaskOptions
     ) => Promise<{ id: string }>
   }
   /** The payload to pass to the task */
   payload: TPayload
-  /** Optional idempotency key */
-  idempotencyKey?: string
+  /** Options to pass to task.trigger() */
+  options?: TriggerTaskOptions
 }
 
 /**
@@ -42,11 +49,11 @@ export type EnqueueTriggerTaskCallback = <TPayload>(
     id: string
     trigger: (
       payload: TPayload,
-      options?: { idempotencyKey?: string }
+      options?: TriggerTaskOptions
     ) => Promise<{ id: string }>
   },
   payload: TPayload,
-  options?: { idempotencyKey?: string }
+  options?: TriggerTaskOptions
 ) => void
 
 /**

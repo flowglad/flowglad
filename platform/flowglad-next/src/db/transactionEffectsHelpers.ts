@@ -41,7 +41,7 @@ export function createEffectsAccumulator() {
       key,
       task,
       payload,
-      idempotencyKey: options?.idempotencyKey,
+      options,
     } as QueuedTriggerTask)
   }
 
