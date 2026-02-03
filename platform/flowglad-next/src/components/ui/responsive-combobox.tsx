@@ -14,6 +14,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerTitle,
+  DrawerTrigger,
 } from '@/components/ui/drawer'
 import {
   Popover,
@@ -52,6 +53,9 @@ interface ResponsiveComboboxProps {
  *
  * This solves the mobile keyboard repositioning issue where Radix UI's
  * Popover would jump around when the soft keyboard appears/disappears.
+ *
+ * On iOS Safari, uses a hidden input technique to ensure the keyboard
+ * automatically appears when the drawer opens.
  */
 export function ResponsiveCombobox({
   options,
@@ -66,9 +70,9 @@ export function ResponsiveCombobox({
   const [open, setOpen] = React.useState(false)
   const isMobile = useIsMobile(BREAKPOINT_SM)
 
-  // Refs for iOS Safari keyboard workaround
-  const commandInputRef = React.useRef<HTMLInputElement>(null)
+  // Refs for iOS keyboard focus technique
   const hiddenInputRef = React.useRef<HTMLInputElement>(null)
+  const commandInputRef = React.useRef<HTMLInputElement>(null)
 
   const selectedOption = options.find((opt) => opt.value === value)
 
@@ -78,27 +82,36 @@ export function ResponsiveCombobox({
   }
 
   /**
-   * iOS Safari only allows programmatic focus that triggers the keyboard
-   * when the focus happens in direct response to a user gesture (tap/click).
-   * When a drawer opens, the animation delay breaks this "user gesture chain".
-   *
-   * Workaround: Focus a hidden input immediately on tap (opens keyboard),
-   * then transfer focus to the real input after the drawer renders.
+   * iOS Safari only triggers the keyboard when focus happens in direct
+   * response to a user gesture. By focusing a hidden input immediately
+   * on tap, we "capture" the gesture and open the keyboard. Then we
+   * transfer focus to the real input after the drawer renders.
    */
   const handleMobileTriggerClick = () => {
-    // Step 1: Focus hidden input immediately during user gesture - this opens the keyboard
+    // Focus hidden input immediately - this captures the user gesture
+    // and triggers the iOS keyboard to open
     hiddenInputRef.current?.focus()
 
-    // Step 2: Open the drawer
+    // Open the drawer
     setOpen(true)
+  }
 
-    // Step 3: Transfer focus to the real CommandInput after drawer renders
-    // Use double RAF to ensure we're after the drawer's render cycle
-    requestAnimationFrame(() => {
+  /**
+   * Transfer focus from hidden input to the real CommandInput
+   * after the drawer has opened and rendered.
+   */
+  const handleDrawerOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      // Use nested requestAnimationFrame to ensure DOM is ready
+      // First rAF: after React commits
+      // Second rAF: after browser paints
       requestAnimationFrame(() => {
-        commandInputRef.current?.focus()
+        requestAnimationFrame(() => {
+          commandInputRef.current?.focus()
+        })
       })
-    })
+    }
+    setOpen(isOpen)
   }
 
   const TriggerButton = (
@@ -152,29 +165,33 @@ export function ResponsiveCombobox({
     return (
       <>
         {/*
-         * Hidden input for iOS Safari keyboard workaround.
-         * Must be always rendered (not inside drawer) so it's available
-         * immediately when the user taps the trigger.
-         * Position absolute + opacity 0 keeps it invisible but focusable.
-         */}
+          Hidden input for iOS keyboard trigger.
+          This input captures the user gesture to open the keyboard,
+          then focus transfers to the real CommandInput.
+          Position it off-screen but keep it focusable.
+        */}
         <input
           ref={hiddenInputRef}
           type="text"
           aria-hidden="true"
           tabIndex={-1}
-          className="absolute opacity-0 pointer-events-none h-0 w-0"
-          // Prevent any value from persisting
+          className="absolute -left-[9999px] top-0 h-0 w-0 opacity-0"
           readOnly
         />
-        {/* Custom trigger that handles focus before opening drawer */}
-        <div onClick={handleMobileTriggerClick}>{TriggerButton}</div>
-        <Drawer open={open} onOpenChange={setOpen}>
+        <Drawer open={open} onOpenChange={handleDrawerOpenChange}>
+          {/*
+            Use onClick on DrawerTrigger to handle the click manually
+            for iOS keyboard focus technique.
+          */}
+          <DrawerTrigger asChild onClick={handleMobileTriggerClick}>
+            {TriggerButton}
+          </DrawerTrigger>
           <DrawerContent className="px-1 pb-1 bg-input-bg [&>div:first-child]:bg-foreground [&>div:first-child]:h-1.5 [&>div:first-child]:my-2">
             {/* Visually hidden title for accessibility */}
             <DrawerTitle className="sr-only">
               {placeholder}
             </DrawerTitle>
-            <Command className="bg-input-bg [&_[cmdk-input-wrapper]]:-mx-2 [&_[cmdk-input-wrapper]]:px-5">
+            <Command className="bg-input-bg [&_[cmdk-input-wrapper]]:-mx-2 [&_[cmdk-input-wrapper]]:px-5 [&_[cmdk-item]]:text-base">
               <CommandInput
                 ref={commandInputRef}
                 placeholder={searchPlaceholder}
