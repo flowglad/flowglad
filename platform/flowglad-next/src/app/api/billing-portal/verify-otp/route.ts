@@ -1,8 +1,13 @@
+import * as Sentry from '@sentry/nextjs'
+import { Result } from 'better-result'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
+import { updateSessionContextOrganizationId } from '@/db/tableMethods/betterAuthSchemaMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { CUSTOMER_COOKIE_PREFIX } from '@/utils/auth/constants'
 import {
+  clearCustomerBillingPortalEmail,
   getCustomerBillingPortalEmail,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
@@ -102,7 +107,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call BetterAuth's API endpoint directly via HTTP to capture Set-Cookie headers
+    // Call BetterAuth's customer auth API endpoint directly via HTTP to capture Set-Cookie headers
+    // Uses the customer auth instance at /api/auth/customer to create a customer-scoped session
     const baseUrl = new URL(request.url).origin
     const originalCookies = request.headers.get('Cookie') || ''
     const orgCookie = `customer-billing-organization-id=${organizationId}`
@@ -111,7 +117,7 @@ export async function POST(request: NextRequest) {
       : orgCookie
 
     const authResponse = await fetch(
-      `${baseUrl}/api/auth/sign-in/email-otp`,
+      `${baseUrl}/api/auth/customer/sign-in/email-otp`,
       {
         method: 'POST',
         headers: {
@@ -133,14 +139,126 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Forward all Set-Cookie headers from BetterAuth's response
+    const setCookieHeaders = authResponse.headers.getSetCookie()
+
+    // Extract the session token from Set-Cookie headers to update session context
+    // Cookie format: customer.session_token=<token>; ...
+    const sessionTokenCookieName = `${CUSTOMER_COOKIE_PREFIX}.session_token`
+    let sessionToken: string | null = null
+
+    for (const cookie of setCookieHeaders) {
+      if (cookie.startsWith(`${sessionTokenCookieName}=`)) {
+        // Extract the token value (before the first semicolon)
+        const tokenMatch = cookie.match(
+          new RegExp(`^${sessionTokenCookieName}=([^;]+)`)
+        )
+        if (tokenMatch) {
+          sessionToken = decodeURIComponent(tokenMatch[1])
+        }
+        break
+      }
+    }
+
+    // Update the session's contextOrganizationId in the database
+    // This makes the organization context authoritative from the session, not cookies
+    // CRITICAL: This is required for proper authorization - customer procedures read from session context
+    if (sessionToken) {
+      try {
+        // BetterAuth stores the raw token in the database, but the cookie contains
+        // a signed token (rawToken.signature). Extract just the raw token part.
+        const rawToken = sessionToken.includes('.')
+          ? sessionToken.split('.')[0]
+          : sessionToken
+
+        const updatedSession = (
+          await adminTransaction(async ({ transaction }) => {
+            const session = await updateSessionContextOrganizationId(
+              rawToken,
+              organizationId,
+              transaction
+            )
+            return Result.ok(session)
+          })
+        ).unwrap()
+
+        // Verify the update succeeded - if no session was found, this is a critical error
+        if (!updatedSession) {
+          const error = new Error(
+            `Failed to set contextOrganizationId: session not found for token`
+          )
+          Sentry.captureException(error, {
+            extra: {
+              organizationId,
+              customerId,
+              hasSessionToken: true,
+              sessionTokenLength: sessionToken.length,
+            },
+          })
+          // Fail the request - without contextOrganizationId, customer procedures will reject
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'Authentication succeeded but session setup failed. Please try again.',
+            },
+            { status: 500 }
+          )
+        }
+      } catch (error) {
+        // Report to Sentry for observability - this is a critical failure
+        Sentry.captureException(error, {
+          extra: {
+            organizationId,
+            customerId,
+            context: 'verify-otp contextOrganizationId update',
+          },
+        })
+        console.error(
+          'Failed to set contextOrganizationId on session:',
+          error
+        )
+        // Fail the request - without contextOrganizationId, customer procedures will reject
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Authentication succeeded but session setup failed. Please try again.',
+          },
+          { status: 500 }
+        )
+      }
+    } else {
+      // No session token found in response - this is unexpected
+      const error = new Error(
+        'Customer auth response did not include session token cookie'
+      )
+      Sentry.captureException(error, {
+        extra: {
+          organizationId,
+          customerId,
+          setCookieHeadersCount: setCookieHeaders.length,
+        },
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Authentication succeeded but session setup failed. Please try again.',
+        },
+        { status: 500 }
+      )
+    }
+
+    // Clear the transient email cookie after successful verification
+    await clearCustomerBillingPortalEmail()
+
     // Create success response and forward Set-Cookie headers from BetterAuth
     const response = NextResponse.json({
       success: true,
       redirectUrl: `/billing-portal/${organizationId}/${customerId}`,
     })
 
-    // Forward all Set-Cookie headers from BetterAuth's response
-    const setCookieHeaders = authResponse.headers.getSetCookie()
     for (const cookie of setCookieHeaders) {
       response.headers.append('Set-Cookie', cookie)
     }

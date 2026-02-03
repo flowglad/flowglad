@@ -30,7 +30,7 @@ export default function SignInPage() {
 
   return (
     <div className="mx-auto max-w-sm px-4 py-12">
-      <h1 className="mb-6 text-xl font-semibold">Sign in</h1>
+      <h1 className="mb-6 text-xl font-semibold">Log in</h1>
       <form onSubmit={onSubmit} className="space-y-4">
         <input
           type="email"
@@ -52,7 +52,7 @@ export default function SignInPage() {
           <p className="text-sm text-red-600">{error}</p>
         ) : null}
         <Button type="submit" disabled={loading} className="w-full">
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? 'Logging in…' : 'Log in'}
         </Button>
         <p className="text-center text-sm">
           Click{' '}

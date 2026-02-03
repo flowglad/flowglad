@@ -335,6 +335,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
       await expect(
         pricesRouter.createCaller(ctx as TRPCApiContext).update({
@@ -360,6 +361,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
       // create another product with its own price
       ;(
@@ -435,6 +437,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
       }
       // attempt to create another default price for default product should fail
       await expect(
@@ -572,6 +575,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       await expect(
@@ -607,6 +611,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // First, create a new product without any prices in the same pricing model
@@ -702,6 +707,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -726,6 +732,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
       const invalidId = 'price_invalid_' + core.nanoid()
@@ -999,6 +1006,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1046,6 +1054,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1094,6 +1103,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1212,6 +1222,7 @@ describe('pricesRouter - API Contract Updates', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Attempt to create a usage price with a productId (should fail)
@@ -1248,6 +1259,7 @@ describe('pricesRouter - API Contract Updates', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Create a usage price with productId: null (pricingModelId derived automatically from usageMeterId)
@@ -1287,6 +1299,7 @@ describe('pricesRouter - API Contract Updates', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Create a usage price without productId field (should succeed, defaulting to null)
@@ -1326,6 +1339,7 @@ describe('pricesRouter - API Contract Updates', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Create a subscription price with productId (should succeed)
@@ -1486,6 +1500,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1538,6 +1553,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1576,6 +1592,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1612,6 +1629,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1650,6 +1668,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1849,6 +1868,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       await expect(
@@ -1885,6 +1905,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       const result = await pricesRouter
@@ -1920,6 +1941,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       const result = await pricesRouter
@@ -1954,6 +1976,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       const result = await pricesRouter
@@ -1990,6 +2013,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2028,6 +2052,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2069,6 +2094,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2101,6 +2127,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2129,6 +2156,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2265,6 +2293,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2295,6 +2324,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2325,6 +2355,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2353,6 +2384,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2400,6 +2432,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2431,6 +2464,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2455,6 +2489,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 

@@ -23,6 +23,7 @@ const flowgladConfig: FlowgladBetterAuthPluginOptions = {
 
 const auth = betterAuth({
   // ... Better Auth config
+  trustedOrigins: ['http://localhost:3001'],
   advanced: {
     // Use unique cookie prefix to avoid conflicts with platform on localhost
     cookiePrefix: 'pg-seat',

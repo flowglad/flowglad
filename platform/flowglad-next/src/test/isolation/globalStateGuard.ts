@@ -32,7 +32,10 @@ let initialized = false
  * which ones to preserve (clear, not delete) during reset.
  */
 export function initializeGlobalMockState(): void {
+  // Initialize all auth session mocks to null
   globalThis.__mockedAuthSession = null
+  globalThis.__mockedMerchantSession = null
+  globalThis.__mockedCustomerSession = null
 
   // Capture all __mock* globals that exist at initialization
   // These were set up by mock.module() and should persist
@@ -60,12 +63,21 @@ export function initializeGlobalMockState(): void {
  * Called automatically by setup files in afterEach.
  */
 export function resetAllGlobalMocks(): void {
-  // Reset the auth session mock to null (default state)
+  // Reset all auth session mocks to null (default state)
   globalThis.__mockedAuthSession = null
+  globalThis.__mockedMerchantSession = null
+  globalThis.__mockedCustomerSession = null
+
+  // Protected session mock keys that should only be reset, not deleted
+  const protectedSessionKeys = new Set([
+    '__mockedAuthSession',
+    '__mockedMerchantSession',
+    '__mockedCustomerSession',
+  ])
 
   const globalKeys = Object.keys(globalThis)
   for (const key of globalKeys) {
-    if (key.startsWith('__mock') && key !== '__mockedAuthSession') {
+    if (key.startsWith('__mock') && !protectedSessionKeys.has(key)) {
       const value = (globalThis as Record<string, unknown>)[key]
 
       if (initialized && initialMockGlobals.has(key)) {

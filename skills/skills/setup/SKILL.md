@@ -779,7 +779,7 @@ export function BillingStatus() {
   const { loaded, customer, currentSubscription } = useBilling()
 
   if (!loaded) return <div>Loading...</div>
-  if (!customer) return <div>Please sign in</div>
+  if (!customer) return <div>Please log in</div>
 
   return (
     <div>

@@ -5,8 +5,10 @@ import { SignupSideBar } from '@/components/signup-sidebar'
 
 const SignupLayout = ({
   children,
+  footer,
 }: {
   children: React.ReactNode
+  footer?: React.ReactNode
 }) => {
   return (
     <div className="bg-background min-h-screen w-full flex">
@@ -20,12 +22,7 @@ const SignupLayout = ({
 
           {children}
 
-          <Link
-            href="https://www.flowglad.com/privacy-policy"
-            className="text-sm text-muted-foreground mt-8 hover:text-foreground transition-colors"
-          >
-            Privacy Policy
-          </Link>
+          {footer}
         </div>
       </div>
 

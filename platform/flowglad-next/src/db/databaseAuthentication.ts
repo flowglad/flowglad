@@ -13,9 +13,8 @@ import { Result } from 'better-result'
 import { and, desc, eq, isNull, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
 import { z } from 'zod'
-import { getSession } from '@/utils/auth'
+import { getCustomerSession, getSession } from '@/utils/auth'
 import core from '@/utils/core'
-import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { parseUnkeyMeta, unkey } from '@/utils/unkey'
 import { adminTransaction } from './adminTransaction'
 import db from './client'
@@ -61,7 +60,7 @@ const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
  * @returns
  */
 async function keyVerify(key: string): Promise<KeyVerifyResult> {
-  if (!core.IS_TEST) {
+  if (!core.IS_TEST && !core.IS_LOCAL_PLAYGROUND) {
     const verificationResponse = await unkey().keys.verifyKey({
       key,
     })
@@ -316,101 +315,80 @@ export const dbInfoForCustomerBillingPortal = async ({
 }
 
 /**
- * Authenticates a webapp request for either merchant dashboard or customer billing portal.
- *
- * Determines the authentication context based on whether a customer organization ID
- * is present in the billing portal cookie state:
- * - If no customer organization ID: authenticates as merchant using focused membership
- * - If customer organization ID exists: authenticates as customer for billing portal
+ * Authenticates a webapp request for merchant dashboard.
  *
  * Sets `auth_type: 'webapp'` in JWT claims, which means RLS policies will enforce
  * the membership `focused` check (unlike API key auth which bypasses it).
  *
+ * Note: For customer billing portal authentication, use the explicit `authScope: 'customer'`
+ * parameter in getDatabaseAuthenticationInfo, which bypasses this function entirely.
+ *
  * @param user - The Better Auth user making the request
- * @param __testOnlyOrganizationId - Optional test organization ID override
- * @param customerId - Optional customer ID for customer billing portal authentication.
- *   When not provided, authenticates as the first customer found to enable RLS-based
- *   customer listing (customer role can see all customers with the same userId).
  * @returns Database authentication info with JWT claims and user context
  */
 export async function databaseAuthenticationInfoForWebappRequest(
-  user: User,
-  __testOnlyOrganizationId?: string | undefined,
-  customerId?: string
+  user: User
 ): Promise<DatabaseAuthenticationInfo> {
   const betterAuthId = user.id
-  const customerOrganizationId =
-    await getCustomerBillingPortalOrganizationId({
-      __testOrganizationId: __testOnlyOrganizationId,
+
+  // Merchant dashboard authentication flow
+  // Join with pricingModels to derive livemode from the focused pricing model
+  // and set pricing_model_id in JWT claims for RLS scoping.
+  // Explicitly require focused=true to match trpcContext.ts behavior.
+  // This ensures both code paths return no organization when none is focused,
+  // rather than arbitrarily selecting the first membership.
+  const [focusedMembership] = await db
+    .select({
+      membership: memberships,
+      user: users,
+      pricingModel: pricingModels,
     })
-
-  if (!customerOrganizationId) {
-    // Merchant dashboard authentication flow
-    // Join with pricingModels to derive livemode from the focused pricing model
-    // and set pricing_model_id in JWT claims for RLS scoping.
-    // Explicitly require focused=true to match trpcContext.ts behavior.
-    // This ensures both code paths return no organization when none is focused,
-    // rather than arbitrarily selecting the first membership.
-    const [focusedMembership] = await db
-      .select({
-        membership: memberships,
-        user: users,
-        pricingModel: pricingModels,
-      })
-      .from(memberships)
-      .innerJoin(users, eq(memberships.userId, users.id))
-      .innerJoin(
-        pricingModels,
-        eq(memberships.focusedPricingModelId, pricingModels.id)
+    .from(memberships)
+    .innerJoin(users, eq(memberships.userId, users.id))
+    .innerJoin(
+      pricingModels,
+      eq(memberships.focusedPricingModelId, pricingModels.id)
+    )
+    .where(
+      and(
+        eq(users.betterAuthId, betterAuthId),
+        eq(memberships.focused, true),
+        isNull(memberships.deactivatedAt)
       )
-      .where(
-        and(
-          eq(users.betterAuthId, betterAuthId),
-          eq(memberships.focused, true),
-          isNull(memberships.deactivatedAt)
-        )
-      )
-      .limit(1)
-    const userId = focusedMembership?.membership.userId
-    // Derive livemode from the focused pricing model, not the membership
-    const livemode = focusedMembership?.pricingModel.livemode ?? false
-    const pricingModelId = focusedMembership?.pricingModel.id
-    const jwtClaim: JWTClaim = {
-      role: 'merchant',
-      sub: userId,
+    )
+    .limit(1)
+  const userId = focusedMembership?.membership.userId
+  // Derive livemode from the focused pricing model, not the membership
+  const livemode = focusedMembership?.pricingModel.livemode ?? false
+  const pricingModelId = focusedMembership?.pricingModel.id
+  const jwtClaim: JWTClaim = {
+    role: 'merchant',
+    sub: userId,
+    email: user.email,
+    auth_type: 'webapp',
+    // Set pricing_model_id for RLS PM scoping (same as API key auth)
+    pricing_model_id: pricingModelId,
+    user_metadata: {
+      id: userId,
+      user_metadata: {},
+      aud: 'stub',
       email: user.email,
-      auth_type: 'webapp',
-      // Set pricing_model_id for RLS PM scoping (same as API key auth)
-      pricing_model_id: pricingModelId,
-      user_metadata: {
-        id: userId,
-        user_metadata: {},
-        aud: 'stub',
-        email: user.email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        role: 'merchant',
-        app_metadata: {
-          provider: '',
-        },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      role: 'merchant',
+      app_metadata: {
+        provider: '',
       },
-      organization_id:
-        focusedMembership?.membership.organizationId ?? '',
-      app_metadata: { provider: 'webapp' },
-    }
-    return {
-      userId,
-      livemode,
-      jwtClaim,
-    }
+    },
+    organization_id:
+      focusedMembership?.membership.organizationId ?? '',
+    app_metadata: { provider: 'webapp' },
   }
-
-  // Customer billing portal authentication flow
-  return await dbInfoForCustomerBillingPortal({
-    betterAuthId: user.id,
-    organizationId: customerOrganizationId,
-    customerId,
-  })
+  return {
+    userId,
+    livemode,
+    jwtClaim,
+  }
 }
 
 export async function databaseAuthenticationInfoForApiKeyResult(
@@ -434,8 +412,10 @@ export async function getDatabaseAuthenticationInfo(params: {
   apiKey: string | undefined
   __testOnlyOrganizationId?: string
   customerId?: string
+  authScope?: 'merchant' | 'customer'
 }): Promise<DatabaseAuthenticationInfo> {
-  const { apiKey, __testOnlyOrganizationId, customerId } = params
+  const { apiKey, __testOnlyOrganizationId, customerId, authScope } =
+    params
   if (apiKey) {
     const verifyKeyResult = await keyVerify(apiKey)
     return await databaseAuthenticationInfoForApiKeyResult(
@@ -443,13 +423,67 @@ export async function getDatabaseAuthenticationInfo(params: {
     )
   }
 
-  const sessionResult = await getSession()
-  if (!sessionResult) {
-    throw new Error('No user found for a non-API key transaction')
+  // If authScope is explicitly 'customer', use customer session directly
+  // This handles the dual-session case where both merchant and customer sessions exist
+  if (authScope === 'customer') {
+    const customerSession = await getCustomerSession()
+    if (customerSession) {
+      // Customer session - use the customer billing portal flow
+      // Get organizationId from customer session's contextOrganizationId
+      const customerOrganizationId = (
+        customerSession.session as
+          | { contextOrganizationId?: string }
+          | undefined
+      )?.contextOrganizationId
+
+      if (!customerOrganizationId) {
+        throw new Error(
+          'Customer session missing contextOrganizationId for authenticated transaction'
+        )
+      }
+
+      return await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerSession.user.id,
+        organizationId: customerOrganizationId,
+        customerId,
+      })
+    }
+    throw new Error(
+      'No customer session found for customer-scoped transaction'
+    )
   }
-  return await databaseAuthenticationInfoForWebappRequest(
-    sessionResult.user as User,
-    __testOnlyOrganizationId,
-    customerId
-  )
+
+  // Default behavior: try merchant session first (backward compatibility)
+  const merchantSession = await getSession()
+  if (merchantSession) {
+    return await databaseAuthenticationInfoForWebappRequest(
+      merchantSession.user as User
+    )
+  }
+
+  // If no merchant session, try customer session for billing portal
+  const customerSession = await getCustomerSession()
+  if (customerSession) {
+    // Customer session - use the customer billing portal flow
+    // Get organizationId from customer session's contextOrganizationId
+    const customerOrganizationId = (
+      customerSession.session as
+        | { contextOrganizationId?: string }
+        | undefined
+    )?.contextOrganizationId
+
+    if (!customerOrganizationId) {
+      throw new Error(
+        'Customer session missing contextOrganizationId for authenticated transaction'
+      )
+    }
+
+    return await dbInfoForCustomerBillingPortal({
+      betterAuthId: customerSession.user.id,
+      organizationId: customerOrganizationId,
+      customerId,
+    })
+  }
+
+  throw new Error('No user found for a non-API key transaction')
 }

@@ -34,7 +34,10 @@ import { SIDEBAR_BANNER_SLIDES } from '@/config/sidebarBannerConfig'
 import { useAuthContext } from '@/contexts/authContext'
 import { useClickOutside } from '@/hooks/use-click-outside'
 import { cn } from '@/lib/utils'
-import { signOut, useSession } from '@/utils/authClient'
+import {
+  merchantSignOut,
+  useMerchantSession,
+} from '@/utils/authClient'
 import {
   Tooltip,
   TooltipContent,
@@ -55,7 +58,7 @@ type StandaloneNavItem = {
 export const SideNavigation = () => {
   const pathname = usePathname()
   const { organization } = useAuthContext()
-  const { data: session } = useSession()
+  const { data: session } = useMerchantSession()
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
   const router = useRouter()
@@ -315,7 +318,7 @@ export const SideNavigation = () => {
                   : undefined
               }
               onSignOut={() =>
-                signOut({
+                merchantSignOut({
                   fetchOptions: {
                     onSuccess: () => {
                       router.push('/sign-in')
