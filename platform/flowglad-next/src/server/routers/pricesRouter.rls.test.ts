@@ -342,13 +342,15 @@ describe('pricesRouter - Default Price Constraints', () => {
         authScope: 'merchant' as const,
       }
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).update({
-          // @ts-expect-error - Intentionally providing minimal fields to test NOT_FOUND error path
-          price: {
-            id: 'price_missing_' + core.nanoid(),
-            type: PriceType.Subscription,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .update({
+            // @ts-expect-error - Intentionally providing minimal fields to test NOT_FOUND error path
+            price: {
+              id: 'price_missing_' + core.nanoid(),
+              type: PriceType.Subscription,
+            },
+          })
       ).rejects.toThrow(TRPCError)
     })
 
@@ -417,7 +419,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           )
           await expect(
             productsRouter
-              .createCaller(apiCtx as TRPCApiContext)
+              .createCaller(apiCtx as unknown as TRPCApiContext)
               .update({
                 // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
                 product: { id: defaultProductId },
@@ -585,20 +587,22 @@ describe('pricesRouter - Default Price Constraints', () => {
       }
 
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).create({
-          price: {
-            productId: defaultProductId,
-            unitPrice: 500, // Non-zero price for a non-default price on default product
-            isDefault: false,
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Year,
-            intervalCount: 1,
-            name: 'Premium Plan',
-            trialPeriodDays: 0,
-            slug: 'premium-plan',
-            active: true,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .create({
+            price: {
+              productId: defaultProductId,
+              unitPrice: 500, // Non-zero price for a non-default price on default product
+              isDefault: false,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Year,
+              intervalCount: 1,
+              name: 'Premium Plan',
+              trialPeriodDays: 0,
+              slug: 'premium-plan',
+              active: true,
+            },
+          })
       ).rejects.toThrow(
         'Cannot create additional prices for the default plan'
       )
@@ -649,7 +653,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
       // This should succeed - default price on non-default product with non-zero price
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             productId: newProduct.id,
@@ -1239,21 +1243,23 @@ describe('pricesRouter - API Contract Updates', () => {
       // Attempt to create a usage price with a productId (should fail)
       // The zod schema enforces usage prices must have productId: null
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).create({
-          // @ts-expect-error - Intentionally passing productId (should be null for usage prices)
-          // to test that the schema rejects usage prices with a productId.
-          price: {
-            type: PriceType.Usage,
-            usageMeterId,
-            productId: regularProductId,
-            unitPrice: 100,
-            isDefault: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            name: 'Usage Price With Product',
-            usageEventsPerUnit: 1,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .create({
+            // @ts-expect-error - Intentionally passing productId (should be null for usage prices)
+            // to test that the schema rejects usage prices with a productId.
+            price: {
+              type: PriceType.Usage,
+              usageMeterId,
+              productId: regularProductId,
+              unitPrice: 100,
+              isDefault: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              name: 'Usage Price With Product',
+              usageEventsPerUnit: 1,
+            },
+          })
       ).rejects.toThrow(TRPCError)
     })
 
@@ -1276,7 +1282,7 @@ describe('pricesRouter - API Contract Updates', () => {
 
       // Create a usage price with productId: null (pricingModelId derived automatically from usageMeterId)
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1318,7 +1324,7 @@ describe('pricesRouter - API Contract Updates', () => {
       // Create a usage price without productId field (should succeed, defaulting to null)
       // pricingModelId is derived automatically from usageMeterId
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1358,7 +1364,7 @@ describe('pricesRouter - API Contract Updates', () => {
 
       // Create a subscription price with productId (should succeed)
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Subscription,
@@ -1890,20 +1896,22 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       }
 
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).create({
-          price: {
-            type: PriceType.Usage,
-            usageMeterId,
-            productId: null,
-            slug: 'meter_no_charge',
-            unitPrice: 100,
-            isDefault: false,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            name: 'Reserved Slug Price',
-            usageEventsPerUnit: 1,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .create({
+            price: {
+              type: PriceType.Usage,
+              usageMeterId,
+              productId: null,
+              slug: 'meter_no_charge',
+              unitPrice: 100,
+              isDefault: false,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              name: 'Reserved Slug Price',
+              usageEventsPerUnit: 1,
+            },
+          })
       ).rejects.toMatchObject({
         code: 'BAD_REQUEST',
         message: expect.stringContaining('_no_charge'),
@@ -1928,7 +1936,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       }
 
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1965,7 +1973,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       }
 
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Subscription,
@@ -2001,7 +2009,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       }
 
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,

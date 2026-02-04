@@ -47,6 +47,7 @@ const createAuthenticatedCaller = (user: User.Record) => {
     apiKey: undefined,
     session: null,
     authScope: 'merchant',
+    focusedPricingModelId: undefined,
   }
   return cliRouter.createCaller(ctx)
 }
