@@ -922,7 +922,7 @@ export interface ClaimResourceResult {
 export async function claimResourceTransaction(
   params: ClaimResourceTransactionParams,
   transaction: DbTransaction
-): Promise<ClaimResourceResult> {
+): Promise<Result<ClaimResourceResult, CapacityExceededError>> {
   const { organizationId, customerId, input } = params
 
   // 1. Resolve subscription
@@ -1000,14 +1000,14 @@ export async function claimResourceTransaction(
         resource.id,
         transaction
       )
-      return {
+      return Result.ok({
         claims: [existing],
         usage: {
           resourceSlug: resource.slug,
           resourceId: resource.id,
           ...usage,
         },
-      }
+      })
     }
 
     claimsToCreate = [
@@ -1046,14 +1046,14 @@ export async function claimResourceTransaction(
         resource.id,
         transaction
       )
-      return {
+      return Result.ok({
         claims: existingClaims,
         usage: {
           resourceSlug: resource.slug,
           resourceId: resource.id,
           ...usage,
         },
-      }
+      })
     }
   }
 
@@ -1136,7 +1136,10 @@ export async function claimResourceTransaction(
     transaction
   )
   // Propagate capacity errors to the caller
-  const { claims: newClaims } = insertResult.unwrap()
+  if (Result.isError(insertResult)) {
+    return insertResult
+  }
+  const { claims: newClaims } = insertResult.value
 
   // 7. Populate temporary claim IDs if any claims are temporary
   if (temporaryClaimsInfo) {
@@ -1183,7 +1186,7 @@ export async function claimResourceTransaction(
           }
         : undefined
 
-    return {
+    return Result.ok({
       claims: relevantClaims,
       usage: {
         resourceSlug: resource.slug,
@@ -1191,10 +1194,10 @@ export async function claimResourceTransaction(
         ...usage,
       },
       temporaryClaims: externalIdsTemporaryInfo,
-    }
+    })
   }
 
-  return {
+  return Result.ok({
     claims: newClaims,
     usage: {
       resourceSlug: resource.slug,
@@ -1205,7 +1208,7 @@ export async function claimResourceTransaction(
       temporaryClaimsInfo && temporaryClaimsInfo.claimIds.length > 0
         ? temporaryClaimsInfo
         : undefined,
-  }
+  })
 }
 
 export interface ReleaseResourceTransactionParams {
