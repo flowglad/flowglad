@@ -6602,13 +6602,16 @@
                     "description": "The feature ID to add",
                     "type": "string"
                   },
+                  "featureSlug": {
+                    "description": "The feature slug to add. The feature will be resolved from the subscription pricing model.",
+                    "type": "string"
+                  },
                   "grantCreditsImmediately": {
                     "description": "If true and the feature is a usage credit grant, credits will be granted immediately for the current billing period",
                     "default": false,
                     "type": "boolean"
                   }
-                },
-                "required": ["featureId"]
+                }
               }
             }
           }

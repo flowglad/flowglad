@@ -651,6 +651,64 @@ describe('SubscriptionItemFeatureHelpers', () => {
       ).unwrap()
     })
 
+    it('should add a feature by slug', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Feature by Slug Test',
+              type: FeatureType.Toggle,
+            },
+          ]
+        )
+
+      ;(
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const result = (
+            await addFeatureToSubscriptionItem(
+              {
+                id: subscription.id,
+                featureSlug: toggleFeature.slug,
+                grantCreditsImmediately: false,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
+
+          expect(result.subscriptionItemFeature.featureId).toBe(
+            toggleFeature.id
+          )
+          expect(result.subscriptionItemFeature.manuallyCreated).toBe(
+            true
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('should fail when adding a feature by non-existent slug', async () => {
+      ;(
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const result = await addFeatureToSubscriptionItem(
+            {
+              id: subscription.id,
+              featureSlug: 'non-existent-slug-' + core.nanoid(6),
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+          expect(Result.isError(result)).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
     it('grants immediate credits for a usage feature with no existing recurring grant', async () => {
       const [{ feature: usageFeature }] =
         await setupTestFeaturesAndProductFeatures(
