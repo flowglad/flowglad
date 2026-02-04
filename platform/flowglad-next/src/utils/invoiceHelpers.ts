@@ -82,6 +82,18 @@ export const updateInvoiceTransaction = (
       )
     }
 
+    // Validate usage type before any mutations
+    for (const invoiceLineItem of invoiceLineItems) {
+      if (invoiceLineItem.type === SubscriptionItemType.Usage) {
+        return Result.err(
+          new ValidationError(
+            'type',
+            'Usage invoice line items are not supported for manual editing'
+          )
+        )
+      }
+    }
+
     const existingInvoiceLineItems = await selectInvoiceLineItems(
       {
         invoiceId: updatedInvoice.id,
@@ -109,18 +121,6 @@ export const updateInvoiceTransaction = (
       })),
       transaction
     )
-
-    // Validate usage type before processing
-    for (const invoiceLineItem of invoiceLineItems) {
-      if (invoiceLineItem.type === SubscriptionItemType.Usage) {
-        return Result.err(
-          new ValidationError(
-            'type',
-            'Usage invoice line items are not supported for manual editing'
-          )
-        )
-      }
-    }
 
     await Promise.all(
       invoiceLineItems.map(async (invoiceLineItem) => {

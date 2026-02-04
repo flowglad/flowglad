@@ -79,7 +79,7 @@
     },
     {
       "includes": [
-        "platform/flowglad-next/src/**/*.ts",
+        "platform/flowglad-next/src/**/*.{ts,tsx}",
         "!platform/flowglad-next/src/app/**",
         "!platform/flowglad-next/src/server/routers/**",
         "!platform/flowglad-next/src/server/mutations/**",

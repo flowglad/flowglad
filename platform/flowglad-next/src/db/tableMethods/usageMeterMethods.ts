@@ -62,7 +62,7 @@ export const derivePricingModelIdFromUsageMeter =
     async (id, transaction) => {
       const result = await selectUsageMeterById(id, transaction)
       if (Result.isError(result)) {
-        // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
+        // biome-ignore lint/plugin: Rethrow any error from result; no special handling here
         throw result.error
       }
       return result.value

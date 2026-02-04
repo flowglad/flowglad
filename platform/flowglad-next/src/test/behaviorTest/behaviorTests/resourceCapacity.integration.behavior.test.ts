@@ -319,7 +319,7 @@ describe('Resource Capacity Integration Tests', () => {
     // Try to create one more claim
     const result = await adminTransaction(
       async ({ transaction }) => {
-        await claimResourceTransaction(
+        return claimResourceTransaction(
           {
             organizationId,
             customerId,
@@ -331,7 +331,6 @@ describe('Resource Capacity Integration Tests', () => {
           },
           transaction
         )
-        return Result.ok(null)
       },
       { livemode }
     )
