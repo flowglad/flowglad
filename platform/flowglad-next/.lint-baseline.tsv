@@ -1,4 +1,3 @@
-src/components/checkout/total-billing-details.test.tsx	no-explicit-any-in-tests	2
 src/components/forms/DiscountFormFields.test.tsx	no-explicit-any-in-tests	6
 src/components/forms/EditDiscountModal.test.tsx	no-explicit-any-in-tests	6
 src/components/forms/EditPriceModal.test.tsx	no-explicit-any-in-tests	6

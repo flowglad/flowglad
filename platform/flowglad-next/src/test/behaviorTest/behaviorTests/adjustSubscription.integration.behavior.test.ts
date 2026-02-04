@@ -20,10 +20,11 @@
  * - Downgrade when resource claims exceed new capacity
  */
 
+import { afterAll, describe, expect, it } from 'bun:test'
 import { PriceType, SubscriptionStatus } from '@db-core/enums'
+import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
-import { afterAll, describe, expect, it } from 'vitest'
 import {
   setupPrice,
   setupResourceClaim,
@@ -33,6 +34,7 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { AdminTransactionParams } from '@/db/types'
 import {
   type AdjustSubscriptionResult,
   adjustSubscription,
@@ -167,7 +169,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: canceledSubscription.id,
@@ -188,7 +190,9 @@ describe('adjustSubscription error cases', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toContain('is in terminal state')
+      expect((result.error as Error).message).toContain(
+        'is in terminal state'
+      )
     }
   })
 
@@ -219,7 +223,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.Record
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: creditTrialSubscription.id,
@@ -240,7 +244,7 @@ describe('adjustSubscription error cases', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toContain(
+      expect((result.error as Error).message).toContain(
         'Credit trial subscriptions cannot be adjusted'
       )
     }
@@ -268,7 +272,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: nonRenewingSubscription.id,
@@ -289,7 +293,7 @@ describe('adjustSubscription error cases', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toContain(
+      expect((result.error as Error).message).toContain(
         'is a non-renewing subscription'
       )
     }
@@ -318,7 +322,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: doNotChargeSubscription.id,
@@ -339,7 +343,7 @@ describe('adjustSubscription error cases', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toContain(
+      expect((result.error as Error).message).toContain(
         'Cannot adjust doNotCharge'
       )
     }
@@ -368,7 +372,7 @@ describe('adjustSubscription error cases', () => {
     })) as Subscription.StandardRecord
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: freePlanSubscription.id,
@@ -389,7 +393,7 @@ describe('adjustSubscription error cases', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toContain(
+      expect((result.error as Error).message).toContain(
         'Cannot adjust free plan'
       )
     }
@@ -402,7 +406,7 @@ describe('adjustSubscription error cases', () => {
     const livemode = true
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: setup.subscription.id,
@@ -423,7 +427,7 @@ describe('adjustSubscription error cases', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toContain(
+      expect((result.error as Error).message).toContain(
         'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
       )
     }
@@ -444,7 +448,7 @@ describe('adjustSubscription error cases', () => {
     })
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: setup.subscription.id,
@@ -465,7 +469,7 @@ describe('adjustSubscription error cases', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toContain(
+      expect((result.error as Error).message).toContain(
         'Only recurring prices can be used in subscriptions'
       )
     }
@@ -521,7 +525,6 @@ describe('adjustSubscription resource capacity validation', () => {
     for (let i = 0; i < claimsToCreate; i++) {
       await setupResourceClaim({
         resourceId: resource!.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         organizationId: setup.organization.id,
         subscriptionId: setup.subscription.id,
         pricingModelId: setup.pricingModel.id,
@@ -530,7 +533,7 @@ describe('adjustSubscription resource capacity validation', () => {
 
     // Attempt the downgrade - should fail due to capacity validation
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: setup.subscription.id,
@@ -551,7 +554,9 @@ describe('adjustSubscription resource capacity validation', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toMatch(/Cannot reduce.*capacity/)
+      expect((result.error as Error).message).toMatch(
+        /Cannot reduce.*capacity/
+      )
     }
   })
 })
@@ -580,7 +585,7 @@ describe('adjustSubscription priceSlug resolution', () => {
 
     const result = (
       await adminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
+        async (ctx: AdminTransactionParams) => {
           return adjustSubscription(
             {
               id: setup.subscription.id,
@@ -604,7 +609,8 @@ describe('adjustSubscription priceSlug resolution', () => {
     expect(result.subscription.priceId).toBe(priceWithSlug.id)
 
     const newItem = result.subscriptionItems.find(
-      (item) => item.priceId === priceWithSlug.id
+      (item: SubscriptionItem.Record) =>
+        item.priceId === priceWithSlug.id
     )
     expect(newItem?.priceId).toBe(priceWithSlug.id)
   })
@@ -614,7 +620,7 @@ describe('adjustSubscription priceSlug resolution', () => {
     const livemode = true
 
     const result = await adminTransaction<AdjustSubscriptionResult>(
-      async (ctx) => {
+      async (ctx: AdminTransactionParams) => {
         return adjustSubscription(
           {
             id: setup.subscription.id,
@@ -635,7 +641,9 @@ describe('adjustSubscription priceSlug resolution', () => {
 
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
-      expect(result.error.message).toMatch(/Price.*not found/)
+      expect((result.error as Error).message).toMatch(
+        /Price.*not found/
+      )
     }
   })
 })
@@ -663,7 +671,7 @@ describe('adjustSubscription manual items preservation', () => {
 
     const result = (
       await adminTransaction<AdjustSubscriptionResult>(
-        async (ctx) => {
+        async (ctx: AdminTransactionParams) => {
           return adjustSubscription(
             {
               id: setup.subscription.id,
@@ -685,7 +693,7 @@ describe('adjustSubscription manual items preservation', () => {
 
     // Manual item should still exist after adjustment
     const preservedManualItem = result.subscriptionItems.find(
-      (item) => item.id === manualItem.id
+      (item: SubscriptionItem.Record) => item.id === manualItem.id
     )
     expect(preservedManualItem).not.toBe(undefined)
     expect(preservedManualItem?.name).toBe('Manual Features')

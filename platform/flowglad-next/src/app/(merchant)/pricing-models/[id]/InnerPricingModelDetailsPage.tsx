@@ -9,23 +9,20 @@ import {
   Pencil,
   Sparkles,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import yaml from 'yaml'
 import { trpc } from '@/app/_trpc/client'
 import CreateResourceModal from '@/components/components/CreateResourceModal'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import EditResourceModal from '@/components/components/EditResourceModal'
-import { CustomersDataTable } from '@/components/customers/data-table'
 import { ExpandSection } from '@/components/ExpandSection'
 import { FeaturesDataTable } from '@/components/features/data-table'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
-import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
-import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
 import { MoreIcon } from '@/components/icons/MoreIcon'
 import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
@@ -49,14 +46,10 @@ export type InnerPricingModelDetailsPageProps = {
 function InnerPricingModelDetailsPage({
   pricingModel,
 }: InnerPricingModelDetailsPageProps) {
-  const router = useRouter()
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCloneOpen, setIsCloneOpen] = useState(false)
-  const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
-    useState(false)
-  const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] =
     useState(false)
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
     useState(false)
@@ -78,11 +71,7 @@ function InnerPricingModelDetailsPage({
     useState<string>('active')
   const [activeFeatureFilter, setActiveFeatureFilter] =
     useState<string>('active')
-  const {
-    data: exportPricingModelData,
-    refetch,
-    isFetching,
-  } = trpc.pricingModels.export.useQuery(
+  const { refetch, isFetching } = trpc.pricingModels.export.useQuery(
     {
       id: pricingModel.id,
     },
@@ -135,9 +124,11 @@ function InnerPricingModelDetailsPage({
 
   const exportPricingModelHandler = async () => {
     const result = await refetch()
-    const pricingModelYAML = result.data?.pricingModelYAML
+    const pricingModelData = result.data?.pricingModel
 
-    if (pricingModelYAML) {
+    if (pricingModelData) {
+      // Convert JSON to YAML for human-readable export
+      const pricingModelYAML = yaml.stringify(pricingModelData)
       const blob = new Blob([pricingModelYAML], { type: 'text/yaml' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -169,18 +160,6 @@ function InnerPricingModelDetailsPage({
       },
       icon: <Sparkles className="h-4 w-4" />,
     },
-    ...(!pricingModel.isDefault
-      ? [
-          {
-            label: 'Set as Default',
-            handler: () => {
-              setIsMoreMenuOpen(false)
-              setIsSetDefaultOpen(true)
-            },
-            icon: <Check className="h-4 w-4" />,
-          },
-        ]
-      : []),
     {
       label: 'Duplicate',
       handler: () => {
@@ -212,6 +191,8 @@ function InnerPricingModelDetailsPage({
                     icon: <Check className="h-3.5 w-3.5" />,
                     label: 'Live',
                     variant: 'active' as const,
+                    tooltip:
+                      'Production pricing. Changes here affect customers paying real money.',
                   },
                 ]
               : [
@@ -221,9 +202,9 @@ function InnerPricingModelDetailsPage({
                       ? 'Test - Default'
                       : 'Test',
                     variant: 'warning' as const,
-                    ...(pricingModel.isDefault && {
-                      tooltip: 'Assigned to new customers by default',
-                    }),
+                    tooltip: pricingModel.isDefault
+                      ? 'Your sandbox. Test changes risk-free before going live. New customers without a specified pricing model are assigned here.'
+                      : 'Your sandbox. Test changes risk-free before going live.',
                   },
                 ]
           }
@@ -326,20 +307,6 @@ function InnerPricingModelDetailsPage({
             buttonVariant="secondary"
           />
         </ExpandSection>
-        <ExpandSection
-          title="Customers"
-          defaultExpanded={false}
-          contentPadding={false}
-        >
-          <CustomersDataTable
-            externalFilters={{ pricingModelId: pricingModel.id }}
-            onCreateCustomer={() =>
-              setIsCreateCustomerModalOpen(true)
-            }
-            buttonVariant="secondary"
-            hiddenColumns={['payments', 'createdAt', 'customerId']}
-          />
-        </ExpandSection>
       </div>
 
       <EditPricingModelModal
@@ -352,10 +319,6 @@ function InnerPricingModelDetailsPage({
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={pricingModel.id}
         hidePricingModelSelect={true}
-      />
-      <CreateCustomerFormModal
-        isOpen={isCreateCustomerModalOpen}
-        setIsOpen={setIsCreateCustomerModalOpen}
       />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}
@@ -389,11 +352,6 @@ function InnerPricingModelDetailsPage({
       <ClonePricingModelModal
         isOpen={isCloneOpen}
         setIsOpen={setIsCloneOpen}
-        pricingModel={pricingModel}
-      />
-      <SetPricingModelAsDefaultModal
-        isOpen={isSetDefaultOpen}
-        setIsOpen={setIsSetDefaultOpen}
         pricingModel={pricingModel}
       />
     </PageContainer>

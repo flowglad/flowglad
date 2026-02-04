@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { MembershipRole } from '@db-core/enums'
 import {
   type Membership,
   type NotificationPreferences,
@@ -40,6 +41,9 @@ const createMockMembership = (
   updatedByCommit: null,
   position: 0,
   notificationPreferences,
+  focusedPricingModelId: `pm_${Math.random().toString(36).slice(2)}`,
+  role: MembershipRole.Owner,
+  deactivatedAt: null,
   ...overrides,
 })
 

@@ -10,7 +10,6 @@ import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 // UI components last
-import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   type ActionMenuItem,
@@ -66,7 +65,6 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
     accessorFn: (row) => row.pricingModel.name,
     header: 'Name',
     cell: ({ row }) => {
-      const pricingModel = row.original.pricingModel
       return (
         <div className="flex items-center gap-2">
           <div
@@ -75,14 +73,6 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
           >
             {row.getValue('name')}
           </div>
-          {pricingModel.isDefault && (
-            <Badge
-              variant="secondary"
-              className="bg-jade-background text-jade-foreground text-xs flex-shrink-0"
-            >
-              Default
-            </Badge>
-          )}
         </div>
       )
     },

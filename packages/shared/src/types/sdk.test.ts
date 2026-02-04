@@ -61,6 +61,7 @@ describe('Route type classification', () => {
       FlowgladActionKey.GetUsageMeterBalances,
       FlowgladActionKey.GetFeatureAccess,
       FlowgladActionKey.GetPaymentMethods,
+      FlowgladActionKey.GetCustomerDetails,
     ]
 
     expect(authenticatedKeys.sort()).toEqual(

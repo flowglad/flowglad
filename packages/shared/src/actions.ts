@@ -1,6 +1,7 @@
 import type { Flowglad } from '@flowglad/node'
 import { type ZodType, z } from 'zod'
 import {
+  type CustomerDetails,
   FeatureAccessItem,
   FlowgladActionKey,
   HTTPMethod,
@@ -634,6 +635,21 @@ export type GetPaymentMethodsResponse = {
 }
 
 /**
+ * Schema for fetching customer details for the authenticated customer.
+ * Returns customer profile data (id, email, name, externalId, timestamps).
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getCustomerDetailsSchema = z.object({}).strict()
+
+export type GetCustomerDetailsParams = z.infer<
+  typeof getCustomerDetailsSchema
+>
+
+export type GetCustomerDetailsResponse = {
+  customer: CustomerDetails
+}
+
+/**
  * Schema for fetching subscriptions for a customer.
  * Returns subscriptions, currentSubscriptions, and currentSubscription.
  * The customer externalId is derived server-side from the authenticated session.
@@ -742,5 +758,9 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.GetPaymentMethods]: {
     method: HTTPMethod.POST,
     inputValidator: getPaymentMethodsSchema,
+  },
+  [FlowgladActionKey.GetCustomerDetails]: {
+    method: HTTPMethod.POST,
+    inputValidator: getCustomerDetailsSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

@@ -22,6 +22,7 @@ import {
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
   type FeatureAccessItem,
+  type GetCustomerDetailsResponse,
   type GetFeatureAccessParams,
   type GetFeatureAccessResponse,
   type GetPaymentMethodsResponse,
@@ -177,6 +178,45 @@ export class FlowgladServer {
       return {
         paymentMethods: billing.paymentMethods ?? [],
         billingPortalUrl: billing.billingPortalUrl ?? null,
+      }
+    }
+
+  /**
+   * Get customer details for the authenticated customer.
+   *
+   * Returns customer profile data (id, email, name, externalId, timestamps).
+   * This is a lightweight endpoint for displaying customer identity without
+   * loading the full billing payload.
+   *
+   * @returns A promise that resolves to an object containing customer details
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get customer details
+   * const { customer } = await flowglad.getCustomerDetails()
+   * console.log(`Welcome, ${customer.name ?? customer.email}`)
+   */
+  public getCustomerDetails =
+    async (): Promise<GetCustomerDetailsResponse> => {
+      const billing = await this.getBilling()
+
+      return {
+        customer: {
+          id: billing.customer.id,
+          livemode: billing.customer.livemode,
+          email: billing.customer.email,
+          name: billing.customer.name ?? null,
+          externalId: billing.customer.externalId ?? null,
+          createdAt:
+            typeof billing.customer.createdAt === 'number'
+              ? new Date(billing.customer.createdAt).toISOString()
+              : billing.customer.createdAt,
+          updatedAt:
+            typeof billing.customer.updatedAt === 'number'
+              ? new Date(billing.customer.updatedAt).toISOString()
+              : billing.customer.updatedAt,
+        },
       }
     }
 

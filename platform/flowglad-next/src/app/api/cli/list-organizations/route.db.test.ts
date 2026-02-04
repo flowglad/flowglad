@@ -77,7 +77,6 @@ describe('GET /api/cli/list-organizations', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     const response = await GET()
@@ -119,7 +118,7 @@ describe('GET /api/cli/list-organizations', () => {
         transaction
       )
       await updateMembership(
-        { id: membership.id, deactivatedAt: new Date() },
+        { id: membership.id, deactivatedAt: Date.now() },
         transaction
       )
       return Result.ok(undefined)
@@ -128,7 +127,6 @@ describe('GET /api/cli/list-organizations', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     const response = await GET()

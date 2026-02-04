@@ -124,6 +124,13 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
           Cookie: cookieString,
           Origin: baseUrl,
+          // Forward protocol headers so BetterAuth knows the original request was HTTPS
+          // Without this, secure cookies won't be set in production (Vercel internal routing is HTTP)
+          'X-Forwarded-Proto':
+            request.headers.get('X-Forwarded-Proto') || 'https',
+          'X-Forwarded-Host':
+            request.headers.get('X-Forwarded-Host') ||
+            new URL(request.url).host,
         },
         body: JSON.stringify({ email, otp }),
       }
@@ -143,16 +150,19 @@ export async function POST(request: NextRequest) {
     const setCookieHeaders = authResponse.headers.getSetCookie()
 
     // Extract the session token from Set-Cookie headers to update session context
-    // Cookie format: customer.session_token=<token>; ...
+    // Cookie format: customer.session_token=<token>; ... OR __Secure-customer.session_token=<token>; ...
+    // Note: BetterAuth adds __Secure- prefix when cookie has Secure attribute (production)
     const sessionTokenCookieName = `${CUSTOMER_COOKIE_PREFIX}.session_token`
+    const secureSessionTokenCookieName = `__Secure-${CUSTOMER_COOKIE_PREFIX}.session_token`
     let sessionToken: string | null = null
 
     for (const cookie of setCookieHeaders) {
-      if (cookie.startsWith(`${sessionTokenCookieName}=`)) {
+      if (
+        cookie.startsWith(`${sessionTokenCookieName}=`) ||
+        cookie.startsWith(`${secureSessionTokenCookieName}=`)
+      ) {
         // Extract the token value (before the first semicolon)
-        const tokenMatch = cookie.match(
-          new RegExp(`^${sessionTokenCookieName}=([^;]+)`)
-        )
+        const tokenMatch = cookie.match(/=([^;]+)/)
         if (tokenMatch) {
           sessionToken = decodeURIComponent(tokenMatch[1])
         }
@@ -238,6 +248,13 @@ export async function POST(request: NextRequest) {
           organizationId,
           customerId,
           setCookieHeadersCount: setCookieHeaders.length,
+          // Debug: log what cookies ARE being returned (first 150 chars of each)
+          setCookieHeaders: setCookieHeaders.map((c) =>
+            c.substring(0, 150)
+          ),
+          expectedCookieName: sessionTokenCookieName,
+          baseUrl,
+          authResponseStatus: authResponse.status,
         },
       })
       return NextResponse.json(
