@@ -47,7 +47,11 @@ interface KeyVerifyResult {
 }
 
 const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
-  if (meta.type !== FlowgladApiKeyType.Secret) {
+  // Accept both Secret (server SDK) and CliSession (CLI) API key types
+  if (
+    meta.type !== FlowgladApiKeyType.Secret &&
+    meta.type !== FlowgladApiKeyType.CliSession
+  ) {
     throw new Error(
       `userIdFromUnkeyMeta: received invalid API key type`
     )
@@ -160,7 +164,11 @@ interface DatabaseAuthenticationInfo {
 export async function dbAuthInfoForSecretApiKeyResult(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
-  if (verifyKeyResult.keyType !== FlowgladApiKeyType.Secret) {
+  // Accept both Secret (server SDK) and CliSession (CLI) API key types
+  if (
+    verifyKeyResult.keyType !== FlowgladApiKeyType.Secret &&
+    verifyKeyResult.keyType !== FlowgladApiKeyType.CliSession
+  ) {
     throw new Error(
       `dbAuthInfoForSecretApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
     )
@@ -400,7 +408,11 @@ export async function databaseAuthenticationInfoForApiKeyResult(
   if (!verifyKeyResult.ownerId) {
     throw new Error('Invalid API key, no ownerId')
   }
-  if (verifyKeyResult.keyType !== FlowgladApiKeyType.Secret) {
+  // Accept both Secret (server SDK) and CliSession (CLI) API key types
+  if (
+    verifyKeyResult.keyType !== FlowgladApiKeyType.Secret &&
+    verifyKeyResult.keyType !== FlowgladApiKeyType.CliSession
+  ) {
     throw new Error(
       `databaseAuthenticationInfoForApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
     )

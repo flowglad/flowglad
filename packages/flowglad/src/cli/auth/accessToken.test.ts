@@ -24,7 +24,7 @@ describe('requestAccessToken', () => {
 
   it('returns Unkey API key with expiry when request succeeds', async () => {
     const mockResponse = {
-      accessToken: 'cli_test_abcd_xyz123',
+      accessToken: 'cli_t_abcd_xyz123',
       expiresAt: '2026-01-30T12:10:00.000Z',
     }
 
@@ -43,7 +43,7 @@ describe('requestAccessToken', () => {
       }
     )
 
-    expect(result.accessToken).toBe('cli_test_abcd_xyz123')
+    expect(result.accessToken).toBe('cli_t_abcd_xyz123')
     expect(result.expiresAt).toBe('2026-01-30T12:10:00.000Z')
 
     expect(mockFetch).toHaveBeenCalledWith(

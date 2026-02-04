@@ -158,8 +158,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     .replace('pricing_model_', '')
     .slice(0, 4)
 
+  // Unkey prefix max is 16 chars. Use short abbreviations:
+  // stg_ (4) + cli_ (4) + t_/l_ (2) + xxxx_ (5) = 15 chars max
   const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
-  const prefix = `${maybeStagingPrefix}cli_${livemode ? 'live' : 'test'}_${pmIdSuffix}_`
+  const prefix = `${maybeStagingPrefix}cli_${livemode ? 'l' : 't'}_${pmIdSuffix}_`
 
   const cliMeta: ApiKey.CliSessionMetadata = {
     type: FlowgladApiKeyType.CliSession,

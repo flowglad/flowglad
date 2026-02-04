@@ -66,6 +66,11 @@ const publicRoutes = [
    */
   '/cli/authorize',
   '/device',
+  /**
+   * CLI API routes use Bearer token authentication, not cookies.
+   * They handle their own auth via auth.api.getSession with Authorization header.
+   */
+  '/api/cli/(.*)',
 ]
 
 if (core.IS_DEV) {

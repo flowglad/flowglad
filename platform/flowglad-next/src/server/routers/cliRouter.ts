@@ -32,7 +32,7 @@ const verifyDeviceCode = protectedProcedure
 
     try {
       const response = await fetch(
-        `${baseUrl}/api/auth/device?user_code=${encodeURIComponent(input.userCode)}`,
+        `${baseUrl}/api/auth/merchant/device?user_code=${encodeURIComponent(input.userCode)}`,
         { signal: controller.signal }
       )
       clearTimeout(timeoutId)

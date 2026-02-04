@@ -1,5 +1,6 @@
 import type { CAC } from 'cac'
 import { registerHelpCommand } from './help'
+import { registerLinkCommand } from './link'
 import { registerLoginCommand } from './login'
 import { registerLogoutCommand } from './logout'
 
@@ -9,11 +10,11 @@ import { registerLogoutCommand } from './logout'
  */
 export const registerCommands = (cli: CAC): void => {
   registerHelpCommand(cli)
+  registerLinkCommand(cli)
   registerLoginCommand(cli)
   registerLogoutCommand(cli)
 
-  // Future commands (Milestone 1+):
-  // registerLinkCommand(cli)
+  // Future commands (Milestone 2+):
   // registerPullCommand(cli)
   // registerPushCommand(cli)
   // registerDeployCommand(cli)

@@ -160,7 +160,7 @@ describe('CLI credential storage', () => {
 
     it('saves credentials with optional access token fields', async () => {
       const credentials = createTestCredentials({
-        accessToken: 'cli_test_xxxx_abc123',
+        accessToken: 'cli_t_xxxx_abc123',
         accessTokenExpiresAt: Date.now() + 10 * 60 * 1000,
         organizationId: 'org_test_456',
         organizationName: 'Test Org',
@@ -173,7 +173,7 @@ describe('CLI credential storage', () => {
 
       const loaded = await loadCredentials()
       expect(loaded).toEqual(credentials)
-      expect(loaded?.accessToken).toBe('cli_test_xxxx_abc123')
+      expect(loaded?.accessToken).toBe('cli_t_xxxx_abc123')
       expect(loaded?.organizationId).toBe('org_test_456')
       expect(loaded?.livemode).toBe(false)
     })
