@@ -1,0 +1,3 @@
+src/utils/bookkeeping.db.test.ts	no-explicit-any-in-tests	1
+src/utils/paymentHelpers.stripe.test.ts	no-explicit-any-in-tests	3
+src/utils/validateImmutableFields.db.test.ts	no-explicit-any-in-tests	2

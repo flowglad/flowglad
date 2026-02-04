@@ -1,0 +1,3 @@
+src/db/tableMethods/featureMethods.db.test.ts	no-explicit-any-in-tests	7
+src/db/tableMethods/pricingModelMethods.db.test.ts	no-explicit-any-in-tests	4
+src/db/tableMethods/subscriptionItemFeatureMethods.db.test.ts	no-explicit-any-in-tests	10

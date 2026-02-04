@@ -154,7 +154,8 @@ export const resolvePackagePaths = (
 }
 
 /**
- * Get the baseline file path for a package
+ * Get the baseline file path for a package (legacy single-file format).
+ * @deprecated Use per-directory baselines instead via baseline.ts functions
  */
 export const getBaselinePathForPackage = (
   packagePath: string

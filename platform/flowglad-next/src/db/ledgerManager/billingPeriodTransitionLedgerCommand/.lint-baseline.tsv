@@ -1,0 +1,2 @@
+src/db/ledgerManager/billingPeriodTransitionLedgerCommand/grantEntitlementUsageCredits.db.test.ts	no-explicit-any-in-tests	2
+src/db/ledgerManager/billingPeriodTransitionLedgerCommand/index.db.test.ts	no-explicit-any-in-tests	9

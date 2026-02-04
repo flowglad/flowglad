@@ -1,0 +1,3 @@
+src/subscriptions/billingRunHelpers.db.test.ts	no-explicit-any-in-tests	2
+src/subscriptions/processBillingRunPaymentIntents.stripe.test.ts	no-explicit-any-in-tests	1
+src/subscriptions/renewsProperty.db.test.ts	no-explicit-any-in-tests	4

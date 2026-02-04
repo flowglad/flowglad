@@ -1,11 +1,11 @@
-import { readBaseline } from '../baseline'
+import { readAllBaselinesForPackage } from '../baseline'
 import {
   countViolationsByFile,
   getDiagnosticsForFile,
   runBiomeLint,
 } from '../biome'
 import {
-  getBaselinePathForPackage,
+  findRepoRoot,
   getFirstRule,
   loadConfig,
   resolvePackagePaths,
@@ -49,7 +49,8 @@ export interface CheckSummary {
 const checkPackageForRule = async (
   packagePath: string,
   rule: RatchetRule,
-  exclude: string[]
+  exclude: string[],
+  repoRoot: string
 ): Promise<PackageCheckResult> => {
   // Get current violations
   const diagnostics = await runBiomeLint(
@@ -61,9 +62,11 @@ const checkPackageForRule = async (
 
   const currentCounts = countViolationsByFile(diagnostics, rule.name)
 
-  // Get baseline
-  const baselinePath = getBaselinePathForPackage(packagePath)
-  const baselineEntries = readBaseline(baselinePath)
+  // Get baseline from all per-directory baseline files
+  const baselineEntries = readAllBaselinesForPackage(
+    repoRoot,
+    packagePath
+  )
 
   // Build baseline map for this rule
   const baselineMap = new Map<string, number>()
@@ -217,6 +220,7 @@ export const checkCommand = async (
   const { verbose = false } = options
   const config = loadConfig()
   const packages = resolvePackagePaths(config)
+  const repoRoot = findRepoRoot()
 
   if (packages.length === 0) {
     console.error('No packages found to check')
@@ -247,7 +251,8 @@ export const checkCommand = async (
     const result = await checkPackageForRule(
       pkg.path,
       rule,
-      config.exclude
+      config.exclude,
+      repoRoot
     )
     packageResults.push(result)
     printPackageResult(result, rule.name, { verbose })
