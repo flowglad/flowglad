@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'crypto'
 import { z } from 'zod'
+import { panic } from '@/errors'
 import { generateRandomBytes } from './backendCore'
 import { logger } from './logger'
 import { RedisKeyNamespace, redis } from './redis'
@@ -88,7 +89,7 @@ export async function createStripeOAuthCsrfToken(params: {
       userId,
       organizationId,
     })
-    throw new Error('Unable to initiate Stripe OAuth flow')
+    panic('Unable to initiate Stripe OAuth flow')
   }
 }
 
@@ -193,6 +194,6 @@ export function decodeStripeOAuthState(state: string): string {
     const decoded = decodeURIComponent(state)
     return Buffer.from(decoded, 'base64').toString('utf8')
   } catch {
-    throw new Error('Invalid OAuth state parameter')
+    panic('Invalid OAuth state parameter')
   }
 }

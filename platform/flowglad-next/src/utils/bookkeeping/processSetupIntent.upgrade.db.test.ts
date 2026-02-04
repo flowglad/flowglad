@@ -27,10 +27,7 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import {
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import {
   selectSubscriptionById,
@@ -194,18 +191,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return processSetupIntentSucceeded(
             setupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify free subscription was canceled
       const updatedFreeSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await selectSubscriptionById(
@@ -229,7 +226,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Verify new subscription was created
       const allSubscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },
@@ -303,18 +300,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await processSetupIntentSucceeded(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return processSetupIntentSucceeded(
             setupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        )
-      })
+        })
+      ).unwrap()
 
       // Get the new subscription
       const allSubscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },
@@ -356,7 +353,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
     it('should create new subscription without canceling anything', async () => {
       // Ensure customer has no subscriptions
       const existingSubscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },
@@ -401,18 +398,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await processSetupIntentSucceeded(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return processSetupIntentSucceeded(
             setupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        )
-      })
+        })
+      ).unwrap()
 
       // Verify new subscription was created
       const allSubscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },
@@ -456,7 +453,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
     it('should allow creating second paid subscription while canceling free', async () => {
       // Update organization to allow multiple subscriptions
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateOrganization(
             {
               id: organization.id,
@@ -524,18 +521,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await processSetupIntentSucceeded(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return processSetupIntentSucceeded(
             setupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        )
-      })
+        })
+      ).unwrap()
 
       // Verify free subscription was canceled
       const updatedFreeSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await selectSubscriptionById(
@@ -555,7 +552,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Verify original paid subscription remains active
       const updatedExistingPaid = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await selectSubscriptionById(
@@ -573,7 +570,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Verify customer has two active paid subscriptions
       const allSubscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },
@@ -668,18 +665,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await processSetupIntentSucceeded(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return processSetupIntentSucceeded(
             setupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        )
-      })
+        })
+      ).unwrap()
 
       // Verify free subscription remains active
       const updatedFreeSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await selectSubscriptionById(
@@ -698,7 +695,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Verify no new subscriptions were created
       const allSubscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },

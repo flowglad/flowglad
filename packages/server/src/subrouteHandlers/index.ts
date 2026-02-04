@@ -8,12 +8,14 @@ import {
   createAddPaymentMethodCheckoutSession,
   createCheckoutSession,
 } from './checkoutSessionHandlers'
+import { getCustomerDetails } from './customerDetailsHandlers'
 import {
   findOrCreateCustomer,
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
 import { getFeatureAccessItems } from './featureHandlers'
+import { getPaymentMethods } from './paymentMethodHandlers'
 import { getPricingModel } from './pricingModelHandlers'
 import {
   claimResource,
@@ -65,6 +67,8 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
   [FlowgladActionKey.GetUsageMeterBalances]: getUsageMeterBalances,
   [FlowgladActionKey.GetFeatureAccess]: getFeatureAccessItems,
+  [FlowgladActionKey.GetPaymentMethods]: getPaymentMethods,
+  [FlowgladActionKey.GetCustomerDetails]: getCustomerDetails,
 }
 
 export const hybridRouteToHandlerMap: {

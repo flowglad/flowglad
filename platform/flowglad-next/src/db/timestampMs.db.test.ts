@@ -11,7 +11,7 @@ import {
   setupProductFeature,
   setupToggleFeature,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateProductFeature } from '@/db/tableMethods/productFeatureMethods'
 
 describe('zodEpochMs', () => {
@@ -107,7 +107,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Query the record back
     const queriedRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await transaction
@@ -124,7 +124,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Apply createDateNotPassedFilter and verify record is included
     const filteredRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const filter = createDateNotPassedFilter(
           productFeatures.expiredAt
@@ -155,7 +155,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Query the record back
     const queriedRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await transaction
@@ -172,7 +172,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Apply createDateNotPassedFilter and verify record is included
     const filteredRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const filter = createDateNotPassedFilter(
           productFeatures.expiredAt
@@ -238,7 +238,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
     // - past expiredAt record is NOT included
     // - future expiredAt record IS included
     const filteredRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const filter = createDateNotPassedFilter(
           productFeatures.expiredAt
@@ -275,7 +275,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Verify initial null state
     const initialRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await transaction
@@ -292,7 +292,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
     // Update to a past date value
     const pastDate = new Date('2020-01-01T00:00:00.000Z').getTime()
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateProductFeature(
           {
@@ -307,7 +307,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Verify it was updated to the past date
     const updatedRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await transaction
@@ -323,7 +323,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Verify it would be filtered out (expired)
     const filteredOutRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const filter = createDateNotPassedFilter(
           productFeatures.expiredAt
@@ -342,7 +342,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
     expect(filteredOutRecords).toHaveLength(0)
     // Update back to null using the helper function
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateProductFeature(
           {
@@ -357,7 +357,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Verify it's back to null
     const nullAgainRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await transaction
@@ -373,7 +373,7 @@ describe('timestampWithTimezoneColumn with null values', () => {
 
     // Verify it passes the filter again (not expired)
     const filteredInRecords = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const filter = createDateNotPassedFilter(
           productFeatures.expiredAt

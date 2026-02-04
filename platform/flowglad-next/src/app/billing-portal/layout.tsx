@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getSession } from '@/utils/auth'
+import { getCustomerSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import Providers from '../Providers'
 
@@ -14,7 +14,8 @@ export default async function BillingPortalLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getSession()
+  // Use customer session for billing portal - not merchant session
+  const session = await getCustomerSession()
 
   return (
     <Providers

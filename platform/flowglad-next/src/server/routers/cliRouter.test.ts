@@ -45,6 +45,9 @@ const createAuthenticatedCaller = (user: User.Record) => {
     organization: undefined,
     isApi: false,
     apiKey: undefined,
+    session: null,
+    authScope: 'merchant',
+    focusedPricingModelId: undefined,
   }
   return cliRouter.createCaller(ctx)
 }
@@ -77,7 +80,7 @@ describe('cli.verifyDeviceCode', () => {
         ok: true,
         json: () => Promise.resolve({ valid: true }),
       } as Response)
-    )
+    ) as unknown as typeof fetch
 
     try {
       // verifyDeviceCode requires authentication to prevent code probing
@@ -101,7 +104,7 @@ describe('cli.verifyDeviceCode', () => {
         ok: false,
         status: 404,
       } as Response)
-    )
+    ) as unknown as typeof fetch
 
     try {
       // verifyDeviceCode requires authentication to prevent code probing

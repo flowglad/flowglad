@@ -35,7 +35,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { DbTransaction } from '@/db/types'
 import {
   calculateBillingPeriodItemsValue,
@@ -449,7 +449,7 @@ describe('getBillingPeriodsForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getBillingPeriodsForDateRange(
             organization.id,
@@ -476,7 +476,7 @@ describe('getBillingPeriodsForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -493,7 +493,7 @@ describe('getBillingPeriodsForDateRange', () => {
 
     // Create a billing period
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -506,7 +506,7 @@ describe('getBillingPeriodsForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 2,
@@ -528,7 +528,7 @@ describe('getBillingPeriodsForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getBillingPeriodsForDateRange(
             organization.id,
@@ -561,7 +561,7 @@ describe('calculateMRRByMonth', () => {
     const endDate = new Date('2023-03-15T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -596,7 +596,7 @@ describe('calculateMRRByMonth', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -630,7 +630,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -647,7 +647,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create a billing period
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -660,7 +660,7 @@ describe('calculateMRRByMonth', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 1,
@@ -672,7 +672,7 @@ describe('calculateMRRByMonth', () => {
     ).unwrap()
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -706,7 +706,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create a subscription with yearly interval
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -723,7 +723,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create a billing period
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -736,7 +736,7 @@ describe('calculateMRRByMonth', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 1,
@@ -748,7 +748,7 @@ describe('calculateMRRByMonth', () => {
     ).unwrap()
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -787,7 +787,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -804,7 +804,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create a billing period
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -817,7 +817,7 @@ describe('calculateMRRByMonth', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 1,
@@ -829,7 +829,7 @@ describe('calculateMRRByMonth', () => {
     ).unwrap()
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -927,7 +927,7 @@ describe('calculateMRRByMonth', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -1081,7 +1081,7 @@ describe('calculateMRRByMonth', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupSubscriptionsAndBillingPeriods(
           organization,
           price,
@@ -1260,7 +1260,7 @@ describe('calculateMRRByMonth with productId filter', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -1386,7 +1386,7 @@ describe('calculateMRRByMonth with productId filter', () => {
 
     // Query for Product A only
     const resultA = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -1407,7 +1407,7 @@ describe('calculateMRRByMonth with productId filter', () => {
 
     // Query for Product B only
     const resultB = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -1428,7 +1428,7 @@ describe('calculateMRRByMonth with productId filter', () => {
 
     // Query for all products (no filter)
     const resultAll = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -1500,7 +1500,7 @@ describe('calculateMRRByMonth with productId filter', () => {
 
     // Query for Product B (which has no subscriptions)
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,
@@ -1560,7 +1560,7 @@ describe('calculateMRRByMonth with productId filter', () => {
 
     // Query with non-existent productId
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await calculateMRRByMonth(
             organization.id,

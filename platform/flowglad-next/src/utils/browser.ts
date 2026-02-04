@@ -1,8 +1,8 @@
+import { panic } from '@/errors'
+
 export const initBrowser = async () => {
   if (typeof window !== 'undefined') {
-    throw new Error(
-      'initBrowser must only be invoked in a server context'
-    )
+    panic('initBrowser must only be invoked in a server context')
   }
   /**
    * puppeteer needs to be dynamically imported so that Next.js doesn't try to bundle it

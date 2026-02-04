@@ -11,7 +11,13 @@ export {
   usePricingModel,
 } from './FlowgladContext'
 export { FlowgladProvider } from './FlowgladProvider'
+export { invalidateCustomerData } from './lib/invalidation'
 export { humanReadableCurrencyAmount } from './lib/utils'
+export {
+  CUSTOMER_DETAILS_QUERY_KEY,
+  type UseCustomerDetailsResult,
+  useCustomerDetails,
+} from './useCustomerDetails'
 export {
   FEATURES_QUERY_KEY,
   type UseFeatureResult,
@@ -20,6 +26,12 @@ export {
   useFeatures,
 } from './useFeatures'
 export {
+  isPaymentMethodsRouteResponse,
+  PAYMENT_METHODS_QUERY_KEY,
+  type UsePaymentMethodsResult,
+  usePaymentMethods,
+} from './usePaymentMethods'
+export {
   RESOURCE_CLAIMS_QUERY_KEY,
   RESOURCES_QUERY_KEY,
   type UseResourceResult,
@@ -27,6 +39,15 @@ export {
   useResource,
   useResources,
 } from './useResources'
+export {
+  type UseSubscriptionResult,
+  useSubscription,
+} from './useSubscription'
+export {
+  SUBSCRIPTIONS_QUERY_KEY,
+  type UseSubscriptionsResult,
+  useSubscriptions,
+} from './useSubscriptions'
 export {
   USAGE_METERS_QUERY_KEY,
   type UseUsageMeterResult,

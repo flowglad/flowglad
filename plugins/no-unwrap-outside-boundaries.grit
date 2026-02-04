@@ -1,0 +1,16 @@
+engine biome(1.0)
+language js
+
+// Prohibits .unwrap() calls outside of designated boundary contexts.
+// .unwrap() can throw if the Result is an error, violating Result-based error handling.
+//
+// Alternatives to .unwrap():
+// - Result.gen() with yield* for composing Results
+// - Explicit Result.isError() check with early return
+// - panic() after Result.isError() check for invariant violations
+//
+// To suppress: // biome-ignore lint/plugin: <justification>
+
+`$_.unwrap()` as $unwrap where {
+  register_diagnostic(span=$unwrap, message=".unwrap() is not allowed outside boundary contexts as it can throw. Use Result.gen() with yield*, explicit Result.isError() checks, or panic() for invariant violations.", severity="error")
+}

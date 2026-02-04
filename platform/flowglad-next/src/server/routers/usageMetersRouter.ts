@@ -6,6 +6,7 @@ import {
   usageMetersClientSelectSchema,
   usageMetersTableRowDataSchema,
 } from '@db-core/schema/usageMeters'
+
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -48,6 +49,9 @@ export const createUsageMeter = protectedProcedure
           transaction,
           cacheRecomputationContext,
           invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+          enqueueTriggerTask,
         } = transactionCtx
         const { livemode, organizationId } = ctx
         if (!organizationId) {
@@ -69,6 +73,9 @@ export const createUsageMeter = protectedProcedure
               livemode,
               organizationId,
               invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
           return Result.ok({ usageMeter })

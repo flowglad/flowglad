@@ -177,7 +177,7 @@ export function createTracingMiddleware() {
                 }
               )
 
-              // Re-throw the error
+              // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
               throw error
             } finally {
               span.end()

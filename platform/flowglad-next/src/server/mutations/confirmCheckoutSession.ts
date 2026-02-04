@@ -1,6 +1,6 @@
 import { Result } from 'better-result'
 import { z } from 'zod'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { publicProcedure } from '@/server/trpc'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 
@@ -16,7 +16,7 @@ const confirmCheckoutSessionInputSchema = z.object({
 export const confirmCheckoutSession = publicProcedure
   .input(confirmCheckoutSessionInputSchema)
   .mutation(async ({ input }) => {
-    const result = await adminTransactionWithResult(async (ctx) => {
+    const result = await adminTransaction(async (ctx) => {
       const value = await confirmCheckoutSessionTransaction(
         input,
         ctx

@@ -1,6 +1,7 @@
 import type { BillingPeriod } from '@db-core/schema/billingPeriods'
 import { logger, task } from '@trigger.dev/sdk'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { Result } from 'better-result'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
@@ -16,13 +17,14 @@ export const attemptBillingPeriodTransitionTask = task({
     return tracedTaskRun(
       'attemptBillingPeriodTransition',
       async () => {
-        const result = await adminTransactionWithResult(
+        const result = await adminTransaction(
           async ({
             transaction,
             cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const ctx = {
               transaction,
@@ -30,6 +32,7 @@ export const attemptBillingPeriodTransitionTask = task({
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
             const billingPeriod = (
               await selectBillingPeriodById(
@@ -50,7 +53,13 @@ export const attemptBillingPeriodTransitionTask = task({
         const { billingRun } = result.unwrap()
 
         if (billingRun) {
-          await executeBillingRun(billingRun.id)
+          const billingRunResult = await executeBillingRun(
+            billingRun.id
+          )
+          // Throw on error to trigger Trigger.dev retry
+          if (Result.isError(billingRunResult)) {
+            throw billingRunResult.error
+          }
         }
 
         await storeTelemetry(

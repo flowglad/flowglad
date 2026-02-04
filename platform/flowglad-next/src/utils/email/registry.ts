@@ -544,7 +544,7 @@ export const EMAIL_REGISTRY: {
       return mod.CustomerBillingPortalMagicLinkEmail
     },
     defaultSubject: (props) =>
-      `Sign in to your ${props.organizationName} billing portal`,
+      `Log in to your ${props.organizationName} billing portal`,
     recipientType: 'customer',
     category: 'auth',
     description: 'Magic link for customer billing portal access',

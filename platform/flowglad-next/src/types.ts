@@ -184,6 +184,8 @@ export type LogData = Record<string, any>
 export type LoggerData = LogData & {
   service?: ServiceContext
   apiEnvironment?: ApiEnvironment
+  /** Sentry event ID for correlating logs with Sentry errors */
+  sentry_event_id?: string
 }
 
 export enum SubscriptionCancellationArrangement {

@@ -36,7 +36,7 @@ import {
   setupSubscription,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import db from '@/db/client'
 import {
@@ -196,7 +196,7 @@ describe('Customer Role RLS Policies', () => {
 
     // Setup users
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         userA = await insertUser(
           {
@@ -249,7 +249,7 @@ describe('Customer Role RLS Policies', () => {
     })
     // Update with userId
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         customerA_Org1 = await updateCustomer(
           {
@@ -269,7 +269,7 @@ describe('Customer Role RLS Policies', () => {
       livemode: true,
     })
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         customerB_Org1 = await updateCustomer(
           {
@@ -300,7 +300,7 @@ describe('Customer Role RLS Policies', () => {
       livemode: true,
     })
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         customerA_Org2 = await updateCustomer(
           {
@@ -320,7 +320,7 @@ describe('Customer Role RLS Policies', () => {
       livemode: true,
     })
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         customerD_Org2 = await updateCustomer(
           {
@@ -668,7 +668,7 @@ describe('Customer Role RLS Policies', () => {
 
       // Verify customerB's name is unchanged using admin transaction
       const verifyCustomerB = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           return Result.ok(
             await (
@@ -707,7 +707,7 @@ describe('Customer Role RLS Policies', () => {
 
       // Verify subscription is still active using admin transaction
       const verifySubscription = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           return Result.ok(
             await (
@@ -972,7 +972,7 @@ describe('Customer Role RLS Policies', () => {
 
       // Create user for the empty customer
       const emptyUser = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const user = await insertUser(
             {
@@ -1053,7 +1053,7 @@ describe('Customer Role RLS Policies', () => {
 
       // Associate customerA with PM A
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateCustomer(
             { id: customerA_Org1.id, pricingModelId: pmA.id },
@@ -1102,7 +1102,7 @@ describe('Customer Role RLS Policies', () => {
       })
 
       const differentPmUser = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const user = await insertUser(
             {
@@ -1272,7 +1272,7 @@ describe('Customer Role RLS Policies', () => {
     beforeEach(async () => {
       // Setup pricing models for testing (use testmode to avoid livemode uniqueness constraint)
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           pricingModelA = await insertPricingModel(
             {
@@ -1476,7 +1476,7 @@ describe('Customer Role RLS Policies', () => {
 
       // Refresh the customer objects AFTER the admin transaction commits
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           customerA_Org1 = (
             await selectCustomerById(customerA_Org1.id, transaction)
@@ -1651,7 +1651,7 @@ describe('Customer Role RLS Policies', () => {
       it('should prevent customer from creating checkout session for customer in another organization sharing same user id', async () => {
         // First, update customerA_Org2 to share the same userId as customerA_Org1
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             await updateCustomer(
               {
@@ -1794,7 +1794,7 @@ describe('Customer Role RLS Policies', () => {
       it('should prevent checkout with price from inactive product', async () => {
         // Create a price for the inactive product
         const priceForInactiveProduct = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await insertPrice(
@@ -1899,7 +1899,7 @@ describe('Customer Role RLS Policies', () => {
       it('should prevent checkout when both product and price are inactive', async () => {
         // Create an inactive price for inactive product
         const bothInactive = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await insertPrice(
@@ -2056,7 +2056,7 @@ describe('Customer Role RLS Policies', () => {
     it('should handle archived customers correctly', async () => {
       // Archive customerA using admin transaction
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateCustomer(
             { id: customerA_Org1.id, archived: true },
@@ -2099,7 +2099,7 @@ describe('Customer Role RLS Policies', () => {
 
       // Restore archived status for cleanup
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           await updateCustomer(
             { id: customerA_Org1.id, archived: false },

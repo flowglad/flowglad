@@ -235,6 +235,7 @@ export const createSecretApiKey = async (
   params: StandardCreateApiKeyParams
 ): Promise<CreateApiKeyResult> => {
   if (params.type !== FlowgladApiKeyType.Secret) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new Error(
       'createSecretApiKey: Only secret keys are supported at this time. Received type: ' +
         params.type
@@ -285,6 +286,7 @@ export const replaceSecretApiKey = async (
   shownOnlyOnceKey: string
 }> => {
   if (params.oldApiKey.type !== FlowgladApiKeyType.Secret) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new Error('Can only replace secret API keys')
   }
 
@@ -308,6 +310,7 @@ export const deleteApiKey = async (keyId: string) => {
 export const parseUnkeyMeta =
   (rawUnkeyMeta?: {}): ApiKey.ApiKeyMetadata => {
     if (!rawUnkeyMeta) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new Error('No unkey metadata provided')
     }
 
@@ -327,6 +330,7 @@ export const parseUnkeyMeta =
       FlowgladApiKeyType.CliSession,
     ]
     if (metaType && !validTypes.includes(metaType)) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new Error(
         `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${validTypes.join(' or ')}`
       )
@@ -334,6 +338,7 @@ export const parseUnkeyMeta =
 
     // If there's an explicit type and it failed validation, don't fallback
     if (metaType) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new Error('Invalid unkey metadata')
     }
 
@@ -346,5 +351,6 @@ export const parseUnkeyMeta =
       return secondUnkeyMetaResult.data
     }
 
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new Error('Invalid unkey metadata')
   }

@@ -42,7 +42,7 @@ import {
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutFlowType } from '@/types'
 import {
@@ -246,7 +246,7 @@ describe('checkoutHelpers', () => {
       const { organization, product, price, customer, session } =
         await makeSession()
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await checkoutInfoForCheckoutSession(
             session.id,
             transaction
@@ -263,7 +263,7 @@ describe('checkoutHelpers', () => {
     it('valid session without customer → includes product/price/org and no customer', async () => {
       const { organization, product, price } = await makeSession()
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const noCustomerSessionResult = await insertCheckoutSession(
             {
               status: CheckoutSessionStatus.Open,
@@ -311,7 +311,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCheckoutSession(
             { ...session, discountId: discount.id },
             transaction
@@ -342,7 +342,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await checkoutInfoForCheckoutSession(
             session.id,
             transaction
@@ -368,7 +368,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await checkoutInfoForCheckoutSession(
             session.id,
             transaction
@@ -411,7 +411,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await checkoutInfoForCheckoutSession(
             session.id,
             transaction
@@ -431,7 +431,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
             transaction
@@ -477,7 +477,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
             transaction
@@ -524,7 +524,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
             transaction
@@ -592,7 +592,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
             transaction
@@ -639,7 +639,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await hasCustomerUsedTrial(
             customer.id,
             transaction
@@ -676,7 +676,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateTrialEligibility(
             price,
             customer,
@@ -711,7 +711,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateTrialEligibility(
             price,
             null,
@@ -758,7 +758,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateTrialEligibility(
             price,
             customer,
@@ -818,7 +818,7 @@ describe('checkoutHelpers', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Check eligibility for a different price
           const result = await calculateTrialEligibility(
             price2,

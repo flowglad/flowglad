@@ -9,7 +9,7 @@ import {
 import type { Organization } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { hashData } from '@/utils/backendCore'
 import type {
   SetupPricingModelInput,
@@ -102,7 +102,7 @@ describe('externalIdFromProductData', () => {
 
 describe('setupPricingModelTransaction (integration)', () => {
   it('returns error if input validation fails', async () => {
-    const result = await adminTransactionWithResult(async (ctx) => {
+    const result = await adminTransaction(async (ctx) => {
       return setupPricingModelTransaction(
         {
           // @ts-expect-error - Intentionally providing invalid input to test validation
@@ -163,7 +163,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     }
     {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await setupPricingModelTransaction(
               {
@@ -262,7 +262,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     }
 
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         return Result.ok(
           await (
             await setupPricingModelTransaction(
@@ -350,7 +350,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -395,7 +395,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -456,7 +456,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -538,7 +538,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
       {
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             return Result.ok(
               await setupPricingModelTransaction(
                 {
@@ -598,7 +598,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
       {
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             return Result.ok(
               await setupPricingModelTransaction(
                 {
@@ -658,7 +658,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
       {
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             return Result.ok(
               await setupPricingModelTransaction(
                 {
@@ -694,7 +694,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
       {
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             return Result.ok(
               await setupPricingModelTransaction(
                 {
@@ -727,7 +727,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
       {
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             return Result.ok(
               await setupPricingModelTransaction(
                 {
@@ -787,7 +787,7 @@ describe('setupPricingModelTransaction (integration)', () => {
 
       {
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             return Result.ok(
               await setupPricingModelTransaction(
                 {
@@ -830,7 +830,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -876,7 +876,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -928,7 +928,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -979,7 +979,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -1035,7 +1035,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(
@@ -1099,7 +1099,7 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           return Result.ok(
             await (
               await setupPricingModelTransaction(

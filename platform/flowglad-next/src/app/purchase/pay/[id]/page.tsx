@@ -3,7 +3,7 @@ import { Result } from 'better-result'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutPage from '@/components/CheckoutPage'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
@@ -22,7 +22,7 @@ const PayPurchasePage = async ({
 }) => {
   const { id } = await params
   const rawContextValues = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const result = await selectPurchaseCheckoutParametersById(
         id,
         transaction

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import type { Membership } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
+import { Result } from 'better-result'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -25,19 +26,23 @@ describe('selectFocusedMembershipAndOrganizationAndPricingModel', () => {
     membership = await setupMemberships({
       organizationId: organization.id,
       focusedPricingModelId: pricingModel.id,
-      focused: true,
     })
     userId = membership.userId
   })
 
   it('returns the membership, organization, and pricing model when user has a focused membership with focusedPricingModelId', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectFocusedMembershipAndOrganizationAndPricingModel(
-        userId,
-        transaction
-      )
-    })
+    const txResult = await adminTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectFocusedMembershipAndOrganizationAndPricingModel(
+            userId,
+            transaction
+          )
+        return Result.ok(data)
+      }
+    )
 
+    const result = txResult.unwrap()
     if (!result) {
       throw new Error('Expected result to be defined')
     }
@@ -66,15 +71,21 @@ describe('selectFocusedMembershipAndOrganizationAndPricingModel', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectFocusedMembershipAndOrganizationAndPricingModel(
-        userId,
-        transaction
-      )
-    })
+    const txResult = await adminTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectFocusedMembershipAndOrganizationAndPricingModel(
+            userId,
+            transaction
+          )
+        return Result.ok(data)
+      }
+    )
 
+    const result = txResult.unwrap()
     if (!result) {
       throw new Error('Expected result to be defined')
     }
@@ -92,26 +103,37 @@ describe('selectFocusedMembershipAndOrganizationAndPricingModel', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectFocusedMembershipAndOrganizationAndPricingModel(
-        userId,
-        transaction
-      )
-    })
+    const txResult = await adminTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectFocusedMembershipAndOrganizationAndPricingModel(
+            userId,
+            transaction
+          )
+        return Result.ok(data)
+      }
+    )
 
+    const result = txResult.unwrap()
     expect(result).toBeUndefined()
   })
 
   it('returns undefined when user does not exist', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectFocusedMembershipAndOrganizationAndPricingModel(
-        'non-existent-user-id',
-        transaction
-      )
-    })
+    const txResult = await adminTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectFocusedMembershipAndOrganizationAndPricingModel(
+            'non-existent-user-id',
+            transaction
+          )
+        return Result.ok(data)
+      }
+    )
 
+    const result = txResult.unwrap()
     expect(result).toBeUndefined()
   })
 
@@ -121,30 +143,41 @@ describe('selectFocusedMembershipAndOrganizationAndPricingModel', () => {
       await updateMembership(
         {
           id: membership.id,
-          deactivatedAt: new Date(),
+          deactivatedAt: Date.now(),
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectFocusedMembershipAndOrganizationAndPricingModel(
-        userId,
-        transaction
-      )
-    })
+    const txResult = await adminTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectFocusedMembershipAndOrganizationAndPricingModel(
+            userId,
+            transaction
+          )
+        return Result.ok(data)
+      }
+    )
 
+    const result = txResult.unwrap()
     expect(result).toBeUndefined()
   })
 
   it('returns correctly parsed schema objects for membership, organization, and pricingModel', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectFocusedMembershipAndOrganizationAndPricingModel(
-        userId,
-        transaction
-      )
-    })
+    const txResult = await adminTransaction(
+      async ({ transaction }) => {
+        const data =
+          await selectFocusedMembershipAndOrganizationAndPricingModel(
+            userId,
+            transaction
+          )
+        return Result.ok(data)
+      }
+    )
 
+    const result = txResult.unwrap()
     if (!result) {
       throw new Error('Expected result to be defined')
     }

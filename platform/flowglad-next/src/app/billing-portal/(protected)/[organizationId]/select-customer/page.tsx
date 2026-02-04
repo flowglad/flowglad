@@ -5,13 +5,14 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { CustomerSelector } from '@/registry/base/customer-selector/customer-selector'
-import { useSession } from '@/utils/authClient'
+import { useCustomerSession } from '@/utils/authClient'
 
 export default function SelectCustomerPage() {
   const router = useRouter()
   const params = useParams<{ organizationId: string }>()
   const { organizationId } = params
-  const { data: session, isPending: isSessionLoading } = useSession()
+  const { data: session, isPending: isSessionLoading } =
+    useCustomerSession()
 
   // Fetch customers for the logged-in user
   const {

@@ -4,7 +4,7 @@ import type { Payment } from '@db-core/schema/payments'
 import type { Purchase } from '@db-core/schema/purchases'
 import { Result } from 'better-result'
 import type { NextRequest } from 'next/server'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
@@ -50,7 +50,7 @@ const processPaymentIntent = async ({
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
   }
   const { payment, purchase, invoice, checkoutSession } = (
-    await adminTransactionWithResult(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       const paymentResult = await processPaymentIntentStatusUpdated(
         paymentIntent,
@@ -136,7 +136,7 @@ const processCheckoutSession = async ({
   request,
 }: ProcessCheckoutSessionParams): Promise<ProcessCheckoutSessionResult> => {
   const result = (
-    await adminTransactionWithResult(async (params) => {
+    await adminTransaction(async (params) => {
       const { transaction } = params
       const [checkoutSession] = await selectCheckoutSessions(
         {
@@ -158,6 +158,7 @@ const processCheckoutSession = async ({
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,
+          enqueueTriggerTask: params.enqueueTriggerTask,
         })
       return Result.ok({
         checkoutSession,
@@ -205,7 +206,7 @@ const processSetupIntent = async ({
     throw new Error(`Setup intent not found: ${setupIntentId}`)
   }
   const setupSucceededResult = (
-    await adminTransactionWithResult(async (ctx) => {
+    await adminTransaction(async (ctx) => {
       return processSetupIntentSucceeded(setupIntent, ctx)
     })
   ).unwrap()
@@ -216,7 +217,10 @@ const processSetupIntent = async ({
     setupSucceededResult.billingRun?.id
   ) {
     const { billingRun } = setupSucceededResult
-    await executeBillingRun(billingRun.id)
+    const billingRunResult = await executeBillingRun(billingRun.id)
+    if (Result.isError(billingRunResult)) {
+      throw billingRunResult.error
+    }
   }
 
   const url = checkoutSession.successUrl
@@ -311,7 +315,7 @@ export const GET = async (request: NextRequest) => {
     if (purchase) {
       const priceId = purchase.priceId
       const { product } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Usage prices have null productId, causing innerJoin to return empty array
           const results =
             await selectPriceProductAndOrganizationByPriceWhere(

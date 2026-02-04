@@ -11,6 +11,9 @@ node_modules
 .env.test
 .env.test.local
 
+# Playground development logs
+.playground-logs/
+
 .yalc/
 yalc.lock
 

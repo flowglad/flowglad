@@ -12,7 +12,7 @@ import { Result } from 'better-result'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, panic } from '@/errors'
 import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '../tableMethods/ledgerAccountMethods'
 import type {
   CreditGrantRecognizedLedgerCommand,
@@ -33,10 +33,28 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     initiatingSourceId: command.payload.usageCredit.id,
     subscriptionId: command.subscriptionId!,
   }
-  const insertedLedgerTransaction = await insertLedgerTransaction(
-    ledgerTransactionInput,
-    transaction
-  )
+  let insertedLedgerTransaction: Awaited<
+    ReturnType<typeof insertLedgerTransaction>
+  >
+  try {
+    insertedLedgerTransaction = await insertLedgerTransaction(
+      ledgerTransactionInput,
+      transaction
+    )
+  } catch (error) {
+    // If subscription not found, convert to Result error
+    if (
+      error instanceof Error &&
+      error.message.includes('No subscriptions found')
+    ) {
+      return Result.err(
+        new NotFoundError('subscriptions', command.subscriptionId!)
+      )
+    }
+    panic(
+      `Unexpected error inserting ledger transaction: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
 
   if (!insertedLedgerTransaction || !insertedLedgerTransaction.id) {
     return Result.err(
@@ -59,7 +77,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
 
   // Find or create ledger account for this subscription and usage meter
   // This handles the case where a customer on a free plan doesn't have ledger accounts yet
-  const [ledgerAccount] =
+  const ledgerAccountsResult =
     await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
       {
         subscriptionId: command.subscriptionId!,
@@ -67,6 +85,13 @@ export const processCreditGrantRecognizedLedgerCommand = async (
       },
       transaction
     )
+  if (Result.isError(ledgerAccountsResult)) {
+    const err = ledgerAccountsResult.error
+    return Result.err(
+      new NotFoundError(err.resourceType, String(err.resourceId))
+    )
+  }
+  const [ledgerAccount] = ledgerAccountsResult.unwrap()
   if (!ledgerAccount) {
     return Result.err(
       new NotFoundError(

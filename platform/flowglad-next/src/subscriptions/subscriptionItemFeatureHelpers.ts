@@ -50,7 +50,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, panic } from '@/errors'
 import { CacheDependency } from '@/utils/cache'
 
 /**
@@ -275,9 +275,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
         }
       }
       default:
-        throw new Error(
-          `Unknown feature type encountered: ${feature}`
-        )
+        panic(`Unknown feature type encountered: ${feature}`)
     }
   }
 
@@ -370,7 +368,7 @@ const ensureSubscriptionItemIsActive = (
   subscriptionItem: SubscriptionItem.Record
 ) => {
   if (subscriptionItem.expiredAt !== null) {
-    throw new Error(
+    panic(
       `Subscription item ${subscriptionItem.id} is expired and cannot accept new features.`
     )
   }
@@ -378,7 +376,7 @@ const ensureSubscriptionItemIsActive = (
 
 const ensureFeatureIsEligible = (feature: Feature.Record) => {
   if (!feature.active) {
-    throw new Error(
+    panic(
       `Feature ${feature.id} is inactive and cannot be added to subscriptions.`
     )
   }
@@ -394,19 +392,17 @@ const ensureOrganizationAndLivemodeMatch = ({
   feature: Feature.Record
 }) => {
   if (subscription.organizationId !== feature.organizationId) {
-    throw new Error(
+    panic(
       `Feature ${feature.id} does not belong to the same organization as subscription ${subscription.id}.`
     )
   }
   if (subscriptionItem.livemode !== feature.livemode) {
-    throw new Error(
+    panic(
       'Feature livemode does not match subscription item livemode.'
     )
   }
   if (subscription.livemode !== feature.livemode) {
-    throw new Error(
-      'Feature livemode does not match subscription livemode.'
-    )
+    panic('Feature livemode does not match subscription livemode.')
   }
 }
 
@@ -433,13 +429,13 @@ const ensureFeatureBelongsToCustomerPricingModel = async ({
     )
 
     if (defaultPricingModels.length === 0) {
-      throw new Error(
+      panic(
         `No default pricing model found for organization ${customer.organizationId}`
       )
     }
 
     if (defaultPricingModels.length > 1) {
-      throw new Error(
+      panic(
         `Multiple default pricing models found for organization ${customer.organizationId}`
       )
     }
@@ -448,7 +444,7 @@ const ensureFeatureBelongsToCustomerPricingModel = async ({
   }
 
   if (customerPricingModelId !== feature.pricingModelId) {
-    throw new Error(
+    panic(
       `Feature ${feature.id} does not belong to the same pricing model as customer ${customer.id}.`
     )
   }
@@ -486,7 +482,7 @@ const grantImmediateUsageCredits = async (
   const { transaction, enqueueLedgerCommand } = ctx
   const usageMeterId = subscriptionItemFeature.usageMeterId
   if (!usageMeterId) {
-    throw new Error(
+    panic(
       `Subscription item feature ${subscriptionItemFeature.id} is missing usage meter for immediate credit grant.`
     )
   }
@@ -622,7 +618,7 @@ const findOrCreateManualSubscriptionItem = async (
   )
 
   if (existingManualItems.length === 0) {
-    throw new Error(
+    panic(
       `Failed to find or create manual subscription item for subscription ${subscriptionId}`
     )
   }
@@ -695,7 +691,7 @@ export const addFeatureToSubscriptionItem = async (
       grantCreditsImmediately &&
       feature.type !== FeatureType.UsageCreditGrant
     ) {
-      throw new Error(
+      panic(
         'grantCreditsImmediately is only supported for usage credit features.'
       )
     }
@@ -755,7 +751,7 @@ export const addFeatureToSubscriptionItem = async (
           transaction
         )
         if (!existingToggle) {
-          throw new Error(
+          panic(
             `Failed to upsert toggle feature ${feature.id} for subscription item ${manualSubscriptionItem.id}.`
           )
         }
@@ -782,7 +778,7 @@ export const addFeatureToSubscriptionItem = async (
         if (
           existingUsageFeature.type !== FeatureType.UsageCreditGrant
         ) {
-          throw new Error(
+          panic(
             `Existing feature ${existingUsageFeature.id} is not a usage credit grant.`
           )
         }
@@ -813,7 +809,7 @@ export const addFeatureToSubscriptionItem = async (
       grantCreditsImmediately
     ) {
       if (!usageFeatureInsert) {
-        throw new Error(
+        panic(
           'Missing usage feature insert data for immediate credit grant.'
         )
       }

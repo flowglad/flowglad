@@ -5,10 +5,10 @@ describe('middlewareLogic - public routes coverage', () => {
   describe('authentication routes', () => {
     it('should allow access to /mcp without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/mcp',
-        customerBillingPortalOrganizationId: null,
         req: { nextUrl: 'https://example.com/mcp' },
       })
       expect(result.proceed).toBe(true)
@@ -16,10 +16,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to /billing-portal/org/sign-in without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/billing-portal/org_123/sign-in',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
             'https://example.com/billing-portal/org_123/sign-in',
@@ -36,10 +36,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -54,10 +54,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -73,10 +73,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -87,10 +87,10 @@ describe('middlewareLogic - public routes coverage', () => {
   describe('API and webhook routes', () => {
     it('should allow access to /api/ping without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/api/ping',
-        customerBillingPortalOrganizationId: null,
         req: { nextUrl: 'https://example.com/api/ping' },
       })
       expect(result.proceed).toBe(true)
@@ -104,10 +104,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -122,10 +122,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -134,10 +134,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to /api/testimonial-sets without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/api/testimonial-sets/abc123',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl: 'https://example.com/api/testimonial-sets/abc123',
         },
@@ -153,10 +153,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -171,10 +171,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -185,10 +185,10 @@ describe('middlewareLogic - public routes coverage', () => {
       const paths = ['/api/ai', '/api/ai/chat', '/api/ai/completion']
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -197,10 +197,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to /api/openapi without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/api/openapi',
-        customerBillingPortalOrganizationId: null,
         req: { nextUrl: 'https://example.com/api/openapi' },
       })
       expect(result.proceed).toBe(true)
@@ -210,10 +210,10 @@ describe('middlewareLogic - public routes coverage', () => {
   describe('purchase and checkout routes', () => {
     it('should allow access to product purchase pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/product/premium-plan/purchase',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
             'https://example.com/product/premium-plan/purchase',
@@ -224,10 +224,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to purchase payment pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/purchase/pay/session_123',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl: 'https://example.com/purchase/pay/session_123',
         },
@@ -237,10 +237,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to /purchase/post-payment without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/purchase/post-payment',
-        customerBillingPortalOrganizationId: null,
         req: { nextUrl: 'https://example.com/purchase/post-payment' },
       })
       expect(result.proceed).toBe(true)
@@ -248,10 +248,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to purchase verify pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/purchase/verify/token_abc123',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl: 'https://example.com/purchase/verify/token_abc123',
         },
@@ -261,10 +261,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to purchase access pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/purchase/access/resource_123',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl: 'https://example.com/purchase/access/resource_123',
         },
@@ -274,10 +274,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to product post-purchase pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/product/premium/post-purchase/success',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
             'https://example.com/product/premium/post-purchase/success',
@@ -294,10 +294,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -306,10 +306,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to add-payment-method pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/add-payment-method/session_123',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
             'https://example.com/add-payment-method/session_123',
@@ -320,10 +320,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to price purchase pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/price/price_123/purchase',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl: 'https://example.com/price/price_123/purchase',
         },
@@ -341,10 +341,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -353,10 +353,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to customerBillingPortal.requestMagicLink without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/api/trpc/customerBillingPortal.requestMagicLink',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
             'https://example.com/api/trpc/customerBillingPortal.requestMagicLink',
@@ -373,10 +373,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -385,10 +385,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to purchases.requestAccess without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/api/trpc/purchases.requestAccess',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl:
             'https://example.com/api/trpc/purchases.requestAccess',
@@ -404,10 +404,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -424,10 +424,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -436,10 +436,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to /invite-discord without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/invite-discord',
-        customerBillingPortalOrganizationId: null,
         req: { nextUrl: 'https://example.com/invite-discord' },
       })
       expect(result.proceed).toBe(true)
@@ -453,10 +453,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -465,10 +465,10 @@ describe('middlewareLogic - public routes coverage', () => {
 
     it('should allow access to invoice view pages without session', () => {
       const result = middlewareLogic({
-        sessionCookie: null,
+        merchantSessionCookie: null,
+        customerSessionCookie: null,
         isProtectedRoute: false,
         pathName: '/invoice/view/inv_123456',
-        customerBillingPortalOrganizationId: null,
         req: {
           nextUrl: 'https://example.com/invoice/view/inv_123456',
         },
@@ -484,10 +484,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -499,10 +499,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)
@@ -516,10 +516,10 @@ describe('middlewareLogic - public routes coverage', () => {
       ]
       paths.forEach((path) => {
         const result = middlewareLogic({
-          sessionCookie: null,
+          merchantSessionCookie: null,
+          customerSessionCookie: null,
           isProtectedRoute: false,
           pathName: path,
-          customerBillingPortalOrganizationId: null,
           req: { nextUrl: `https://example.com${path}` },
         })
         expect(result.proceed).toBe(true)

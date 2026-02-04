@@ -39,7 +39,7 @@ import {
   setupPurchase,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
@@ -209,7 +209,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -224,7 +224,7 @@ describe('Subscription Upgrade with Proration', () => {
 
       // Get the new subscription
       const subscriptions = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptions(
               { customerId: customer.id },
@@ -271,7 +271,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -286,7 +286,7 @@ describe('Subscription Upgrade with Proration', () => {
 
       // Get billing period items
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -302,7 +302,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentBillingPeriodForSubscription(
               paidSubscription!.id,
@@ -313,7 +313,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriodItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingPeriodItems(
               { billingPeriodId: billingPeriod!.id },
@@ -338,7 +338,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -352,7 +352,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -368,7 +368,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentBillingPeriodForSubscription(
               paidSubscription!.id,
@@ -379,7 +379,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriodItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingPeriodItems(
               { billingPeriodId: billingPeriod!.id },
@@ -464,7 +464,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -478,7 +478,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -516,7 +516,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -530,7 +530,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -572,7 +572,7 @@ describe('Subscription Upgrade with Proration', () => {
 
       // Update the free subscription in the database
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
@@ -612,7 +612,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -626,7 +626,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -642,7 +642,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentBillingPeriodForSubscription(
               paidSubscription!.id,
@@ -653,7 +653,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriodItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingPeriodItems(
               { billingPeriodId: billingPeriod!.id },
@@ -700,7 +700,7 @@ describe('Subscription Upgrade with Proration', () => {
 
       // Update the free subscription in the database
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: freeSubscription.id,
@@ -743,7 +743,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -757,7 +757,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -773,7 +773,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentBillingPeriodForSubscription(
               paidSubscription!.id,
@@ -784,7 +784,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriodItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingPeriodItems(
               { billingPeriodId: billingPeriod!.id },
@@ -858,7 +858,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -872,7 +872,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -888,7 +888,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentBillingPeriodForSubscription(
               paidSubscription!.id,
@@ -899,7 +899,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriodItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingPeriodItems(
               { billingPeriodId: billingPeriod!.id },
@@ -973,7 +973,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -987,7 +987,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -1003,7 +1003,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentBillingPeriodForSubscription(
               paidSubscription!.id,
@@ -1014,7 +1014,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriodItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingPeriodItems(
               { billingPeriodId: billingPeriod!.id },
@@ -1099,7 +1099,7 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -1113,7 +1113,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const paidSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -1129,7 +1129,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectCurrentBillingPeriodForSubscription(
               paidSubscription!.id,
@@ -1140,7 +1140,7 @@ describe('Subscription Upgrade with Proration', () => {
       ).unwrap()
 
       const billingPeriodItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectBillingPeriodItems(
               { billingPeriodId: billingPeriod!.id },

@@ -4,6 +4,7 @@ import { resourceClaims } from '@db-core/schema/resourceClaims'
 import type { Resource } from '@db-core/schema/resources'
 import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
 import { metadataSchema } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import * as core from 'nanoid'
 import { z } from 'zod'
@@ -27,6 +28,7 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
+import { CapacityExceededError, panic } from '@/errors'
 
 // ============================================================================
 // Input Schemas
@@ -294,20 +296,20 @@ const resolveSubscription = async (
     ).unwrap()
 
     if (!subscription) {
-      throw new Error(
+      panic(
         `Subscription with id "${params.subscriptionId}" not found`
       )
     }
 
     // Validate ownership - subscription must belong to the specified organization and customer
     if (subscription.organizationId !== params.organizationId) {
-      throw new Error(
+      panic(
         `Subscription "${params.subscriptionId}" does not belong to organization "${params.organizationId}"`
       )
     }
 
     if (subscription.customerId !== params.customerId) {
-      throw new Error(
+      panic(
         `Subscription "${params.subscriptionId}" does not belong to customer "${params.customerId}"`
       )
     }
@@ -330,13 +332,13 @@ const resolveSubscription = async (
   )
 
   if (activeSubscriptions.length === 0) {
-    throw new Error(
+    panic(
       'No active subscription found. Please provide a subscriptionId.'
     )
   }
 
   if (activeSubscriptions.length > 1) {
-    throw new Error(
+    panic(
       `Multiple active subscriptions found (${activeSubscriptions.length}). ` +
         'Please provide a subscriptionId to specify which subscription to use.'
     )
@@ -366,7 +368,7 @@ const findResourceBySlug = async (
   )
 
   if (!resource) {
-    throw new Error(
+    panic(
       `Resource with slug "${params.resourceSlug}" not found in pricing model`
     )
   }
@@ -729,7 +731,9 @@ const insertClaimsWithOptimisticLock = async (
     }>
   },
   transaction: DbTransaction
-): Promise<{ success: boolean; claims: ResourceClaim.Record[] }> => {
+): Promise<
+  Result<{ claims: ResourceClaim.Record[] }, CapacityExceededError>
+> => {
   const {
     subscriptionId,
     resourceId,
@@ -740,7 +744,7 @@ const insertClaimsWithOptimisticLock = async (
   } = params
 
   if (claimsToInsert.length === 0) {
-    return { success: true, claims: [] }
+    return Result.ok({ claims: [] })
   }
 
   for (
@@ -763,8 +767,8 @@ const insertClaimsWithOptimisticLock = async (
     const available = totalCapacity - currentCount
 
     if (requested > available) {
-      throw new Error(
-        `No available capacity. Requested: ${requested}, Available: ${available}, Capacity: ${totalCapacity}`
+      return Result.err(
+        new CapacityExceededError(requested, available, totalCapacity)
       )
     }
 
@@ -847,7 +851,7 @@ const insertClaimsWithOptimisticLock = async (
     // 4. Check if all claims were inserted (atomic - all or nothing)
     if (rows.length === claimsToInsert.length) {
       const insertedClaims = rows.map(transformRawRowToRecord)
-      return { success: true, claims: insertedClaims }
+      return Result.ok({ claims: insertedClaims })
     }
 
     // 5. Conflict detected - count changed, nothing was inserted, retry
@@ -859,7 +863,7 @@ const insertClaimsWithOptimisticLock = async (
     }
   }
 
-  throw new Error(
+  panic(
     'Max retries exceeded due to concurrent modifications to resource claims'
   )
 }
@@ -918,7 +922,7 @@ export interface ClaimResourceResult {
 export async function claimResourceTransaction(
   params: ClaimResourceTransactionParams,
   transaction: DbTransaction
-): Promise<ClaimResourceResult> {
+): Promise<Result<ClaimResourceResult, CapacityExceededError>> {
   const { organizationId, customerId, input } = params
 
   // 1. Resolve subscription
@@ -933,7 +937,7 @@ export async function claimResourceTransaction(
 
   // 2. Validate subscription is not in terminal state
   if (isSubscriptionInTerminalState(subscription.status)) {
-    throw new Error(
+    panic(
       `Cannot claim resources: Subscription ${subscription.id} is not active (status: ${subscription.status})`
     )
   }
@@ -959,7 +963,7 @@ export async function claimResourceTransaction(
     )
 
   if (featureIds.length === 0) {
-    throw new Error(
+    panic(
       `No Resource feature found for resource ${resource.id} in subscription ${subscription.id}`
     )
   }
@@ -996,14 +1000,14 @@ export async function claimResourceTransaction(
         resource.id,
         transaction
       )
-      return {
+      return Result.ok({
         claims: [existing],
         usage: {
           resourceSlug: resource.slug,
           resourceId: resource.id,
           ...usage,
         },
-      }
+      })
     }
 
     claimsToCreate = [
@@ -1042,14 +1046,14 @@ export async function claimResourceTransaction(
         resource.id,
         transaction
       )
-      return {
+      return Result.ok({
         claims: existingClaims,
         usage: {
           resourceSlug: resource.slug,
           resourceId: resource.id,
           ...usage,
         },
-      }
+      })
     }
   }
 
@@ -1120,7 +1124,7 @@ export async function claimResourceTransaction(
 
   // 6. Insert claims using optimistic locking
   // This validates capacity and handles concurrent modifications via retry
-  const { claims: newClaims } = await insertClaimsWithOptimisticLock(
+  const insertResult = await insertClaimsWithOptimisticLock(
     {
       subscriptionId: subscription.id,
       resourceId: resource.id,
@@ -1131,6 +1135,11 @@ export async function claimResourceTransaction(
     },
     transaction
   )
+  // Propagate capacity errors to the caller
+  if (Result.isError(insertResult)) {
+    return insertResult
+  }
+  const { claims: newClaims } = insertResult.value
 
   // 7. Populate temporary claim IDs if any claims are temporary
   if (temporaryClaimsInfo) {
@@ -1177,7 +1186,7 @@ export async function claimResourceTransaction(
           }
         : undefined
 
-    return {
+    return Result.ok({
       claims: relevantClaims,
       usage: {
         resourceSlug: resource.slug,
@@ -1185,10 +1194,10 @@ export async function claimResourceTransaction(
         ...usage,
       },
       temporaryClaims: externalIdsTemporaryInfo,
-    }
+    })
   }
 
-  return {
+  return Result.ok({
     claims: newClaims,
     usage: {
       resourceSlug: resource.slug,
@@ -1199,7 +1208,7 @@ export async function claimResourceTransaction(
       temporaryClaimsInfo && temporaryClaimsInfo.claimIds.length > 0
         ? temporaryClaimsInfo
         : undefined,
-  }
+  })
 }
 
 export interface ReleaseResourceTransactionParams {
@@ -1281,7 +1290,7 @@ export async function releaseResourceTransaction(
       .sort((a, b) => a.claimedAt - b.claimedAt) // FIFO order
 
     if (anonymousClaims.length < input.quantity) {
-      throw new Error(
+      panic(
         `Cannot release ${input.quantity} anonymous claims. Only ${anonymousClaims.length} exist. ` +
           `Use claimIds to release specific claims regardless of type.`
       )
@@ -1300,7 +1309,7 @@ export async function releaseResourceTransaction(
     )
 
     if (!claim) {
-      throw new Error(
+      panic(
         `No active claim found with externalId "${input.externalId}"`
       )
     }
@@ -1323,9 +1332,7 @@ export async function releaseResourceTransaction(
       const missing = input.externalIds.find(
         (id) => !foundIds.has(id)
       )
-      throw new Error(
-        `No active claim found with externalId "${missing}"`
-      )
+      panic(`No active claim found with externalId "${missing}"`)
     }
 
     claimsToRelease = claims
@@ -1346,7 +1353,7 @@ export async function releaseResourceTransaction(
     for (const claimId of input.claimIds) {
       const claim = activeClaimsById.get(claimId)
       if (!claim) {
-        throw new Error(`No active claim found with id "${claimId}"`)
+        panic(`No active claim found with id "${claimId}"`)
       }
       claimsToRelease.push(claim)
     }

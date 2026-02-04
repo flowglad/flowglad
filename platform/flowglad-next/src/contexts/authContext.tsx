@@ -4,7 +4,10 @@ import type { User } from '@db-core/schema/users'
 import { usePathname } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { useSession } from '@/utils/authClient'
+import {
+  useCustomerSession,
+  useMerchantSession,
+} from '@/utils/authClient'
 
 export type AuthContextValues = Partial<{
   user: User.Record
@@ -33,7 +36,7 @@ export const useAuthContext = () => useContext(AuthContext)
 export const useAuthenticatedContext = () => {
   const { organization, user, setOrganization, livemode } =
     useAuthContext()
-  const session = useSession()
+  const session = useMerchantSession()
   if (!organization || !user || session.isPending) {
     return {
       authenticatedLoading: session.isPending,
@@ -72,17 +75,32 @@ const AuthProvider = ({
   const [organization, setOrganization] = useState<
     Organization.ClientRecord | undefined
   >(values.organization)
-  const session = useSession()
   const pathname = usePathname()
+
+  // Determine if this is a billing portal route
+  const isBillingPortal = pathname?.startsWith('/billing-portal')
+
+  // Use the appropriate session hook based on route type
+  const merchantSession = useMerchantSession()
+  const customerSession = useCustomerSession()
+
+  // Select the appropriate session based on route
+  const session = isBillingPortal ? customerSession : merchantSession
   const authenticated = session.data?.user?.id !== undefined
-  // Don't call getFocusedMembership during onboarding - user has no membership yet
+
+  // Don't call getFocusedMembership during onboarding or on billing portal routes
   const isOnboarding = pathname?.startsWith('/onboarding')
+  const shouldFetchMembership =
+    values.role === 'merchant' &&
+    authenticated &&
+    !isOnboarding &&
+    !isBillingPortal
+
   const {
     data: focusedMembership,
     refetch: refetchFocusedMembership,
   } = trpc.organizations.getFocusedMembership.useQuery(undefined, {
-    enabled:
-      values.role === 'merchant' && authenticated && !isOnboarding,
+    enabled: shouldFetchMembership,
   })
   /**
    * A race condition happens where sometimes the layout renders
@@ -90,14 +108,14 @@ const AuthProvider = ({
    * This gracefully recovers by refetching the focused membership
    * when the user is fetched.
    *
-   * Note: We also check !isOnboarding because refetch() executes
+   * Note: We also check shouldFetchMembership because refetch() executes
    * regardless of the query's `enabled` state.
    */
   useEffect(() => {
-    if (user && !isOnboarding) {
+    if (user && shouldFetchMembership) {
       refetchFocusedMembership()
     }
-  }, [user, isOnboarding, refetchFocusedMembership])
+  }, [user, shouldFetchMembership, refetchFocusedMembership])
 
   const focusedOrganization = focusedMembership?.organization
   useEffect(() => {

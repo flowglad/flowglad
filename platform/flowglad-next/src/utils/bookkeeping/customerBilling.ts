@@ -2,6 +2,7 @@ import { CheckoutSessionType } from '@db-core/enums'
 import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@db-core/schema/checkoutSessions'
 import type { Customer } from '@db-core/schema/customers'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -161,6 +162,7 @@ export const setDefaultPaymentMethodForCustomer = async (
     }
   } catch (error) {
     console.error('Error setting default payment method:', error)
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'INTERNAL_SERVER_ERROR',
       message: 'Failed to set default payment method',
@@ -186,6 +188,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       checkoutSessionInputResult.error.issues[0].code ===
       'invalid_union'
     ) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message:
@@ -193,6 +196,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
           rawCheckoutSessionInput.type,
       })
     }
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message:
@@ -204,6 +208,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   if (
     customer.externalId !== checkoutSessionInput.customerExternalId
   ) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:
@@ -218,18 +223,21 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     if (checkoutSessionInput.priceId) {
       resolvedPriceId = checkoutSessionInput.priceId
     } else if (checkoutSessionInput.priceSlug) {
-      const priceFromSlug = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return await selectPriceBySlugAndCustomerId(
-            {
-              slug: checkoutSessionInput.priceSlug!,
-              customerId: customer.id,
-            },
-            transaction
+      const priceFromSlug = (
+        await authenticatedTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await selectPriceBySlugAndCustomerId(
+              {
+                slug: checkoutSessionInput.priceSlug!,
+                customerId: customer.id,
+              },
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
       if (!priceFromSlug) {
+        // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`,
@@ -237,20 +245,20 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       }
       resolvedPriceId = priceFromSlug.id
     } else {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'Either priceId or priceSlug must be provided',
       })
     }
 
-    const price = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectPriceById(resolvedPriceId, transaction)
-        ).unwrap()
-      }
-    )
+    const price = (
+      await authenticatedTransaction(async ({ transaction }) => {
+        return selectPriceById(resolvedPriceId, transaction)
+      })
+    ).unwrap()
     if (!price) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'NOT_FOUND',
         message:
@@ -266,30 +274,29 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     customerId: customer.id,
   })
 
-  return await adminTransaction(async ({ transaction }) => {
-    const result = await createCheckoutSessionTransaction(
-      {
-        checkoutSessionInput: {
-          ...checkoutSessionInput,
-          successUrl: redirectUrl,
-          cancelUrl: redirectUrl,
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      return createCheckoutSessionTransaction(
+        {
+          checkoutSessionInput: {
+            ...checkoutSessionInput,
+            successUrl: redirectUrl,
+            cancelUrl: redirectUrl,
+          },
+          organizationId: customer.organizationId,
+          livemode: customer.livemode,
         },
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    )
-    if (result.status === 'error') {
-      throw result.error
-    }
-    return result.value
-  })
+        transaction
+      )
+    })
+  ).unwrap()
 }
 
 export const customerBillingCreateAddPaymentMethodSession = async (
   customer: Customer.Record
 ) => {
   if (!customer) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:
@@ -298,6 +305,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
   }
 
   if (!customer.stripeCustomerId) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:
@@ -310,23 +318,26 @@ export const customerBillingCreateAddPaymentMethodSession = async (
     customerId: customer.id,
   })
 
-  return await adminTransaction(async ({ transaction }) => {
-    const result = await createCheckoutSessionTransaction(
-      {
-        checkoutSessionInput: {
-          customerExternalId: customer.externalId,
-          successUrl: redirectUrl,
-          cancelUrl: redirectUrl,
-          type: CheckoutSessionType.AddPaymentMethod,
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      const result = await createCheckoutSessionTransaction(
+        {
+          checkoutSessionInput: {
+            customerExternalId: customer.externalId,
+            successUrl: redirectUrl,
+            cancelUrl: redirectUrl,
+            type: CheckoutSessionType.AddPaymentMethod,
+          },
+          organizationId: customer.organizationId,
+          livemode: customer.livemode,
         },
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    )
-    if (result.status === 'error') {
-      throw result.error
-    }
-    return result.value
-  })
+        transaction
+      )
+      if (result.status === 'error') {
+        // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
+        throw result.error
+      }
+      return Result.ok(result.value)
+    })
+  ).unwrap()
 }

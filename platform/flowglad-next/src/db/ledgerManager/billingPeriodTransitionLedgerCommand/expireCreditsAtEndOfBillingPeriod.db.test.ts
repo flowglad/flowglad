@@ -47,7 +47,7 @@ import {
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { expireCreditsAtEndOfBillingPeriod } from '@/db/ledgerManager/billingPeriodTransitionLedgerCommand/expireCreditsAtEndOfBillingPeriod'
 import type {
   BillingPeriodTransitionLedgerCommand,
@@ -170,7 +170,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
   it('should do nothing and return empty entries if there are no ledger accounts for the subscription', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [],
@@ -189,7 +189,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
   it('should do nothing and return empty entries if aggregateAvailableBalanceForUsageCredit returns no balances', async () => {
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [ledgerAccount1],
@@ -255,7 +255,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [ledgerAccount1],
@@ -301,7 +301,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [ledgerAccount1],
@@ -417,7 +417,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [ledgerAccount1],
@@ -468,7 +468,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [ledgerAccount1],
@@ -598,7 +598,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [ledgerAccount1],
@@ -668,7 +668,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return expireCreditsAtEndOfBillingPeriod(
           {
             ledgerAccountsForSubscription: [ledgerAccount1],

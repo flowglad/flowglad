@@ -15,6 +15,8 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
+import { Result } from 'better-result'
+import { panic } from '@/errors'
 import type { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
 import {
@@ -124,7 +126,7 @@ export const bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId =
           ledgerAccountInsert.pricingModelId ??
           pricingModelIdMap.get(ledgerAccountInsert.usageMeterId)
         if (!pricingModelId) {
-          throw new Error(
+          panic(
             `Pricing model id not found for usage meter ${ledgerAccountInsert.usageMeterId}`
           )
         }
@@ -148,9 +150,14 @@ export const findOrCreateLedgerAccountsForSubscriptionAndUsageMeters =
       usageMeterIds: string[]
     },
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    Result<
+      LedgerAccount.Record[],
+      import('@db-core/tableUtils').NotFoundError
+    >
+  > => {
     const { subscriptionId, usageMeterIds } = params
-    const ledgerAccounts = await selectLedgerAccounts(
+    const ledgerAccountsResult = await selectLedgerAccounts(
       {
         subscriptionId,
         usageMeterId: usageMeterIds,
@@ -160,17 +167,22 @@ export const findOrCreateLedgerAccountsForSubscriptionAndUsageMeters =
     const unAccountedForUsageMeterIds: string[] =
       usageMeterIds.filter(
         (usageMeterId) =>
-          !ledgerAccounts.some(
+          !ledgerAccountsResult.some(
             (ledgerAccount) =>
               ledgerAccount.usageMeterId === usageMeterId
           )
       )
     if (unAccountedForUsageMeterIds.length === 0) {
-      return ledgerAccounts
+      return Result.ok(ledgerAccountsResult)
     }
-    const subscription = (
-      await selectSubscriptionById(subscriptionId, transaction)
-    ).unwrap()
+    const subscriptionResult = await selectSubscriptionById(
+      subscriptionId,
+      transaction
+    )
+    if (Result.isError(subscriptionResult)) {
+      return subscriptionResult
+    }
+    const subscription = subscriptionResult.unwrap()
     const ledgerAccountInserts: LedgerAccount.Insert[] =
       unAccountedForUsageMeterIds.map((usageMeterId) => ({
         subscriptionId,
@@ -185,5 +197,8 @@ export const findOrCreateLedgerAccountsForSubscriptionAndUsageMeters =
         ledgerAccountInserts,
         transaction
       )
-    return [...ledgerAccounts, ...createdLedgerAccounts]
+    return Result.ok([
+      ...ledgerAccountsResult,
+      ...createdLedgerAccounts,
+    ])
   }

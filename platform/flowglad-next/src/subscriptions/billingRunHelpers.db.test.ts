@@ -60,10 +60,7 @@ import {
   setupUsageMeter,
   teardownOrg,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { type OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   selectBillingPeriodItems,
@@ -107,6 +104,7 @@ import {
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { ValidationError } from '@/errors'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import core from '@/utils/core'
 import { stripeIdFromObjectOrId } from '@/utils/stripe'
 import {
@@ -258,7 +256,7 @@ describe('billingRunHelpers', async () => {
         priceId: staticPrice.id,
       })
       const updatedBillingPeriod = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await processOutstandingBalanceForBillingPeriod(
               billingPeriod,
@@ -269,7 +267,7 @@ describe('billingRunHelpers', async () => {
         )
       ).unwrap()
       invoice = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             (
               await selectInvoiceById(invoice.id, transaction)
@@ -293,7 +291,7 @@ describe('billingRunHelpers', async () => {
         priceId: staticPrice.id,
       })
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
@@ -322,7 +320,7 @@ describe('billingRunHelpers', async () => {
   describe('Payment Intent Creation and Confirmation', () => {
     it('should create a payment intent for the correct amount', async () => {
       const { totalDueAmount } = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -351,7 +349,7 @@ describe('billingRunHelpers', async () => {
         priceId: staticPrice.id,
       })
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -367,7 +365,7 @@ describe('billingRunHelpers', async () => {
   describe('Fee Calculation and Total Due Amount', () => {
     it('should calculate the correct fee and total due amount', async () => {
       const { feeCalculation, totalDueAmount } = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -391,7 +389,7 @@ describe('billingRunHelpers', async () => {
       // Create an organization with a different default currency
       const originalOrg = await setupOrg()
       const orgWithDifferentCurrency = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await updateOrganization(
               {
@@ -405,7 +403,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -435,7 +433,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -466,7 +464,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -496,7 +494,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -523,7 +521,7 @@ describe('billingRunHelpers', async () => {
   describe('Invoice Creation and Line Items', () => {
     it('should create an invoice with the correct invoice number', async () => {
       const invoiceInsert = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await createInvoiceInsertForBillingRun(
               {
@@ -569,7 +567,7 @@ describe('billingRunHelpers', async () => {
   describe('createInvoiceInsertForBillingRun', () => {
     it('should create an invoice with the correct properties', async () => {
       const invoiceInsert = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await createInvoiceInsertForBillingRun(
               {
@@ -631,7 +629,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const invoiceInsert = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await createInvoiceInsertForBillingRun(
               {
@@ -655,7 +653,7 @@ describe('billingRunHelpers', async () => {
       const testCurrency = CurrencyCode.EUR
 
       const invoiceInsert = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await createInvoiceInsertForBillingRun(
               {
@@ -684,7 +682,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const invoiceInsert = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await createInvoiceInsertForBillingRun(
               {
@@ -715,7 +713,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const invoiceInsert = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await createInvoiceInsertForBillingRun(
               {
@@ -754,7 +752,7 @@ describe('billingRunHelpers', async () => {
 
     it('should calculate fee and total due correctly, ommitting billing period items that do not have any usage attached to them ', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -786,7 +784,7 @@ describe('billingRunHelpers', async () => {
       // Create an organization with a different default currency
       const originalOrg = await setupOrg()
       const orgWithDifferentCurrency = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await updateOrganization(
               {
@@ -800,7 +798,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -830,7 +828,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -861,7 +859,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -891,7 +889,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await calculateFeeAndTotalAmountDueForBillingPeriod(
               {
@@ -948,7 +946,7 @@ describe('billingRunHelpers', async () => {
 
     it('should schedule a billing run retry 3 days after the initial attempt', async () => {
       const retryBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await scheduleBillingRunRetry(
             billingRun,
             transaction
@@ -974,7 +972,7 @@ describe('billingRunHelpers', async () => {
         priceId: staticPrice.id,
       })
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const futureBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
@@ -1002,7 +1000,7 @@ describe('billingRunHelpers', async () => {
     it('returns ValidationError when trying to create a retry billing run for a canceled subscription', async () => {
       // Update the subscription status to canceled
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await safelyUpdateSubscriptionStatus(
               subscription,
@@ -1014,7 +1012,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       // The database-level protection should return a ValidationError
-      const result = await adminTransactionWithResult(
+      const result = await adminTransaction(
         async ({ transaction }) => {
           const innerResult = await scheduleBillingRunRetry(
             billingRun,
@@ -1038,7 +1036,7 @@ describe('billingRunHelpers', async () => {
     it('should schedule a retry billing run if the subscription is not canceled', async () => {
       // Ensure the subscription is active
       const activeSubscription = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await safelyUpdateSubscriptionStatus(
               subscription,
@@ -1050,7 +1048,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       const retryBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await scheduleBillingRunRetry(
             billingRun,
             transaction
@@ -1073,7 +1071,7 @@ describe('billingRunHelpers', async () => {
   describe('Edge Cases and Error Handling', () => {
     it('should throw an error if the customer does not have a Stripe customer ID', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             {
               id: customer.id,
@@ -1086,7 +1084,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
       await executeBillingRun(billingRun.id)
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -1100,34 +1098,20 @@ describe('billingRunHelpers', async () => {
 
     it('should throw an error if the payment method does not have a Stripe payment method ID', async () => {
       ;(
-        await adminTransactionWithResult(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            await safelyUpdatePaymentMethod(
-              {
-                id: paymentMethod.id,
-                stripePaymentMethodId: null,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache: invalidateCache!,
-                emitEvent: emitEvent!,
-                enqueueLedgerCommand: enqueueLedgerCommand!,
-              }
-            )
-            return Result.ok(undefined)
-          }
-        )
+        await adminTransaction(async (params) => {
+          await safelyUpdatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            createProcessingEffectsContext(params)
+          )
+          return Result.ok(undefined)
+        })
       ).unwrap()
       await executeBillingRun(billingRun.id)
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -1154,12 +1138,14 @@ describe('billingRunHelpers', async () => {
         subscriptionId: subscription.id,
       })
 
-      await expect(
-        executeBillingRun(testBillingRun.id)
-      ).resolves.toBeUndefined()
+      const result = await executeBillingRun(testBillingRun.id)
+      expect(Result.isOk(result)).toBe(true)
+      if (Result.isOk(result)) {
+        expect(result.value).toBeUndefined()
+      }
     }
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateBillingRun(
           {
             id: billingRun.id,
@@ -1171,9 +1157,11 @@ describe('billingRunHelpers', async () => {
       })
     ).unwrap()
 
-    await expect(
-      executeBillingRun(billingRun.id)
-    ).resolves.toBeUndefined()
+    const finalResult = await executeBillingRun(billingRun.id)
+    expect(Result.isOk(finalResult)).toBe(true)
+    if (Result.isOk(finalResult)) {
+      expect(finalResult.value).toBeUndefined()
+    }
   })
 
   // NOTE: Atomicity tests for executeBillingRun have been moved to
@@ -1184,7 +1172,7 @@ describe('billingRunHelpers', async () => {
   describe('executeBillingRunCalculationAndBookkeepingSteps', () => {
     it('should create a new invoice when none exists for the billing period', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1211,7 +1199,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1233,7 +1221,7 @@ describe('billingRunHelpers', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateBillingPeriodItem(
             {
               ...staticBillingPeriodItem,
@@ -1246,7 +1234,7 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1258,7 +1246,7 @@ describe('billingRunHelpers', async () => {
 
       // Check the billing run status after the function call
       const { updatedBillingRun } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const updatedBillingRun = (
             await selectBillingRunById(billingRun.id, transaction)
           ).unwrap()
@@ -1284,7 +1272,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1300,7 +1288,7 @@ describe('billingRunHelpers', async () => {
 
       // Check the billing run status after the function call
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -1325,7 +1313,7 @@ describe('billingRunHelpers', async () => {
 
       // Create some initial line items
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const initialLineItems =
             billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts(
               {
@@ -1346,7 +1334,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1369,7 +1357,7 @@ describe('billingRunHelpers', async () => {
 
     it('should create payment with correct properties', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1406,7 +1394,7 @@ describe('billingRunHelpers', async () => {
 
     it('copies Stripe Tax calculation fields from fee calculation onto payment (MoR)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           organization = await updateOrganization(
             {
               id: organization.id,
@@ -1420,7 +1408,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1449,7 +1437,7 @@ describe('billingRunHelpers', async () => {
 
     it('should update billing run status to AwaitingPaymentConfirmation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1461,7 +1449,7 @@ describe('billingRunHelpers', async () => {
 
       // Check the billing run status after the function call
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -1484,7 +1472,7 @@ describe('billingRunHelpers', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateBillingPeriodItem(
             {
               ...staticBillingPeriodItem,
@@ -1498,7 +1486,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1510,7 +1498,7 @@ describe('billingRunHelpers', async () => {
 
       // Check the billing run status after the function call
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -1535,7 +1523,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1555,7 +1543,7 @@ describe('billingRunHelpers', async () => {
 
     it('should create fee calculation with correct properties', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1571,7 +1559,7 @@ describe('billingRunHelpers', async () => {
 
     it('should return all expected properties in the result object', async () => {
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1597,7 +1585,7 @@ describe('billingRunHelpers', async () => {
     it('should handle nested billing details address for tax country', async () => {
       // Update payment method with nested address
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updatePaymentMethod(
             {
               id: paymentMethod.id,
@@ -1620,7 +1608,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1638,7 +1626,7 @@ describe('billingRunHelpers', async () => {
     it('should handle non-nested billing details address for tax country', async () => {
       // Update payment method with non-nested address
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updatePaymentMethod(
             {
               id: paymentMethod.id,
@@ -1662,7 +1650,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1702,7 +1690,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1720,7 +1708,7 @@ describe('billingRunHelpers', async () => {
       // Setup: Create a billing period item with a known price
       const knownPrice = 10000 // $100 in cents
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateBillingPeriodItem(
             {
               id: staticBillingPeriodItem.id,
@@ -1759,7 +1747,7 @@ describe('billingRunHelpers', async () => {
 
       // Execute the billing run
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1794,7 +1782,7 @@ describe('billingRunHelpers', async () => {
       // Setup: Create a billing period item with a known price
       const knownPrice = 10000 // $100 in cents
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateBillingPeriodItem(
             {
               id: staticBillingPeriodItem.id,
@@ -1835,7 +1823,7 @@ describe('billingRunHelpers', async () => {
 
       // Execute the billing run
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1859,7 +1847,7 @@ describe('billingRunHelpers', async () => {
 
       // Verify the billing run is marked as succeeded
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -1877,7 +1865,7 @@ describe('billingRunHelpers', async () => {
       // Setup: Create a billing period item with a known price
       const knownPrice = 10000 // $100 in cents
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateBillingPeriodItem(
             {
               id: staticBillingPeriodItem.id,
@@ -1919,7 +1907,7 @@ describe('billingRunHelpers', async () => {
       // This is the key difference from the previous test: we're verifying that
       // the amountToCharge <= 0 guard comes BEFORE Stripe ID validation
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updatePaymentMethod(
             {
               id: paymentMethod.id,
@@ -1933,7 +1921,7 @@ describe('billingRunHelpers', async () => {
 
       // Execute the billing run - should succeed, not throw
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -1951,7 +1939,7 @@ describe('billingRunHelpers', async () => {
 
       // Verify the billing run is marked as succeeded
       const updatedBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -1965,10 +1953,10 @@ describe('billingRunHelpers', async () => {
       )
     })
 
-    it('should throw an error if customer has no stripe customer ID', async () => {
+    it('should return an error if customer has no stripe customer ID', async () => {
       // Update customer to remove stripe customer ID
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
             {
               id: customer.id,
@@ -1980,24 +1968,26 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          Result.ok(
-            await executeBillingRunCalculationAndBookkeepingSteps(
-              billingRun,
-              transaction
-            )
+      const result = await adminTransaction(async ({ transaction }) =>
+        Result.ok(
+          await executeBillingRunCalculationAndBookkeepingSteps(
+            billingRun,
+            transaction
           )
         )
-      ).rejects.toThrow(
-        'Cannot run billing for a billing period with a customer that does not have a stripe customer id'
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Cannot run billing for a billing period with a customer that does not have a stripe customer id'
+        )
+      }
     })
 
-    it('should throw an error if payment method has no stripe payment method ID', async () => {
+    it('should return an error if payment method has no stripe payment method ID', async () => {
       // Update payment method to remove stripe payment method ID
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updatePaymentMethod(
             {
               id: paymentMethod.id,
@@ -2009,18 +1999,20 @@ describe('billingRunHelpers', async () => {
         })
       ).unwrap()
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          Result.ok(
-            await executeBillingRunCalculationAndBookkeepingSteps(
-              billingRun,
-              transaction
-            )
+      const result = await adminTransaction(async ({ transaction }) =>
+        Result.ok(
+          await executeBillingRunCalculationAndBookkeepingSteps(
+            billingRun,
+            transaction
           )
         )
-      ).rejects.toThrow(
-        'Cannot run billing for a billing period with a payment method that does not have a stripe payment method id'
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Cannot run billing for a billing period with a payment method that does not have a stripe payment method id'
+        )
+      }
     })
 
     it('should claim outstanding usage costs by associating them with the billing run', async () => {
@@ -2056,7 +2048,7 @@ describe('billingRunHelpers', async () => {
 
       // Verify it's picked up by tabulation
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const { rawOutstandingUsageCosts } =
             await tabulateOutstandingUsageCosts(
               subscription.id,
@@ -2069,7 +2061,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
       // 2. Action
       ;(
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -2081,7 +2073,7 @@ describe('billingRunHelpers', async () => {
 
       // 3. Assert: The ledger entry should now be "claimed" by the billing run
       const [updatedEntry] = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectLedgerEntries(
               {
@@ -2130,7 +2122,7 @@ describe('billingRunHelpers', async () => {
 
       // 3. Assert
       const finalBillingRun = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectBillingRunById(
               billingRun.id,
@@ -2140,7 +2132,7 @@ describe('billingRunHelpers', async () => {
         )
       ).unwrap()
       const finalInvoice = (
-        await adminTransactionWithResult(async ({ transaction }) =>
+        await adminTransaction(async ({ transaction }) =>
           Result.ok(
             await selectInvoices(
               { billingPeriodId: billingPeriod.id },
@@ -2318,7 +2310,7 @@ describe('billingRunHelpers', async () => {
 
     it('should return empty results when no ledger accounts are provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerAccountIds: string[] = []
 
           const result = await tabulateOutstandingUsageCosts(
@@ -2345,7 +2337,7 @@ describe('billingRunHelpers', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await tabulateOutstandingUsageCosts(
             subscription.id,
             billingPeriod.endDate,
@@ -2370,7 +2362,7 @@ describe('billingRunHelpers', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerTransaction = await setupLedgerTransaction({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -2448,7 +2440,7 @@ describe('billingRunHelpers', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const ledgerTransaction = await setupLedgerTransaction({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -2629,7 +2621,7 @@ describe('billingRunHelpers', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await tabulateOutstandingUsageCosts(
             subscription.id,
             billingPeriod.endDate,
@@ -2701,7 +2693,7 @@ describe('billingRunHelpers', async () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const billingPeriodEndDate = new Date()
           const billingPeriod = await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -3010,7 +3002,7 @@ describe('billingRunHelpers', async () => {
     it('returns ValidationError when attempting ALL billing run creation methods for canceled subscriptions', async () => {
       // Cancel the subscription
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await safelyUpdateSubscriptionStatus(
             subscription,
             SubscriptionStatus.Canceled,
@@ -3021,7 +3013,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       // Test 1: Direct safelyInsertBillingRun call should return ValidationError
-      const result1 = await adminTransactionWithResult(
+      const result1 = await adminTransaction(
         async ({ transaction }) => {
           return await safelyInsertBillingRun(
             {
@@ -3045,7 +3037,7 @@ describe('billingRunHelpers', async () => {
       }
 
       // Test 2: createBillingRun should return ValidationError
-      const result2 = await adminTransactionWithResult(
+      const result2 = await adminTransaction(
         async ({ transaction }) => {
           return await createBillingRun(
             {
@@ -3066,7 +3058,7 @@ describe('billingRunHelpers', async () => {
       }
 
       // Test 3: scheduleBillingRunRetry should return ValidationError
-      const result3 = await adminTransactionWithResult(
+      const result3 = await adminTransaction(
         async ({ transaction }) => {
           const scheduleResult = await scheduleBillingRunRetry(
             billingRun,
@@ -3092,7 +3084,7 @@ describe('billingRunHelpers', async () => {
     it('should allow billing run creation for active subscriptions', async () => {
       // Ensure subscription is active
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await safelyUpdateSubscriptionStatus(
             subscription,
             SubscriptionStatus.Active,
@@ -3103,7 +3095,7 @@ describe('billingRunHelpers', async () => {
       ).unwrap()
 
       // All billing run creation methods should work
-      const directInsertResult = await adminTransactionWithResult(
+      const directInsertResult = await adminTransaction(
         async ({ transaction }) => {
           return await safelyInsertBillingRun(
             {
@@ -3122,8 +3114,8 @@ describe('billingRunHelpers', async () => {
       const directInsert = directInsertResult.unwrap()
       expect(typeof directInsert).toBe('object')
 
-      const createBillingRunResultOuter =
-        await adminTransactionWithResult(async ({ transaction }) => {
+      const createBillingRunResultOuter = await adminTransaction(
+        async ({ transaction }) => {
           return await createBillingRun(
             {
               billingPeriod,
@@ -3132,13 +3124,14 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
+        }
+      )
       expect(Result.isOk(createBillingRunResultOuter)).toBe(true)
       const createBillingRunResult =
         createBillingRunResultOuter.unwrap()
       expect(typeof createBillingRunResult).toBe('object')
 
-      const retryResultOuter = await adminTransactionWithResult(
+      const retryResultOuter = await adminTransaction(
         async ({ transaction }) => {
           const scheduleResult = await scheduleBillingRunRetry(
             billingRun,
@@ -3205,7 +3198,7 @@ describe('billingRunHelpers', async () => {
     })
 
     it('returns ValidationError for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
-      const result = await adminTransactionWithResult(
+      const result = await adminTransaction(
         async ({ transaction }) => {
           return await safelyInsertBillingRun(
             {
@@ -3230,7 +3223,7 @@ describe('billingRunHelpers', async () => {
     })
 
     it('returns ValidationError for doNotCharge subscriptions via createBillingRun', async () => {
-      const result = await adminTransactionWithResult(
+      const result = await adminTransaction(
         async ({ transaction }) => {
           return await createBillingRun(
             {
@@ -3276,7 +3269,7 @@ describe('billingRunHelpers', async () => {
         isAdjustment: false,
       } as BillingRun.Record
 
-      const result = await adminTransactionWithResult(
+      const result = await adminTransaction(
         async ({ transaction }) => {
           const scheduleResult = await scheduleBillingRunRetry(
             mockBillingRunForRetry,
@@ -3406,7 +3399,7 @@ describe('billingRunHelpers', async () => {
         pricingModelId: pricingModel.id,
       }) as BillingRun.Insert & { pricingModelId: string }
       billingRun = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [inserted] = await transaction
             .insert(billingRuns)
             .values(billingRunInsert)
@@ -3461,7 +3454,7 @@ describe('billingRunHelpers', async () => {
       })
 
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await executeBillingRunCalculationAndBookkeepingSteps(
               billingRun,
@@ -3476,7 +3469,7 @@ describe('billingRunHelpers', async () => {
 
       // Verify invoice line items don't include usage items
       const invoiceLineItems = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectInvoiceLineItems(
               { invoiceId: result.invoice.id },
@@ -3492,7 +3485,7 @@ describe('billingRunHelpers', async () => {
 
       // Usage events should be recorded in ledger
       const entries = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await selectLedgerEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -3506,7 +3499,7 @@ describe('billingRunHelpers', async () => {
 
       // Verify usage costs exist but were excluded from billing
       const { rawOutstandingUsageCosts } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await tabulateOutstandingUsageCosts(
               doNotChargeSubscription.id,

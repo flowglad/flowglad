@@ -2,6 +2,7 @@ import { BillingRunStatus } from '@db-core/enums'
 import type { BillingRun } from '@db-core/schema/billingRuns'
 import { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
@@ -35,18 +36,22 @@ export const attemptBillingRunTask = task({
             ctx,
           })
         }
-        await executeBillingRun(
+        const billingRunResult = await executeBillingRun(
           payload.billingRun.id,
           payload.adjustmentParams
         )
-        const updatedBillingRun = await adminTransaction(
-          ({ transaction }) => {
+        // Throw on error to trigger Trigger.dev retry
+        if (Result.isError(billingRunResult)) {
+          throw billingRunResult.error
+        }
+        const updatedBillingRun = (
+          await adminTransaction(({ transaction }) => {
             return selectBillingRunById(
               payload.billingRun.id,
               transaction
-            ).then((r) => r.unwrap())
-          }
-        )
+            )
+          })
+        ).unwrap()
 
         await storeTelemetry(
           'billing_run',

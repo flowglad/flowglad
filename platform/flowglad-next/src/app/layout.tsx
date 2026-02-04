@@ -10,7 +10,7 @@ import type { User } from '@db-core/schema/users'
 import * as Sentry from '@sentry/nextjs'
 import { Result } from 'better-result'
 import { headers } from 'next/headers'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertUser,
@@ -51,6 +51,30 @@ export default async function RootLayout({
   if (pathname.includes('/preview-ui')) {
     return children
   }
+
+  // For billing portal routes, skip merchant auth - billing portal layout handles its own Providers
+  const isBillingPortal = pathname.startsWith('/billing-portal')
+  if (isBillingPortal) {
+    return (
+      <html
+        lang="en"
+        className={cn(
+          'h-full',
+          arizonaFlare.variable,
+          sfPro.variable,
+          berkeleyMono.variable
+        )}
+        suppressHydrationWarning
+      >
+        <body className={cn(sfPro.className, 'h-full antialiased')}>
+          <Toaster />
+          {children}
+        </body>
+      </html>
+    )
+  }
+
+  // Merchant routes - get merchant session and membership data
   const session = await getSession()
   let organization: Organization.ClientRecord | undefined
   let livemode: boolean = true
@@ -58,7 +82,7 @@ export default async function RootLayout({
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         if (!user) {
           throw new Error('User not found')
         }
@@ -90,10 +114,7 @@ export default async function RootLayout({
   } else {
     Sentry.setUser(null)
   }
-  const currentPath = headersList.get('x-pathname') || ''
-  const role = currentPath.startsWith('/billing-portal/')
-    ? 'customer'
-    : 'merchant'
+
   return (
     <html
       lang="en"
@@ -111,18 +132,12 @@ export default async function RootLayout({
             organization,
             livemode,
             user,
-            role,
+            role: 'merchant',
             authenticated: !!user,
           }}
           isPublicRoute={isPublicRoute}
         >
-          {/* {!livemode && (
-            <div className="h-12 w-full bg-orange-primary-500"></div>
-          )} */}
           <Toaster />
-          {/* <ChatActionsProvider>
-            <AIModal />
-          </ChatActionsProvider> */}
           {children}
         </Providers>
       </body>
