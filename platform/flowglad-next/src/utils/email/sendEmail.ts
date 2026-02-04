@@ -1,4 +1,5 @@
 import type { CreateEmailResponse } from 'resend'
+import { panic } from '@/errors'
 import core from '@/utils/core'
 import {
   formatEmailSubject,
@@ -28,7 +29,7 @@ const safeTo = (email: string): string => {
 
   const devRedirect = core.envVariable('DEV_EMAIL_REDIRECT')
   if (!devRedirect) {
-    throw new Error(
+    panic(
       'DEV_EMAIL_REDIRECT environment variable is required in non-production environments. ' +
         'Set it to your email address or a test sink address to receive redirected emails.'
     )
@@ -163,7 +164,7 @@ export const getDefaultSubject = <T extends EmailType>(
 
   if (typeof config.defaultSubject === 'function') {
     if (!props) {
-      throw new Error(
+      panic(
         `Props are required to compute subject for email type: ${type}`
       )
     }

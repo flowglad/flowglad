@@ -16,6 +16,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import { Result } from 'better-result'
+import { panic } from '@/errors'
 import type { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
 import {
@@ -125,7 +126,7 @@ export const bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId =
           ledgerAccountInsert.pricingModelId ??
           pricingModelIdMap.get(ledgerAccountInsert.usageMeterId)
         if (!pricingModelId) {
-          throw new Error(
+          panic(
             `Pricing model id not found for usage meter ${ledgerAccountInsert.usageMeterId}`
           )
         }

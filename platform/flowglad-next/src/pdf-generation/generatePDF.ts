@@ -2,6 +2,7 @@
 
 import type { Invoice } from '@db-core/schema/invoices'
 import { logger } from '@trigger.dev/sdk'
+import { panic } from '@/errors'
 import { initBrowser } from '@/utils/browser'
 import cloudflareMethods from '@/utils/cloudflare'
 import core from '@/utils/core'
@@ -25,7 +26,7 @@ export const generatePdf = async ({
     if (!response || !response.ok()) {
       const status = response?.status() ?? 'unknown'
       const statusText = response?.statusText() ?? 'unknown'
-      throw new Error(
+      panic(
         `Failed to load page for PDF generation: ${status} ${statusText}. URL: ${url}`
       )
     }

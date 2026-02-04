@@ -26,7 +26,6 @@ describe('selectFocusedMembershipAndOrganizationAndPricingModel', () => {
     membership = await setupMemberships({
       organizationId: organization.id,
       focusedPricingModelId: pricingModel.id,
-      focused: true,
     })
     userId = membership.userId
   })
@@ -144,7 +143,7 @@ describe('selectFocusedMembershipAndOrganizationAndPricingModel', () => {
       await updateMembership(
         {
           id: membership.id,
-          deactivatedAt: new Date(),
+          deactivatedAt: Date.now(),
         },
         transaction
       )

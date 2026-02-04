@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import yaml from 'yaml'
 import { trpc } from '@/app/_trpc/client'
 import CreateResourceModal from '@/components/components/CreateResourceModal'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
@@ -123,9 +124,11 @@ function InnerPricingModelDetailsPage({
 
   const exportPricingModelHandler = async () => {
     const result = await refetch()
-    const pricingModelYAML = result.data?.pricingModelYAML
+    const pricingModelData = result.data?.pricingModel
 
-    if (pricingModelYAML) {
+    if (pricingModelData) {
+      // Convert JSON to YAML for human-readable export
+      const pricingModelYAML = yaml.stringify(pricingModelData)
       const blob = new Blob([pricingModelYAML], { type: 'text/yaml' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

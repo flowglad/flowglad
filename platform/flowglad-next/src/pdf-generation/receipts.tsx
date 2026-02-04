@@ -1,5 +1,6 @@
 import { Body, Container, Head, Html } from '@react-email/components'
 import type React from 'react'
+import { panic } from '@/errors'
 import {
   BillingInfo,
   DocumentDetails,
@@ -23,7 +24,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
   const paymentData =
     paymentDataItems.length > 0 ? paymentDataItems[0] : undefined
   if (!paymentData) {
-    throw new Error('No payment data items provided')
+    panic('No payment data items provided')
   }
   const totals = calculateInvoiceTotalsRaw(
     invoiceLineItems,

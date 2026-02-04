@@ -30,7 +30,7 @@
  * - Upgrade at capacity = always succeeds (increases capacity)
  */
 
-import { expect } from 'vitest'
+import { expect } from 'bun:test'
 import { SubscriptionAdjustmentTiming } from '@/types'
 import { teardownOrg } from '../../../../seedDatabase'
 import { authenticateUserBehavior } from '../behaviors/authBehaviors'

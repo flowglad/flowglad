@@ -18,6 +18,7 @@ import type { Product } from '@db-core/schema/products'
 import type { SubscriptionItem } from '@db-core/schema/subscriptionItems'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type Stripe from 'stripe'
+import { panic } from '@/errors'
 import {
   dateFromStripeTimestamp,
   stripeIdFromObjectOrId,
@@ -88,7 +89,7 @@ const stripePriceToFlowgladPriceType = (
   }
   const recurring = stripePrice.recurring
   if (!recurring) {
-    throw new Error(
+    panic(
       `Received a price with type "recurring" but no "recurring" object. id: ${stripePrice.id}`
     )
   }
@@ -127,9 +128,7 @@ export const stripePriceToPriceInsert = (
     return singlePaymentPrice
   }
   if (!stripePrice.recurring) {
-    throw new Error(
-      'Subscription price must have a recurring interval'
-    )
+    panic('Subscription price must have a recurring interval')
   }
   if (type === PriceType.Subscription) {
     const subscriptionPrice: Price.SubscriptionInsert = {
@@ -144,7 +143,7 @@ export const stripePriceToPriceInsert = (
     }
     return subscriptionPrice
   }
-  throw new Error('Invalid price type')
+  panic('Invalid price type')
 }
 
 const stripeSubscriptionToSubscriptionStatus = (
@@ -168,7 +167,7 @@ const stripeSubscriptionToSubscriptionStatus = (
     case 'unpaid':
       return SubscriptionStatus.Unpaid
     default:
-      throw new Error(
+      panic(
         `Received a subscription with status "${stripeSubscription.status}". id: ${stripeSubscription.id}`
       )
   }
@@ -233,7 +232,7 @@ export const getPaymentMethodDataAndExternalId = (
     stripePaymentMethod.type !== 'link' &&
     stripePaymentMethod.type !== 'card'
   ) {
-    throw new Error(
+    panic(
       `Received non link non card stripe payment method. id: ${stripePaymentMethod.id}`
     )
   }
@@ -266,7 +265,7 @@ export const stripePaymentMethodToPaymentMethodInsert = (
       'card stripePaymentMethod without `card` prop:',
       stripePaymentMethod
     )
-    throw new Error(
+    panic(
       `Received a payment method with no "card" object. id: ${stripePaymentMethod.id}`
     )
   }
@@ -376,7 +375,7 @@ export const stripeSubscriptionItemToSubscriptionItemInsert = (
   params: CoreMigrationParams
 ): SubscriptionItem.Insert => {
   if (stripeSubscriptionItem.plan.usage_type === 'metered') {
-    throw new Error(
+    panic(
       `Received a subscription item with usage type "metered". id: ${stripeSubscriptionItem.id}`
     )
   }

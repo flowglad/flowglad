@@ -54,6 +54,7 @@ function generateSvixId({
   livemode: boolean
 }) {
   if (!organization.securitySalt) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new Error(
       `No security salt found for organization ${organization.id}`
     )
@@ -138,6 +139,7 @@ export const checkSvixApplicationExists = async (
     if (error instanceof ApiException && error.code === 404) {
       return false
     }
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -172,6 +174,7 @@ const findOrCreateSvixApplicationCore = async (
     } else {
       // eslint-disable-next-line no-console
       console.error('Svix application.get error', error)
+      // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
       throw error
     }
   }
@@ -233,6 +236,7 @@ const createSvixEndpointCore = async (
     pricingModelId: webhook.pricingModelId,
   })
   if (!applicationId) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new Error('No application ID found')
   }
   await findOrCreateSvixApplication({
@@ -263,8 +267,10 @@ const createSvixEndpointCore = async (
         .map((d) => d.msg)
         .filter(Boolean)
         .join('; ')
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new Error(messages || 'Invalid webhook configuration')
     }
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -317,6 +323,7 @@ const updateSvixEndpointCore = async (
     pricingModelId: webhook.pricingModelId,
   })
   if (!application) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new Error('No application found')
   }
   const endpoint = await svix().endpoint.patch(

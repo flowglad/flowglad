@@ -47,6 +47,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -65,6 +66,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -107,6 +109,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -127,6 +130,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -164,6 +168,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -182,6 +187,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -241,6 +247,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -259,6 +266,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -322,6 +330,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -340,6 +349,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -397,6 +407,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -415,6 +426,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -458,6 +470,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -480,6 +493,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -514,6 +528,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -533,6 +548,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -563,6 +579,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -584,6 +601,7 @@ describe('createUsageMeterTransaction', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -615,6 +633,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -636,6 +655,7 @@ describe('createUsageMeterTransaction', () => {
                   cacheRecomputationContext,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -668,6 +688,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -686,6 +707,7 @@ describe('createUsageMeterTransaction', () => {
                   cacheRecomputationContext,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -705,6 +727,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -723,6 +746,7 @@ describe('createUsageMeterTransaction', () => {
                   cacheRecomputationContext,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -747,6 +771,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -765,6 +790,7 @@ describe('createUsageMeterTransaction', () => {
                   cacheRecomputationContext,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)
@@ -786,6 +812,7 @@ describe('createUsageMeterTransaction', () => {
             cacheRecomputationContext,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
@@ -804,6 +831,7 @@ describe('createUsageMeterTransaction', () => {
                   cacheRecomputationContext,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 }
               )
             return Result.ok(usageMeterResult)

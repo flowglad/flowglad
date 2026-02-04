@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { MembershipRole } from '@db-core/enums'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type Membership,
@@ -19,6 +20,9 @@ describe('getMembershipNotificationPreferences', () => {
     updatedByCommit: null,
     position: 0,
     livemode: true,
+    focusedPricingModelId: 'pm_test123',
+    role: MembershipRole.Owner,
+    deactivatedAt: null,
   }
 
   it('returns all default preferences when membership has empty notificationPreferences', () => {

@@ -2004,6 +2004,9 @@ describe('Pricing Model Table Rows - Products Count Alignment', () => {
               filters: {
                 pricingModelId: pricingModel.id,
                 excludeProductsWithNoPrices: true,
+              } as {
+                pricingModelId: string
+                excludeProductsWithNoPrices: boolean
               },
               pageSize: 50,
             },

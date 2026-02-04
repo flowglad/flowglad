@@ -83,6 +83,8 @@ const createAuthedContext = async (params: {
     isApi: false,
     apiKey: undefined,
     authScope: 'merchant',
+    session: null,
+    focusedPricingModelId: undefined,
   }
 
   return { ctx, user }

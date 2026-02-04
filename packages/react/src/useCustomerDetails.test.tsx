@@ -10,9 +10,10 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
+import { invalidateCustomerData } from './lib/invalidation'
 import {
   CUSTOMER_DETAILS_QUERY_KEY,
   useCustomerDetails,
@@ -94,6 +95,27 @@ const createWrapper = (devMode = false, billingMocks?: unknown) => {
       </FlowgladConfigProvider>
     </QueryClientProvider>
   )
+}
+
+// Create wrapper that exposes the query client for testing invalidation
+const createWrapperWithQueryClient = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <FlowgladConfigProvider baseURL="https://test.example.com">
+        {children}
+      </FlowgladConfigProvider>
+    </QueryClientProvider>
+  )
+
+  return { wrapper, queryClient }
 }
 
 describe('useCustomerDetails', () => {
@@ -287,8 +309,88 @@ describe('useCustomerDetails', () => {
 })
 
 describe('subscription mutations', () => {
-  it.skip('invalidate customer details query key', async () => {
-    // TODO: Implement in Patch 4
+  let originalFetch: typeof fetch
+  let mockFetch: ReturnType<typeof mock>
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch
+    mockFetch = mock()
+    globalThis.fetch = mockFetch as unknown as typeof fetch
+  })
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+    mockFetch.mockReset()
+  })
+
+  it('refetches customer details after invalidateCustomerData is called', async () => {
+    const { wrapper, queryClient } = createWrapperWithQueryClient()
+
+    // Initial response
+    const initialCustomer = {
+      id: 'cust_123',
+      livemode: false,
+      email: 'initial@example.com',
+      name: 'Initial Customer',
+      externalId: 'ext_123',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    }
+
+    // Updated response after invalidation triggers refetch
+    const updatedCustomer = {
+      id: 'cust_123',
+      livemode: false,
+      email: 'updated@example.com',
+      name: 'Updated Customer',
+      externalId: 'ext_123',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-02T00:00:00.000Z',
+    }
+
+    // Mock first fetch (initial load)
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({ data: { customer: initialCustomer } }),
+    })
+
+    // Render the hook to populate the cache
+    const { result } = renderHook(() => useCustomerDetails(), {
+      wrapper,
+    })
+
+    // Wait for the initial query to succeed
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.customer?.id).toBe('cust_123')
+    expect(result.current.customer?.email).toBe('initial@example.com')
+    expect(result.current.customer?.name).toBe('Initial Customer')
+
+    // Mock second fetch (refetch after invalidation)
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({ data: { customer: updatedCustomer } }),
+    })
+
+    // Call the invalidation helper (simulating a subscription mutation)
+    await act(async () => {
+      await invalidateCustomerData(queryClient)
+    })
+
+    // Wait for the refetch to complete with updated data
+    await waitFor(() => {
+      expect(result.current.customer?.email).toBe(
+        'updated@example.com'
+      )
+    })
+
+    expect(result.current.customer?.id).toBe('cust_123')
+    expect(result.current.customer?.name).toBe('Updated Customer')
+    expect(mockFetch).toHaveBeenCalledTimes(2)
   })
 })
 
