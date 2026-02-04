@@ -100,9 +100,7 @@ export const AddSubscriptionFeatureItemFormFields = ({
     (feature) => feature.id === selectedFeatureId
   )
   const showImmediateGrantToggle =
-    selectedFeature?.type === FeatureType.UsageCreditGrant &&
-    selectedFeature.renewalFrequency ===
-      FeatureUsageGrantFrequency.EveryBillingPeriod
+    selectedFeature?.type === FeatureType.UsageCreditGrant
 
   useEffect(() => {
     if (!showImmediateGrantToggle && grantCreditsImmediatelyValue) {
