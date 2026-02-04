@@ -93,7 +93,7 @@ async function fetchChannelById(
 
 /**
  * Parse cohort number from category name. Returns null if can't parse.
- * E.g., "Concierge Cohort 3" -> 3
+ * E.g., "Concierge Cohort #3" -> 3, "Concierge Cohort 3" -> 3
  */
 export function parseCohortNumber(
   name: string,
@@ -101,7 +101,9 @@ export function parseCohortNumber(
 ): number | null {
   if (!name.startsWith(prefix)) return null
   const suffix = name.slice(prefix.length).trim()
-  const num = parseInt(suffix, 10)
+  // Handle both "#3" and "3" formats
+  const numStr = suffix.startsWith('#') ? suffix.slice(1) : suffix
+  const num = parseInt(numStr, 10)
   return isNaN(num) ? null : num
 }
 
@@ -191,7 +193,7 @@ async function getOrCreateCategoryWithSpace(
     Routes.guildChannels(guildId),
     {
       body: {
-        name: `${config.conciergeCategoryPrefix} ${selection.cohortNum}`,
+        name: `${config.conciergeCategoryPrefix} #${selection.cohortNum}`,
         type: ChannelType.GuildCategory,
       },
     }

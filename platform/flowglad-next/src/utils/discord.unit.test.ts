@@ -94,27 +94,36 @@ describe('discord', () => {
   })
 
   describe('parseCohortNumber', () => {
-    it('parses cohort number from category name with matching prefix', () => {
+    it('parses cohort number from category name with # prefix', () => {
+      expect(
+        parseCohortNumber('Concierge Cohort #3', 'Concierge Cohort')
+      ).toBe(3)
+      expect(
+        parseCohortNumber('Concierge Cohort #1', 'Concierge Cohort')
+      ).toBe(1)
+      expect(
+        parseCohortNumber('Concierge Cohort #42', 'Concierge Cohort')
+      ).toBe(42)
+    })
+
+    it('parses cohort number from legacy format without # prefix', () => {
       expect(
         parseCohortNumber('Concierge Cohort 3', 'Concierge Cohort')
       ).toBe(3)
       expect(
         parseCohortNumber('Concierge Cohort 1', 'Concierge Cohort')
       ).toBe(1)
-      expect(
-        parseCohortNumber('Concierge Cohort 42', 'Concierge Cohort')
-      ).toBe(42)
     })
 
     it('returns null when prefix does not match', () => {
       expect(
-        parseCohortNumber('Other Category 3', 'Concierge Cohort')
+        parseCohortNumber('Other Category #3', 'Concierge Cohort')
       ).toBe(null)
     })
 
     it('returns null when suffix is not a number', () => {
       expect(
-        parseCohortNumber('Concierge Cohort abc', 'Concierge Cohort')
+        parseCohortNumber('Concierge Cohort #abc', 'Concierge Cohort')
       ).toBe(null)
       expect(
         parseCohortNumber('Concierge Cohort', 'Concierge Cohort')
@@ -123,45 +132,57 @@ describe('discord', () => {
   })
 
   describe('selectCategoryForChannel', () => {
+    const LIMIT = 50 // Use explicit limit to avoid dependency on constant
+
     it('selects existing category when one has space available', () => {
-      const result = selectCategoryForChannel([
-        { id: 'cat1', cohortNum: 1, childCount: 49 },
-      ])
+      const result = selectCategoryForChannel(
+        [{ id: 'cat1', cohortNum: 1, childCount: 49 }],
+        LIMIT
+      )
 
       expect(result).toEqual({ action: 'use_existing', id: 'cat1' })
     })
 
     it('creates new category when all existing categories are full', () => {
-      const result = selectCategoryForChannel([
-        { id: 'cat1', cohortNum: 1, childCount: 50 },
-        { id: 'cat2', cohortNum: 2, childCount: 50 },
-      ])
+      const result = selectCategoryForChannel(
+        [
+          { id: 'cat1', cohortNum: 1, childCount: 50 },
+          { id: 'cat2', cohortNum: 2, childCount: 50 },
+        ],
+        LIMIT
+      )
 
       expect(result).toEqual({ action: 'create_new', cohortNum: 3 })
     })
 
     it('creates category with cohortNum 1 when no categories exist', () => {
-      const result = selectCategoryForChannel([])
+      const result = selectCategoryForChannel([], LIMIT)
 
       expect(result).toEqual({ action: 'create_new', cohortNum: 1 })
     })
 
     it('prefers lower cohort numbers when multiple categories have space', () => {
-      const result = selectCategoryForChannel([
-        { id: 'cat2', cohortNum: 2, childCount: 10 },
-        { id: 'cat1', cohortNum: 1, childCount: 10 },
-        { id: 'cat3', cohortNum: 3, childCount: 10 },
-      ])
+      const result = selectCategoryForChannel(
+        [
+          { id: 'cat2', cohortNum: 2, childCount: 10 },
+          { id: 'cat1', cohortNum: 1, childCount: 10 },
+          { id: 'cat3', cohortNum: 3, childCount: 10 },
+        ],
+        LIMIT
+      )
 
       expect(result).toEqual({ action: 'use_existing', id: 'cat1' })
     })
 
     it('skips full categories and uses first available one by cohort order', () => {
-      const result = selectCategoryForChannel([
-        { id: 'cat1', cohortNum: 1, childCount: 50 },
-        { id: 'cat2', cohortNum: 2, childCount: 50 },
-        { id: 'cat3', cohortNum: 3, childCount: 25 },
-      ])
+      const result = selectCategoryForChannel(
+        [
+          { id: 'cat1', cohortNum: 1, childCount: 50 },
+          { id: 'cat2', cohortNum: 2, childCount: 50 },
+          { id: 'cat3', cohortNum: 3, childCount: 25 },
+        ],
+        LIMIT
+      )
 
       expect(result).toEqual({ action: 'use_existing', id: 'cat3' })
     })
@@ -176,10 +197,13 @@ describe('discord', () => {
     })
 
     it('creates category with next cohort number even with gaps in numbering', () => {
-      const result = selectCategoryForChannel([
-        { id: 'cat1', cohortNum: 1, childCount: 50 },
-        { id: 'cat5', cohortNum: 5, childCount: 50 },
-      ])
+      const result = selectCategoryForChannel(
+        [
+          { id: 'cat1', cohortNum: 1, childCount: 50 },
+          { id: 'cat5', cohortNum: 5, childCount: 50 },
+        ],
+        LIMIT
+      )
 
       expect(result).toEqual({ action: 'create_new', cohortNum: 6 })
     })
