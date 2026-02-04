@@ -39,6 +39,7 @@ import {
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
+  assertSubscriptionNotTerminal,
   derivePricingModelIdFromSubscription,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -624,6 +625,9 @@ export const addFeatureToSubscriptionItem = async (
     const subscription = (
       await selectSubscriptionById(id, transaction)
     ).unwrap()
+
+    // Prevent adding features to canceled or incomplete_expired subscriptions
+    assertSubscriptionNotTerminal(subscription)
 
     const feature = (
       await selectFeatureById(featureId, transaction)

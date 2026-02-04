@@ -7,6 +7,7 @@ import {
   LedgerTransactionType,
   PriceType,
   SubscriptionItemType,
+  SubscriptionStatus,
   UsageCreditSourceReferenceType,
   UsageCreditStatus,
   UsageCreditType,
@@ -49,6 +50,7 @@ import {
   insertUsageCredit,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
+import { SubscriptionTerminalStateError } from '@/errors'
 import {
   addFeatureToSubscriptionItem,
   createSubscriptionFeatureItems,
@@ -940,6 +942,100 @@ describe('SubscriptionItemFeatureHelpers', () => {
             createDiscardingEffectsContext(transaction)
           )
           expect(Result.isError(result)).toBe(true)
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('should reject adding features to a canceled subscription', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Feature for Canceled Sub',
+              type: FeatureType.Toggle,
+            },
+          ]
+        )
+
+      // Create a subscription with Canceled status
+      const canceledSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: priceForFeatures.id,
+        livemode: true,
+        status: SubscriptionStatus.Canceled,
+      })
+
+      ;(
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const result = await addFeatureToSubscriptionItem(
+            {
+              id: canceledSubscription.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
+            expect(result.error).toBeInstanceOf(
+              SubscriptionTerminalStateError
+            )
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('should reject adding features to an incomplete_expired subscription', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Feature for IncompleteExpired Sub',
+              type: FeatureType.Toggle,
+            },
+          ]
+        )
+
+      // Create a subscription with IncompleteExpired status
+      const incompleteExpiredSubscription = await setupSubscription({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: priceForFeatures.id,
+        livemode: true,
+        status: SubscriptionStatus.IncompleteExpired,
+      })
+
+      ;(
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const result = await addFeatureToSubscriptionItem(
+            {
+              id: incompleteExpiredSubscription.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+          expect(Result.isError(result)).toBe(true)
+          if (Result.isError(result)) {
+            expect(result.error).toBeInstanceOf(
+              SubscriptionTerminalStateError
+            )
+          }
           return Result.ok(undefined)
         })
       ).unwrap()
