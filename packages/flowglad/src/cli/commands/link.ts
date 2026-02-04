@@ -35,6 +35,11 @@ interface LinkOptions {
   pm?: string
 }
 
+/** Standard error response shape from API endpoints */
+interface ErrorResponse {
+  message?: string
+}
+
 /**
  * Registers the link command with the CLI.
  *
@@ -96,7 +101,7 @@ export const linkFlow = async (
     if (!pmResponse.ok) {
       const errorData = (await pmResponse
         .json()
-        .catch(() => ({}))) as { message?: string }
+        .catch(() => ({}))) as ErrorResponse
       if (pmResponse.status === 404) {
         console.error(
           errorData.message ?? `Pricing model ${pmId} not found.`
@@ -185,7 +190,7 @@ export const linkFlow = async (
     if (!pmsResponse.ok) {
       const errorData = (await pmsResponse
         .json()
-        .catch(() => ({}))) as { message?: string }
+        .catch(() => ({}))) as ErrorResponse
       if (pmsResponse.status === 403) {
         console.error(
           errorData.message ??
@@ -258,11 +263,24 @@ export const linkFlow = async (
   }
 
   // Generate access token using existing requestAccessToken()
-  const tokenResponse = await requestAccessToken(
-    baseUrl,
-    credentials.refreshToken,
-    { organizationId: orgId!, pricingModelId: pmId!, livemode: false }
-  )
+  let tokenResponse
+  try {
+    tokenResponse = await requestAccessToken(
+      baseUrl,
+      credentials.refreshToken,
+      {
+        organizationId: orgId!,
+        pricingModelId: pmId!,
+        livemode: false,
+      }
+    )
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown error'
+    console.error(`Failed to generate access token: ${message}`)
+    process.exit(1)
+    return
+  }
 
   // Save link state to PROJECT-LEVEL config (.flowglad/config.json)
   await saveProjectConfig({

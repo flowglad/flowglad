@@ -106,34 +106,32 @@ describe('requestAccessToken', () => {
 
 describe('isAccessTokenExpired', () => {
   it('returns true for expired token', () => {
-    // Token expired 1 minute ago
-    const expiredAt = new Date(Date.now() - 60 * 1000).toISOString()
+    // Token expired 1 minute ago (epoch ms)
+    const expiredAt = Date.now() - 60 * 1000
     expect(isAccessTokenExpired(expiredAt)).toBe(true)
   })
 
   it('returns false for valid token', () => {
-    // Token expires in 5 minutes
-    const expiresAt = new Date(
-      Date.now() + 5 * 60 * 1000
-    ).toISOString()
+    // Token expires in 5 minutes (epoch ms)
+    const expiresAt = Date.now() + 5 * 60 * 1000
     expect(isAccessTokenExpired(expiresAt)).toBe(false)
   })
 
   it('returns true for token expiring within buffer period', () => {
     // Token expires in 20 seconds (less than 30 second default buffer)
-    const expiresAt = new Date(Date.now() + 20 * 1000).toISOString()
+    const expiresAt = Date.now() + 20 * 1000
     expect(isAccessTokenExpired(expiresAt)).toBe(true)
   })
 
   it('returns false for token expiring just outside buffer period', () => {
     // Token expires in 35 seconds (more than 30 second default buffer)
-    const expiresAt = new Date(Date.now() + 35 * 1000).toISOString()
+    const expiresAt = Date.now() + 35 * 1000
     expect(isAccessTokenExpired(expiresAt)).toBe(false)
   })
 
   it('respects custom buffer period', () => {
-    // Token expires in 50 seconds
-    const expiresAt = new Date(Date.now() + 50 * 1000).toISOString()
+    // Token expires in 50 seconds (epoch ms)
+    const expiresAt = Date.now() + 50 * 1000
 
     // With 60 second buffer, should be expired
     expect(isAccessTokenExpired(expiresAt, 60)).toBe(true)
@@ -146,20 +144,21 @@ describe('isAccessTokenExpired', () => {
 describe('ensureValidAccessToken', () => {
   let mockSaveCredentials: ReturnType<typeof vi.fn>
 
+  // Helper to create a future timestamp (90 days from now) in epoch ms
+  const futureRefreshExpiry = Date.now() + 90 * 24 * 60 * 60 * 1000
+
   beforeEach(() => {
     mockFetch.mockReset()
     mockSaveCredentials = vi.fn()
   })
 
   it('returns existing valid access token without making API call', async () => {
-    // Token expires in 5 minutes (valid)
-    const expiresAt = new Date(
-      Date.now() + 5 * 60 * 1000
-    ).toISOString()
+    // Token expires in 5 minutes (valid) - epoch ms
+    const expiresAt = Date.now() + 5 * 60 * 1000
 
     const credentials: StoredCredentials = {
       refreshToken: 'refresh_123',
-      refreshTokenExpiresAt: '2026-04-30T00:00:00.000Z',
+      refreshTokenExpiresAt: futureRefreshExpiry,
       userId: 'user_123',
       email: 'test@example.com',
       accessToken: 'existing_access_token',
@@ -181,15 +180,17 @@ describe('ensureValidAccessToken', () => {
   })
 
   it('requests new token when existing token is expired', async () => {
-    // Token expired 1 minute ago
-    const expiredAt = new Date(Date.now() - 60 * 1000).toISOString()
-    const newExpiresAt = new Date(
+    // Token expired 1 minute ago - epoch ms
+    const expiredAt = Date.now() - 60 * 1000
+    // API returns ISO string, which gets converted to epoch ms
+    const newExpiresAtIso = new Date(
       Date.now() + 10 * 60 * 1000
     ).toISOString()
+    const newExpiresAtEpoch = new Date(newExpiresAtIso).getTime()
 
     const credentials: StoredCredentials = {
       refreshToken: 'refresh_123',
-      refreshTokenExpiresAt: '2026-04-30T00:00:00.000Z',
+      refreshTokenExpiresAt: futureRefreshExpiry,
       userId: 'user_123',
       email: 'test@example.com',
       accessToken: 'expired_token',
@@ -204,7 +205,7 @@ describe('ensureValidAccessToken', () => {
       json: () =>
         Promise.resolve({
           accessToken: 'new_access_token',
-          expiresAt: newExpiresAt,
+          expiresAt: newExpiresAtIso,
         }),
     })
 
@@ -216,21 +217,22 @@ describe('ensureValidAccessToken', () => {
 
     expect(result).toBe('new_access_token')
     expect(mockFetch).toHaveBeenCalled()
+    // accessTokenExpiresAt is now stored as epoch ms (converted from ISO)
     expect(mockSaveCredentials).toHaveBeenCalledWith({
       ...credentials,
       accessToken: 'new_access_token',
-      accessTokenExpiresAt: newExpiresAt,
+      accessTokenExpiresAt: newExpiresAtEpoch,
     })
   })
 
   it('requests new token when no access token exists', async () => {
-    const newExpiresAt = new Date(
+    const newExpiresAtIso = new Date(
       Date.now() + 10 * 60 * 1000
     ).toISOString()
 
     const credentials: StoredCredentials = {
       refreshToken: 'refresh_123',
-      refreshTokenExpiresAt: '2026-04-30T00:00:00.000Z',
+      refreshTokenExpiresAt: futureRefreshExpiry,
       userId: 'user_123',
       email: 'test@example.com',
       // No access token
@@ -244,7 +246,7 @@ describe('ensureValidAccessToken', () => {
       json: () =>
         Promise.resolve({
           accessToken: 'new_access_token',
-          expiresAt: newExpiresAt,
+          expiresAt: newExpiresAtIso,
         }),
     })
 
@@ -261,7 +263,7 @@ describe('ensureValidAccessToken', () => {
   it('throws error when no organization is linked', async () => {
     const credentials: StoredCredentials = {
       refreshToken: 'refresh_123',
-      refreshTokenExpiresAt: '2026-04-30T00:00:00.000Z',
+      refreshTokenExpiresAt: futureRefreshExpiry,
       userId: 'user_123',
       email: 'test@example.com',
       // No org/PM linked
@@ -279,7 +281,7 @@ describe('ensureValidAccessToken', () => {
   it('throws error when no pricing model is linked', async () => {
     const credentials: StoredCredentials = {
       refreshToken: 'refresh_123',
-      refreshTokenExpiresAt: '2026-04-30T00:00:00.000Z',
+      refreshTokenExpiresAt: futureRefreshExpiry,
       userId: 'user_123',
       email: 'test@example.com',
       organizationId: 'org_123',

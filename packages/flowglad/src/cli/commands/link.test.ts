@@ -624,4 +624,65 @@ describe('link command', () => {
       'Linked to Organization One / Starter Plan'
     )
   })
+
+  it('handles access token request failure with user-friendly error', async () => {
+    const credentials = createTestCredentials()
+    await saveCredentials(credentials)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockOrganizationsResponse),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockPricingModelsResponse),
+      })
+      // access-token fails
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: () =>
+          Promise.resolve({ message: 'Internal server error' }),
+      })
+
+    mockSelect
+      .mockResolvedValueOnce('org_1')
+      .mockResolvedValueOnce('pm_1')
+
+    await linkFlow({})
+
+    expect(consoleErrorOutput.join('\n')).toContain(
+      'Failed to generate access token'
+    )
+    expect(exitCode).toBe(1)
+  })
+
+  it('handles access token network failure gracefully', async () => {
+    const credentials = createTestCredentials()
+    await saveCredentials(credentials)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockOrganizationsResponse),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockPricingModelsResponse),
+      })
+      // access-token network error
+      .mockRejectedValueOnce(new Error('Network error'))
+
+    mockSelect
+      .mockResolvedValueOnce('org_1')
+      .mockResolvedValueOnce('pm_1')
+
+    await linkFlow({})
+
+    expect(consoleErrorOutput.join('\n')).toContain(
+      'Failed to generate access token'
+    )
+    expect(exitCode).toBe(1)
+  })
 })

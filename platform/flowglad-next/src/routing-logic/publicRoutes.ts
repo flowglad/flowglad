@@ -69,6 +69,11 @@ const publicRoutes = [
   /**
    * CLI API routes use Bearer token authentication, not cookies.
    * They handle their own auth via auth.api.getSession with Authorization header.
+   *
+   * SECURITY WARNING: All routes under /api/cli/* bypass cookie-based middleware.
+   * Any new route added under this path MUST implement its own authentication
+   * (typically via validateCliSession or similar Bearer token validation).
+   * Failure to do so will create an unauthenticated endpoint.
    */
   '/api/cli/(.*)',
 ]

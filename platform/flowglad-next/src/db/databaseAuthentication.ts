@@ -46,12 +46,23 @@ interface KeyVerifyResult {
   metadata: ApiKey.ApiKeyMetadata
 }
 
+/**
+ * Checks if an API key type is valid for merchant API access.
+ * Valid types are Secret (server SDK) and CliSession (CLI tool).
+ */
+const isMerchantApiKeyType = (
+  keyType: FlowgladApiKeyType
+): keyType is
+  | typeof FlowgladApiKeyType.Secret
+  | typeof FlowgladApiKeyType.CliSession => {
+  return (
+    keyType === FlowgladApiKeyType.Secret ||
+    keyType === FlowgladApiKeyType.CliSession
+  )
+}
+
 const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
-  // Accept both Secret (server SDK) and CliSession (CLI) API key types
-  if (
-    meta.type !== FlowgladApiKeyType.Secret &&
-    meta.type !== FlowgladApiKeyType.CliSession
-  ) {
+  if (!isMerchantApiKeyType(meta.type)) {
     throw new Error(
       `userIdFromUnkeyMeta: received invalid API key type`
     )
@@ -164,11 +175,7 @@ interface DatabaseAuthenticationInfo {
 export async function dbAuthInfoForSecretApiKeyResult(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
-  // Accept both Secret (server SDK) and CliSession (CLI) API key types
-  if (
-    verifyKeyResult.keyType !== FlowgladApiKeyType.Secret &&
-    verifyKeyResult.keyType !== FlowgladApiKeyType.CliSession
-  ) {
+  if (!isMerchantApiKeyType(verifyKeyResult.keyType)) {
     throw new Error(
       `dbAuthInfoForSecretApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
     )
@@ -408,11 +415,7 @@ export async function databaseAuthenticationInfoForApiKeyResult(
   if (!verifyKeyResult.ownerId) {
     throw new Error('Invalid API key, no ownerId')
   }
-  // Accept both Secret (server SDK) and CliSession (CLI) API key types
-  if (
-    verifyKeyResult.keyType !== FlowgladApiKeyType.Secret &&
-    verifyKeyResult.keyType !== FlowgladApiKeyType.CliSession
-  ) {
+  if (!isMerchantApiKeyType(verifyKeyResult.keyType)) {
     throw new Error(
       `databaseAuthenticationInfoForApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
     )
