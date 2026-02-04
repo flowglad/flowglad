@@ -375,4 +375,64 @@ describe('useCheckouts', () => {
       },
     })
   })
+
+  it('returns NETWORK_ERROR when fetch fails', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network failure'))
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    let response: Awaited<
+      ReturnType<typeof result.current.createCheckoutSession>
+    >
+    await act(async () => {
+      response = await result.current.createCheckoutSession({
+        priceSlug: 'pro-monthly',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+      })
+    })
+
+    expect(response!).toEqual({
+      error: {
+        code: 'NETWORK_ERROR',
+        json: {
+          message: 'Network failure',
+          original: 'Error: Network failure',
+        },
+      },
+    })
+  })
+
+  it('returns INVALID_JSON when response is not valid JSON', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.reject(new Error('Unexpected token')),
+    })
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    let response: Awaited<
+      ReturnType<typeof result.current.createCheckoutSession>
+    >
+    await act(async () => {
+      response = await result.current.createCheckoutSession({
+        priceSlug: 'pro-monthly',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+      })
+    })
+
+    expect(response!).toEqual({
+      error: {
+        code: 'INVALID_JSON',
+        json: {
+          message: 'Unexpected token',
+          original: 'Error: Unexpected token',
+        },
+      },
+    })
+  })
 })
