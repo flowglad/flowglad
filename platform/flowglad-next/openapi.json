@@ -6599,11 +6599,11 @@
                 "type": "object",
                 "properties": {
                   "featureId": {
-                    "description": "The feature ID to add",
+                    "description": "The feature ID to add. Exactly one of featureId or featureSlug must be provided.",
                     "type": "string"
                   },
                   "featureSlug": {
-                    "description": "The feature slug to add. The feature will be resolved from the subscription pricing model.",
+                    "description": "The feature slug to add. The feature will be resolved from the subscription pricing model. Exactly one of featureId or featureSlug must be provided.",
                     "type": "string"
                   },
                   "grantCreditsImmediately": {
