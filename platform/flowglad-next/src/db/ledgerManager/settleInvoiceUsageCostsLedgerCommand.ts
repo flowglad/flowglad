@@ -53,7 +53,7 @@ import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMeth
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, panic } from '@/errors'
 import { LedgerTransactionInitiatingSourceType } from '@/types'
 import core from '@/utils/core'
 import { selectBillingRunById } from '../tableMethods/billingRunMethods'
@@ -71,17 +71,17 @@ export const usageCreditInsertFromInvoiceLineItem = (
   ledgerAccount: LedgerAccount.Record
 ): UsageCredit.Insert => {
   if (invoiceLineItem.type !== SubscriptionItemType.Usage) {
-    throw new Error(
+    panic(
       `Invoice line item type ${invoiceLineItem.type} is not supported for usage credit grant creation.`
     )
   }
   if (ledgerAccount.id !== invoiceLineItem.ledgerAccountId) {
-    throw new Error(
+    panic(
       `Ledger account ID ${ledgerAccount.id} does not match invoice line item ledger account ID ${invoiceLineItem.ledgerAccountId}.`
     )
   }
   if (!ledgerAccount.usageMeterId) {
-    throw new Error(
+    panic(
       `Ledger account ${ledgerAccount.id} does not have a usage meter ID.`
     )
   }
@@ -124,9 +124,7 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
   transaction: DbTransaction
 ): Promise<UsageCreditApplication.Record[]> => {
   if (!invoice.billingRunId) {
-    throw new Error(
-      `Invoice ${invoice.id} does not have a billing run ID.`
-    )
+    panic(`Invoice ${invoice.id} does not have a billing run ID.`)
   }
   // Validate billing run exists
   const billingRunResult = await selectBillingRunById(
@@ -134,7 +132,7 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
     transaction
   )
   if (Result.isError(billingRunResult)) {
-    throw new Error(`Billing run ${invoice.billingRunId} not found.`)
+    panic(`Billing run ${invoice.billingRunId} not found.`)
   }
   const ledgerAccountIds = invoiceLineItems
     .map((lineItem) => lineItem.ledgerAccountId)
@@ -168,13 +166,13 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
     )
     if (!ledgerAccount) {
       // This should ideally not happen if data is consistent.
-      throw new Error(
+      panic(
         `Ledger account ${usageCost.ledgerAccountId} not found for usage cost ${usageCost.id}`
       )
     }
     if (!ledgerAccount.usageMeterId) {
       // This should be caught earlier, but as a safeguard.
-      throw new Error(
+      panic(
         `Ledger account ${ledgerAccount.id} does not have a usage meter ID.`
       )
     }
@@ -182,7 +180,7 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
       ledgerAccount.usageMeterId
     )
     if (!usageCredit) {
-      throw new Error(
+      panic(
         `Usage credit not found for usage meter ID ${ledgerAccount.usageMeterId}.`
       )
     }
@@ -230,7 +228,7 @@ const debitsFromCreditBalanceAndCreditsTowardsUsageCostsForSettlementInserts =
         creditApplication.usageCreditId
       )
       if (!usageCredit) {
-        throw new Error(
+        panic(
           `Usage credit ${creditApplication.usageCreditId} not found for credit application ${creditApplication.id}.`
         )
       }
@@ -238,7 +236,7 @@ const debitsFromCreditBalanceAndCreditsTowardsUsageCostsForSettlementInserts =
         usageCredit.usageMeterId
       )
       if (!ledgerAccount) {
-        throw new Error(
+        panic(
           `Ledger account not found for usage meter ID ${usageCredit.usageMeterId}.`
         )
       }
@@ -316,7 +314,7 @@ const creditGrantRecognizedLedgerEntryInserts = (
       usageCredit.usageMeterId
     )
     if (!ledgerAccount) {
-      throw new Error(
+      panic(
         `Ledger account not found for usage meter ID ${usageCredit.usageMeterId}.`
       )
     }

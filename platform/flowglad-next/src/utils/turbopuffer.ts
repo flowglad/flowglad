@@ -10,13 +10,12 @@
 import type { Turbopuffer } from '@turbopuffer/turbopuffer'
 import type { Row } from '@turbopuffer/turbopuffer/resources/namespaces'
 import type { OpenAI } from 'openai'
+import { panic } from '@/errors'
 
 export const getTurbopufferClient =
   async (): Promise<Turbopuffer> => {
     if (!process.env.TURBOPUFFER_API_KEY) {
-      throw new Error(
-        'TURBOPUFFER_API_KEY environment variable is required'
-      )
+      panic('TURBOPUFFER_API_KEY environment variable is required')
     }
 
     // Dynamically import to avoid loading undici at module load time
@@ -32,7 +31,7 @@ export const getTurbopufferClient =
 
 export const getOpenAIClient = async (): Promise<OpenAI> => {
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is required')
+    panic('OPENAI_API_KEY environment variable is required')
   }
 
   // Dynamically import to avoid loading undici at module load time

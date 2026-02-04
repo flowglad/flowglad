@@ -14,6 +14,7 @@ import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { panic } from '@/errors'
 import { getCustomerBillingPortalOrganizationId } from '../customerBillingPortalState'
 import {
   sendCustomerBillingPortalMagicLink,
@@ -135,7 +136,7 @@ export const customerAuth = betterAuth({
             organizationId: customerBillingPortalOrganizationId,
           })
         } else {
-          throw new Error(
+          panic(
             'Customer OTP requires organization context from billing portal'
           )
         }
@@ -157,7 +158,7 @@ export const customerAuth = betterAuth({
             organizationId: customerBillingPortalOrganizationId,
           })
         } else {
-          throw new Error(
+          panic(
             'Customer magic link requires organization context from billing portal'
           )
         }

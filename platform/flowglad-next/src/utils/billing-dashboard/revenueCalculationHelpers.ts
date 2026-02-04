@@ -35,6 +35,7 @@ import {
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { CancellationReason } from '@/types'
 
 export interface MonthlyRecurringRevenue {
@@ -82,7 +83,7 @@ export function normalizeToMonthlyValue(
   }
 
   if (intervalCount <= 0) {
-    throw new Error(
+    panic(
       `Invalid intervalCount: ${intervalCount}. Must be greater than 0.`
     )
   }
@@ -127,7 +128,7 @@ export function normalizeToMonthlyValue(
       }
       break
     default:
-      throw new Error(`Unsupported interval: ${interval}`)
+      panic(`Unsupported interval: ${interval}`)
   }
 
   return normalizedValue

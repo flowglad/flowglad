@@ -1,6 +1,7 @@
 import { session, user } from '@db-core/schema/betterAuthSchema'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { panic } from '@/errors'
 import type { DbTransaction } from '../types'
 
 /**
@@ -78,7 +79,7 @@ export const selectBetterAuthUserById = async (
     .where(eq(user.id, id))
     .limit(1)
   if (!betterAuthUser) {
-    throw new Error('BetterAuth user not found')
+    panic('BetterAuth user not found')
   }
   return betterAuthUser
 }
@@ -93,7 +94,7 @@ export const selectBetterAuthUserByEmail = async (
     .where(eq(user.email, email))
     .limit(1)
   if (!betterAuthUser) {
-    throw new Error('BetterAuth user not found')
+    panic('BetterAuth user not found')
   }
   return betterAuthUser
 }

@@ -28,6 +28,7 @@ import {
 import { eq, inArray } from 'drizzle-orm'
 import uniqBy from 'ramda/src/uniqBy'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { CacheDependency, cached } from '@/utils/cache'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -83,7 +84,7 @@ export const derivePricingModelIdForInvoiceLineItem = async (
     )
   }
 
-  throw new Error(
+  panic(
     'Cannot derive pricingModelId for invoice line item: both invoiceId and priceId are null or have no pricingModelId'
   )
 }
@@ -192,7 +193,7 @@ const deriveAndMapPricingModelIdsForInserts = async (
     const pricingModelId = pricingModelIdMap.get(key)
 
     if (!pricingModelId) {
-      throw new Error(
+      panic(
         `Could not derive pricingModelId for invoice line item with invoiceId: ${insert.invoiceId}, priceId: ${insert.priceId}`
       )
     }
@@ -355,7 +356,7 @@ export const deleteInvoiceLineItemsByinvoiceId = async (
     await selectInvoiceById(invoiceId, transaction)
   ).unwrap()
   if (invoiceIsInTerminalState(invoice)) {
-    throw Error(
+    panic(
       `Cannot delete invoice line items for a terminal invoice. Invoice: ${invoice.id}; invoice status: ${invoice.status}`
     )
   }

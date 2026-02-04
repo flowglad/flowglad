@@ -1,6 +1,7 @@
 import { EventNoun, FlowgladEventType } from '@db-core/enums'
 import type { Event } from '@db-core/schema/events'
 import { z } from 'zod'
+import { panic } from '@/errors'
 import { constructSyncEventsAvailableEventHash } from '@/utils/eventHelpers'
 
 /**
@@ -41,7 +42,7 @@ export const buildScopeId = (
 ): string => {
   const trimmedOrgId = organizationId.trim()
   if (!trimmedOrgId) {
-    throw new Error('organizationId cannot be empty')
+    panic('organizationId cannot be empty')
   }
   return `${trimmedOrgId}:${livemode ? 'live' : 'test'}`
 }

@@ -62,6 +62,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import { type UsageBillingInfo } from '@/types'
@@ -137,7 +138,7 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
 }> => {
   const countryId = organization.countryId
   if (!countryId) {
-    throw Error(
+    panic(
       `Cannot run billing for a billing period with an organization that does not have a country id.` +
         `Organization: ${organization.id}; Billing Period: ${billingPeriod.id}`
     )
@@ -654,13 +655,13 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   const stripeCustomerId = customer.stripeCustomerId
   const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
   if (!stripeCustomerId) {
-    throw new Error(
+    panic(
       `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
         ` Customer: ${customer.id}; Billing Period: ${billingPeriod.id}`
     )
   }
   if (!stripePaymentMethodId) {
-    throw new Error(
+    panic(
       `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
         `Payment Method: ${paymentMethod.id}; Billing Period: ${billingPeriod.id}`
     )
@@ -854,7 +855,7 @@ export const executeBillingRun = async (
   }
   try {
     if (billingRun.isAdjustment && !adjustmentParams) {
-      throw new Error(
+      panic(
         `executeBillingRun: Adjustment billing run ${billingRunId} requires adjustmentParams`
       )
     }
@@ -927,7 +928,7 @@ export const executeBillingRun = async (
           let paymentIntent = null
           if (resultFromSteps.payment) {
             if (!resultFromSteps.customer.stripeCustomerId) {
-              throw new Error(
+              panic(
                 `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
                   ` Customer: ${resultFromSteps.customer.id}; Billing Period: ${resultFromSteps.billingPeriod.id}`
               )
@@ -935,7 +936,7 @@ export const executeBillingRun = async (
             if (
               !resultFromSteps.paymentMethod.stripePaymentMethodId
             ) {
-              throw new Error(
+              panic(
                 `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
                   `Payment Method: ${resultFromSteps.paymentMethod.id}; Billing Period: ${resultFromSteps.billingPeriod.id}`
               )

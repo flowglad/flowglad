@@ -14,7 +14,6 @@ import {
   subscriptionItemsUpdateSchema,
 } from '@db-core/schema/subscriptionItems'
 import {
-  type Subscription,
   subscriptions,
   subscriptionsSelectSchema,
 } from '@db-core/schema/subscriptions'
@@ -34,6 +33,7 @@ import {
 } from '@db-core/tableUtils'
 import { and, eq, inArray, lte } from 'drizzle-orm'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import {
   derivePricingModelIdFromSubscription,
   pricingModelIdsForSubscriptions,
@@ -136,7 +136,7 @@ export const bulkInsertSubscriptionItems = async (
           subscriptionItemInsert.pricingModelId ??
           pricingModelIdMap.get(subscriptionItemInsert.subscriptionId)
         if (!pricingModelId) {
-          throw new Error(
+          panic(
             `Pricing model id not found for subscription ${subscriptionItemInsert.subscriptionId}`
           )
         }
@@ -221,7 +221,7 @@ const bulkInsertOrDoNothingSubscriptionItems = async (
         insert.pricingModelId ??
         pricingModelIdMap.get(insert.subscriptionId)
       if (!pricingModelId) {
-        throw new Error(
+        panic(
           `Pricing model id not found for subscription ${insert.subscriptionId}`
         )
       }
@@ -266,7 +266,7 @@ export const bulkCreateOrUpdateSubscriptionItems = async (
     const existingIds = new Set(existingItems.map((item) => item.id))
     for (const item of itemsWithIds) {
       if (!existingIds.has(item.id)) {
-        throw new Error(
+        panic(
           `Cannot update subscription item with id ${item.id} because it is non-existent`
         )
       }

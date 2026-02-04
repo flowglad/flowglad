@@ -77,6 +77,7 @@ export default function PaymentMethodsListDemo() {
       alert(
         'Cannot remove the default payment method. Please set another as default first.'
       )
+      // biome-ignore lint/plugin: UI boundary - error already shown to user via alert
       throw new Error('Cannot remove default payment method')
     }
 

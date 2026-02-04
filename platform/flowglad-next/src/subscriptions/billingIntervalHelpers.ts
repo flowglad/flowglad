@@ -1,5 +1,6 @@
 import { IntervalUnit } from '@db-core/enums'
 import { isLeapYear } from 'date-fns'
+import { panic } from '@/errors'
 
 interface GenerateNextBillingPeriodParams {
   billingCycleAnchorDate: Date | number
@@ -43,7 +44,7 @@ export function generateNextBillingPeriod({
 
   if (trialEnd) {
     if (new Date(trialEnd).getTime() <= effectiveStartDate) {
-      throw new Error(
+      panic(
         'Trial end date must be after the billing cycle anchor date.'
       )
     }
@@ -55,7 +56,7 @@ export function generateNextBillingPeriod({
 
   // 1) Disallow zero or negative intervals
   if (intervalCount <= 0) {
-    throw new Error(
+    panic(
       `intervalCount must be a positive integer. Received: ${intervalCount}`
     )
   }
@@ -130,7 +131,7 @@ export function generateNextBillingPeriod({
     )
   } else {
     // Currently only support Month & Year intervals
-    throw new Error(`Unsupported interval: ${interval}`)
+    panic(`Unsupported interval: ${interval}`)
   }
 
   // 3) Validate that new start isn't before lastEnd,
@@ -141,7 +142,7 @@ export function generateNextBillingPeriod({
     const lastEndTime = new Date(lastBillingPeriodEndDate).getTime()
 
     if (startTime < lastEndTime) {
-      throw new Error(
+      panic(
         'Next period start date must be after last period end date. ' +
           `Received start date: ${startDateObj.toISOString()} and ` +
           `last period end date: ${new Date(lastBillingPeriodEndDate).toISOString()}`
@@ -149,7 +150,7 @@ export function generateNextBillingPeriod({
     }
 
     if (endTime <= startTime) {
-      throw new Error('Period end date must be after start date')
+      panic('Period end date must be after start date')
     }
   }
 
