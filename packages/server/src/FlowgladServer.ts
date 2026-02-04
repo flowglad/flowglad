@@ -25,7 +25,11 @@ import {
   type GetCustomerDetailsResponse,
   type GetFeatureAccessParams,
   type GetFeatureAccessResponse,
+  type GetInvoicesParams,
+  type GetInvoicesResponse,
   type GetPaymentMethodsResponse,
+  type GetPurchasesParams,
+  type GetPurchasesResponse,
   type GetSubscriptionsParams,
   type GetSubscriptionsResponse,
   type GetUsageMeterBalancesParams,
@@ -219,6 +223,55 @@ export class FlowgladServer {
         },
       }
     }
+
+  /**
+   * Get invoices for the authenticated customer.
+   *
+   * Returns invoices with optional pagination support.
+   * Delegates to getBilling() initially for simplicity.
+   *
+   * @param params - Optional parameters for fetching invoices
+   * @param params.limit - Maximum number of invoices to return
+   * @param params.startingAfter - Cursor for pagination (invoice ID to start after)
+   *
+   * @returns A promise that resolves to an object containing invoices
+   *
+   * @throws {Error} If the customer is not authenticated
+   */
+  public getInvoices = async (
+    params?: GetInvoicesParams
+  ): Promise<GetInvoicesResponse> => {
+    const billing = await this.getBilling()
+    let invoices = billing.invoices ?? []
+    if (params?.limit) {
+      invoices = invoices.slice(0, params.limit)
+    }
+    return { invoices }
+  }
+
+  /**
+   * Get purchases for the authenticated customer.
+   *
+   * Returns one-time purchases with optional limit.
+   * Delegates to getBilling() initially for simplicity.
+   *
+   * @param params - Optional parameters for fetching purchases
+   * @param params.limit - Maximum number of purchases to return
+   *
+   * @returns A promise that resolves to an object containing purchases
+   *
+   * @throws {Error} If the customer is not authenticated
+   */
+  public getPurchases = async (
+    params?: GetPurchasesParams
+  ): Promise<GetPurchasesResponse> => {
+    const billing = await this.getBilling()
+    let purchases = billing.purchases ?? []
+    if (params?.limit) {
+      purchases = purchases.slice(0, params.limit)
+    }
+    return { purchases }
+  }
 
   public findOrCreateCustomer = async (): Promise<
     FlowgladNode.Customers.CustomerRetrieveResponse['customer']

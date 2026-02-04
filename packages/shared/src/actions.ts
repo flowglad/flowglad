@@ -5,7 +5,9 @@ import {
   FeatureAccessItem,
   FlowgladActionKey,
   HTTPMethod,
+  type InvoiceDetails,
   type PaymentMethodDetails,
+  type PurchaseDetails,
   UsageMeterBalance,
 } from './types/sdk'
 import type { SubscriptionDetails } from './types/subscription'
@@ -670,6 +672,41 @@ export type GetSubscriptionsResponse = {
   currentSubscription: SubscriptionDetails | null
 }
 
+/**
+ * Schema for fetching invoices for a customer.
+ * Returns invoices for the customer with optional pagination.
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getInvoicesSchema = z
+  .object({
+    limit: z.number().optional(),
+    startingAfter: z.string().optional(),
+  })
+  .strict()
+
+export type GetInvoicesParams = z.infer<typeof getInvoicesSchema>
+
+export type GetInvoicesResponse = {
+  invoices: InvoiceDetails[]
+}
+
+/**
+ * Schema for fetching purchases for a customer.
+ * Returns purchases for the customer with optional limit.
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getPurchasesSchema = z
+  .object({
+    limit: z.number().optional(),
+  })
+  .strict()
+
+export type GetPurchasesParams = z.infer<typeof getPurchasesSchema>
+
+export type GetPurchasesResponse = {
+  purchases: PurchaseDetails[]
+}
+
 export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -762,5 +799,13 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerDetails]: {
     method: HTTPMethod.POST,
     inputValidator: getCustomerDetailsSchema,
+  },
+  [FlowgladActionKey.GetInvoices]: {
+    method: HTTPMethod.POST,
+    inputValidator: getInvoicesSchema,
+  },
+  [FlowgladActionKey.GetPurchases]: {
+    method: HTTPMethod.POST,
+    inputValidator: getPurchasesSchema,
   },
 } as const satisfies FlowgladActionValidatorMap
