@@ -28,7 +28,7 @@ export default function SignIn() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic">
       <Text style={{ fontSize: 32, fontWeight: 'bold', margin: 10 }}>
-        Sign In
+        Log In
       </Text>
       <TextInput
         placeholder="Email"
@@ -45,7 +45,7 @@ export default function SignIn() {
         style={styles.input}
         secureTextEntry
       />
-      <Button title="Sign in" onPress={handleLogin} />
+      <Button title="Log in" onPress={handleLogin} />
       <Link href="/(auth)/sign-up" asChild>
         <Button title="Sign up" />
       </Link>

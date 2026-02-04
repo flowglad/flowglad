@@ -7,6 +7,13 @@ Examples:
 - Run scripts: `bun run <script-name>`
 - Build: `bun run build`
 
+## Related Files
+
+- `AGENTS.md` - High-level overview and code quality standards
+- `.cursor/rules/` - File-specific patterns for AI assistance
+- `platform/flowglad-next/llm-prompts/` - Reusable prompt templates for common workflows
+- `.agents/` - AI context (gameplans, research, troubleshooting guides)
+
 ## Init
 Run the following command EVERY TIME you are in a new context:
 ```bash
@@ -117,7 +124,7 @@ Then edit the generated SQL file with your data migration logic.
 Please use the following guidelines when implementing new tests:
 
 - No mocking functions, unless the mocked function makes a network call whose response needs to be controlled for this test
-- No .spyOn
+- No direct `.spyOn()` - use `spyTracker` helper for controlled cleanup (see Parallel-Safe Test Patterns below)
 - No dynamic imports
 - No stubbed-out tests
 - No usage of type "any"
@@ -135,21 +142,11 @@ Please use the following guidelines when implementing new tests:
 
 ### Test Environments
 
-The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
+This project uses **bun:test** for testing. The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 
-**Tests using React or DOM APIs** must include this directive at the top of the file:
-```typescript
-/**
- * @vitest-environment jsdom
- */
-```
+**Tests using React or DOM APIs** (React component tests, hook tests using `renderHook`) should use the happy-dom preloads configured in the test scripts. See `packages/react/bun.dom.preload.ts` and `packages/react/bun.frontend.setup.ts` for the DOM environment setup.
 
-This includes:
-- React component tests (`.test.tsx` files)
-- React hook tests using `renderHook` from `@testing-library/react`
-- Any test that needs DOM APIs like `document` or `window`
-
-This tells Vitest to run that specific test file in a jsdom environment.
+**Note:** Some packages under `packages/` (shared, server, flowglad) still use vitest. The main platform (`platform/flowglad-next/`) and `packages/react/` use bun:test.
 
 ### Parallel-Safe Test Patterns
 
@@ -330,5 +327,6 @@ return Result.err(new ConflictError('Resource', 'conflict description'))
 
 It is extremely recommended to run the following command(s) and examine the output to ensure everything is working as expected:
 <finishing-edits-commands>
-1. `bun run check` - this is our linting/formatting and typechecking command, make sure to carefully examine the output and make any changes to fix the errors. Keep in mind that you may need to run it a few times to fix all the errors.
+1. `bun run check` - linting/formatting and typechecking
+2. `bun run test` - run tests (if changes affect tested code)
 </finishing-edits-commands>

@@ -54,61 +54,63 @@ export const runSendOrganizationSubscriptionCancellationScheduledNotification =
       NotFoundError | ValidationError
     >
     try {
-      const data = await adminTransaction(async ({ transaction }) => {
-        const context = await buildNotificationContext(
-          {
-            organizationId: subscription.organizationId,
-            customerId: subscription.customerId,
-            include: ['usersAndMemberships'],
-          },
-          transaction
-        )
-
-        // Fetch the product associated with the subscription for user-friendly naming
-        // NotFoundError is caught and treated as non-fatal - we use fallbacks instead
-        let price: Price.Record | null = null
-        if (subscription.priceId) {
-          const priceResult = await selectPriceById(
-            subscription.priceId,
+      const data = (
+        await adminTransaction(async ({ transaction }) => {
+          const context = await buildNotificationContext(
+            {
+              organizationId: subscription.organizationId,
+              customerId: subscription.customerId,
+              include: ['usersAndMemberships'],
+            },
             transaction
           )
-          if (Result.isOk(priceResult)) {
-            price = priceResult.value
-          } else {
-            logger.warn(
-              'Price not found for subscription, using fallbacks',
-              {
-                priceId: subscription.priceId,
-                subscriptionId: subscription.id,
-              }
-            )
-          }
-        }
 
-        let product: Product.Record | null = null
-        if (price && Price.hasProductId(price)) {
-          const productResult = await selectProductById(
-            price.productId,
-            transaction
-          )
-          if (Result.isOk(productResult)) {
-            product = productResult.value
-          } else {
-            logger.warn(
-              'Product not found for subscription, using fallbacks',
-              {
-                productId: price.productId,
-                subscriptionId: subscription.id,
-              }
+          // Fetch the product associated with the subscription for user-friendly naming
+          // NotFoundError is caught and treated as non-fatal - we use fallbacks instead
+          let price: Price.Record | null = null
+          if (subscription.priceId) {
+            const priceResult = await selectPriceById(
+              subscription.priceId,
+              transaction
             )
+            if (Result.isOk(priceResult)) {
+              price = priceResult.value
+            } else {
+              logger.warn(
+                'Price not found for subscription, using fallbacks',
+                {
+                  priceId: subscription.priceId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            }
           }
-        }
 
-        return {
-          ...context,
-          product,
-        }
-      })
+          let product: Product.Record | null = null
+          if (price && Price.hasProductId(price)) {
+            const productResult = await selectProductById(
+              price.productId,
+              transaction
+            )
+            if (Result.isOk(productResult)) {
+              product = productResult.value
+            } else {
+              logger.warn(
+                'Product not found for subscription, using fallbacks',
+                {
+                  productId: price.productId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            }
+          }
+
+          return Result.ok({
+            ...context,
+            product,
+          })
+        })
+      ).unwrap()
       dataResult = Result.ok(data)
     } catch (error) {
       // Only convert NotFoundError to Result.err; rethrow other errors

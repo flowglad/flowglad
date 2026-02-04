@@ -341,7 +341,7 @@ const grantProratedCreditsForFeatures = async (params: {
   const usageMeterIds = R.uniq(
     usageCredits.map((usageCredit) => usageCredit.usageMeterId)
   )
-  const ledgerAccounts =
+  const ledgerAccountsResult =
     await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
       {
         subscriptionId: subscription.id,
@@ -349,6 +349,8 @@ const grantProratedCreditsForFeatures = async (params: {
       },
       transaction
     )
+  // If subscription doesn't exist, throw (shouldn't happen since we have the subscription)
+  const ledgerAccounts = ledgerAccountsResult.unwrap()
   const ledgerAccountsByMeterId = new Map(
     ledgerAccounts.map((ledgerAccount) => [
       ledgerAccount.usageMeterId,

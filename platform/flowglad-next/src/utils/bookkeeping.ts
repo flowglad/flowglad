@@ -262,6 +262,7 @@ export const createCustomerBookkeeping = async (
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = ctx
   // Security: Validate that customer organizationId matches auth context
   if (
@@ -400,6 +401,7 @@ export const createCustomerBookkeeping = async (
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
         ).unwrap()

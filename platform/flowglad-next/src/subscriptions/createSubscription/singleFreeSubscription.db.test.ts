@@ -16,7 +16,7 @@ import {
   setupProduct,
   setupSubscription,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { CancellationReason } from '@/types'
 import { core } from '@/utils/core'
@@ -110,7 +110,7 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await verifyCanCreateSubscription(
             params,
             transaction
@@ -164,7 +164,7 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Update organization to allow multiple subscriptions
           await updateOrganization(
             {
@@ -216,7 +216,7 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // This should succeed
           const result = await verifyCanCreateSubscription(
             params,
@@ -231,7 +231,7 @@ describe('Single Free Subscription Constraint', () => {
     it('should allow multiple paid subscriptions when organization allows it', async () => {
       // Update organization to allow multiple subscriptions
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateOrganization(
             {
               id: organization.id,
@@ -280,7 +280,7 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // This should succeed
           const result = await verifyCanCreateSubscription(
             params,

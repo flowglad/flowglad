@@ -25,7 +25,7 @@ import {
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import type { DbTransaction } from '@/db/types'
-import type { NotFoundError } from '@/errors'
+import { NotFoundError } from '@/errors'
 import { LedgerTransactionInitiatingSourceType } from '@/types'
 
 export const createUsageCreditApplicationsForUsageEvent = async (
@@ -162,11 +162,25 @@ export const processUsageEventProcessedLedgerCommand = async (
     initiatingSourceId: command.payload.usageEvent.id,
     subscriptionId: command.subscriptionId!,
   }
-  const ledgerTransaction = await insertLedgerTransaction(
-    ledgerTransactionInput,
-    transaction
-  )
-  const [ledgerAccount] =
+  let ledgerTransaction: LedgerTransaction.Record
+  try {
+    ledgerTransaction = await insertLedgerTransaction(
+      ledgerTransactionInput,
+      transaction
+    )
+  } catch (error) {
+    // If subscription not found, convert to Result error
+    if (
+      error instanceof Error &&
+      error.message.includes('No subscriptions found')
+    ) {
+      return Result.err(
+        new NotFoundError('subscriptions', command.subscriptionId!)
+      )
+    }
+    throw error
+  }
+  const ledgerAccountsResult =
     await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
       {
         subscriptionId: command.subscriptionId!,
@@ -174,6 +188,13 @@ export const processUsageEventProcessedLedgerCommand = async (
       },
       transaction
     )
+  if (Result.isError(ledgerAccountsResult)) {
+    const err = ledgerAccountsResult.error
+    return Result.err(
+      new NotFoundError(err.resourceType, String(err.resourceId))
+    )
+  }
+  const [ledgerAccount] = ledgerAccountsResult.unwrap()
   if (!ledgerAccount) {
     throw new Error(
       'Failed to select ledger account for UsageEventProcessed command'

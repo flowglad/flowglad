@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -25,13 +26,11 @@ export const createDiscordConciergeChannel = protectedProcedure
 
     try {
       // Fetch fresh organization data to get latest discordConciergeChannelId
-      const organization = await adminTransaction(
-        async ({ transaction }) => {
-          return (
-            await selectOrganizationById(organizationId, transaction)
-          ).unwrap()
-        }
-      )
+      const organization = (
+        await adminTransaction(async ({ transaction }) => {
+          return selectOrganizationById(organizationId, transaction)
+        })
+      ).unwrap()
 
       console.log('[Discord Mutation] Fetched organization:', {
         id: organization.id,
@@ -68,6 +67,7 @@ export const createDiscordConciergeChannel = protectedProcedure
             },
             transaction
           )
+          return Result.ok(undefined)
         })
         console.log(
           '[Discord Mutation] Channel ID persisted successfully'

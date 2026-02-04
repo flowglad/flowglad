@@ -12,8 +12,8 @@ import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
 import PageContainer from '@/components/PageContainer'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
@@ -41,7 +41,7 @@ interface OnboardingPageData {
 
 const OnboardingPage = async () => {
   const results = (
-    await authenticatedTransactionWithResult(
+    await authenticatedTransaction(
       async ({
         transaction,
         userId,
@@ -92,7 +92,7 @@ const OnboardingPage = async () => {
   }
   let organization = results.organization
   const testmodeApiKeys: ApiKey.Record[] = (
-    await adminTransactionWithResult(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       return Result.ok(
         await selectApiKeys(
           { organizationId: organization.id, livemode: false },
@@ -119,10 +119,15 @@ const OnboardingPage = async () => {
       throw new Error('No default testmode pricing model found')
     }
     secretApiKey = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({
           transaction,
           cacheRecomputationContext,
+          effects,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+          enqueueTriggerTask,
         }): Promise<Result<ApiKey.Record, Error>> => {
           const [user] = await selectUsers(
             {
@@ -151,6 +156,11 @@ const OnboardingPage = async () => {
               userId: user.id,
               organizationId: organization.id,
               cacheRecomputationContext,
+              effects,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
           return Result.ok(apiKey)

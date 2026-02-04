@@ -3,7 +3,7 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectOrganizationById,
   updateOrganization,
@@ -80,7 +80,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     // Verify database was updated with the hash
     const updatedOrg = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await (
@@ -125,7 +125,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     })
 
     const updatedOrg = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await (
@@ -159,7 +159,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     // Verify database was updated (which only happens after successful putMarkdownFile)
     const updatedOrg = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await (
@@ -183,7 +183,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     })
 
     const orgAfterFirst = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await (
@@ -206,7 +206,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     })
 
     const orgAfterSecond = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await (
@@ -241,7 +241,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
       '# Codebase Documentation\n\nThis is the content.'
     // Set codebaseMarkdownHash in database
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateOrganization(
           {
@@ -279,7 +279,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
   it('should return null immediately when codebaseMarkdownHash is null', async () => {
     // Set codebaseMarkdownHash to null
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateOrganization(
           {
@@ -306,7 +306,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
     // Organization starts with codebaseMarkdownHash as undefined (not set)
     // Verify it's undefined or null
     const org = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await (
@@ -331,7 +331,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
     const testHash = 'testhash123'
     // Set codebaseMarkdownHash in database
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updateOrganization(
           {
@@ -394,7 +394,7 @@ describe('savePricingModelIntegrationMarkdown', () => {
 
     // Verify database was updated with the hash
     const updatedPricingModelResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPricingModelById(pricingModel.id, transaction)
@@ -455,7 +455,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
       '# Integration Guide\n\nThis is the content.'
     // Set integrationGuideHash in database
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updatePricingModel(
           {
@@ -498,7 +498,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
   it('should return null immediately when integrationGuideHash is null', async () => {
     // Set integrationGuideHash to null
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updatePricingModel(
           {
@@ -526,7 +526,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
     // Pricing model starts with integrationGuideHash as undefined (not set)
     // Verify it's undefined or null
     const pmResult = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           await selectPricingModelById(pricingModel.id, transaction)
@@ -551,7 +551,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
     const testHash = 'testhash456'
     // Set integrationGuideHash in database
     ;(
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updatePricingModel(
           {

@@ -20,10 +20,7 @@ import {
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import db from '@/db/client'
 import {
   insertSubscriptionItemFeature,
@@ -760,15 +757,17 @@ describeIfRedisKey(
       keysToCleanup.push(cacheKey, registryKey)
 
       // First call - should cache the result
-      const result1 = await adminTransaction(
-        async ({ transaction, livemode }) => {
-          return selectSubscriptionsByCustomerId(
-            customer.id,
-            livemode,
-            transaction
+      const result1 = (
+        await adminTransaction(async ({ transaction, livemode }) => {
+          return Result.ok(
+            await selectSubscriptionsByCustomerId(
+              customer.id,
+              livemode,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result1).toHaveLength(1)
       expect(result1[0].id).toBe(subscription.id)
@@ -779,15 +778,17 @@ describeIfRedisKey(
       expect(Array.isArray(cachedValue)).toBe(true)
 
       // Second call - should return cached result
-      const result2 = await adminTransaction(
-        async ({ transaction, livemode }) => {
-          return selectSubscriptionsByCustomerId(
-            customer.id,
-            livemode,
-            transaction
+      const result2 = (
+        await adminTransaction(async ({ transaction, livemode }) => {
+          return Result.ok(
+            await selectSubscriptionsByCustomerId(
+              customer.id,
+              livemode,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result2).toHaveLength(1)
       expect(result2[0].id).toBe(subscription.id)
@@ -811,15 +812,17 @@ describeIfRedisKey(
       keysToCleanup.push(cacheKey, registryKey)
 
       // First call - should cache the empty result
-      const result = await adminTransaction(
-        async ({ transaction, livemode }) => {
-          return selectSubscriptionsByCustomerId(
-            customerWithNoSubs.id,
-            livemode,
-            transaction
+      const result = (
+        await adminTransaction(async ({ transaction, livemode }) => {
+          return Result.ok(
+            await selectSubscriptionsByCustomerId(
+              customerWithNoSubs.id,
+              livemode,
+              transaction
+            )
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toEqual([])
 
@@ -872,13 +875,17 @@ describeIfRedisKey(
       keysToCleanup.push(cacheKey, registryKey)
 
       // Populate cache
-      await adminTransaction(async ({ transaction, livemode }) => {
-        return selectSubscriptionsByCustomerId(
-          customer.id,
-          livemode,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          return Result.ok(
+            await selectSubscriptionsByCustomerId(
+              customer.id,
+              livemode,
+              transaction
+            )
+          )
+        })
+      ).unwrap()
 
       // Verify cache is populated (Upstash auto-parses JSON)
       const beforeInvalidation = await client.get(cacheKey)
@@ -909,7 +916,7 @@ describeIfRedisKey(
       keysToCleanup = []
     })
 
-    it('comprehensiveAdminTransaction invalidateCache callback clears cache after transaction commits', async () => {
+    it('adminTransaction invalidateCache callback clears cache after transaction commits', async () => {
       const client = getRedisTestClient()
 
       // Setup test data
@@ -937,15 +944,15 @@ describeIfRedisKey(
       const beforeTransaction = await client.get(cacheKey)
       expect(Array.isArray(beforeTransaction)).toBe(true)
 
-      // Call comprehensiveAdminTransaction with a function that uses invalidateCache
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
+      // Call adminTransaction with a function that uses invalidateCache
+      ;(
+        await adminTransaction(async ({ invalidateCache }) => {
           // Simulate what a workflow function does - call invalidateCache with dependency key
-          // Non-null assertion: comprehensiveAdminTransaction always provides invalidateCache
+          // Non-null assertion: adminTransaction always provides invalidateCache
           invalidateCache(dependencyKey)
           return Result.ok('success')
-        }
-      )
+        })
+      ).unwrap()
 
       // Poll until cache is invalidated
       await waitForCacheInvalidation(client, cacheKey)
@@ -1001,14 +1008,14 @@ describeIfRedisKey(
       expect(Array.isArray(await client.get(cacheKey1))).toBe(true)
       expect(Array.isArray(await client.get(cacheKey2))).toBe(true)
 
-      // Call comprehensiveAdminTransaction with multiple invalidateCache calls
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
+      // Call adminTransaction with multiple invalidateCache calls
+      ;(
+        await adminTransaction(async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
           return Result.ok('success')
-        }
-      )
+        })
+      ).unwrap()
 
       // Poll until both caches are invalidated
       await Promise.all([
@@ -1046,15 +1053,15 @@ describeIfRedisKey(
       await client.sadd(registryKey, cacheKey)
 
       // Call with duplicate invalidation keys (simulating nested function calls)
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
+      ;(
+        await adminTransaction(async ({ invalidateCache }) => {
           // Same key called multiple times - should be deduplicated
           invalidateCache(dependencyKey)
           invalidateCache(dependencyKey)
           invalidateCache(dependencyKey)
           return Result.ok('success')
-        }
-      )
+        })
+      ).unwrap()
 
       // Poll until cache is invalidated
       await waitForCacheInvalidation(client, cacheKey)
@@ -1106,13 +1113,13 @@ describeIfRedisKey(
       await client.sadd(registryKey2, cacheKey2)
 
       // Use callback for both keys
-      await comprehensiveAdminTransaction(
-        async ({ invalidateCache }) => {
+      ;(
+        await adminTransaction(async ({ invalidateCache }) => {
           invalidateCache(depKey1)
           invalidateCache(depKey2)
           return Result.ok('success')
-        }
-      )
+        })
+      ).unwrap()
 
       // Poll until both caches are invalidated
       await Promise.all([
@@ -1221,57 +1228,60 @@ describeIfRedisKey(
       const registryKey = `cacheDeps:${depKey}`
       keysToCleanup.push(cacheKey, registryKey)
 
-      await adminTransaction(async ({ transaction }) => {
-        // Insert a subscription item feature
-        await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-
-        // First call - should query DB and cache the result
-        const features1 =
-          await selectSubscriptionItemFeaturesWithFeatureSlug(
-            subscriptionItem.id,
-            transaction,
-            true // livemode
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Insert a subscription item feature
+          await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
+            transaction
           )
 
-        expect(features1.length).toBe(1)
-        expect(features1[0].subscriptionItemId).toBe(
-          subscriptionItem.id
-        )
-        expect(features1[0].featureId).toBe(toggleFeature.id)
-        expect(features1[0].name).toBe(toggleFeature.name)
-        expect(features1[0].slug).toBe(toggleFeature.slug)
+          // First call - should query DB and cache the result
+          const features1 =
+            await selectSubscriptionItemFeaturesWithFeatureSlug(
+              subscriptionItem.id,
+              transaction,
+              true // livemode
+            )
 
-        // Verify the result is stored in Redis (Upstash auto-deserializes JSON)
-        const storedValue = await client.get(cacheKey)
-        expect(typeof storedValue).toBe('object')
-
-        // Second call - should return from cache
-        const features2 =
-          await selectSubscriptionItemFeaturesWithFeatureSlug(
-            subscriptionItem.id,
-            transaction,
-            true // livemode
+          expect(features1.length).toBe(1)
+          expect(features1[0].subscriptionItemId).toBe(
+            subscriptionItem.id
           )
+          expect(features1[0].featureId).toBe(toggleFeature.id)
+          expect(features1[0].name).toBe(toggleFeature.name)
+          expect(features1[0].slug).toBe(toggleFeature.slug)
 
-        // Verify the cached result has the same key properties
-        expect(features2.length).toBe(features1.length)
-        expect(features2[0].id).toBe(features1[0].id)
-        expect(features2[0].subscriptionItemId).toBe(
-          features1[0].subscriptionItemId
-        )
-      })
+          // Verify the result is stored in Redis (Upstash auto-deserializes JSON)
+          const storedValue = await client.get(cacheKey)
+          expect(typeof storedValue).toBe('object')
+
+          // Second call - should return from cache
+          const features2 =
+            await selectSubscriptionItemFeaturesWithFeatureSlug(
+              subscriptionItem.id,
+              transaction,
+              true // livemode
+            )
+
+          // Verify the cached result has the same key properties
+          expect(features2.length).toBe(features1.length)
+          expect(features2[0].id).toBe(features1[0].id)
+          expect(features2[0].subscriptionItemId).toBe(
+            features1[0].subscriptionItemId
+          )
+          return Result.ok(null)
+        })
+      ).unwrap()
     })
 
     it('returns fresh data after subscriptionItem dependency is invalidated', async () => {
@@ -1336,30 +1346,33 @@ describeIfRedisKey(
       keysToCleanup.push(cacheKey, registryKey)
 
       // First transaction - insert feature and cache it
-      await adminTransaction(async ({ transaction }) => {
-        await insertSubscriptionItemFeature(
-          {
-            type: FeatureType.Toggle,
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            productFeatureId: toggleProductFeature.id,
-            usageMeterId: null,
-            amount: null,
-            renewalFrequency: null,
-            livemode: true,
-          },
-          transaction
-        )
-
-        // Populate the cache
-        const features =
-          await selectSubscriptionItemFeaturesWithFeatureSlug(
-            subscriptionItem.id,
-            transaction,
-            true // livemode
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await insertSubscriptionItemFeature(
+            {
+              type: FeatureType.Toggle,
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              productFeatureId: toggleProductFeature.id,
+              usageMeterId: null,
+              amount: null,
+              renewalFrequency: null,
+              livemode: true,
+            },
+            transaction
           )
-        expect(features.length).toBe(1)
-      })
+
+          // Populate the cache
+          const features =
+            await selectSubscriptionItemFeaturesWithFeatureSlug(
+              subscriptionItem.id,
+              transaction,
+              true // livemode
+            )
+          expect(features.length).toBe(1)
+          return Result.ok(null)
+        })
+      ).unwrap()
 
       // Verify cache is populated (Upstash auto-deserializes JSON)
       const cachedBefore = await client.get(cacheKey)
@@ -1373,16 +1386,19 @@ describeIfRedisKey(
       expect(cachedAfter).toBeNull()
 
       // Next query should hit DB again (cache miss)
-      await adminTransaction(async ({ transaction }) => {
-        const features =
-          await selectSubscriptionItemFeaturesWithFeatureSlug(
-            subscriptionItem.id,
-            transaction,
-            true // livemode
-          )
-        // Should still return the feature (from DB, not cache)
-        expect(features.length).toBe(1)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const features =
+            await selectSubscriptionItemFeaturesWithFeatureSlug(
+              subscriptionItem.id,
+              transaction,
+              true // livemode
+            )
+          // Should still return the feature (from DB, not cache)
+          expect(features.length).toBe(1)
+          return Result.ok(null)
+        })
+      ).unwrap()
 
       // Cache should be repopulated (Upstash auto-deserializes JSON)
       const cachedRepopulated = await client.get(cacheKey)

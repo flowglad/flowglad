@@ -17,6 +17,7 @@ import {
 } from '@/server/routers/paymentsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import {
+  exportPricingModelRouteConfig,
   getDefaultPricingModelRouteConfig,
   pricingModelsRouteConfigs,
   setupPricingModelRouteConfig,
@@ -68,6 +69,7 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 export const routes: Record<string, RouteConfig> = {
   ...getDefaultPricingModelRouteConfig,
   ...setupPricingModelRouteConfig,
+  ...exportPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
   ...customerArchiveRouteConfig,
   ...customerBillingRouteConfig,

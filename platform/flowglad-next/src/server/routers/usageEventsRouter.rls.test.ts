@@ -13,6 +13,7 @@ import type { Price } from '@db-core/schema/prices'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { UsageEvent } from '@db-core/schema/usageEvents'
 import type { UsageMeter } from '@db-core/schema/usageMeters'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -27,7 +28,7 @@ import {
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
-import type { ComprehensiveAuthenticatedTransactionParams } from '@/db/types'
+import type { AuthenticatedTransactionParams } from '@/db/types'
 import { usageEventsRouter } from '@/server/routers/usageEventsRouter'
 import type { TRPCApiContext } from '@/server/trpcContext'
 
@@ -46,7 +47,7 @@ const createCaller = (
     path: '',
     user: null,
     session: null,
-  } as TRPCApiContext)
+  } as unknown as TRPCApiContext)
 }
 
 describe('usageEventsRouter', () => {
@@ -245,7 +246,6 @@ describe('usageEventsRouter', () => {
       const result = await caller.list({
         cursor: undefined,
         limit: 10,
-        customerId: customer1.id,
       })
 
       // Should return only the 5 usage events for customer1
@@ -418,7 +418,7 @@ describe('usageEventsRouter', () => {
 
       const result = await caller.getTableRows({
         pageSize: 10,
-        customerId: customer1.id,
+        filters: { customerId: customer1.id },
       })
 
       // Verify by specific IDs - all created events should be in result
@@ -539,14 +539,14 @@ describe('usageEventsRouter', () => {
       // First call with pageSize of 3, filtered by isolated customer
       const firstResult = await caller.getTableRows({
         pageSize: 3,
-        customerId: isolatedCustomer.id,
+        filters: { customerId: isolatedCustomer.id },
       })
 
       // Second call using pageAfter from first result
       const secondResult = await caller.getTableRows({
         pageAfter: firstResult.endCursor ?? undefined,
         pageSize: 3,
-        customerId: isolatedCustomer.id,
+        filters: { customerId: isolatedCustomer.id },
       })
 
       // First call should return first 3 events
@@ -632,7 +632,7 @@ describe('usageEventsRouter', () => {
     it('should create usage event with priceSlug', async () => {
       // First, update price1 to have a slug
       await authenticatedTransaction(
-        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
+        async (ctx: AuthenticatedTransactionParams) => {
           await updatePrice(
             {
               id: price1.id,
@@ -641,6 +641,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )
@@ -867,7 +868,7 @@ describe('usageEventsRouter', () => {
     it('should create usage event with usageMeterSlug', async () => {
       // First, update usageMeter1 to have a slug
       await authenticatedTransaction(
-        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
+        async (ctx: AuthenticatedTransactionParams) => {
           await updateUsageMeter(
             {
               id: usageMeter1.id,
@@ -875,6 +876,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )
@@ -1013,7 +1015,7 @@ describe('usageEventsRouter', () => {
     it('should throw error when both priceSlug and usageMeterSlug are provided', async () => {
       // First, update price1 and usageMeter1 to have slugs
       await authenticatedTransaction(
-        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
+        async (ctx: AuthenticatedTransactionParams) => {
           await updatePrice(
             {
               id: price1.id,
@@ -1029,6 +1031,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )
@@ -1074,7 +1077,7 @@ describe('usageEventsRouter', () => {
     it('should throw error when priceId and usageMeterSlug are provided', async () => {
       // First, update usageMeter1 to have a slug
       await authenticatedTransaction(
-        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
+        async (ctx: AuthenticatedTransactionParams) => {
           await updateUsageMeter(
             {
               id: usageMeter1.id,
@@ -1082,6 +1085,7 @@ describe('usageEventsRouter', () => {
             },
             ctx
           )
+          return Result.ok(null)
         },
         { apiKey: org1ApiKeyToken }
       )

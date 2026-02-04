@@ -41,6 +41,7 @@
  */
 
 import { BusinessOnboardingStatus } from '@db-core/enums'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
@@ -116,20 +117,23 @@ export const initiateStripeConnectBehavior = defineBehavior({
   ): Promise<InitiateStripeConnectResult> => {
     const stripeAccountId = `acct_test_${core.nanoid()}`
 
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            stripeAccountId,
-            onboardingStatus:
-              BusinessOnboardingStatus.PartiallyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
+    ;(
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: prev.organization.id,
+              stripeAccountId,
+              onboardingStatus:
+                BusinessOnboardingStatus.PartiallyOnboarded,
+            },
+            transaction
+          )
+          return Result.ok(null)
+        },
+        { livemode: true }
+      )
+    ).unwrap()
 
     return {
       ...prev,
@@ -185,6 +189,7 @@ export const finalizeStripeOnboardingBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(null)
       },
       { livemode: true }
     )
@@ -254,6 +259,7 @@ export const completeStripeOnboardingBehavior = defineBehavior({
           },
           transaction
         )
+        return Result.ok(null)
       },
       { livemode: true }
     )

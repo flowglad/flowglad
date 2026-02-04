@@ -2056,8 +2056,22 @@
     {
       "idx": 294,
       "version": "7",
+      "when": 1770145512596,
+      "tag": "0294_backfill-product-slugs",
+      "breakpoints": true
+    },
+    {
+      "idx": 295,
+      "version": "7",
+      "when": 1770145534300,
+      "tag": "0295_tidy_purple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 296,
+      "version": "7",
       "when": 1770067488775,
-      "tag": "0294_amusing_cargill",
+      "tag": "0296_amusing_cargill",
       "breakpoints": true
     }
   ]

@@ -24,7 +24,7 @@ export const CustomerBillingPortalMagicLinkEmail = ({
 
   return (
     <EmailLayout
-      previewText={`Sign in to your billing portal for ${organizationName}`}
+      previewText={`Log in to your billing portal for ${organizationName}`}
       variant="customer"
     >
       <TestModeBanner livemode={livemode} />
@@ -35,19 +35,17 @@ export const CustomerBillingPortalMagicLinkEmail = ({
         alt="Flowglad Logo"
         style={{ marginBottom: '32px' }}
       />
-      <Header title="Sign In to Billing Portal" variant="customer" />
+      <Header title="Log In to Billing Portal" variant="customer" />
       <Paragraph variant="customer">Hi {displayName},</Paragraph>
       <Paragraph variant="customer">
-        You requested a magic link to sign in to your billing portal
+        You requested a magic link to log in to your billing portal
         for {organizationName}. Click the button below to access your
         account.
       </Paragraph>
       <Section
         style={{ textAlign: 'center' as const, marginTop: '32px' }}
       >
-        <EmailButton href={url}>
-          Sign In to Billing Portal
-        </EmailButton>
+        <EmailButton href={url}>Log In to Billing Portal</EmailButton>
       </Section>
       <Paragraph variant="customer" style={{ marginTop: '24px' }}>
         {`If you didn't request this sign-in link, you can safely ignore this email.`}

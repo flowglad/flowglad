@@ -51,7 +51,7 @@ import {
   setupUsageLedgerScenario,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { UsageBillingInfo } from '@/types'
 import { core } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
@@ -107,7 +107,7 @@ describe('ledgerEntryMethods', () => {
   describe('bulkInsertLedgerEntries', () => {
     it('should return an empty array when given an empty array of entries', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultWrapper = await bulkInsertLedgerEntries(
             [],
             transaction
@@ -143,7 +143,7 @@ describe('ledgerEntryMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const entryData: LedgerEntry.Insert = {
             ...ledgerEntryNulledSourceIdColumns,
             metadata: {},
@@ -173,7 +173,7 @@ describe('ledgerEntryMethods', () => {
     })
     it('should successfully insert multiple valid ledger entries and return them', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const localLedgerTransaction = await setupLedgerTransaction(
             {
               organizationId: organization.id,
@@ -250,7 +250,7 @@ describe('ledgerEntryMethods', () => {
     })
     it('should ensure all inserted entries have the correct common properties (e.g., organizationId, livemode if applicable)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const localLedgerTransaction = await setupLedgerTransaction(
             {
               organizationId: organization.id,
@@ -329,7 +329,7 @@ describe('ledgerEntryMethods', () => {
     })
     it('should call the transaction insert method with the provided data', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const localLedgerTransaction = await setupLedgerTransaction(
             {
               organizationId: organization.id,
@@ -456,59 +456,55 @@ describe('ledgerEntryMethods', () => {
         })
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Setup a pending entry to ensure only posted are considered
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
-              expect(balance).toBe(0)
+          await adminTransaction(async ({ transaction }) => {
+            // Setup a pending entry to ensure only posted are considered
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            expect(balance).toBe(0)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should correctly sum amounts for multiple posted credit entries', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 1000,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 500,
-                status: LedgerEntryStatus.Posted,
-                sourceUsageCreditId: usageCreditId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
-              expect(balance).toBe(1500)
+          await adminTransaction(async ({ transaction }) => {
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 500,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageCreditId: usageCreditId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            expect(balance).toBe(1500)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should correctly sum amounts for multiple posted debit entries (resulting in a negative balance)', async () => {
@@ -525,131 +521,125 @@ describe('ledgerEntryMethods', () => {
         })
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 700,
-                status: LedgerEntryStatus.Posted,
-                sourceUsageEventId: usageEventId,
-                usageMeterId: ledgerAccount.usageMeterId!,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
-              expect(balance).toBe(-1000)
+          await adminTransaction(async ({ transaction }) => {
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 700,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageEventId: usageEventId,
+              usageMeterId: ledgerAccount.usageMeterId!,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            expect(balance).toBe(-1000)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should correctly calculate the balance with a mix of posted credit and debit entries', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 1200,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 400,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 100,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.PaymentRefunded,
-                    amount: 50,
-                    status: LedgerEntryStatus.Posted,
-                    sourceRefundId: refundId,
-                  },
-                ],
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
-              expect(balance).toBe(1200 - 400 + 100 - 50) // 850
+          await adminTransaction(async ({ transaction }) => {
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 1200,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 400,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 100,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.PaymentRefunded,
+                  amount: 50,
+                  status: LedgerEntryStatus.Posted,
+                  sourceRefundId: refundId,
+                },
+              ],
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            expect(balance).toBe(1200 - 400 + 100 - 50) // 850
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should ignore pending entries (both credit and debit)', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 1000,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 200,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  // Pending entries that should be ignored
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 500,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 100,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageEventId: usageEventId,
-                  },
-                ],
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
-              expect(balance).toBe(1000 - 200) // 800
+          await adminTransaction(async ({ transaction }) => {
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 1000,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 200,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageEventId: usageEventId,
+                },
+                // Pending entries that should be ignored
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 500,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 100,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageEventId: usageEventId,
+                },
+              ],
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            expect(balance).toBe(1000 - 200) // 800
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should ignore discarded entries (both posted and pending with discardedAt set in the past)', async () => {
@@ -697,17 +687,15 @@ describe('ledgerEntryMethods', () => {
           ],
         })
         const balance = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
         expect(balance).toBe(1000)
       })
@@ -727,90 +715,86 @@ describe('ledgerEntryMethods', () => {
           sourceUsageCreditId: usageCreditId,
         })
         const balance = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
         expect(balance).toBe(750)
       })
       it('should only consider entries for the specified ledgerAccountId', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Entries for the main ledgerAccount
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 300,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 100,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageEventId: usageEventId,
-              })
-              const secondSub = await setupSubscription({
-                organizationId: organization.id,
-                customerId: customer.id,
-                livemode: true,
-                paymentMethodId: paymentMethod.id,
-                priceId: price.id,
-              })
-              // Setup another ledger account and its entries
-              const otherLedgerAccount = await setupLedgerAccount({
-                organizationId: organization.id,
-                subscriptionId: secondSub.id, // Can be same or different subscription
-                usageMeterId: usageMeter.id, // Can be same or different meter
-                livemode: true,
-              })
-              const otherLedgerTransaction =
-                await setupLedgerTransaction({
-                  organizationId: organization.id,
-                  subscriptionId: secondSub.id,
-                  type: LedgerTransactionType.AdminCreditAdjusted,
-                })
-              await setupCreditLedgerEntry({
+          await adminTransaction(async ({ transaction }) => {
+            // Entries for the main ledgerAccount
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 300,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 100,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageEventId: usageEventId,
+            })
+            const secondSub = await setupSubscription({
+              organizationId: organization.id,
+              customerId: customer.id,
+              livemode: true,
+              paymentMethodId: paymentMethod.id,
+              priceId: price.id,
+            })
+            // Setup another ledger account and its entries
+            const otherLedgerAccount = await setupLedgerAccount({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id, // Can be same or different subscription
+              usageMeterId: usageMeter.id, // Can be same or different meter
+              livemode: true,
+            })
+            const otherLedgerTransaction =
+              await setupLedgerTransaction({
                 organizationId: organization.id,
                 subscriptionId: secondSub.id,
-                usageMeterId: otherLedgerAccount.usageMeterId!,
-                ledgerAccountId: otherLedgerAccount.id,
-                ledgerTransactionId: otherLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 5000,
-                status: LedgerEntryStatus.Posted,
-                sourceUsageCreditId: usageCreditId,
+                type: LedgerTransactionType.AdminCreditAdjusted,
               })
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              usageMeterId: otherLedgerAccount.usageMeterId!,
+              ledgerAccountId: otherLedgerAccount.id,
+              ledgerTransactionId: otherLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 5000,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageCreditId: usageCreditId,
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id }, // Calculate for the original ledgerAccount
-                  'posted',
-                  transaction
-                )
-              expect(balance).toBe(300 - 100) // 200
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id }, // Calculate for the original ledgerAccount
+                'posted',
+                transaction
+              )
+            expect(balance).toBe(300 - 100) // 200
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })
@@ -818,298 +802,286 @@ describe('ledgerEntryMethods', () => {
     describe('balanceType: "pending" (as per current implementation: includes posted and (non-discarded) pending, credit and debit)', () => {
       it('should return 0 if no posted or non-discarded pending entries exist for the ledger account', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Setup a discarded pending entry
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 100,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                status: LedgerEntryStatus.Pending,
-                discardedAt: Date.now() - 1000,
-                sourceUsageCreditId: usageCreditId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'pending',
-                  transaction
-                )
-              expect(balance).toBe(0)
+          await adminTransaction(async ({ transaction }) => {
+            // Setup a discarded pending entry
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 100,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              status: LedgerEntryStatus.Pending,
+              discardedAt: Date.now() - 1000,
+              sourceUsageCreditId: usageCreditId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'pending',
+                transaction
+              )
+            expect(balance).toBe(0)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should correctly sum amounts for posted credits and (non-discarded) pending credits', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 1000,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 500,
-                status: LedgerEntryStatus.Pending, // Non-discarded pending credit
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'pending',
-                  transaction
-                )
-              expect(balance).toBe(1500)
+          await adminTransaction(async ({ transaction }) => {
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 500,
+              status: LedgerEntryStatus.Pending, // Non-discarded pending credit
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'pending',
+                transaction
+              )
+            expect(balance).toBe(1500)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should correctly sum amounts for posted debits and (non-discarded) pending debits', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                amount: 700,
-                status: LedgerEntryStatus.Posted,
-                sourceUsageEventId: usageEventId,
-              })
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                amount: 300,
-                status: LedgerEntryStatus.Pending, // Non-discarded pending debit
-                sourceUsageEventId: usageEventId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'pending',
-                  transaction
-                )
-              expect(balance).toBe(-1000)
+          await adminTransaction(async ({ transaction }) => {
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              amount: 700,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageEventId: usageEventId,
+            })
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              amount: 300,
+              status: LedgerEntryStatus.Pending, // Non-discarded pending debit
+              sourceUsageEventId: usageEventId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'pending',
+                transaction
+              )
+            expect(balance).toBe(-1000)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should correctly calculate the balance with a mix of posted and (non-discarded) pending entries (credits and debits)', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 1200,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 400,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 100,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 50,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageEventId: usageEventId,
-                  },
-                ],
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'pending',
-                  transaction
-                )
-              expect(balance).toBe(1200 - 400 + 100 - 50) // 850
+          await adminTransaction(async ({ transaction }) => {
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 1200,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 400,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 100,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 50,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageEventId: usageEventId,
+                },
+              ],
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'pending',
+                transaction
+              )
+            expect(balance).toBe(1200 - 400 + 100 - 50) // 850
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should ignore discarded pending entries', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const pastDate = Date.now() - 24 * 60 * 60 * 1000
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 1000,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 500,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: pastDate,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 200,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: pastDate,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 300,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: null,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                ],
-              })
+          await adminTransaction(async ({ transaction }) => {
+            const pastDate = Date.now() - 24 * 60 * 60 * 1000
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 1000,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 500,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: pastDate,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 200,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: pastDate,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 300,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: null,
+                  sourceUsageCreditId: usageCreditId,
+                },
+              ],
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'pending',
-                  transaction
-                )
-              expect(balance).toBe(1000 + 300) // 1300
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'pending',
+                transaction
+              )
+            expect(balance).toBe(1000 + 300) // 1300
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should only consider entries for the specified ledgerAccountId', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Entries for the main ledgerAccount
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 300,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 100,
-                status: LedgerEntryStatus.Pending, // Pending for this account
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageEventId: usageEventId,
-              })
+          await adminTransaction(async ({ transaction }) => {
+            // Entries for the main ledgerAccount
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 300,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 100,
+              status: LedgerEntryStatus.Pending, // Pending for this account
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageEventId: usageEventId,
+            })
 
-              const secondSub = await setupSubscription({
-                organizationId: organization.id,
-                customerId: customer.id,
-                livemode: true,
-                paymentMethodId: paymentMethod.id,
-                priceId: price.id,
-              })
-              const otherLedgerAccount = await setupLedgerAccount({
+            const secondSub = await setupSubscription({
+              organizationId: organization.id,
+              customerId: customer.id,
+              livemode: true,
+              paymentMethodId: paymentMethod.id,
+              priceId: price.id,
+            })
+            const otherLedgerAccount = await setupLedgerAccount({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              usageMeterId: usageMeter.id,
+              livemode: true,
+            })
+            const otherLedgerTransaction =
+              await setupLedgerTransaction({
                 organizationId: organization.id,
                 subscriptionId: secondSub.id,
-                usageMeterId: usageMeter.id,
-                livemode: true,
+                type: LedgerTransactionType.AdminCreditAdjusted,
               })
-              const otherLedgerTransaction =
-                await setupLedgerTransaction({
-                  organizationId: organization.id,
-                  subscriptionId: secondSub.id,
-                  type: LedgerTransactionType.AdminCreditAdjusted,
-                })
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: secondSub.id,
-                ledgerAccountId: otherLedgerAccount.id,
-                ledgerTransactionId: otherLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 5000,
-                status: LedgerEntryStatus.Posted, // For other account
-                usageMeterId: otherLedgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: secondSub.id,
-                ledgerAccountId: otherLedgerAccount.id,
-                ledgerTransactionId: otherLedgerTransaction.id,
-                usageMeterId: otherLedgerAccount.usageMeterId!,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 2000,
-                status: LedgerEntryStatus.Pending, // Pending for other account
-                sourceUsageEventId: usageEventId,
-              })
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              ledgerAccountId: otherLedgerAccount.id,
+              ledgerTransactionId: otherLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 5000,
+              status: LedgerEntryStatus.Posted, // For other account
+              usageMeterId: otherLedgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              ledgerAccountId: otherLedgerAccount.id,
+              ledgerTransactionId: otherLedgerTransaction.id,
+              usageMeterId: otherLedgerAccount.usageMeterId!,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 2000,
+              status: LedgerEntryStatus.Pending, // Pending for other account
+              sourceUsageEventId: usageEventId,
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id }, // Calculate for the original ledgerAccount
-                  'pending',
-                  transaction
-                )
-              expect(balance).toBe(300 - 100) // 200 (Posted credit - Pending debit for this account)
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id }, // Calculate for the original ledgerAccount
+                'pending',
+                transaction
+              )
+            expect(balance).toBe(300 - 100) // 200 (Posted credit - Pending debit for this account)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })
@@ -1117,102 +1089,98 @@ describe('ledgerEntryMethods', () => {
     describe('balanceType: "available"', () => {
       it('should return 0 if no posted entries and no non-discarded pending debit entries exist', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Posted credit, but discarded
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 100,
-                    status: LedgerEntryStatus.Posted,
-                    discardedAt: Date.now() - 1000,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 200,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 300,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: Date.now() - 1000,
-                    sourceUsageEventId: usageEventId,
-                  },
-                ],
-              })
+          await adminTransaction(async ({ transaction }) => {
+            // Posted credit, but discarded
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 100,
+                  status: LedgerEntryStatus.Posted,
+                  discardedAt: Date.now() - 1000,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 200,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 300,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: Date.now() - 1000,
+                  sourceUsageEventId: usageEventId,
+                },
+              ],
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(0)
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(0)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should correctly calculate balance: (sum of posted credits) - (sum of posted debits) - (sum of non-discarded pending debits)', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 1000,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.PaymentRefunded,
-                    amount: 200,
-                    status: LedgerEntryStatus.Posted,
-                    sourceRefundId: refundId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 300,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 100,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                ],
-              })
+          await adminTransaction(async ({ transaction }) => {
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 1000,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.PaymentRefunded,
+                  amount: 200,
+                  status: LedgerEntryStatus.Posted,
+                  sourceRefundId: refundId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 300,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 100,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageCreditId: usageCreditId,
+                },
+              ],
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(1000 - 200 - 300) // 500
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(1000 - 200 - 300) // 500
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
@@ -1253,381 +1221,361 @@ describe('ledgerEntryMethods', () => {
         })
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const availableBalance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              const postedBalance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'posted',
-                  transaction
-                )
-              expect(availableBalance).toBe(postedBalance)
-              expect(availableBalance).toBe(500 - 100) // 400
+          await adminTransaction(async ({ transaction }) => {
+            const availableBalance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            const postedBalance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'posted',
+                transaction
+              )
+            expect(availableBalance).toBe(postedBalance)
+            expect(availableBalance).toBe(500 - 100) // 400
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should include posted credit entries (adds to balance)', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 300,
-                status: LedgerEntryStatus.Posted,
+          await adminTransaction(async ({ transaction }) => {
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 300,
+              status: LedgerEntryStatus.Posted,
 
-                sourceUsageCreditId: usageCreditId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(300)
+              sourceUsageCreditId: usageCreditId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(300)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should include posted debit entries (subtracts from balance)', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                amount: 150,
-                status: LedgerEntryStatus.Posted,
-                sourceUsageEventId: usageEventId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(-150)
+          await adminTransaction(async ({ transaction }) => {
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              amount: 150,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageEventId: usageEventId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(-150)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should include non-discarded pending debit entries (subtracts from balance)', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 250,
-                status: LedgerEntryStatus.Pending,
-                sourceUsageEventId: usageEventId,
-                usageMeterId: ledgerAccount.usageMeterId!,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(-250)
+          await adminTransaction(async ({ transaction }) => {
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 250,
+              status: LedgerEntryStatus.Pending,
+              sourceUsageEventId: usageEventId,
+              usageMeterId: ledgerAccount.usageMeterId!,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(-250)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should EXCLUDE non-discarded pending credit entries from the calculation', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Posted Credit: +100
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 100,
-                status: LedgerEntryStatus.Posted,
+          await adminTransaction(async ({ transaction }) => {
+            // Posted Credit: +100
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 100,
+              status: LedgerEntryStatus.Posted,
 
-                sourceUsageCreditId: usageCreditId,
-              })
-              // Non-discarded Pending Credit (should be ignored): +50
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 50,
-                status: LedgerEntryStatus.Pending,
-                sourceUsageCreditId: usageCreditId,
-                usageMeterId: ledgerAccount.usageMeterId!,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(100)
+              sourceUsageCreditId: usageCreditId,
+            })
+            // Non-discarded Pending Credit (should be ignored): +50
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 50,
+              status: LedgerEntryStatus.Pending,
+              sourceUsageCreditId: usageCreditId,
+              usageMeterId: ledgerAccount.usageMeterId!,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(100)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should ignore discarded pending debit entries', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Posted Credit: +200
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 200,
-                status: LedgerEntryStatus.Posted,
+          await adminTransaction(async ({ transaction }) => {
+            // Posted Credit: +200
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 200,
+              status: LedgerEntryStatus.Posted,
 
-                sourceUsageCreditId: usageCreditId,
-              })
-              // Discarded Pending Debit (should be ignored): -75
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 75,
-                status: LedgerEntryStatus.Pending,
-                discardedAt: Date.now() - 1000,
-                sourceUsageEventId: usageEventId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(200)
+              sourceUsageCreditId: usageCreditId,
+            })
+            // Discarded Pending Debit (should be ignored): -75
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 75,
+              status: LedgerEntryStatus.Pending,
+              discardedAt: Date.now() - 1000,
+              sourceUsageEventId: usageEventId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(200)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should ignore discarded pending credit entries', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Posted Credit: +300
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 300,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              // Discarded Pending Credit (should be ignored anyway by "available" logic for pending credits)
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 120,
-                status: LedgerEntryStatus.Pending,
-                discardedAt: Date.now() - 1000,
-                sourceUsageCreditId: usageCreditId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(300)
+          await adminTransaction(async ({ transaction }) => {
+            // Posted Credit: +300
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 300,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            // Discarded Pending Credit (should be ignored anyway by "available" logic for pending credits)
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 120,
+              status: LedgerEntryStatus.Pending,
+              discardedAt: Date.now() - 1000,
+              sourceUsageCreditId: usageCreditId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(300)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should handle a scenario with only posted credits and pending debits', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Posted Credit: +500
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 500,
-                status: LedgerEntryStatus.Posted,
+          await adminTransaction(async ({ transaction }) => {
+            // Posted Credit: +500
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 500,
+              status: LedgerEntryStatus.Posted,
 
-                sourceUsageCreditId: usageCreditId,
-              })
-              // Non-discarded Pending Debit: -150
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 150,
-                status: LedgerEntryStatus.Pending,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageEventId: usageEventId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(500 - 150) // 350
+              sourceUsageCreditId: usageCreditId,
+            })
+            // Non-discarded Pending Debit: -150
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 150,
+              status: LedgerEntryStatus.Pending,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageEventId: usageEventId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(500 - 150) // 350
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should handle a scenario with only posted debits and pending debits', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Posted Debit: -200
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.PaymentRefunded,
-                amount: 200,
-                status: LedgerEntryStatus.Posted,
-                sourceRefundId: refundId,
-              })
-              // Non-discarded Pending Debit: -100
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 100,
-                status: LedgerEntryStatus.Pending,
-                sourceUsageEventId: usageEventId,
-              })
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(-200 - 100) // -300
+          await adminTransaction(async ({ transaction }) => {
+            // Posted Debit: -200
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.PaymentRefunded,
+              amount: 200,
+              status: LedgerEntryStatus.Posted,
+              sourceRefundId: refundId,
+            })
+            // Non-discarded Pending Debit: -100
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 100,
+              status: LedgerEntryStatus.Pending,
+              sourceUsageEventId: usageEventId,
+            })
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(-200 - 100) // -300
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should handle a scenario with posted credits, posted debits, pending debits, and pending credits (ignoring pending credits)', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 1000,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.PaymentRefunded,
-                    amount: 200,
-                    status: LedgerEntryStatus.Posted,
-                    sourceRefundId: refundId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 300,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 50,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                ],
-              })
+          await adminTransaction(async ({ transaction }) => {
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 1000,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.PaymentRefunded,
+                  amount: 200,
+                  status: LedgerEntryStatus.Posted,
+                  sourceRefundId: refundId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 300,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 50,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageCreditId: usageCreditId,
+                },
+              ],
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(1000 - 200 - 300) // 500
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(1000 - 200 - 300) // 500
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
@@ -1655,154 +1603,148 @@ describe('ledgerEntryMethods', () => {
         })
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(100 - 250) // -150
+          await adminTransaction(async ({ transaction }) => {
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(100 - 250) // -150
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should only consider entries for the specified ledgerAccountId', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              // Main account: Posted Credit +100, Pending Debit -50. Available = 50
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 100,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 50,
-                status: LedgerEntryStatus.Pending,
-                sourceUsageEventId: usageEventId,
-                usageMeterId: ledgerAccount.usageMeterId!,
-              })
+          await adminTransaction(async ({ transaction }) => {
+            // Main account: Posted Credit +100, Pending Debit -50. Available = 50
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 100,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 50,
+              status: LedgerEntryStatus.Pending,
+              sourceUsageEventId: usageEventId,
+              usageMeterId: ledgerAccount.usageMeterId!,
+            })
 
-              const secondSub = await setupSubscription({
-                organizationId: organization.id,
-                customerId: customer.id,
-                livemode: true,
-                paymentMethodId: paymentMethod.id,
-                priceId: price.id,
-              })
-              const otherLedgerAccount = await setupLedgerAccount({
+            const secondSub = await setupSubscription({
+              organizationId: organization.id,
+              customerId: customer.id,
+              livemode: true,
+              paymentMethodId: paymentMethod.id,
+              priceId: price.id,
+            })
+            const otherLedgerAccount = await setupLedgerAccount({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              usageMeterId: usageMeter.id,
+              livemode: true,
+            })
+            const otherLedgerTransaction =
+              await setupLedgerTransaction({
                 organizationId: organization.id,
                 subscriptionId: secondSub.id,
-                usageMeterId: usageMeter.id,
-                livemode: true,
+                type: LedgerTransactionType.AdminCreditAdjusted,
               })
-              const otherLedgerTransaction =
-                await setupLedgerTransaction({
-                  organizationId: organization.id,
-                  subscriptionId: secondSub.id,
-                  type: LedgerTransactionType.AdminCreditAdjusted,
-                })
-              // Other account: Posted Credit +1000, Pending Debit -200. Available = 800 (but should not affect main account)
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: secondSub.id,
-                ledgerAccountId: otherLedgerAccount.id,
-                ledgerTransactionId: otherLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 1000,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: otherLedgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
-              await setupDebitLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: secondSub.id,
-                ledgerAccountId: otherLedgerAccount.id,
-                ledgerTransactionId: otherLedgerTransaction.id,
-                entryType: LedgerEntryType.UsageCost,
-                amount: 200,
-                status: LedgerEntryStatus.Pending,
-                sourceUsageEventId: usageEventId,
-                usageMeterId: otherLedgerAccount.usageMeterId!,
-              })
+            // Other account: Posted Credit +1000, Pending Debit -200. Available = 800 (but should not affect main account)
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              ledgerAccountId: otherLedgerAccount.id,
+              ledgerTransactionId: otherLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 1000,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: otherLedgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
+            await setupDebitLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              ledgerAccountId: otherLedgerAccount.id,
+              ledgerTransactionId: otherLedgerTransaction.id,
+              entryType: LedgerEntryType.UsageCost,
+              amount: 200,
+              status: LedgerEntryStatus.Pending,
+              sourceUsageEventId: usageEventId,
+              usageMeterId: otherLedgerAccount.usageMeterId!,
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id }, // Calculate for the original ledgerAccount
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(100 - 50) // 50
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id }, // Calculate for the original ledgerAccount
+                'available',
+                transaction
+              )
+            expect(balance).toBe(100 - 50) // 50
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
       it('should include entries with future discardedAt dates', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const futureDate = Date.now() + 24 * 60 * 60 * 1000 // Tomorrow
-              // Posted Credit, future discard: +100
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                ledgerAccountId: ledgerAccount.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 100,
-                    status: LedgerEntryStatus.Posted,
-                    discardedAt: futureDate,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 50,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: futureDate,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 20,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: futureDate,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                ],
-              })
+          await adminTransaction(async ({ transaction }) => {
+            const futureDate = Date.now() + 24 * 60 * 60 * 1000 // Tomorrow
+            // Posted Credit, future discard: +100
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              ledgerAccountId: ledgerAccount.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 100,
+                  status: LedgerEntryStatus.Posted,
+                  discardedAt: futureDate,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 50,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: futureDate,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 20,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: futureDate,
+                  sourceUsageCreditId: usageCreditId,
+                },
+              ],
+            })
 
-              const balance =
-                await aggregateBalanceForLedgerAccountFromEntries(
-                  { ledgerAccountId: ledgerAccount.id },
-                  'available',
-                  transaction
-                )
-              expect(balance).toBe(100 - 50) // 50
+            const balance =
+              await aggregateBalanceForLedgerAccountFromEntries(
+                { ledgerAccountId: ledgerAccount.id },
+                'available',
+                transaction
+              )
+            expect(balance).toBe(100 - 50) // 50
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })
@@ -1813,65 +1755,63 @@ describe('ledgerEntryMethods', () => {
 
       it('should correctly filter by ledgerAccountId, not including entries from other accounts', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const mainAccountEntryAmount = 100
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: mainAccountEntryAmount,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
+          await adminTransaction(async ({ transaction }) => {
+            const mainAccountEntryAmount = 100
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: mainAccountEntryAmount,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
 
-              const secondSub = await setupSubscription({
-                organizationId: organization.id,
-                customerId: customer.id,
-                livemode: true,
-                paymentMethodId: paymentMethod.id,
-                priceId: price.id,
-              })
-              const otherLedgerAccount = await setupLedgerAccount({
+            const secondSub = await setupSubscription({
+              organizationId: organization.id,
+              customerId: customer.id,
+              livemode: true,
+              paymentMethodId: paymentMethod.id,
+              priceId: price.id,
+            })
+            const otherLedgerAccount = await setupLedgerAccount({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              usageMeterId: usageMeter.id,
+              livemode: true,
+            })
+            const otherLedgerTransaction =
+              await setupLedgerTransaction({
                 organizationId: organization.id,
                 subscriptionId: secondSub.id,
-                usageMeterId: usageMeter.id,
-                livemode: true,
+                type: LedgerTransactionType.AdminCreditAdjusted,
               })
-              const otherLedgerTransaction =
-                await setupLedgerTransaction({
-                  organizationId: organization.id,
-                  subscriptionId: secondSub.id,
-                  type: LedgerTransactionType.AdminCreditAdjusted,
-                })
-              await setupCreditLedgerEntry({
-                organizationId: organization.id,
-                subscriptionId: secondSub.id,
-                ledgerAccountId: otherLedgerAccount.id,
-                ledgerTransactionId: otherLedgerTransaction.id,
-                entryType: LedgerEntryType.CreditGrantRecognized,
-                amount: 5000,
-                status: LedgerEntryStatus.Posted,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                sourceUsageCreditId: usageCreditId,
-              })
+            await setupCreditLedgerEntry({
+              organizationId: organization.id,
+              subscriptionId: secondSub.id,
+              ledgerAccountId: otherLedgerAccount.id,
+              ledgerTransactionId: otherLedgerTransaction.id,
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: 5000,
+              status: LedgerEntryStatus.Posted,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              sourceUsageCreditId: usageCreditId,
+            })
 
-              for (const type of balanceTypes) {
-                const balance =
-                  await aggregateBalanceForLedgerAccountFromEntries(
-                    { ledgerAccountId: ledgerAccount.id },
-                    type,
-                    transaction
-                  )
-                expect(balance).toBe(mainAccountEntryAmount) // Only the main account's entry should count
-              }
-
-              return Result.ok(undefined)
+            for (const type of balanceTypes) {
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  type,
+                  transaction
+                )
+              expect(balance).toBe(mainAccountEntryAmount) // Only the main account's entry should count
             }
-          )
+
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
@@ -1886,75 +1826,73 @@ describe('ledgerEntryMethods', () => {
         })
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const pastDate = Date.now() - 24 * 60 * 60 * 1000
-              const includedAmount = 1000
+          await adminTransaction(async ({ transaction }) => {
+            const pastDate = Date.now() - 24 * 60 * 60 * 1000
+            const includedAmount = 1000
 
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    // This entry should always be included as its not discarded
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: includedAmount,
-                    status: LedgerEntryStatus.Posted,
-                    discardedAt: null,
-                    sourceUsageCreditId: usageCredit.id,
-                  },
-                  {
-                    // Discarded Posted Credit
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 500,
-                    status: LedgerEntryStatus.Posted,
-                    discardedAt: pastDate,
-                    sourceUsageCreditId: usageCredit.id,
-                  },
-                  {
-                    // Discarded Posted Debit
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 200,
-                    status: LedgerEntryStatus.Posted,
-                    discardedAt: pastDate,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    // Discarded Pending Credit
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 100,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: pastDate,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    // Discarded Pending Debit
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 50,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: pastDate,
-                    sourceUsageEventId: usageEventId,
-                  },
-                ],
-              })
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  // This entry should always be included as its not discarded
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: includedAmount,
+                  status: LedgerEntryStatus.Posted,
+                  discardedAt: null,
+                  sourceUsageCreditId: usageCredit.id,
+                },
+                {
+                  // Discarded Posted Credit
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 500,
+                  status: LedgerEntryStatus.Posted,
+                  discardedAt: pastDate,
+                  sourceUsageCreditId: usageCredit.id,
+                },
+                {
+                  // Discarded Posted Debit
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 200,
+                  status: LedgerEntryStatus.Posted,
+                  discardedAt: pastDate,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  // Discarded Pending Credit
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 100,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: pastDate,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  // Discarded Pending Debit
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 50,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: pastDate,
+                  sourceUsageEventId: usageEventId,
+                },
+              ],
+            })
 
-              for (const type of balanceTypes) {
-                const balance =
-                  await aggregateBalanceForLedgerAccountFromEntries(
-                    { ledgerAccountId: ledgerAccount.id },
-                    type,
-                    transaction
-                  )
-                // Only the non-discarded posted credit should count for all types in this scenario
-                expect(balance).toBe(includedAmount)
-              }
-
-              return Result.ok(undefined)
+            for (const type of balanceTypes) {
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  type,
+                  transaction
+                )
+              // Only the non-discarded posted credit should count for all types in this scenario
+              expect(balance).toBe(includedAmount)
             }
-          )
+
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
@@ -1969,157 +1907,151 @@ describe('ledgerEntryMethods', () => {
         })
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const postedCreditAmount = 100
-              const pendingDebitAmount = 50
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: postedCreditAmount,
-                    status: LedgerEntryStatus.Posted,
-                    discardedAt: null,
-                    sourceUsageCreditId: usageCredit.id,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: pendingDebitAmount,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: null,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 25,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: null, // Pending credit
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                ],
-              })
-              for (const type of balanceTypes) {
-                const balance =
-                  await aggregateBalanceForLedgerAccountFromEntries(
-                    { ledgerAccountId: ledgerAccount.id },
-                    type,
-                    transaction
-                  )
-                if (type === 'posted') {
-                  expect(balance).toBe(postedCreditAmount) // 100
-                } else if (type === 'pending') {
-                  expect(balance).toBe(
-                    postedCreditAmount - pendingDebitAmount + 25
-                  ) // 100 - 50 + 25 = 75
-                } else {
-                  // available
-                  expect(balance).toBe(
-                    postedCreditAmount - pendingDebitAmount
-                  ) // 100 - 50 = 50 (pending credit ignored)
-                }
+          await adminTransaction(async ({ transaction }) => {
+            const postedCreditAmount = 100
+            const pendingDebitAmount = 50
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: postedCreditAmount,
+                  status: LedgerEntryStatus.Posted,
+                  discardedAt: null,
+                  sourceUsageCreditId: usageCredit.id,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: pendingDebitAmount,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: null,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 25,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: null, // Pending credit
+                  sourceUsageCreditId: usageCreditId,
+                },
+              ],
+            })
+            for (const type of balanceTypes) {
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  type,
+                  transaction
+                )
+              if (type === 'posted') {
+                expect(balance).toBe(postedCreditAmount) // 100
+              } else if (type === 'pending') {
+                expect(balance).toBe(
+                  postedCreditAmount - pendingDebitAmount + 25
+                ) // 100 - 50 + 25 = 75
+              } else {
+                // available
+                expect(balance).toBe(
+                  postedCreditAmount - pendingDebitAmount
+                ) // 100 - 50 = 50 (pending credit ignored)
               }
-
-              return Result.ok(undefined)
             }
-          )
+
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should correctly handle the discardedAt logic: include entries if discardedAt is in the future', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const futureDate = Date.now() + 24 * 60 * 60 * 1000
-              const postedCreditAmount = 200
-              const pendingDebitAmount = 75
-              const usageCredit = await setupUsageCredit({
-                organizationId: organization.id,
-                livemode: true,
-                issuedAmount: 1000,
-                creditType: UsageCreditType.Grant,
-                subscriptionId: subscription.id,
-                usageMeterId: usageMeter.id,
-              })
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: postedCreditAmount,
-                    status: LedgerEntryStatus.Posted,
-                    discardedAt: futureDate,
-                    sourceUsageCreditId: usageCredit.id,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: pendingDebitAmount,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: futureDate,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 30,
-                    status: LedgerEntryStatus.Pending,
-                    discardedAt: futureDate,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                ],
-              })
+          await adminTransaction(async ({ transaction }) => {
+            const futureDate = Date.now() + 24 * 60 * 60 * 1000
+            const postedCreditAmount = 200
+            const pendingDebitAmount = 75
+            const usageCredit = await setupUsageCredit({
+              organizationId: organization.id,
+              livemode: true,
+              issuedAmount: 1000,
+              creditType: UsageCreditType.Grant,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+            })
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: postedCreditAmount,
+                  status: LedgerEntryStatus.Posted,
+                  discardedAt: futureDate,
+                  sourceUsageCreditId: usageCredit.id,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: pendingDebitAmount,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: futureDate,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 30,
+                  status: LedgerEntryStatus.Pending,
+                  discardedAt: futureDate,
+                  sourceUsageCreditId: usageCreditId,
+                },
+              ],
+            })
 
-              for (const type of balanceTypes) {
-                const balance =
-                  await aggregateBalanceForLedgerAccountFromEntries(
-                    { ledgerAccountId: ledgerAccount.id },
-                    type,
-                    transaction
-                  )
-                if (type === 'posted') {
-                  expect(balance).toBe(postedCreditAmount) // 200
-                } else if (type === 'pending') {
-                  expect(balance).toBe(
-                    postedCreditAmount - pendingDebitAmount + 30
-                  ) // 200 - 75 + 30 = 155
-                } else {
-                  // available
-                  expect(balance).toBe(
-                    postedCreditAmount - pendingDebitAmount
-                  ) // 200 - 75 = 125 (pending credit ignored)
-                }
+            for (const type of balanceTypes) {
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  type,
+                  transaction
+                )
+              if (type === 'posted') {
+                expect(balance).toBe(postedCreditAmount) // 200
+              } else if (type === 'pending') {
+                expect(balance).toBe(
+                  postedCreditAmount - pendingDebitAmount + 30
+                ) // 200 - 75 + 30 = 155
+              } else {
+                // available
+                expect(balance).toBe(
+                  postedCreditAmount - pendingDebitAmount
+                ) // 200 - 75 = 125 (pending credit ignored)
               }
-
-              return Result.ok(undefined)
             }
-          )
+
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should handle an empty ledger (no entries at all for the account) and return 0', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              for (const type of balanceTypes) {
-                const balance =
-                  await aggregateBalanceForLedgerAccountFromEntries(
-                    { ledgerAccountId: ledgerAccount.id },
-                    type,
-                    transaction
-                  )
-                expect(balance).toBe(0)
-              }
-
-              return Result.ok(undefined)
+          await adminTransaction(async ({ transaction }) => {
+            for (const type of balanceTypes) {
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  type,
+                  transaction
+                )
+              expect(balance).toBe(0)
             }
-          )
+
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
@@ -2142,66 +2074,64 @@ describe('ledgerEntryMethods', () => {
           })
 
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const initialCreditAmount = 500
-              await setupLedgerEntries({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                ledgerAccountId: ledgerAccount.id,
-                ledgerTransactionId: testLedgerTransaction.id,
-                usageMeterId: ledgerAccount.usageMeterId!,
-                entries: [
-                  // Initial entry to have a non-zero balance
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: initialCreditAmount,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCredit.id,
-                  },
-                  // Entries with amount 0
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 0,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageCreditId: usageCredit.id,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 0,
-                    status: LedgerEntryStatus.Posted,
-                    sourceUsageEventId: usageEventId,
-                  },
-                  {
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    amount: 0,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageCreditId: usageCreditId,
-                  },
-                  {
-                    entryType: LedgerEntryType.UsageCost,
-                    amount: 0,
-                    status: LedgerEntryStatus.Pending,
-                    sourceUsageEventId: usageEventId,
-                  },
-                ],
-              })
+          await adminTransaction(async ({ transaction }) => {
+            const initialCreditAmount = 500
+            await setupLedgerEntries({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              ledgerAccountId: ledgerAccount.id,
+              ledgerTransactionId: testLedgerTransaction.id,
+              usageMeterId: ledgerAccount.usageMeterId!,
+              entries: [
+                // Initial entry to have a non-zero balance
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: initialCreditAmount,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCredit.id,
+                },
+                // Entries with amount 0
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 0,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageCreditId: usageCredit.id,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 0,
+                  status: LedgerEntryStatus.Posted,
+                  sourceUsageEventId: usageEventId,
+                },
+                {
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  amount: 0,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageCreditId: usageCreditId,
+                },
+                {
+                  entryType: LedgerEntryType.UsageCost,
+                  amount: 0,
+                  status: LedgerEntryStatus.Pending,
+                  sourceUsageEventId: usageEventId,
+                },
+              ],
+            })
 
-              for (const type of balanceTypes) {
-                const balance =
-                  await aggregateBalanceForLedgerAccountFromEntries(
-                    { ledgerAccountId: ledgerAccount.id },
-                    type,
-                    transaction
-                  )
-                // The balance should remain the initial credit amount, as 0-amount entries don't change it.
-                // For 'pending' and 'available', the pending 0-amount entries also don't change the logic for what *types* of entries are included.
-                expect(balance).toBe(initialCreditAmount)
-              }
-
-              return Result.ok(undefined)
+            for (const type of balanceTypes) {
+              const balance =
+                await aggregateBalanceForLedgerAccountFromEntries(
+                  { ledgerAccountId: ledgerAccount.id },
+                  type,
+                  transaction
+                )
+              // The balance should remain the initial credit amount, as 0-amount entries don't change it.
+              // For 'pending' and 'available', the pending 0-amount entries also don't change the logic for what *types* of entries are included.
+              expect(balance).toBe(initialCreditAmount)
             }
-          )
+
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })
@@ -2240,7 +2170,7 @@ describe('ledgerEntryMethods', () => {
       const totalExpectedBalance =
         entryAmount1 + entryAmount2 - entryAmount2
       const result = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await setupLedgerEntries({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -2292,7 +2222,7 @@ describe('ledgerEntryMethods', () => {
     it('should return correct balance for a single usage credit ID with zero balance', async () => {
       const amount = 2500
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await setupLedgerEntries({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -2339,7 +2269,7 @@ describe('ledgerEntryMethods', () => {
 
     it('should return correct balances for multiple distinct usage credit IDs', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Setup three distinct usage credits
           const usageCreditA = await setupUsageCredit({
             organizationId: organization.id,
@@ -2486,7 +2416,7 @@ describe('ledgerEntryMethods', () => {
       // Expected:
       // - Balance for this usageCreditId includes sum of 'Posted' 'Credit' minus sum of 'Pending' 'Debit'.
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const postedCreditAmount = 2000
           const pendingDebitAmount = 500
           const expectedBalance =
@@ -2543,7 +2473,7 @@ describe('ledgerEntryMethods', () => {
       // Expected:
       // - Balance for this usageCreditId only reflects 'Posted' 'Credit' amounts; 'Pending' 'Credit' amounts are ignored.
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const postedCreditAmount = 3000
           const pendingCreditAmount = 1000 // This should be ignored
 
@@ -2601,7 +2531,7 @@ describe('ledgerEntryMethods', () => {
       // Expected:
       // - Balance for this usageCreditId accurately reflects the sum according to "available" logic.
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const postedCreditAmount = 5000
           const postedDebitAmount = 1000
           const pendingDebitAmount = 500
@@ -2670,7 +2600,7 @@ describe('ledgerEntryMethods', () => {
 
     it('should correctly calculate balance for a partially used credit', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const issuedAmount = 1000
           const usedAmount = 400
           const remainingAmount = issuedAmount - usedAmount
@@ -2767,7 +2697,7 @@ describe('ledgerEntryMethods', () => {
       // Expected:
       // - Empty array.
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result =
             await aggregateAvailableBalanceForUsageCredit(
               { ledgerAccountId: ledgerAccount.id },
@@ -2798,7 +2728,7 @@ describe('ledgerEntryMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await setupLedgerEntries({
             organizationId: organization.id,
             subscriptionId: subscription.id, // Assuming adjustments can be linked to a subscription
@@ -2834,7 +2764,7 @@ describe('ledgerEntryMethods', () => {
       // Expected:
       // - Empty array (no usageCreditId should appear in results).
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const pastDate = Date.now() - 24 * 60 * 60 * 1000 // Yesterday
 
           // Create two distinct usage credits
@@ -2930,7 +2860,7 @@ describe('ledgerEntryMethods', () => {
       // - Results when querying for ledgerAccountId_A only include balances derived from its entries.
       // - The balance for the common sourceUsageCreditId should only reflect entries from ledgerAccountId_A.
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // ledgerAccountA is the `ledgerAccount` from beforeEach
           const ledgerAccountA = ledgerAccount
 
@@ -3049,7 +2979,7 @@ describe('ledgerEntryMethods', () => {
       // Expected:
       // - Balance for this usageCreditId should be 100 (0 amount entries don't change the sum but are processed).
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const initialPostedCreditAmount = 100
           const expectedBalance = initialPostedCreditAmount // Since other amounts are 0
 
@@ -3112,7 +3042,7 @@ describe('ledgerEntryMethods', () => {
       // - Array containing balances for sourceUsageCreditId_A and sourceUsageCreditId_C.
       // - sourceUsageCreditId_B should not be in the result array.
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const pastDate = Date.now() - 24 * 60 * 60 * 1000 // Yesterday
 
           // 1. Set up Three Usage Credits
@@ -3303,19 +3233,17 @@ describe('ledgerEntryMethods', () => {
 
         // execution:
         const result = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateAvailableBalanceForUsageCredit(
-                  {
-                    ledgerAccountId: ledgerAccount.id,
-                    sourceUsageCreditId: usageCreditWithExpiry.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateAvailableBalanceForUsageCredit(
+                {
+                  ledgerAccountId: ledgerAccount.id,
+                  sourceUsageCreditId: usageCreditWithExpiry.id,
+                },
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
 
         // expects:
@@ -3359,19 +3287,17 @@ describe('ledgerEntryMethods', () => {
 
         // execution:
         const result = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateAvailableBalanceForUsageCredit(
-                  {
-                    ledgerAccountId: ledgerAccount.id,
-                    sourceUsageCreditId: usageCreditNullExpiry.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateAvailableBalanceForUsageCredit(
+                {
+                  ledgerAccountId: ledgerAccount.id,
+                  sourceUsageCreditId: usageCreditNullExpiry.id,
+                },
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
 
         // expects:
@@ -3457,18 +3383,16 @@ describe('ledgerEntryMethods', () => {
 
         // execution:
         const result = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateAvailableBalanceForUsageCredit(
-                  {
-                    ledgerAccountId: ledgerAccount.id, // Query for all in the account
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateAvailableBalanceForUsageCredit(
+                {
+                  ledgerAccountId: ledgerAccount.id, // Query for all in the account
+                },
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
 
         // expects:
@@ -3538,19 +3462,17 @@ describe('ledgerEntryMethods', () => {
 
         // execution:
         const result = (
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              return Result.ok(
-                await aggregateAvailableBalanceForUsageCredit(
-                  {
-                    ledgerAccountId: ledgerAccount.id,
-                    sourceUsageCreditId: usageCreditPastExpiry.id,
-                  },
-                  transaction
-                )
+          await adminTransaction(async ({ transaction }) => {
+            return Result.ok(
+              await aggregateAvailableBalanceForUsageCredit(
+                {
+                  ledgerAccountId: ledgerAccount.id,
+                  sourceUsageCreditId: usageCreditPastExpiry.id,
+                },
+                transaction
               )
-            }
-          )
+            )
+          })
         ).unwrap()
 
         // expects:
@@ -3615,7 +3537,7 @@ describe('ledgerEntryMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(
               {
@@ -3692,7 +3614,7 @@ describe('ledgerEntryMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(
               {
@@ -3808,7 +3730,7 @@ describe('ledgerEntryMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(
               {
@@ -3936,7 +3858,7 @@ describe('ledgerEntryMethods', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultWrapper =
             await aggregateOutstandingBalanceForUsageCosts(
               {
@@ -4000,101 +3922,91 @@ describe('ledgerEntryMethods', () => {
     describe('derivePricingModelIdForLedgerEntry', () => {
       it('should derive pricingModelId from subscription when subscriptionId is provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const result = await derivePricingModelIdForLedgerEntry(
-                {
-                  subscriptionId: subscription.id,
-                },
-                transaction
-              )
-              const pricingModelId = result.unwrap()
+          await adminTransaction(async ({ transaction }) => {
+            const result = await derivePricingModelIdForLedgerEntry(
+              {
+                subscriptionId: subscription.id,
+              },
+              transaction
+            )
+            const pricingModelId = result.unwrap()
 
-              expect(pricingModelId).toBe(subscription.pricingModelId)
-              expect(pricingModelId).toBe(pricingModel.id)
+            expect(pricingModelId).toBe(subscription.pricingModelId)
+            expect(pricingModelId).toBe(pricingModel.id)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should derive pricingModelId from usage meter when usageMeterId is provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const result = await derivePricingModelIdForLedgerEntry(
-                {
-                  usageMeterId: usageMeter.id,
-                },
-                transaction
-              )
-              const pricingModelId = result.unwrap()
+          await adminTransaction(async ({ transaction }) => {
+            const result = await derivePricingModelIdForLedgerEntry(
+              {
+                usageMeterId: usageMeter.id,
+              },
+              transaction
+            )
+            const pricingModelId = result.unwrap()
 
-              expect(pricingModelId).toBe(usageMeter.pricingModelId)
-              expect(pricingModelId).toBe(pricingModel.id)
+            expect(pricingModelId).toBe(usageMeter.pricingModelId)
+            expect(pricingModelId).toBe(pricingModel.id)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should prioritize subscriptionId over usageMeterId when both are provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const result = await derivePricingModelIdForLedgerEntry(
-                {
-                  subscriptionId: subscription.id,
-                  usageMeterId: usageMeter.id,
-                },
-                transaction
-              )
-              const pricingModelId = result.unwrap()
+          await adminTransaction(async ({ transaction }) => {
+            const result = await derivePricingModelIdForLedgerEntry(
+              {
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+              },
+              transaction
+            )
+            const pricingModelId = result.unwrap()
 
-              // Should use subscription's pricingModelId, not usage meter's
-              expect(pricingModelId).toBe(subscription.pricingModelId)
+            // Should use subscription's pricingModelId, not usage meter's
+            expect(pricingModelId).toBe(subscription.pricingModelId)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should return Result.err when usage meter does not exist and no subscriptionId is provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const nonExistentUsageMeterId = `um_${core.nanoid()}`
+          await adminTransaction(async ({ transaction }) => {
+            const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-              const result = await derivePricingModelIdForLedgerEntry(
-                {
-                  usageMeterId: nonExistentUsageMeterId,
-                },
-                transaction
-              )
-              expect(Result.isError(result)).toBe(true)
+            const result = await derivePricingModelIdForLedgerEntry(
+              {
+                usageMeterId: nonExistentUsageMeterId,
+              },
+              transaction
+            )
+            expect(Result.isError(result)).toBe(true)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should return Result.err when neither subscriptionId nor usageMeterId is provided', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const result = await derivePricingModelIdForLedgerEntry(
-                {},
-                transaction
-              )
-              expect(Result.isError(result)).toBe(true)
+          await adminTransaction(async ({ transaction }) => {
+            const result = await derivePricingModelIdForLedgerEntry(
+              {},
+              transaction
+            )
+            expect(Result.isError(result)).toBe(true)
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })
@@ -4102,9 +4014,176 @@ describe('ledgerEntryMethods', () => {
     describe('insertLedgerEntry', () => {
       it('should insert ledger entry and derive pricingModelId from subscription', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const entryResult = await insertLedgerEntry(
+          await adminTransaction(async ({ transaction }) => {
+            const entryResult = await insertLedgerEntry(
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: ledgerAccount.usageMeterId!,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                direction: LedgerEntryDirection.Credit,
+                amount: 1000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageCreditId: usageCredit.id,
+                claimedByBillingRunId: null,
+              },
+              transaction
+            )
+            const entry = entryResult.unwrap()
+
+            expect(entry.pricingModelId).toBe(
+              subscription.pricingModelId
+            )
+            expect(entry.pricingModelId).toBe(pricingModel.id)
+
+            return Result.ok(undefined)
+          })
+        ).unwrap()
+      })
+
+      it('should insert ledger entry and derive pricingModelId from usage meter', async () => {
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            const usageEvent = await setupUsageEvent({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              livemode: true,
+              amount: 100,
+              priceId: price.id,
+              billingPeriodId: billingPeriod.id,
+              transactionId: testLedgerTransaction.id,
+              customerId: customer.id,
+            })
+
+            const entryResult = await insertLedgerEntry(
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.UsageCost,
+                direction: LedgerEntryDirection.Debit,
+                amount: 1000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageEventId: usageEvent.id,
+              },
+              transaction
+            )
+            const entry = entryResult.unwrap()
+
+            expect(entry.pricingModelId).toBe(
+              usageMeter.pricingModelId
+            )
+            expect(entry.pricingModelId).toBe(pricingModel.id)
+
+            return Result.ok(undefined)
+          })
+        ).unwrap()
+      })
+
+      it('should prioritize subscriptionId over usageMeterId', async () => {
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            const entryResult = await insertLedgerEntry(
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: usageMeter.id, // both provided
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                direction: LedgerEntryDirection.Credit,
+                amount: 1000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageCreditId: usageCredit.id,
+                claimedByBillingRunId: null,
+              },
+              transaction
+            )
+            const entry = entryResult.unwrap()
+
+            // Should use subscription's pricingModelId
+            expect(entry.pricingModelId).toBe(
+              subscription.pricingModelId
+            )
+
+            return Result.ok(undefined)
+          })
+        ).unwrap()
+      })
+
+      it('should honor provided pricingModelId', async () => {
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            const entryResult = await insertLedgerEntry(
+              {
+                ...ledgerEntryNulledSourceIdColumns,
+                metadata: {},
+                discardedAt: null,
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                usageMeterId: ledgerAccount.usageMeterId!,
+                ledgerAccountId: ledgerAccount.id,
+                ledgerTransactionId: testLedgerTransaction.id,
+                entryType: LedgerEntryType.CreditGrantRecognized,
+                direction: LedgerEntryDirection.Credit,
+                amount: 1000,
+                status: LedgerEntryStatus.Posted,
+                livemode: true,
+                entryTimestamp: Date.now(),
+                sourceUsageCreditId: usageCredit.id,
+                claimedByBillingRunId: null,
+                pricingModelId: pricingModel.id, // explicitly provided
+              },
+              transaction
+            )
+            const entry = entryResult.unwrap()
+
+            expect(entry.pricingModelId).toBe(pricingModel.id)
+
+            return Result.ok(undefined)
+          })
+        ).unwrap()
+      })
+    })
+
+    describe('bulkInsertLedgerEntries', () => {
+      it('should derive pricingModelId for all entries', async () => {
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            const usageEvent = await setupUsageEvent({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              livemode: true,
+              amount: 100,
+              priceId: price.id,
+              billingPeriodId: billingPeriod.id,
+              transactionId: testLedgerTransaction.id,
+              customerId: customer.id,
+            })
+
+            const entriesResult = await bulkInsertLedgerEntries(
+              [
                 {
                   ...ledgerEntryNulledSourceIdColumns,
                   metadata: {},
@@ -4123,38 +4202,6 @@ describe('ledgerEntryMethods', () => {
                   sourceUsageCreditId: usageCredit.id,
                   claimedByBillingRunId: null,
                 },
-                transaction
-              )
-              const entry = entryResult.unwrap()
-
-              expect(entry.pricingModelId).toBe(
-                subscription.pricingModelId
-              )
-              expect(entry.pricingModelId).toBe(pricingModel.id)
-
-              return Result.ok(undefined)
-            }
-          )
-        ).unwrap()
-      })
-
-      it('should insert ledger entry and derive pricingModelId from usage meter', async () => {
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const usageEvent = await setupUsageEvent({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                usageMeterId: usageMeter.id,
-                livemode: true,
-                amount: 100,
-                priceId: price.id,
-                billingPeriodId: billingPeriod.id,
-                transactionId: testLedgerTransaction.id,
-                customerId: customer.id,
-              })
-
-              const entryResult = await insertLedgerEntry(
                 {
                   ...ledgerEntryNulledSourceIdColumns,
                   metadata: {},
@@ -4166,70 +4213,47 @@ describe('ledgerEntryMethods', () => {
                   ledgerTransactionId: testLedgerTransaction.id,
                   entryType: LedgerEntryType.UsageCost,
                   direction: LedgerEntryDirection.Debit,
-                  amount: 1000,
+                  amount: 2000,
                   status: LedgerEntryStatus.Posted,
                   livemode: true,
                   entryTimestamp: Date.now(),
                   sourceUsageEventId: usageEvent.id,
                 },
-                transaction
-              )
-              const entry = entryResult.unwrap()
+              ],
+              transaction
+            )
+            const entries = entriesResult.unwrap()
 
-              expect(entry.pricingModelId).toBe(
-                usageMeter.pricingModelId
-              )
-              expect(entry.pricingModelId).toBe(pricingModel.id)
+            expect(entries).toHaveLength(2)
+            expect(entries[0].pricingModelId).toBe(
+              subscription.pricingModelId
+            )
+            expect(entries[1].pricingModelId).toBe(
+              usageMeter.pricingModelId
+            )
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
-      it('should prioritize subscriptionId over usageMeterId', async () => {
+      it('should handle mixed derivation sources efficiently', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const entryResult = await insertLedgerEntry(
-                {
-                  ...ledgerEntryNulledSourceIdColumns,
-                  metadata: {},
-                  discardedAt: null,
-                  organizationId: organization.id,
-                  subscriptionId: subscription.id,
-                  usageMeterId: usageMeter.id, // both provided
-                  ledgerAccountId: ledgerAccount.id,
-                  ledgerTransactionId: testLedgerTransaction.id,
-                  entryType: LedgerEntryType.CreditGrantRecognized,
-                  direction: LedgerEntryDirection.Credit,
-                  amount: 1000,
-                  status: LedgerEntryStatus.Posted,
-                  livemode: true,
-                  entryTimestamp: Date.now(),
-                  sourceUsageCreditId: usageCredit.id,
-                  claimedByBillingRunId: null,
-                },
-                transaction
-              )
-              const entry = entryResult.unwrap()
+          await adminTransaction(async ({ transaction }) => {
+            const usageEvent = await setupUsageEvent({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              livemode: true,
+              amount: 100,
+              priceId: price.id,
+              billingPeriodId: billingPeriod.id,
+              transactionId: testLedgerTransaction.id,
+              customerId: customer.id,
+            })
 
-              // Should use subscription's pricingModelId
-              expect(entry.pricingModelId).toBe(
-                subscription.pricingModelId
-              )
-
-              return Result.ok(undefined)
-            }
-          )
-        ).unwrap()
-      })
-
-      it('should honor provided pricingModelId', async () => {
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const entryResult = await insertLedgerEntry(
+            const entriesResult = await bulkInsertLedgerEntries(
+              [
                 {
                   ...ledgerEntryNulledSourceIdColumns,
                   metadata: {},
@@ -4241,207 +4265,81 @@ describe('ledgerEntryMethods', () => {
                   ledgerTransactionId: testLedgerTransaction.id,
                   entryType: LedgerEntryType.CreditGrantRecognized,
                   direction: LedgerEntryDirection.Credit,
-                  amount: 1000,
+                  amount: 100,
                   status: LedgerEntryStatus.Posted,
                   livemode: true,
                   entryTimestamp: Date.now(),
                   sourceUsageCreditId: usageCredit.id,
                   claimedByBillingRunId: null,
-                  pricingModelId: pricingModel.id, // explicitly provided
                 },
-                transaction
-              )
-              const entry = entryResult.unwrap()
+                {
+                  ...ledgerEntryNulledSourceIdColumns,
+                  metadata: {},
+                  discardedAt: null,
+                  organizationId: organization.id,
+                  subscriptionId: subscription.id, // same subscription
+                  usageMeterId: ledgerAccount.usageMeterId!,
+                  ledgerAccountId: ledgerAccount.id,
+                  ledgerTransactionId: testLedgerTransaction.id,
+                  entryType: LedgerEntryType.CreditGrantRecognized,
+                  direction: LedgerEntryDirection.Credit,
+                  amount: 200,
+                  status: LedgerEntryStatus.Posted,
+                  livemode: true,
+                  entryTimestamp: Date.now(),
+                  sourceUsageCreditId: usageCredit.id,
+                  claimedByBillingRunId: null,
+                },
+                {
+                  ...ledgerEntryNulledSourceIdColumns,
+                  metadata: {},
+                  discardedAt: null,
+                  organizationId: organization.id,
+                  subscriptionId: subscription.id,
+                  usageMeterId: usageMeter.id,
+                  ledgerAccountId: ledgerAccount.id,
+                  ledgerTransactionId: testLedgerTransaction.id,
+                  entryType: LedgerEntryType.UsageCost,
+                  direction: LedgerEntryDirection.Debit,
+                  amount: 300,
+                  status: LedgerEntryStatus.Posted,
+                  livemode: true,
+                  entryTimestamp: Date.now(),
+                  sourceUsageEventId: usageEvent.id,
+                },
+              ],
+              transaction
+            )
+            const entries = entriesResult.unwrap()
 
-              expect(entry.pricingModelId).toBe(pricingModel.id)
+            expect(entries).toHaveLength(3)
+            expect(entries[0].pricingModelId).toBe(
+              subscription.pricingModelId
+            )
+            expect(entries[1].pricingModelId).toBe(
+              subscription.pricingModelId
+            )
+            expect(entries[2].pricingModelId).toBe(
+              usageMeter.pricingModelId
+            )
 
-              return Result.ok(undefined)
-            }
-          )
-        ).unwrap()
-      })
-    })
-
-    describe('bulkInsertLedgerEntries', () => {
-      it('should derive pricingModelId for all entries', async () => {
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const usageEvent = await setupUsageEvent({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                usageMeterId: usageMeter.id,
-                livemode: true,
-                amount: 100,
-                priceId: price.id,
-                billingPeriodId: billingPeriod.id,
-                transactionId: testLedgerTransaction.id,
-                customerId: customer.id,
-              })
-
-              const entriesResult = await bulkInsertLedgerEntries(
-                [
-                  {
-                    ...ledgerEntryNulledSourceIdColumns,
-                    metadata: {},
-                    discardedAt: null,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id,
-                    usageMeterId: ledgerAccount.usageMeterId!,
-                    ledgerAccountId: ledgerAccount.id,
-                    ledgerTransactionId: testLedgerTransaction.id,
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    direction: LedgerEntryDirection.Credit,
-                    amount: 1000,
-                    status: LedgerEntryStatus.Posted,
-                    livemode: true,
-                    entryTimestamp: Date.now(),
-                    sourceUsageCreditId: usageCredit.id,
-                    claimedByBillingRunId: null,
-                  },
-                  {
-                    ...ledgerEntryNulledSourceIdColumns,
-                    metadata: {},
-                    discardedAt: null,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id,
-                    usageMeterId: usageMeter.id,
-                    ledgerAccountId: ledgerAccount.id,
-                    ledgerTransactionId: testLedgerTransaction.id,
-                    entryType: LedgerEntryType.UsageCost,
-                    direction: LedgerEntryDirection.Debit,
-                    amount: 2000,
-                    status: LedgerEntryStatus.Posted,
-                    livemode: true,
-                    entryTimestamp: Date.now(),
-                    sourceUsageEventId: usageEvent.id,
-                  },
-                ],
-                transaction
-              )
-              const entries = entriesResult.unwrap()
-
-              expect(entries).toHaveLength(2)
-              expect(entries[0].pricingModelId).toBe(
-                subscription.pricingModelId
-              )
-              expect(entries[1].pricingModelId).toBe(
-                usageMeter.pricingModelId
-              )
-
-              return Result.ok(undefined)
-            }
-          )
-        ).unwrap()
-      })
-
-      it('should handle mixed derivation sources efficiently', async () => {
-        ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const usageEvent = await setupUsageEvent({
-                organizationId: organization.id,
-                subscriptionId: subscription.id,
-                usageMeterId: usageMeter.id,
-                livemode: true,
-                amount: 100,
-                priceId: price.id,
-                billingPeriodId: billingPeriod.id,
-                transactionId: testLedgerTransaction.id,
-                customerId: customer.id,
-              })
-
-              const entriesResult = await bulkInsertLedgerEntries(
-                [
-                  {
-                    ...ledgerEntryNulledSourceIdColumns,
-                    metadata: {},
-                    discardedAt: null,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id,
-                    usageMeterId: ledgerAccount.usageMeterId!,
-                    ledgerAccountId: ledgerAccount.id,
-                    ledgerTransactionId: testLedgerTransaction.id,
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    direction: LedgerEntryDirection.Credit,
-                    amount: 100,
-                    status: LedgerEntryStatus.Posted,
-                    livemode: true,
-                    entryTimestamp: Date.now(),
-                    sourceUsageCreditId: usageCredit.id,
-                    claimedByBillingRunId: null,
-                  },
-                  {
-                    ...ledgerEntryNulledSourceIdColumns,
-                    metadata: {},
-                    discardedAt: null,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id, // same subscription
-                    usageMeterId: ledgerAccount.usageMeterId!,
-                    ledgerAccountId: ledgerAccount.id,
-                    ledgerTransactionId: testLedgerTransaction.id,
-                    entryType: LedgerEntryType.CreditGrantRecognized,
-                    direction: LedgerEntryDirection.Credit,
-                    amount: 200,
-                    status: LedgerEntryStatus.Posted,
-                    livemode: true,
-                    entryTimestamp: Date.now(),
-                    sourceUsageCreditId: usageCredit.id,
-                    claimedByBillingRunId: null,
-                  },
-                  {
-                    ...ledgerEntryNulledSourceIdColumns,
-                    metadata: {},
-                    discardedAt: null,
-                    organizationId: organization.id,
-                    subscriptionId: subscription.id,
-                    usageMeterId: usageMeter.id,
-                    ledgerAccountId: ledgerAccount.id,
-                    ledgerTransactionId: testLedgerTransaction.id,
-                    entryType: LedgerEntryType.UsageCost,
-                    direction: LedgerEntryDirection.Debit,
-                    amount: 300,
-                    status: LedgerEntryStatus.Posted,
-                    livemode: true,
-                    entryTimestamp: Date.now(),
-                    sourceUsageEventId: usageEvent.id,
-                  },
-                ],
-                transaction
-              )
-              const entries = entriesResult.unwrap()
-
-              expect(entries).toHaveLength(3)
-              expect(entries[0].pricingModelId).toBe(
-                subscription.pricingModelId
-              )
-              expect(entries[1].pricingModelId).toBe(
-                subscription.pricingModelId
-              )
-              expect(entries[2].pricingModelId).toBe(
-                usageMeter.pricingModelId
-              )
-
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
 
       it('should handle empty array', async () => {
         ;(
-          await adminTransactionWithResult(
-            async ({ transaction }) => {
-              const entriesResult = await bulkInsertLedgerEntries(
-                [],
-                transaction
-              )
-              const entries = entriesResult.unwrap()
-              expect(entries).toEqual([])
+          await adminTransaction(async ({ transaction }) => {
+            const entriesResult = await bulkInsertLedgerEntries(
+              [],
+              transaction
+            )
+            const entries = entriesResult.unwrap()
+            expect(entries).toEqual([])
 
-              return Result.ok(undefined)
-            }
-          )
+            return Result.ok(undefined)
+          })
         ).unwrap()
       })
     })

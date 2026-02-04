@@ -211,8 +211,8 @@ describe('Products Schema Validation', () => {
   })
 
   describe('Edge cases', () => {
-    it('should handle empty slug gracefully', () => {
-      const validData = {
+    it('should reject empty slug', () => {
+      const invalidData = {
         name: 'Test Plan',
         slug: '',
         default: false,
@@ -225,13 +225,15 @@ describe('Products Schema Validation', () => {
         pluralQuantityLabel: 'seats',
       }
 
-      const result = productsClientInsertSchema.safeParse(validData)
-      // Empty slug should be allowed (not treated as 'free')
-      expect(result.success).toBe(true)
+      const result = productsClientInsertSchema.safeParse(invalidData)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toEqual(['slug'])
+      }
     })
 
-    it('should handle null slug gracefully', () => {
-      const validData = {
+    it('should reject null slug', () => {
+      const invalidData = {
         name: 'Test Plan',
         slug: null,
         default: false,
@@ -244,9 +246,11 @@ describe('Products Schema Validation', () => {
         pluralQuantityLabel: 'seats',
       }
 
-      const result = productsClientInsertSchema.safeParse(validData)
-      // Null slug should be allowed (not treated as 'free')
-      expect(result.success).toBe(true)
+      const result = productsClientInsertSchema.safeParse(invalidData)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].path).toEqual(['slug'])
+      }
     })
 
     it('should not treat "FreePlan" as "free"', () => {

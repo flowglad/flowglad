@@ -10,7 +10,7 @@ import { PaymentMethodsList } from '@/registry/base/payment-methods-list/payment
 import { SubscriptionCard } from '@/registry/base/subscription-card/subscription-card'
 import type { SubscriptionStatus } from '@/registry/lib/subscription-status'
 import { SubscriptionCancellationArrangement } from '@/types'
-import { useSession } from '@/utils/authClient'
+import { useCustomerSession } from '@/utils/authClient'
 import core from '@/utils/core'
 import { BillingPortalHeader } from './components/BillingPortalHeader'
 import { BillingPortalNav } from './components/BillingPortalNav'
@@ -24,7 +24,8 @@ function BillingPortalPage() {
   }>()
   const router = useRouter()
   const { organizationId, customerId } = params
-  const { data: session, isPending: isSessionLoading } = useSession()
+  const { data: session, isPending: isSessionLoading } =
+    useCustomerSession()
   const utils = trpc.useUtils()
   const [activeSection, setActiveSection] = useState<
     'subscription' | 'payment-methods' | 'invoices'

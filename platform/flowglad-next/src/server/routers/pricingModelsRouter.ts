@@ -2,7 +2,6 @@ import { pricingModelWithProductsAndUsageMetersSchema } from '@db-core/schema/pr
 import {
   clonePricingModelInputSchema,
   createPricingModelSchema,
-  editPricingModelSchema,
   pricingModelsClientSelectSchema,
   pricingModelsPaginatedListSchema,
   pricingModelsPaginatedSelectSchema,
@@ -14,7 +13,6 @@ import {
 } from '@db-core/tableUtils'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
-import yaml from 'json-to-pretty-yaml'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -38,12 +36,18 @@ import {
 } from '@/utils/openapi'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import {
+  editPricingModelWithStructureSchema,
+  hasAllStructureFields,
+} from '@/utils/pricingModels/editSchemas'
+import {
   constructIntegrationGuide,
   constructIntegrationGuideStream,
 } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
+import { updatePricingModelTransaction } from '@/utils/pricingModels/updateTransaction'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { getOrganizationCodebaseMarkdown } from '@/utils/textContent'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -55,6 +59,19 @@ export const pricingModelsRouteConfigs = [
   ...routeConfigs,
   trpcToRest('pricingModels.clone'),
 ]
+
+export const exportPricingModelRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
+  'GET /pricing-models/:id/export': {
+    procedure: 'pricingModels.export',
+    pattern: /^pricing-models\/([^/]+)\/export$/,
+    mapParams: (matches) => ({
+      id: matches[0],
+    }),
+  },
+}
 export const getDefaultPricingModelRouteConfig: Record<
   string,
   RouteConfig
@@ -84,13 +101,17 @@ const listPricingModelsProcedure = protectedProcedure
   .input(pricingModelsPaginatedSelectSchema)
   .output(pricingModelsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPricingModelsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+    return unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectPricingModelsPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
     )
   })
 
@@ -103,21 +124,23 @@ const getPricingModelProcedure = protectedProcedure
     })
   )
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const [pricingModel] =
-          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-            { id: input.id },
-            transaction
-          )
-        if (!pricingModel) {
-          throw new Error(`Pricing Model ${input.id} not found`)
+    return unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] =
+            await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+              { id: input.id },
+              transaction
+            )
+          if (!pricingModel) {
+            throw new Error(`Pricing Model ${input.id} not found`)
+          }
+          return Result.ok({ pricingModel })
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-        return { pricingModel }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+      )
     )
   })
 
@@ -151,47 +174,142 @@ const createPricingModelProcedure = protectedProcedure
     }
     // Always create in testmode - only one livemode pricing model is allowed
     // per organization. Uses adminTransaction to bypass livemode RLS.
-    const result = await adminTransaction(
-      async (transactionCtx) => {
-        return createPricingModelBookkeeping(
-          {
-            pricingModel: input.pricingModel,
-            defaultPlanIntervalUnit: input.defaultPlanIntervalUnit,
-          },
-          {
-            ...transactionCtx,
-            organizationId,
-            livemode: false,
-          }
-        )
-      },
-      { livemode: false }
-    )
-    return { pricingModel: result.unwrap().pricingModel }
+    const result = (
+      await adminTransaction(
+        async (transactionCtx) => {
+          const bookkeepingResult =
+            await createPricingModelBookkeeping(
+              {
+                pricingModel: input.pricingModel,
+                defaultPlanIntervalUnit:
+                  input.defaultPlanIntervalUnit,
+              },
+              {
+                ...transactionCtx,
+                organizationId,
+                livemode: false,
+              }
+            )
+          return Result.ok(bookkeepingResult.unwrap())
+        },
+        { livemode: false }
+      )
+    ).unwrap()
+    return { pricingModel: result.pricingModel }
   })
 
+/**
+ * Update a pricing model.
+ *
+ * This procedure supports two modes:
+ * 1. **Metadata-only update** (existing behavior): When only `name` and/or `isDefault`
+ *    are provided, the procedure uses the simple update path.
+ * 2. **Full structure update** (CLI sync workflow): When `features`, `products`,
+ *    `usageMeters`, or `resources` fields are provided, the procedure uses the
+ *    full diff and update transaction to atomically update the entire pricing model.
+ *    This is a FULL REPLACEMENT - all structure fields must be provided to prevent
+ *    accidental data loss. The CLI always sends the complete structure.
+ *
+ * Uses adminTransaction for full structure updates to bypass RLS policies, as the
+ * update may need to create/update/deactivate resources across pricing model scope.
+ * Authorization is enforced via a pre-check using authenticatedTransaction.
+ */
 const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
-  .input(editPricingModelSchema)
+  .input(editPricingModelWithStructureSchema)
   .output(
     z.object({
       pricingModel: pricingModelsClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
-        const pricingModel = await safelyUpdatePricingModel(
-          {
-            ...input.pricingModel,
-            id: input.id,
+  .mutation(async ({ input, ctx }) => {
+    const { pricingModel: pricingModelInput } = input
+    const pricingModelId = input.id
+
+    // If no structure fields provided, use simple metadata update (existing behavior)
+    // hasAllStructureFields is a type predicate that narrows the input type
+    if (!hasAllStructureFields(input)) {
+      return unwrapOrThrow(
+        await authenticatedTransaction(
+          async (transactionCtx) => {
+            const pricingModel = await safelyUpdatePricingModel(
+              {
+                name: pricingModelInput.name,
+                isDefault: pricingModelInput.isDefault,
+                id: pricingModelId,
+              },
+              transactionCtx
+            )
+            return Result.ok({ pricingModel })
           },
-          transactionCtx
+          {
+            apiKey: ctx.apiKey,
+          }
         )
-        return Result.ok({ pricingModel })
-      }
+      )
+    }
+
+    // Full structure update: schema validation ensures ALL structure fields are provided
+    // to prevent accidental data loss. This enforces PUT (full replacement) semantics.
+    // After the type predicate check above, TypeScript knows all structure fields are defined.
+
+    // Authorization pre-check: verify the user can access this pricing model via RLS
+    // before proceeding with the admin-level update
+    unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModelResult = await selectPricingModelById(
+            pricingModelId,
+            transaction
+          )
+          if (Result.isError(pricingModelResult)) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message:
+                'The pricing model you are trying to update either does not exist or you do not have permission to update it.',
+            })
+          }
+          return Result.ok(undefined)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
     )
-  )
+
+    // Full structure update: use diff + update transaction
+    // Uses adminTransaction to bypass RLS policies for cross-resource updates
+    const result = await adminTransaction(async (transactionCtx) => {
+      // Build the proposed input from the request
+      // Type predicate hasAllStructureFields guarantees all structure fields are defined
+      const proposedInput = {
+        name: input.pricingModel.name,
+        isDefault: input.pricingModel.isDefault ?? false,
+        features: input.pricingModel.features,
+        products: input.pricingModel.products,
+        usageMeters: input.pricingModel.usageMeters,
+        resources: input.pricingModel.resources,
+      }
+
+      const updateResult = await updatePricingModelTransaction(
+        {
+          pricingModelId,
+          proposedInput,
+        },
+        transactionCtx
+      )
+
+      if (Result.isError(updateResult)) {
+        return updateResult
+      }
+
+      return Result.ok({
+        pricingModel: updateResult.value.pricingModel,
+      })
+    })
+
+    return unwrapOrThrow(result)
+  })
 
 const getDefaultPricingModelProcedure = protectedProcedure
   .meta({
@@ -217,25 +335,27 @@ const getDefaultPricingModelProcedure = protectedProcedure
       })
     }
     const organizationId = ctx.organizationId
-    const pricingModel = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const [defaultPricingModel] =
-          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-            {
-              organizationId,
-              livemode: ctx.livemode,
-              isDefault: true,
-            },
-            transaction
-          )
-        if (!defaultPricingModel) {
-          throw new Error('Default pricing model not found')
+    const pricingModel = unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const [defaultPricingModel] =
+            await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+              {
+                organizationId,
+                livemode: ctx.livemode,
+                isDefault: true,
+              },
+              transaction
+            )
+          if (!defaultPricingModel) {
+            throw new Error('Default pricing model not found')
+          }
+          return Result.ok(defaultPricingModel)
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-        return defaultPricingModel
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+      )
     )
     return { pricingModel }
   })
@@ -257,25 +377,31 @@ const clonePricingModelProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const pricingModelResult = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return await selectPricingModelById(input.id, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+    // This transaction is just for authorization - it verifies the user can access
+    // the source pricing model. We don't need the value, just confirmation it exists.
+    unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModelResult = await selectPricingModelById(
+            input.id,
+            transaction
+          )
+          if (Result.isError(pricingModelResult)) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message:
+                'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
+            })
+          }
+          return Result.ok(undefined)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
     )
 
-    if (Result.isError(pricingModelResult)) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message:
-          'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
-      })
-    }
-
-    // pricingModelResult.value contains the pricing model but we don't need it -
-    // the authorization check above ensures the user can access it.
+    // The authorization check above ensures the user can access the pricing model.
 
     /**
      * We intentionally use adminTransaction here to allow cloning pricing models
@@ -295,14 +421,13 @@ const clonePricingModelProcedure = protectedProcedure
      * - Removing destinationEnvironment from the public API schema (clonePricingModelInputSchema)
      * - Adding role/scope checks before allowing cross-environment clones
      */
-    const clonedPricingModel = await adminTransaction(
-      async (transactionCtx) => {
-        return await clonePricingModelTransaction(
-          input,
-          transactionCtx
+    const clonedPricingModel = (
+      await adminTransaction(async (transactionCtx) => {
+        return Result.ok(
+          await clonePricingModelTransaction(input, transactionCtx)
         )
-      }
-    )
+      })
+    ).unwrap()
 
     return { pricingModel: clonedPricingModel }
   })
@@ -361,17 +486,21 @@ const getAllForSwitcherProcedure = protectedProcedure
 
     // Use adminTransaction to bypass RLS livemode check,
     // but explicitly scope to the user's organization for security
-    return adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsTableRows({
-        input: {
-          pageSize: 100,
-          filters: {
-            organizationId: ctx.organizationId,
-          },
-        },
-        transaction,
+    return (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectPricingModelsTableRows({
+            input: {
+              pageSize: 100,
+              filters: {
+                organizationId: ctx.organizationId,
+              },
+            },
+            transaction,
+          })
+        )
       })
-    })
+    ).unwrap()
   })
 
 /**
@@ -411,7 +540,7 @@ const setupPricingModelProcedure = protectedProcedure
     // Always create in testmode - only one livemode pricing model is allowed
     // per organization. Uses adminTransaction to bypass livemode and pricing
     // model scope RLS policies.
-    const pricingModelWithProductsAndUsageMeters =
+    const pricingModelWithProductsAndUsageMeters = (
       await adminTransaction(
         async (transactionCtx) => {
           const { transaction } = transactionCtx
@@ -429,31 +558,74 @@ const setupPricingModelProcedure = protectedProcedure
               { id: setupResult.pricingModel.id },
               transaction
             )
-          return pricingModel
+          return Result.ok(pricingModel)
         },
         { livemode: false }
       )
+    ).unwrap()
     return { pricingModel: pricingModelWithProductsAndUsageMeters }
   })
 
 const exportPricingModelProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/api/v1/pricing-models/{id}/export',
+      summary: 'Export a PricingModel',
+      tags: ['Pricing Models'],
+      protect: true,
+    },
+  })
   .input(idInputSchema)
   .output(
     z.object({
-      pricingModelYAML: z
-        .string()
-        .describe('YAML representation of the pricing model'),
+      pricingModel: setupPricingModelSchema.describe(
+        'JSON structure of the pricing model configuration'
+      ),
+      updatedAt: z
+        .number()
+        .int()
+        .min(-9007199254740991)
+        .max(9007199254740991)
+        .describe(
+          'Epoch milliseconds timestamp of when the pricing model was last updated'
+        ),
     })
   )
   .query(
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
+
+        // Fetch the pricing model to get updatedAt
+        const pricingModelResult = await selectPricingModelById(
+          input.id,
+          transaction
+        )
+        if (Result.isError(pricingModelResult)) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Pricing model ${input.id} not found`,
+          })
+        }
+        const pricingModel = pricingModelResult.unwrap()
+
+        // Get the setup data structure
         const data = await getPricingModelSetupData(
           input.id,
           transaction
         )
-        return { pricingModelYAML: yaml.stringify(data.unwrap()) }
+        if (Result.isError(data)) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: data.error.message,
+          })
+        }
+
+        return {
+          pricingModel: data.unwrap(),
+          updatedAt: pricingModel.updatedAt,
+        }
       }
     )
   )
@@ -469,7 +641,7 @@ const getIntegrationGuideProcedure = protectedProcedure
     }
     const organizationId = ctx.organizationId
     // Fetch data within a transaction first
-    const { pricingModelData, codebaseContext } =
+    const { pricingModelData, codebaseContext } = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
           const pricingModelData = await getPricingModelSetupData(
@@ -478,12 +650,13 @@ const getIntegrationGuideProcedure = protectedProcedure
           )
           const codebaseContext =
             await getOrganizationCodebaseMarkdown(organizationId)
-          return { pricingModelData, codebaseContext }
+          return Result.ok({ pricingModelData, codebaseContext })
         },
         {
           apiKey: ctx.apiKey,
         }
       )
+    )
 
     // Then stream the AI-generated content (doesn't need transaction)
     yield* constructIntegrationGuideStream({

@@ -18,10 +18,7 @@ import {
   setupOrg,
   setupPrice,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import core from '@/utils/core'
 import {
   derivePricingModelIdForInvoiceLineItem,
@@ -71,7 +68,7 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from invoice when invoiceId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const derivedPricingModelId =
             await derivePricingModelIdForInvoiceLineItem(
               {
@@ -90,7 +87,7 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from price when only priceId is provided', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const derivedPricingModelId =
             await derivePricingModelIdForInvoiceLineItem(
               {
@@ -109,19 +106,24 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when both invoiceId and priceId are null', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          derivePricingModelIdForInvoiceLineItem(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await derivePricingModelIdForInvoiceLineItem(
             {
               invoiceId: null,
               priceId: null,
             },
             transaction
           )
-        ).rejects.toThrow(
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
           'Cannot derive pricingModelId for invoice line item: both invoiceId and priceId are null'
         )
-      })
+      }
     })
   })
 
@@ -165,7 +167,7 @@ describe('pricingModelId derivation', () => {
 
     it('should successfully insert invoice line item and derive pricingModelId from invoice', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const invoiceLineItem = await insertInvoiceLineItem(
             {
               invoiceId: invoice.id,
@@ -190,9 +192,9 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw an error when invoiceId is invalid and priceId is null', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          insertInvoiceLineItem(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await insertInvoiceLineItem(
             {
               invoiceId: 'invalid_invoice_id',
               quantity: 1,
@@ -204,13 +206,15 @@ describe('pricingModelId derivation', () => {
             },
             transaction
           )
-        ).rejects.toThrow()
-      })
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const invoiceLineItem = await insertInvoiceLineItem(
             {
               invoiceId: invoice.id,
@@ -284,7 +288,7 @@ describe('pricingModelId derivation', () => {
 
     it('should bulk insert invoice line items and derive pricingModelId for each', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const invoiceLineItems = await insertInvoiceLineItems(
             [
               {
@@ -337,9 +341,9 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when one invoice line item has invalid invoiceId and null priceId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          insertInvoiceLineItems(
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await insertInvoiceLineItems(
             [
               {
                 invoiceId: invoice.id,
@@ -362,8 +366,10 @@ describe('pricingModelId derivation', () => {
             ],
             transaction
           )
-        ).rejects.toThrow()
-      })
+          return Result.ok(undefined)
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 })
@@ -409,7 +415,7 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
 
   it('should return invoices with line items for a customer with customer-facing statuses', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result =
           await selectCustomerFacingInvoicesWithLineItems(
             customer.id,
@@ -444,7 +450,7 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result =
           await selectCustomerFacingInvoicesWithLineItems(
             customerWithNoInvoices.id,
@@ -469,7 +475,7 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result =
           await selectCustomerFacingInvoicesWithLineItems(
             customer.id,
@@ -503,7 +509,7 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result =
           await selectCustomerFacingInvoicesWithLineItems(
             customer.id,

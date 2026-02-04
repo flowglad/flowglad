@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
@@ -23,32 +24,34 @@ const sendCustomerPaymentSucceededNotificationTask = task({
       customer,
       organization,
       payment,
-    } = await adminTransaction(async ({ transaction }) => {
-      const payment = (
-        await selectPaymentById(payload.paymentId, transaction)
-      ).unwrap()
-      const [{ invoice, invoiceLineItems }] =
-        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { id: payment.invoiceId },
-          transaction
-        )
-      const customer = (
-        await selectCustomerById(payment.customerId, transaction)
-      ).unwrap()
-      const organization = (
-        await selectOrganizationById(
-          customer.organizationId,
-          transaction
-        )
-      ).unwrap()
-      return {
-        payment,
-        invoice,
-        invoiceLineItems,
-        customer,
-        organization,
-      }
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const payment = (
+          await selectPaymentById(payload.paymentId, transaction)
+        ).unwrap()
+        const [{ invoice, invoiceLineItems }] =
+          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+            { id: payment.invoiceId },
+            transaction
+          )
+        const customer = (
+          await selectCustomerById(payment.customerId, transaction)
+        ).unwrap()
+        const organization = (
+          await selectOrganizationById(
+            customer.organizationId,
+            transaction
+          )
+        ).unwrap()
+        return Result.ok({
+          payment,
+          invoice,
+          invoiceLineItems,
+          customer,
+          organization,
+        })
+      })
+    ).unwrap()
 
     if (!invoice.pdfURL) {
       await generateInvoicePdfTask.triggerAndWait({
@@ -61,7 +64,7 @@ const sendCustomerPaymentSucceededNotificationTask = task({
       })
     }
     // Fetch the latest invoice after the PDF generation tasks have completed
-    const { mostUpToDateInvoice, orgAndFirstMember } =
+    const { mostUpToDateInvoice, orgAndFirstMember } = (
       await adminTransaction(async ({ transaction }) => {
         const mostUpToDateInvoice = (
           await selectInvoiceById(invoice.id, transaction)
@@ -71,8 +74,9 @@ const sendCustomerPaymentSucceededNotificationTask = task({
             organization.id,
             transaction
           )
-        return { mostUpToDateInvoice, orgAndFirstMember }
+        return Result.ok({ mostUpToDateInvoice, orgAndFirstMember })
       })
+    ).unwrap()
 
     // Fetch discount information if this invoice is from a billing period (subscription)
     const discountInfo = await fetchDiscountInfoForInvoice(

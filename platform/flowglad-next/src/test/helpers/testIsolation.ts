@@ -136,11 +136,12 @@ export function resetGlobalTestState(): void {
 }
 
 /**
- * Sets up a mock auth session for testing.
+ * Sets up a mock auth session for testing (legacy).
  * The session is automatically available to code that calls getSession().
  *
  * @param user - The user object to include in the session
  * @returns A cleanup function that resets the session to null
+ * @deprecated Use setMockMerchantSession or setMockCustomerSession instead
  *
  * @example
  * ```typescript
@@ -156,6 +157,70 @@ export function setMockAuthSession(user: {
   globalThis.__mockedAuthSession = { user }
   return () => {
     globalThis.__mockedAuthSession = null
+  }
+}
+
+/**
+ * Sets up a mock merchant session for testing.
+ * The session is automatically available to code that calls getMerchantSession().
+ *
+ * @param user - The user object to include in the session
+ * @param options - Optional session options (scope defaults to 'merchant')
+ * @returns A cleanup function that resets the session to null
+ *
+ * @example
+ * ```typescript
+ * const cleanup = setMockMerchantSession({ id: 'user_123', email: 'merchant@example.com' })
+ * // ... run test that needs authenticated merchant user ...
+ * cleanup()
+ * ```
+ */
+export function setMockMerchantSession(
+  user: { id: string; email: string },
+  options?: { scope?: 'merchant' | 'customer' }
+): () => void {
+  globalThis.__mockedMerchantSession = {
+    user,
+    session: { scope: options?.scope ?? 'merchant' },
+  }
+  return () => {
+    globalThis.__mockedMerchantSession = null
+  }
+}
+
+/**
+ * Sets up a mock customer session for testing.
+ * The session is automatically available to code that calls getCustomerSession().
+ *
+ * @param user - The user object to include in the session
+ * @param organizationId - The organization ID for customer context
+ * @param options - Optional session options (scope defaults to 'customer')
+ * @returns A cleanup function that resets the session to null
+ *
+ * @example
+ * ```typescript
+ * const cleanup = setMockCustomerSession(
+ *   { id: 'user_123', email: 'customer@example.com' },
+ *   'org_456'
+ * )
+ * // ... run test that needs authenticated customer user ...
+ * cleanup()
+ * ```
+ */
+export function setMockCustomerSession(
+  user: { id: string; email: string },
+  organizationId: string,
+  options?: { scope?: 'merchant' | 'customer' }
+): () => void {
+  globalThis.__mockedCustomerSession = {
+    user,
+    session: {
+      scope: options?.scope ?? 'customer',
+      contextOrganizationId: organizationId,
+    },
+  }
+  return () => {
+    globalThis.__mockedCustomerSession = null
   }
 }
 
@@ -195,10 +260,28 @@ export function createTestContext() {
     env,
 
     /**
-     * Sets the mock auth session and tracks it for cleanup.
+     * Sets the mock auth session and tracks it for cleanup (legacy).
+     * @deprecated Use setMerchantAuth or setCustomerAuth instead
      */
     setAuth(user: { id: string; email: string }): void {
       cleanupFns.push(setMockAuthSession(user))
+    },
+
+    /**
+     * Sets the mock merchant session and tracks it for cleanup.
+     */
+    setMerchantAuth(user: { id: string; email: string }): void {
+      cleanupFns.push(setMockMerchantSession(user))
+    },
+
+    /**
+     * Sets the mock customer session and tracks it for cleanup.
+     */
+    setCustomerAuth(
+      user: { id: string; email: string },
+      organizationId: string
+    ): void {
+      cleanupFns.push(setMockCustomerSession(user, organizationId))
     },
 
     /**
@@ -229,8 +312,19 @@ export function createTestContext() {
 }
 
 /**
- * Type declaration for the global auth session mock.
- * This is set in bun.setup.ts and used by the auth module mock.
+ * Session object structure for auth session mocks.
+ */
+interface MockedAuthSession {
+  user: { id: string; email: string }
+  session?: {
+    scope?: 'merchant' | 'customer'
+    contextOrganizationId?: string
+  }
+}
+
+/**
+ * Type declarations for the global auth session mocks.
+ * These are set in bun.setup.ts and used by the auth module mock.
  */
 declare global {
   // eslint-disable-next-line no-var
@@ -238,4 +332,10 @@ declare global {
     | null
     | { user: { id: string; email: string } }
     | undefined
+
+  // eslint-disable-next-line no-var
+  var __mockedMerchantSession: MockedAuthSession | null | undefined
+
+  // eslint-disable-next-line no-var
+  var __mockedCustomerSession: MockedAuthSession | null | undefined
 }

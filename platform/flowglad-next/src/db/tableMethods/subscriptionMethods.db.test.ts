@@ -22,7 +22,7 @@ import {
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { SubscriptionTerminalStateError } from '@/errors'
 import { core } from '@/utils/core'
 import {
@@ -68,7 +68,7 @@ describe('selectDistinctSubscriptionProductNames', () => {
 
   it('should return empty array when organization has no subscriptions', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await selectDistinctSubscriptionProductNames(
           organization.id,
           transaction
@@ -185,7 +185,7 @@ describe('selectDistinctSubscriptionProductNames', () => {
     expect(subscription4.pricingModelId).toBe(pricingModel.id)
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result = await selectDistinctSubscriptionProductNames(
           organization.id,
           transaction
@@ -265,7 +265,7 @@ describe('selectDistinctSubscriptionProductNames', () => {
     expect(subscriptionOrg2.pricingModelId).toBe(pricingModel2.id)
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const result1 = await selectDistinctSubscriptionProductNames(
           organization.id,
           transaction
@@ -451,7 +451,7 @@ describe('selectSubscriptionsTableRowData', () => {
   describe('search functionality', () => {
     it('should search by subscription ID or customer name (case-insensitive, trims whitespace)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test subscription ID search
           const resultById = await selectSubscriptionsTableRowData({
             input: {
@@ -521,7 +521,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should ignore empty or whitespace-only search queries', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultEmpty = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
@@ -565,7 +565,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should only return subscriptions for the specified organization', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Search for "Alice" - should only return subscription1, not subscriptionOtherOrg
           const result = await selectSubscriptionsTableRowData({
             input: {
@@ -593,7 +593,7 @@ describe('selectSubscriptionsTableRowData', () => {
   describe('productName filter functionality', () => {
     it('should filter by product name (trims whitespace)', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test Premium Plan filter
           const resultPremium = await selectSubscriptionsTableRowData(
             {
@@ -661,7 +661,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should ignore empty or whitespace-only product name filters', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const resultEmpty = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
@@ -710,7 +710,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should only return subscriptions for the specified organization', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Filter by "Premium Plan" - should only return subscriptions from organization, not organization2
           const result = await selectSubscriptionsTableRowData({
             input: {
@@ -761,7 +761,7 @@ describe('selectSubscriptionsTableRowData', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test search + filter combination
           const result = await selectSubscriptionsTableRowData({
             input: {
@@ -919,7 +919,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should return only free plan subscriptions when isFreePlan: true', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
@@ -950,7 +950,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should return only paid subscriptions when isFreePlan: false', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
@@ -988,7 +988,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should return all subscriptions when isFreePlan is undefined', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 20,
@@ -1168,7 +1168,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should combine isFreePlan and productName filters', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
@@ -1208,7 +1208,7 @@ describe('selectSubscriptionsTableRowData', () => {
 
     it('should combine isFreePlan and status filters', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
@@ -1245,7 +1245,7 @@ describe('selectSubscriptionsTableRowData', () => {
   describe('edge cases and error handling', () => {
     it('should handle invalid inputs gracefully and maintain correct total count', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Test null/undefined searchQuery
           const resultUndefined =
             await selectSubscriptionsTableRowData({
@@ -1343,7 +1343,7 @@ describe('selectSubscriptionsTableRowData', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await selectSubscriptionsTableRowData({
             input: {
               pageSize: 10,
@@ -1418,7 +1418,7 @@ describe('insertSubscription', () => {
 
   it('should derive pricingModelId from price', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const subscription = await insertSubscription(
           {
             organizationId: organization.id,
@@ -1461,7 +1461,7 @@ describe('insertSubscription', () => {
 
   it('should use provided pricingModelId without derivation', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const subscription = await insertSubscription(
           {
             organizationId: organization.id,
@@ -1558,7 +1558,7 @@ describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
 
   it('should bulk insert subscriptions and derive pricingModelId for each', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const externalId1 = `ext_sub_1_${core.nanoid()}`
         const externalId2 = `ext_sub_2_${core.nanoid()}`
 
@@ -1692,7 +1692,7 @@ describe('derivePricingModelIdFromSubscription', () => {
 
   it('should derive pricingModelId from an existing subscription', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const derivedPricingModelId =
           await derivePricingModelIdFromSubscription(
             subscription.id,
@@ -1709,19 +1709,16 @@ describe('derivePricingModelIdFromSubscription', () => {
   })
 
   it('should throw error when subscription does not exist', async () => {
-    ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
-        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+    const nonExistentSubscriptionId = `sub_${core.nanoid()}`
 
-        await expect(
-          derivePricingModelIdFromSubscription(
-            nonExistentSubscriptionId,
-            transaction
-          )
-        ).rejects.toThrow()
-        return Result.ok(undefined)
-      })
-    ).unwrap()
+    const result = await adminTransaction(async ({ transaction }) => {
+      await derivePricingModelIdFromSubscription(
+        nonExistentSubscriptionId,
+        transaction
+      )
+      return Result.ok(undefined)
+    })
+    expect(Result.isError(result)).toBe(true)
   })
 })
 

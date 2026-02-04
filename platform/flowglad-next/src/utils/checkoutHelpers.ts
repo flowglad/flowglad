@@ -176,105 +176,133 @@ interface CheckoutInfoError {
 }
 
 type CheckoutInfoResult = CheckoutInfoSuccess | CheckoutInfoError
+
+interface CheckoutInfoTransactionResult {
+  product: Product.Record
+  price: Price.Record
+  organization: Organization.Record
+  features: Feature.Record[]
+  checkoutSession: CheckoutSession.Record | null
+  discount: Discount.Record | null
+  feeCalculation: FeeCalculation.Record | null
+  maybeCustomer: Customer.Record | null
+  isEligibleForTrial: boolean | undefined
+  error: Error | null
+}
+
 export async function checkoutInfoForPriceWhere(
   priceWhere: Price.Where
 ): Promise<CheckoutInfoResult> {
-  const result = await adminTransaction(async ({ transaction }) => {
-    const [{ product, price, organization }] =
-      await selectPriceProductAndOrganizationByPriceWhere(
-        priceWhere,
-        transaction
-      )
-    // Product checkout requires a product - usage prices (with null product) are not supported here
-    if (!product) {
-      throw new Error(
-        'Product checkout is only supported for product prices (subscription/single payment), not usage prices'
-      )
-    }
-    if (!product.active || !price.active) {
-      // FIXME: ERROR PAGE UI
-      return {
-        product,
-        price,
-        organization,
-        features: [],
-      }
-    }
-    /**
-     * Attempt to get the saved purchase session (from cookies).
-     * If not found, or the price id does not match, create a new purchase session
-     * and save it to cookies.
-     */
-    const checkoutSessionResult = await findOrCreateCheckoutSession(
-      {
-        productId: product.id,
-        organizationId: organization.id,
-        price,
-        type: CheckoutSessionType.Product,
-      },
-      transaction
-    )
-    if (checkoutSessionResult.status === 'error') {
-      return {
-        product,
-        price,
-        organization,
-        features: [],
-        checkoutSession: null,
-        discount: null,
-        feeCalculation: null,
-        maybeCustomer: null,
-        isEligibleForTrial: undefined,
-        error: checkoutSessionResult.error,
-      }
-    }
-    const checkoutSession = checkoutSessionResult.value
-    const discount = checkoutSession.discountId
-      ? (
-          await selectDiscountById(
-            checkoutSession.discountId,
+  const result = (
+    await adminTransaction(
+      async ({
+        transaction,
+      }): Promise<Result<CheckoutInfoTransactionResult, Error>> => {
+        const [{ product, price, organization }] =
+          await selectPriceProductAndOrganizationByPriceWhere(
+            priceWhere,
             transaction
           )
-        ).unwrap()
-      : null
-    const feeCalculation = await selectLatestFeeCalculation(
-      {
-        checkoutSessionId: checkoutSession.id,
-      },
-      transaction
-    )
-    const features = await selectFeaturesByProductFeatureWhere(
-      { productId: product.id, expiredAt: null },
-      transaction
-    )
-    const maybeCustomer = checkoutSession.customerId
-      ? (
-          await selectCustomerById(
-            checkoutSession.customerId,
+        // Product checkout requires a product - usage prices (with null product) are not supported here
+        if (!product) {
+          throw new Error(
+            'Product checkout is only supported for product prices (subscription/single payment), not usage prices'
+          )
+        }
+        if (!product.active || !price.active) {
+          // FIXME: ERROR PAGE UI
+          return Result.ok({
+            product,
+            price,
+            organization,
+            features: [] as Feature.Record[],
+            checkoutSession: null,
+            discount: null,
+            feeCalculation: null,
+            maybeCustomer: null,
+            isEligibleForTrial: undefined,
+            error: null,
+          })
+        }
+        /**
+         * Attempt to get the saved purchase session (from cookies).
+         * If not found, or the price id does not match, create a new purchase session
+         * and save it to cookies.
+         */
+        const checkoutSessionResult =
+          await findOrCreateCheckoutSession(
+            {
+              productId: product.id,
+              organizationId: organization.id,
+              price,
+              type: CheckoutSessionType.Product,
+            },
             transaction
           )
-        ).unwrap()
-      : null
+        if (checkoutSessionResult.status === 'error') {
+          return Result.ok({
+            product,
+            price,
+            organization,
+            features: [] as Feature.Record[],
+            checkoutSession: null,
+            discount: null,
+            feeCalculation: null,
+            maybeCustomer: null,
+            isEligibleForTrial: undefined,
+            error: checkoutSessionResult.error,
+          })
+        }
+        const checkoutSession = checkoutSessionResult.value
+        const discount = checkoutSession.discountId
+          ? (
+              await selectDiscountById(
+                checkoutSession.discountId,
+                transaction
+              )
+            ).unwrap()
+          : null
+        const feeCalculation = await selectLatestFeeCalculation(
+          {
+            checkoutSessionId: checkoutSession.id,
+          },
+          transaction
+        )
+        const features = await selectFeaturesByProductFeatureWhere(
+          { productId: product.id, expiredAt: null },
+          transaction
+        )
+        const maybeCustomer = checkoutSession.customerId
+          ? (
+              await selectCustomerById(
+                checkoutSession.customerId,
+                transaction
+              )
+            ).unwrap()
+          : null
 
-    // Calculate trial eligibility
-    const isEligibleForTrial = await calculateTrialEligibility(
-      price,
-      maybeCustomer,
-      transaction
+        // Calculate trial eligibility
+        const isEligibleForTrial = await calculateTrialEligibility(
+          price,
+          maybeCustomer,
+          transaction
+        )
+
+        return Result.ok({
+          product,
+          price,
+          features: features.map((f) => f.feature),
+          organization,
+          checkoutSession,
+          discount,
+          feeCalculation: feeCalculation ?? null,
+          maybeCustomer,
+          isEligibleForTrial,
+          error: null,
+        })
+      }
     )
-
-    return {
-      product,
-      price,
-      features: features.map((f) => f.feature),
-      organization,
-      checkoutSession,
-      discount,
-      feeCalculation: feeCalculation ?? null,
-      maybeCustomer,
-      isEligibleForTrial,
-    }
-  })
+  ).unwrap()
   const { checkoutSession, organization, features, error } = result
   if (!checkoutSession || error) {
     // FIXME: ERROR PAGE UI

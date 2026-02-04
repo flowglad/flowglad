@@ -53,7 +53,7 @@ import {
   setupUsageLedgerScenario,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   createLedgerEntryInsertsForUsageCreditApplications,
@@ -130,7 +130,7 @@ beforeEach(async () => {
 describe('createUsageCreditApplicationsForUsageEvent', () => {
   it('should return an empty array if there are no available credit balances', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const availableCreditBalances: AvailableCreditBalance[] = []
 
         const applications =
@@ -152,7 +152,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create one application if a single credit balance covers the entire usage event amount', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -194,7 +194,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create one application if a single credit balance is less than the usage event amount', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -234,7 +234,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create multiple applications if multiple credit balances are needed to cover the usage event amount', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit1 = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -294,7 +294,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should create multiple applications if multiple credit balances cover less than the usage event amount', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit1 = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -346,7 +346,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 
   it('should skip credit balances that are zero and use subsequent non-zero balances', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // No need to create usageCredit1 and usageCredit3 in DB as they have 0 balance
         // and are only represented in the availableCreditBalances input array.
         const usageCredit2 = await setupUsageCredit({
@@ -391,7 +391,7 @@ describe('createUsageCreditApplicationsForUsageEvent', () => {
 describe('aggregateAvailableBalanceForUsageCredit', () => {
   it('should order credit balances by expiresAt (earliest first, null last)', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const baseTime = 1_700_000_000_000
         const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000
 
@@ -489,7 +489,7 @@ describe('aggregateAvailableBalanceForUsageCredit', () => {
 describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
   it('should create a debit and a credit ledger entry insert for a single usage credit application', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -569,7 +569,7 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
 
   it('should create debit and credit entries for multiple usage credit applications', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const usageCredit1 = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -704,7 +704,7 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
 describe('processUsageEventProcessedLedgerCommand', () => {
   it('should process a usage event with no credits available/applied', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Setup: command
         const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} without credits`
         const command: UsageEventProcessedLedgerCommand = {
@@ -796,7 +796,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
   it('should process a usage event and apply credits partially', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Setup: Create a partial credit
         const creditAmount = 30
         const usageCredit = await setupUsageCredit({
@@ -980,7 +980,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
   it('should process a usage event and apply credits fully', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Setup: Create a credit that fully covers the usage event
         const creditIssuedAmount = 120 // sampleUsageEvent.amount is 100
         const usageCredit = await setupUsageCredit({
@@ -1183,22 +1183,20 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       livemode: TEST_LIVEMODE,
     }
 
-    const result = await adminTransactionWithResult(
-      async ({ transaction }) => {
-        return processUsageEventProcessedLedgerCommand(
-          command,
-          transaction
-        )
-      }
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      return processUsageEventProcessedLedgerCommand(
+        command,
+        transaction
+      )
+    })
     expect(Result.isError(result)).toBe(true)
     if (Result.isError(result)) {
       expect(result.error.message).toContain(
-        'No subscriptions found with id'
+        'subscriptions not found'
       )
     }
     const rogueTransactions = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectLedgerTransactions(
             {
@@ -1215,7 +1213,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
   it('should create a new ledger account if one does not exist for the subscription and usage meter', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // 1. Setup a new UsageMeter that doesn\\'t have a ledger account with the existing subscription
         const newUsageMeter = await setupUsageMeter({
           organizationId: organization.id,
@@ -1348,7 +1346,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
   it('should process a usage event with no credits available/applied, with prior usage cost', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Setup: Create a prior unsettled usage cost
         const priorUsageAmount = 50
         const priorUsageEvent = await setupUsageEvent({
@@ -1471,7 +1469,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
   it('should process a usage event and apply credits partially, with prior usage cost', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Setup: Create a prior unsettled usage cost
         const priorUsageAmount = 50
         const priorUsageEvent = await setupUsageEvent({
@@ -1521,7 +1519,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
 
   it('should not apply credits if available balance is zero due to prior usage', async () => {
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Setup: Grant and fully consume a credit
         const creditAmount = 100
         const priorUsageAmount = 100

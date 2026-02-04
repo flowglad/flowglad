@@ -15,7 +15,7 @@ import {
   setupPayment,
   setupPurchase,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   insertFeeCalculation,
   selectFeeCalculationById,
@@ -78,7 +78,7 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
     })
 
     const { updatedPayment, updatedFeeCalculation } = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const feeCalculation = await insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -177,7 +177,7 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
     })
 
     const stripeTaxTransactionId = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await insertFeeCalculation(
           {
             organizationId: organization.id,

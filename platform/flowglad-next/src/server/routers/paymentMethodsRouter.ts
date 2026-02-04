@@ -3,7 +3,9 @@ import {
   paymentMethodsPaginatedListSchema,
   paymentMethodsPaginatedSelectSchema,
 } from '@db-core/schema/paymentMethods'
+
 import { idInputSchema } from '@db-core/tableUtils'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -12,6 +14,7 @@ import {
 } from '@/db/tableMethods/paymentMethodMethods'
 import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
+import { unwrapOrThrow } from '@/utils/resultHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'PaymentMethod',
@@ -25,14 +28,18 @@ const listPaymentMethodsProcedure = protectedProcedure
   .input(paymentMethodsPaginatedSelectSchema)
   .output(paymentMethodsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPaymentMethodsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectPaymentMethodsPaginated(input, transaction)
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getPaymentMethodProcedure = protectedProcedure
@@ -42,16 +49,20 @@ const getPaymentMethodProcedure = protectedProcedure
     z.object({ paymentMethod: paymentMethodClientSelectSchema })
   )
   .query(async ({ ctx, input }) => {
-    const paymentMethod = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return (
-          await selectPaymentMethodById(input.id, transaction)
-        ).unwrap()
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const paymentMethod = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            (
+              await selectPaymentMethodById(input.id, transaction)
+            ).unwrap()
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { paymentMethod }
   })
 

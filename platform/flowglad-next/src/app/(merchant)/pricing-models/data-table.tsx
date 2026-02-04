@@ -27,7 +27,6 @@ import { columns } from './columns'
 
 export interface PricingModelsTableFilters {
   organizationId?: string
-  isDefault?: boolean
 }
 
 interface PricingModelsDataTableProps {

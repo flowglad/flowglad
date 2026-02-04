@@ -7,10 +7,7 @@ import {
   setupPaymentMethod,
   setupSubscription,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { buildNotificationContext } from './notificationContext'
 
 describe('buildNotificationContext', () => {
@@ -19,7 +16,7 @@ describe('buildNotificationContext', () => {
       const { organization } = await setupOrg()
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               { organizationId: organization.id },
@@ -36,16 +33,21 @@ describe('buildNotificationContext', () => {
     it('throws error when organization not found', async () => {
       const nonExistentId = 'org_non_existent_12345'
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await buildNotificationContext(
             { organizationId: nonExistentId },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        `No organizations found with id: ${nonExistentId}`
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `No organizations found with id: ${nonExistentId}`
+        )
+      }
     })
   })
 
@@ -57,7 +59,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -82,8 +84,8 @@ describe('buildNotificationContext', () => {
       const { organization } = await setupOrg()
       const nonExistentCustomerId = 'cust_non_existent_12345'
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await buildNotificationContext(
             {
               organizationId: organization.id,
@@ -91,10 +93,15 @@ describe('buildNotificationContext', () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        `No customers found with id: ${nonExistentCustomerId}`
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `No customers found with id: ${nonExistentCustomerId}`
+        )
+      }
     })
   })
 
@@ -116,7 +123,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -167,7 +174,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -211,7 +218,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -249,7 +256,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -295,7 +302,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -323,8 +330,8 @@ describe('buildNotificationContext', () => {
       })
       const nonExistentSubscriptionId = 'sub_non_existent_12345'
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await buildNotificationContext(
             {
               organizationId: organization.id,
@@ -334,10 +341,15 @@ describe('buildNotificationContext', () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        `No subscriptions found with id: ${nonExistentSubscriptionId}`
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `No subscriptions found with id: ${nonExistentSubscriptionId}`
+        )
+      }
     })
 
     it('throws error when subscription not found even without include array', async () => {
@@ -347,8 +359,8 @@ describe('buildNotificationContext', () => {
       })
       const nonExistentSubscriptionId = 'sub_non_existent_67890'
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await buildNotificationContext(
             {
               organizationId: organization.id,
@@ -358,10 +370,15 @@ describe('buildNotificationContext', () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        `No subscriptions found with id: ${nonExistentSubscriptionId}`
+          return Result.ok(undefined)
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `No subscriptions found with id: ${nonExistentSubscriptionId}`
+        )
+      }
     })
   })
 
@@ -382,7 +399,7 @@ describe('buildNotificationContext', () => {
       })
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {
@@ -423,7 +440,7 @@ describe('buildNotificationContext', () => {
       // Note: setupOrg doesn't create memberships by default
 
       const ctx = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await buildNotificationContext(
               {

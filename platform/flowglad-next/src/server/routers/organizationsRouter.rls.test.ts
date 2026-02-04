@@ -9,7 +9,7 @@ import type { User } from '@db-core/schema/users'
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectMemberships,
   updateMembership,
@@ -75,7 +75,7 @@ describe('organizationsRouter - notification preferences', () => {
 
     // Get the membership that was created
     const memberships = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectMemberships(
             { userId: user.id, organizationId: organization.id },
@@ -105,7 +105,7 @@ describe('organizationsRouter - notification preferences', () => {
 
     it('returns stored notification preferences merged with defaults', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const [membershipRecord] = await selectMemberships(
             { userId: user.id, organizationId: organization.id },
             transaction

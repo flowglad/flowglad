@@ -8,10 +8,7 @@ import {
 import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import * as orgSetup from '@/db/tableMethods/organizationMethods'
 import {
   insertPrice,
@@ -33,6 +30,7 @@ import { productsRouter } from './productsRouter'
 
 describe('pricesRouter - Default Price Constraints', () => {
   let organizationId: string
+  let organization: import('@db-core/schema/organizations').Organization.Record
   let pricingModelId: string
   let defaultProductId: string
   let defaultPriceId: string
@@ -43,8 +41,8 @@ describe('pricesRouter - Default Price Constraints', () => {
   beforeEach(async () => {
     // Set up organization and pricing model with default product and price
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
-        const { organization } = await setupOrg()
+      await adminTransaction(async (ctx) => {
+        const { organization: org } = await setupOrg()
 
         // Create pricing model with default product using the new bookkeeping function
         const bookkeepingResult = await createPricingModelBookkeeping(
@@ -56,7 +54,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           },
           {
             ...ctx,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
           }
         )
@@ -74,7 +72,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             externalId: null,
             pricingModelId:
               bookkeepingResult.unwrap().pricingModel.id,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
             active: true,
           },
@@ -89,7 +87,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             type: PriceType.Subscription,
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
-            currency: organization.defaultCurrency,
+            currency: org.defaultCurrency,
             livemode,
             active: true,
             name: 'Regular Price',
@@ -103,7 +101,8 @@ describe('pricesRouter - Default Price Constraints', () => {
         )
 
         return Result.ok({
-          organizationId: organization.id,
+          organization: org,
+          organizationId: org.id,
           pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
           defaultProductId:
             bookkeepingResult.unwrap().defaultProduct.id,
@@ -114,6 +113,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
     ).unwrap()
 
+    organization = result.organization
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
     defaultProductId = result.defaultProductId
@@ -125,7 +125,7 @@ describe('pricesRouter - Default Price Constraints', () => {
   describe('editPrice - Default Price on Default Product', () => {
     it('returns Result.err with ValidationError when attempting to change unitPrice of default price on default product to non-zero', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingPrice = (
             await selectPriceById(defaultPriceId, transaction)
@@ -158,7 +158,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should allow unitPrice of 0 for default price on default product', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingPrice = (
             await selectPriceById(defaultPriceId, transaction)
@@ -206,7 +206,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('returns Result.err with ValidationError when attempting to change isDefault status of default price on default product', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingPrice = (
             await selectPriceById(defaultPriceId, transaction)
@@ -239,7 +239,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('returns Result.err with ValidationError when attempting to change intervalUnit of default price on default product', async () => {
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingPrice = (
             await selectPriceById(defaultPriceId, transaction)
@@ -275,7 +275,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should allow updating non-financial fields on default price of default product', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingPrice = (
             await selectPriceById(defaultPriceId, transaction)
@@ -333,20 +333,24 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).update({
-          // @ts-expect-error - Intentionally providing minimal fields to test NOT_FOUND error path
-          price: {
-            id: 'price_missing_' + core.nanoid(),
-            type: PriceType.Subscription,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .update({
+            // @ts-expect-error - Intentionally providing minimal fields to test NOT_FOUND error path
+            price: {
+              id: 'price_missing_' + core.nanoid(),
+              type: PriceType.Subscription,
+            },
+          })
       ).rejects.toThrow(TRPCError)
     })
 
@@ -358,15 +362,17 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const apiCtx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
       // create another product with its own price
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const otherProduct = await insertProduct(
             {
@@ -413,7 +419,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           )
           await expect(
             productsRouter
-              .createCaller(apiCtx as TRPCApiContext)
+              .createCaller(apiCtx as unknown as TRPCApiContext)
               .update({
                 // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
                 product: { id: defaultProductId },
@@ -438,6 +444,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
       }
       // attempt to create another default price for default product should fail
       await expect(
@@ -460,7 +467,7 @@ describe('pricesRouter - Default Price Constraints', () => {
   describe('editPrice - Regular Prices', () => {
     it('should allow updating unitPrice on regular prices', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const existingPrice = (
             await selectPriceById(regularPriceId, transaction)
@@ -500,7 +507,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should allow changing isDefault status on regular prices', async () => {
       const result = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // First create another price to be the new default
           await insertPrice(
@@ -570,28 +577,32 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).create({
-          price: {
-            productId: defaultProductId,
-            unitPrice: 500, // Non-zero price for a non-default price on default product
-            isDefault: false,
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Year,
-            intervalCount: 1,
-            name: 'Premium Plan',
-            trialPeriodDays: 0,
-            slug: 'premium-plan',
-            active: true,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .create({
+            price: {
+              productId: defaultProductId,
+              unitPrice: 500, // Non-zero price for a non-default price on default product
+              isDefault: false,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Year,
+              intervalCount: 1,
+              name: 'Premium Plan',
+              trialPeriodDays: 0,
+              slug: 'premium-plan',
+              active: true,
+            },
+          })
       ).rejects.toThrow(
         'Cannot create additional prices for the default plan'
       )
@@ -605,17 +616,19 @@ describe('pricesRouter - Default Price Constraints', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // First, create a new product without any prices in the same pricing model
       // (use the same pricingModelId as the API key to ensure RLS access)
       const newProduct = (
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const product = await insertProduct(
             {
               name: 'New Product',
@@ -640,7 +653,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
       // This should succeed - default price on non-default product with non-zero price
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             productId: newProduct.id,
@@ -662,32 +675,33 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should enforce single default price per product constraint', async () => {
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          // Try to create another default price for the default product
-          await insertPrice(
-            {
-              productId: defaultProductId,
-              unitPrice: 0,
-              isDefault: true, // Trying to create another default price
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              currency: CurrencyCode.USD,
-              livemode,
-              active: true,
-              name: 'Another Default',
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              usageMeterId: null,
-              externalId: null,
-              slug: null,
-            },
-            ctx
-          )
-        })
-      ).rejects.toThrow() // Database constraint will throw an error
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // Try to create another default price for the default product
+        await insertPrice(
+          {
+            productId: defaultProductId,
+            unitPrice: 0,
+            isDefault: true, // Trying to create another default price
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: CurrencyCode.USD,
+            livemode,
+            active: true,
+            name: 'Another Default',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: null,
+          },
+          ctx
+        )
+        return Result.ok(undefined)
+      })
+      // Database constraint will return an error
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -704,6 +718,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -728,6 +743,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
       const invalidId = 'price_invalid_' + core.nanoid()
@@ -752,7 +768,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
 
   beforeEach(async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const { organization } = await setupOrg()
 
@@ -1001,6 +1017,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1048,6 +1065,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1096,6 +1114,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1125,6 +1144,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
 
 describe('pricesRouter - API Contract Updates', () => {
   let organizationId: string
+  let organization: import('@db-core/schema/organizations').Organization.Record
   let pricingModelId: string
   let usageMeterId: string
   let regularProductId: string
@@ -1132,8 +1152,8 @@ describe('pricesRouter - API Contract Updates', () => {
 
   beforeEach(async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
-        const { organization } = await setupOrg()
+      await adminTransaction(async (ctx) => {
+        const { organization: org } = await setupOrg()
 
         // Create pricing model with default product
         const bookkeepingResult = await createPricingModelBookkeeping(
@@ -1145,7 +1165,7 @@ describe('pricesRouter - API Contract Updates', () => {
           },
           {
             ...ctx,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
           }
         )
@@ -1158,7 +1178,7 @@ describe('pricesRouter - API Contract Updates', () => {
           {
             name: 'API Calls',
             slug: 'api-calls',
-            organizationId: organization.id,
+            organizationId: org.id,
             pricingModelId,
             livemode,
             aggregationType: UsageMeterAggregationType.Sum,
@@ -1178,7 +1198,7 @@ describe('pricesRouter - API Contract Updates', () => {
             pluralQuantityLabel: null,
             externalId: null,
             pricingModelId,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
             active: true,
           },
@@ -1186,7 +1206,8 @@ describe('pricesRouter - API Contract Updates', () => {
         )
 
         return Result.ok({
-          organizationId: organization.id,
+          organization: org,
+          organizationId: org.id,
           pricingModelId,
           usageMeterId: usageMeter.id,
           regularProductId: regularProduct.id,
@@ -1194,6 +1215,7 @@ describe('pricesRouter - API Contract Updates', () => {
       })
     ).unwrap()
 
+    organization = result.organization
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
     usageMeterId = result.usageMeterId
@@ -1209,31 +1231,35 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Attempt to create a usage price with a productId (should fail)
       // The zod schema enforces usage prices must have productId: null
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).create({
-          // @ts-expect-error - Intentionally passing productId (should be null for usage prices)
-          // to test that the schema rejects usage prices with a productId.
-          price: {
-            type: PriceType.Usage,
-            usageMeterId,
-            productId: regularProductId,
-            unitPrice: 100,
-            isDefault: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            name: 'Usage Price With Product',
-            usageEventsPerUnit: 1,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .create({
+            // @ts-expect-error - Intentionally passing productId (should be null for usage prices)
+            // to test that the schema rejects usage prices with a productId.
+            price: {
+              type: PriceType.Usage,
+              usageMeterId,
+              productId: regularProductId,
+              unitPrice: 100,
+              isDefault: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              name: 'Usage Price With Product',
+              usageEventsPerUnit: 1,
+            },
+          })
       ).rejects.toThrow(TRPCError)
     })
 
@@ -1245,16 +1271,18 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Create a usage price with productId: null (pricingModelId derived automatically from usageMeterId)
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1284,17 +1312,19 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Create a usage price without productId field (should succeed, defaulting to null)
       // pricingModelId is derived automatically from usageMeterId
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1323,16 +1353,18 @@ describe('pricesRouter - API Contract Updates', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       // Create a subscription price with productId (should succeed)
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Subscription,
@@ -1362,7 +1394,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
 
   beforeEach(async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { organization } = await setupOrg()
 
         // Create pricing model with default product
@@ -1488,6 +1520,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1540,6 +1573,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1578,6 +1612,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1614,6 +1649,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
@@ -1652,12 +1688,13 @@ describe('pricesRouter.replaceUsagePrice', () => {
       livemode,
       environment: 'live' as const,
       path: '',
+      authScope: 'merchant' as const,
       user,
     }
 
     // Create a second usage price for the same meter
     const secondPrice = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const org = (
           await orgSetup.selectOrganizationById(
@@ -1718,7 +1755,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
 
     // Verify second price is still active (not affected by the replacement)
     const secondPriceAfter = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         return Result.ok(
           (
@@ -1736,6 +1773,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
 
 describe('pricesRouter - Reserved Slug Validation', () => {
   let organizationId: string
+  let organization: import('@db-core/schema/organizations').Organization.Record
   let pricingModelId: string
   let usageMeterId: string
   let regularProductId: string
@@ -1744,8 +1782,8 @@ describe('pricesRouter - Reserved Slug Validation', () => {
 
   beforeEach(async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
-        const { organization } = await setupOrg()
+      await adminTransaction(async (ctx) => {
+        const { organization: org } = await setupOrg()
 
         // Create pricing model with default product
         const bookkeepingResult = await createPricingModelBookkeeping(
@@ -1757,7 +1795,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           },
           {
             ...ctx,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
           }
         )
@@ -1770,7 +1808,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           {
             name: 'API Calls Reserved Test',
             slug: 'api-calls-reserved-test',
-            organizationId: organization.id,
+            organizationId: org.id,
             pricingModelId,
             livemode,
             aggregationType: UsageMeterAggregationType.Sum,
@@ -1790,7 +1828,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
             pluralQuantityLabel: null,
             externalId: null,
             pricingModelId,
-            organizationId: organization.id,
+            organizationId: org.id,
             livemode,
             active: true,
           },
@@ -1807,7 +1845,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
             type: PriceType.Usage,
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
-            currency: organization.defaultCurrency,
+            currency: org.defaultCurrency,
             livemode,
             active: true,
             name: 'Existing Usage Price',
@@ -1821,7 +1859,8 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         )
 
         return Result.ok({
-          organizationId: organization.id,
+          organization: org,
+          organizationId: org.id,
           pricingModelId,
           usageMeterId: usageMeter.id,
           regularProductId: regularProduct.id,
@@ -1830,6 +1869,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
     ).unwrap()
 
+    organization = result.organization
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
     usageMeterId = result.usageMeterId
@@ -1846,28 +1886,32 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       await expect(
-        pricesRouter.createCaller(ctx as TRPCApiContext).create({
-          price: {
-            type: PriceType.Usage,
-            usageMeterId,
-            productId: null,
-            slug: 'meter_no_charge',
-            unitPrice: 100,
-            isDefault: false,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            name: 'Reserved Slug Price',
-            usageEventsPerUnit: 1,
-          },
-        })
+        pricesRouter
+          .createCaller(ctx as unknown as TRPCApiContext)
+          .create({
+            price: {
+              type: PriceType.Usage,
+              usageMeterId,
+              productId: null,
+              slug: 'meter_no_charge',
+              unitPrice: 100,
+              isDefault: false,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              name: 'Reserved Slug Price',
+              usageEventsPerUnit: 1,
+            },
+          })
       ).rejects.toMatchObject({
         code: 'BAD_REQUEST',
         message: expect.stringContaining('_no_charge'),
@@ -1882,15 +1926,17 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1917,15 +1963,17 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Subscription,
@@ -1951,15 +1999,17 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       })
       const ctx = {
         organizationId,
+        organization,
         apiKey: apiKey.token!,
         livemode,
         environment: 'live' as const,
         isApi: true as const,
         path: '',
+        authScope: 'merchant' as const,
       }
 
       const result = await pricesRouter
-        .createCaller(ctx as TRPCApiContext)
+        .createCaller(ctx as unknown as TRPCApiContext)
         .create({
           price: {
             type: PriceType.Usage,
@@ -1992,6 +2042,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2030,6 +2081,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2071,6 +2123,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2103,6 +2156,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2131,6 +2185,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2161,7 +2216,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
 
   beforeEach(async () => {
     const result = (
-      await adminTransactionWithResult(async (ctx) => {
+      await adminTransaction(async (ctx) => {
         const { organization } = await setupOrg()
 
         // Create pricing model
@@ -2267,6 +2322,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2297,6 +2353,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2327,6 +2384,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2355,6 +2413,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2402,6 +2461,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2433,6 +2493,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 
@@ -2457,6 +2518,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
         livemode,
         environment: 'live' as const,
         path: '',
+        authScope: 'merchant' as const,
         user,
       }
 

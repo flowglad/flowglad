@@ -26,8 +26,6 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
   authenticatedTransactionUnwrap,
-  authenticatedTransactionWithResult,
-  comprehensiveAuthenticatedTransaction,
 } from './authenticatedTransaction'
 import {
   insertMembership,
@@ -105,63 +103,70 @@ describe('authenticatedTransaction', () => {
 
     // Get the membership that was created by setupUserAndApiKey for userA
     // Note: setupUserAndApiKey already creates a membership, so we just need to retrieve it
-    membershipA1 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const [membership] = await selectMemberships(
-        { userId: userA.id, organizationId: testOrg1.id },
-        transaction
-      )
-      if (!membership) {
-        throw new Error('Failed to find membershipA1')
-      }
-      return membership
-    })
+    membershipA1 = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const [membership] = await selectMemberships(
+          { userId: userA.id, organizationId: testOrg1.id },
+          transaction
+        )
+        if (!membership) {
+          throw new Error('Failed to find membershipA1')
+        }
+        return Result.ok(membership)
+      })
+    ).unwrap()
 
     // Create additional membership for userA in testOrg2 (focused: false)
-    membershipA2 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      return insertMembership(
-        {
-          organizationId: testOrg2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-          role: MembershipRole.Member,
-          focusedPricingModelId: pricingModel2.id,
-        },
-        transaction
-      )
-    })
+    membershipA2 = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return Result.ok(
+          await insertMembership(
+            {
+              organizationId: testOrg2.id,
+              userId: userA.id,
+              focused: false,
+              livemode: true,
+              role: MembershipRole.Member,
+              focusedPricingModelId: pricingModel2.id,
+            },
+            transaction
+          )
+        )
+      })
+    ).unwrap()
 
     // Get the membership that was created by setupUserAndApiKey for userB
-    membershipB2 = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const [membership] = await selectMemberships(
-        { userId: userB.id, organizationId: testOrg2.id },
-        transaction
-      )
-      if (!membership) {
-        throw new Error('Failed to find membershipB2')
-      }
-      return membership
-    })
+    membershipB2 = (
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const [membership] = await selectMemberships(
+          { userId: userB.id, organizationId: testOrg2.id },
+          transaction
+        )
+        if (!membership) {
+          throw new Error('Failed to find membershipB2')
+        }
+        return Result.ok(membership)
+      })
+    ).unwrap()
   })
 
   describe('JWT Claims Validation', () => {
-    it('should throw error when invalid API key is provided', async () => {
+    it('should return error when invalid API key is provided', async () => {
       // setup:
       // - call authenticatedTransaction with invalid/empty API key
       // - provide simple transaction function that should not execute
 
       // expects:
-      // - function should throw authentication error
+      // - function should return Result.err with authentication error
       // - no database transaction should be started
-      await expect(
-        authenticatedTransaction(
-          async () => 'should not reach here',
-          { apiKey: 'invalid_key_that_does_not_exist' }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async () => Result.ok('should not reach here'),
+        { apiKey: 'invalid_key_that_does_not_exist' }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should work with valid API key authentication', async () => {
@@ -172,14 +177,14 @@ describe('authenticatedTransaction', () => {
       // expects:
       // - transaction should execute successfully with proper context
       const result = await authenticatedTransaction(
-        async ({ transaction, userId, organizationId }) => {
+        async ({ userId, organizationId }) => {
           expect(userId).toBe(userA.id)
           expect(organizationId).toBe(testOrg1.id)
-          return 'success'
+          return Result.ok('success')
         },
         { apiKey: apiKeyA.token }
       )
-      expect(result).toBe('success')
+      expect(result.unwrap()).toBe('success')
     })
   })
 
@@ -195,11 +200,11 @@ describe('authenticatedTransaction', () => {
         async ({ livemode, organizationId }) => {
           expect(livemode).toBe(true)
           expect(organizationId).toBe(testOrg1.id)
-          return 'livemode_success'
+          return Result.ok('livemode_success')
         },
         { apiKey: apiKeyA.token }
       )
-      expect(result).toBe('livemode_success')
+      expect(result.unwrap()).toBe('livemode_success')
     })
 
     it('should set livemode configuration correctly for test mode', async () => {
@@ -217,11 +222,11 @@ describe('authenticatedTransaction', () => {
       const result = await authenticatedTransaction(
         async ({ livemode }) => {
           expect(livemode).toBe(false)
-          return 'test_mode_success'
+          return Result.ok('test_mode_success')
         },
         { apiKey: testModeApiKey.apiKey.token }
       )
-      expect(result).toBe('test_mode_success')
+      expect(result.unwrap()).toBe('test_mode_success')
     })
 
     it('should handle transaction function errors gracefully', async () => {
@@ -230,16 +235,20 @@ describe('authenticatedTransaction', () => {
       // - provide transaction function that throws an error
 
       // expects:
-      // - original error should be propagated
+      // - error should be returned as Result.err
       // - database should not be left in dirty state
-      await expect(
-        authenticatedTransaction(
-          async () => {
-            throw new Error('Transaction function error')
-          },
-          { apiKey: apiKeyA.token }
+      const result = await authenticatedTransaction(
+        async () => {
+          throw new Error('Transaction function error')
+        },
+        { apiKey: apiKeyA.token }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'Transaction function error'
         )
-      ).rejects.toThrow('Transaction function error')
+      }
     })
   })
 
@@ -251,11 +260,11 @@ describe('authenticatedTransaction', () => {
           const currentOrganizationId =
             await selectCurrentOrganizationId(transaction)
           expect(currentOrganizationId).toBe(organizationId)
-          return currentOrganizationId
+          return Result.ok(currentOrganizationId)
         },
         { apiKey: apiKeyA.token }
       )
-      expect(result).toBe(testOrg1.id)
+      expect(result.unwrap()).toBe(testOrg1.id)
     })
 
     it('is set for webapp authenticated requests', async () => {
@@ -298,6 +307,7 @@ describe('authenticatedTransaction', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
 
       globalThis.__mockedAuthSession = {
@@ -312,15 +322,15 @@ describe('authenticatedTransaction', () => {
         const currentOrganizationId =
           await selectCurrentOrganizationId(transaction)
         expect(currentOrganizationId).toBe(organizationId)
-        return currentOrganizationId
+        return Result.ok(currentOrganizationId)
       })
 
-      expect(result).toBe(testOrg1.id)
+      expect(result.unwrap()).toBe(testOrg1.id)
     })
   })
 })
 
-describe('comprehensiveAuthenticatedTransaction', () => {
+describe('authenticatedTransaction (with Result callbacks)', () => {
   // Reuse the same global test state
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
@@ -346,20 +356,19 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   })
 
   describe('JWT Claims Validation', () => {
-    it('should throw error when invalid API key is provided', async () => {
+    it('should return error when invalid API key is provided', async () => {
       // setup:
-      // - call comprehensiveAuthenticatedTransaction with invalid API key
+      // - call authenticatedTransaction with invalid API key
       // - provide transaction function that should not execute
 
       // expects:
-      // - function should throw authentication error
+      // - function should return Result.err with authentication error
       // - no database transaction should be started
-      await expect(
-        comprehensiveAuthenticatedTransaction(
-          async () => Result.ok('should not reach here'),
-          { apiKey: 'invalid_key_that_does_not_exist' }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async () => Result.ok('should not reach here'),
+        { apiKey: 'invalid_key_that_does_not_exist' }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
 
     it('should work with valid organization_id in JWT claims', async () => {
@@ -370,14 +379,16 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - function should execute successfully
       // - organizationId should be available in transaction params
-      const result = await comprehensiveAuthenticatedTransaction(
-        async ({ organizationId, userId }) => {
-          expect(organizationId).toBe(testOrg1.id)
-          expect(userId).toBe(userA.id)
-          return Result.ok('comprehensive_success')
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ organizationId, userId }) => {
+            expect(organizationId).toBe(testOrg1.id)
+            expect(userId).toBe(userA.id)
+            return Result.ok('comprehensive_success')
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('comprehensive_success')
     })
   })
@@ -412,13 +423,15 @@ describe('comprehensiveAuthenticatedTransaction', () => {
         pricingModelId: pricingModel1.id,
       }
 
-      const result = await comprehensiveAuthenticatedTransaction(
-        async ({ emitEvent }) => {
-          emitEvent(mockEvent)
-          return Result.ok('events_processed')
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ emitEvent }) => {
+            emitEvent(mockEvent)
+            return Result.ok('events_processed')
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('events_processed')
     })
 
@@ -430,10 +443,12 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - transaction should complete successfully
       // - result should be returned from output.result
-      const result = await comprehensiveAuthenticatedTransaction(
-        async () => Result.ok('simple_result'),
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async () => Result.ok('simple_result'),
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('simple_result')
     })
   })
@@ -475,13 +490,14 @@ describe('Authentication Method Tests', () => {
             {},
             transaction
           )
-          return organizations
+          return Result.ok(organizations)
         },
         { apiKey: apiKeyA.token }
       )
 
-      expect(result).toHaveLength(1)
-      expect(result[0].id).toBe(testOrg1.id)
+      const organizations = result.unwrap()
+      expect(organizations).toHaveLength(1)
+      expect(organizations[0].id).toBe(testOrg1.id)
     })
 
     it('should create proper JWT claims for API key users', async () => {
@@ -498,12 +514,12 @@ describe('Authentication Method Tests', () => {
           expect(userId).toBe(userA.id)
           expect(organizationId).toBe(testOrg1.id)
           expect(livemode).toBe(apiKeyA.livemode)
-          return 'api_key_jwt_success'
+          return Result.ok('api_key_jwt_success')
         },
         { apiKey: apiKeyA.token }
       )
 
-      expect(result).toBe('api_key_jwt_success')
+      expect(result.unwrap()).toBe('api_key_jwt_success')
     })
   })
 })
@@ -524,7 +540,7 @@ describe('Error Handling Tests', () => {
   })
 
   describe('Test-Only Organization ID Validation', () => {
-    it('throws error when __testOnlyOrganizationId is used in non-test environment', async () => {
+    it('returns error when __testOnlyOrganizationId is used in non-test environment', async () => {
       const originalIsTest = core.IS_TEST
       // Temporarily override IS_TEST to simulate non-test environment
       Object.defineProperty(core, 'IS_TEST', {
@@ -534,24 +550,16 @@ describe('Error Handling Tests', () => {
       })
 
       try {
-        await expect(
-          authenticatedTransaction(
-            async () => 'should not reach here',
-            { __testOnlyOrganizationId: testOrg1.id }
-          )
-        ).rejects.toThrow(
-          'Attempted to use test organization id in a non-test environment'
+        const result = await authenticatedTransaction(
+          async () => Result.ok('should not reach here'),
+          { __testOnlyOrganizationId: testOrg1.id }
         )
-
-        // Also verify comprehensiveAuthenticatedTransaction has the same check
-        await expect(
-          comprehensiveAuthenticatedTransaction(
-            async () => Result.ok('should not reach here'),
-            { __testOnlyOrganizationId: testOrg1.id }
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Attempted to use test organization id in a non-test environment'
           )
-        ).rejects.toThrow(
-          'Attempted to use test organization id in a non-test environment'
-        )
+        }
       } finally {
         // Restore original IS_TEST value
         Object.defineProperty(core, 'IS_TEST', {
@@ -571,9 +579,12 @@ describe('Error Handling Tests', () => {
         'Attempted to use test organization id in a non-test environment'
 
       try {
-        await authenticatedTransaction(async () => 'result', {
-          __testOnlyOrganizationId: testOrg1.id,
-        })
+        await authenticatedTransaction(
+          async () => Result.ok('result'),
+          {
+            __testOnlyOrganizationId: testOrg1.id,
+          }
+        )
         // If we reach here, transaction succeeded - that's fine too
       } catch (error) {
         // We should NOT get the test-only validation error
@@ -589,15 +600,14 @@ describe('Error Handling Tests', () => {
       // - provide simple transaction function
 
       // expects:
-      // - authentication error should be propagated
+      // - authentication error should be returned as Result.err
       // - no database transaction should be started
       // - no database state should be left dirty
-      await expect(
-        authenticatedTransaction(
-          async () => 'should not reach here',
-          { apiKey: 'completely_invalid_key_12345' }
-        )
-      ).rejects.toThrow()
+      const result = await authenticatedTransaction(
+        async () => Result.ok('should not reach here'),
+        { apiKey: 'completely_invalid_key_12345' }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -608,20 +618,24 @@ describe('Error Handling Tests', () => {
       // - provide transaction function that throws error after some operations
 
       // expects:
-      // - original error from transaction function should be propagated
+      // - original error from transaction function should be returned as Result.err
       // - database should not be left in dirty state due to transaction rollback
-      await expect(
-        authenticatedTransaction(
-          async (ctx) => {
-            const { transaction } = ctx
-            // Perform some database operation first
-            await selectOrganizations({}, transaction)
-            // Then throw error
-            throw new Error('Intentional transaction error')
-          },
-          { apiKey: apiKeyA.token }
+      const result = await authenticatedTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          // Perform some database operation first
+          await selectOrganizations({}, transaction)
+          // Then throw error (which gets caught and converted to Result.err)
+          throw new Error('Intentional transaction error')
+        },
+        { apiKey: apiKeyA.token }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'Intentional transaction error'
         )
-      ).rejects.toThrow('Intentional transaction error')
+      }
     })
   })
 })
@@ -689,7 +703,7 @@ describe('Procedure Wrapper Functions', () => {
       // expects:
       // - handler should be called with transaction params plus input and ctx
       // - result from output.result should be returned
-      // - apiKey from context should be passed to comprehensiveAuthenticatedTransaction
+      // - apiKey from context should be passed to authenticatedTransaction
       const testInput = { testValue: 'comprehensive_input_test' }
       const testContext = { apiKey: apiKeyA.token }
 
@@ -762,32 +776,40 @@ describe('Edge Cases', () => {
               transaction
             )
 
-            return {
+            return Result.ok({
               memberships: memberships.length,
               organizations: organizations.length,
               success: true,
-            }
+            })
           } catch (error: any) {
-            return {
+            return Result.ok({
               error: error.message,
               success: false,
-            }
+              memberships: 0,
+              organizations: 0,
+            })
           }
         },
         { apiKey: apiKeyA.token }
       )
 
+      const value = result.unwrap() as {
+        memberships: number
+        organizations: number
+        success: boolean
+        error?: string
+      }
       // Document the current behavior - may succeed or fail depending on RLS implementation
-      expect(result).toEqual(
+      expect(value).toEqual(
         expect.objectContaining({
           success: expect.any(Boolean),
         })
       )
-      if (result.success) {
-        expect(result.memberships).toBeGreaterThanOrEqual(0)
-        expect(result.organizations).toBeGreaterThanOrEqual(0)
+      if (value.success) {
+        expect(value.memberships).toBeGreaterThanOrEqual(0)
+        expect(value.organizations).toBeGreaterThanOrEqual(0)
       } else {
-        expect(typeof result.error).toBe('string')
+        expect(typeof value.error).toBe('string')
       }
     })
   })
@@ -887,7 +909,7 @@ describe('authenticatedTransactionUnwrap', () => {
   })
 })
 
-describe('authenticatedTransactionWithResult', () => {
+describe('authenticatedTransaction', () => {
   let testOrg: Organization.Record
   let apiKey: ApiKey.Record
 
@@ -908,7 +930,7 @@ describe('authenticatedTransactionWithResult', () => {
     // - provide transaction function that returns Result.ok with a value
     // expects:
     // - the result should be Result.ok with the value
-    const result = await authenticatedTransactionWithResult(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         const orgs = await selectOrganizations({}, transaction)
         return Result.ok({ count: orgs.length, success: true })
@@ -931,7 +953,7 @@ describe('authenticatedTransactionWithResult', () => {
     // - the result should be Result.err with the error (not thrown)
     const errorMessage = 'Business logic validation failed'
 
-    const result = await authenticatedTransactionWithResult(
+    const result = await authenticatedTransaction(
       async () => Result.err(new Error(errorMessage)),
       { apiKey: apiKey.token }
     )
@@ -950,7 +972,7 @@ describe('authenticatedTransactionWithResult', () => {
     // - the result should be Result.err with the error (not thrown to caller)
     const directErrorMessage = 'Direct throw converted to Result.err'
 
-    const result = await authenticatedTransactionWithResult(
+    const result = await authenticatedTransaction(
       async () => {
         throw new Error(directErrorMessage)
       },
@@ -963,13 +985,13 @@ describe('authenticatedTransactionWithResult', () => {
     }
   })
 
-  it('provides ComprehensiveAuthenticatedTransactionParams with all required callbacks', async () => {
+  it('provides AuthenticatedTransactionParams with all required callbacks', async () => {
     // setup:
     // - use valid API key
     // - verify params contains all expected properties
     // expects:
     // - params should have transaction, invalidateCache, emitEvent, enqueueLedgerCommand, organizationId
-    const result = await authenticatedTransactionWithResult(
+    const result = await authenticatedTransaction(
       async (params) => {
         expect(typeof params.transaction.execute).toBe('function')
         expect(typeof params.invalidateCache).toBe('function')
@@ -990,10 +1012,10 @@ describe('authenticatedTransactionWithResult', () => {
 
   it('can be unwrapped at the caller level', async () => {
     // setup:
-    // - call authenticatedTransactionWithResult and then unwrap the result
+    // - call authenticatedTransaction and then unwrap the result
     // expects:
     // - unwrap should return the value directly on success
-    const result = await authenticatedTransactionWithResult(
+    const result = await authenticatedTransaction(
       async () => Result.ok('unwrap_test'),
       { apiKey: apiKey.token }
     )
@@ -1004,16 +1026,44 @@ describe('authenticatedTransactionWithResult', () => {
 
   it('unwrap throws when result is an error', async () => {
     // setup:
-    // - call authenticatedTransactionWithResult with Result.err and then try to unwrap
+    // - call authenticatedTransaction with Result.err and then try to unwrap
     // expects:
     // - unwrap should throw the error
     const errorMessage = 'Error to be thrown by unwrap'
 
-    const result = await authenticatedTransactionWithResult(
+    const result = await authenticatedTransaction(
       async () => Result.err(new Error(errorMessage)),
       { apiKey: apiKey.token }
     )
 
     expect(() => result.unwrap()).toThrow(errorMessage)
+  })
+})
+
+describe('enqueueTriggerTask', () => {
+  it.skip('should not dispatch tasks if transaction rolls back', async () => {
+    // Setup: create a transaction that will roll back
+    // Action: enqueue a trigger task, then throw to cause rollback
+    // Expectation: the trigger task is NOT dispatched
+  })
+
+  it.skip('should dispatch tasks after commit and return handles', async () => {
+    // Setup: create a transaction that commits successfully
+    // Action: enqueue a trigger task
+    // Expectation: task is dispatched after commit, handle is returned
+  })
+
+  it.skip('should return handles keyed by user-provided key', async () => {
+    // Setup: create a transaction with multiple trigger tasks
+    // Action: enqueue tasks with different keys
+    // Expectation: triggerHandles map contains all keys with correct handles
+  })
+})
+
+describe('comprehensiveAuthenticatedTransaction triggerHandles', () => {
+  it.skip('should return result and triggerHandles at same level', async () => {
+    // Setup: create a comprehensive transaction
+    // Action: return a value and enqueue a trigger task
+    // Expectation: returned object has { result, triggerHandles } structure
   })
 })

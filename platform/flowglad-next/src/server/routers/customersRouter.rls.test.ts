@@ -12,6 +12,7 @@ import {
 } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -31,7 +32,7 @@ const createCaller = (
   apiKeyToken: string,
   livemode: boolean = true
 ) => {
-  const ctx: TRPCApiContext = {
+  const ctx = {
     organizationId: organization.id,
     organization,
     apiKey: apiKeyToken,
@@ -41,7 +42,7 @@ const createCaller = (
       | 'test',
     isApi: true,
     path: '',
-  }
+  } as unknown as TRPCApiContext
   return customersRouter.createCaller(ctx)
 }
 
@@ -130,20 +131,28 @@ describe('customersRouter.archive', () => {
     expect(result.customer.archived).toBe(true)
 
     // Assert: both subscriptions are canceled
-    await adminTransaction(async ({ transaction }) => {
-      const updatedSub1 = (
-        await selectSubscriptionById(subscription1.id, transaction)
-      ).unwrap()
-      const updatedSub2 = (
-        await selectSubscriptionById(subscription2.id, transaction)
-      ).unwrap()
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const updatedSub1 = (
+          await selectSubscriptionById(subscription1.id, transaction)
+        ).unwrap()
+        const updatedSub2 = (
+          await selectSubscriptionById(subscription2.id, transaction)
+        ).unwrap()
 
-      expect(updatedSub1.status).toBe(SubscriptionStatus.Canceled)
-      expect(updatedSub1.cancellationReason).toBe('customer_archived')
+        expect(updatedSub1.status).toBe(SubscriptionStatus.Canceled)
+        expect(updatedSub1.cancellationReason).toBe(
+          'customer_archived'
+        )
 
-      expect(updatedSub2.status).toBe(SubscriptionStatus.Canceled)
-      expect(updatedSub2.cancellationReason).toBe('customer_archived')
-    })
+        expect(updatedSub2.status).toBe(SubscriptionStatus.Canceled)
+        expect(updatedSub2.cancellationReason).toBe(
+          'customer_archived'
+        )
+
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 
   /**

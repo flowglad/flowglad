@@ -65,10 +65,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
@@ -195,41 +192,45 @@ export const setupSubscriptionBehavior = defineBehavior({
 
     // Get the existing default livemode pricing model for the organization
     // The pricing model is created during organization setup (createOrganizationBehavior)
-    const pricingModel = await adminTransaction(
-      async ({ transaction }) => {
-        const existingModel = await selectDefaultPricingModel(
-          { organizationId: organization.id, livemode },
-          transaction
-        )
-        if (!existingModel) {
-          throw new Error(
-            `No default livemode pricing model found for organization ${organization.id}. ` +
-              'This should have been created during organization setup.'
+    const pricingModel = (
+      await adminTransaction(
+        async ({ transaction }) => {
+          const existingModel = await selectDefaultPricingModel(
+            { organizationId: organization.id, livemode },
+            transaction
           )
-        }
-        return existingModel
-      },
-      { livemode }
-    )
+          if (!existingModel) {
+            throw new Error(
+              `No default livemode pricing model found for organization ${organization.id}. ` +
+                'This should have been created during organization setup.'
+            )
+          }
+          return Result.ok(existingModel)
+        },
+        { livemode }
+      )
+    ).unwrap()
 
-    // Create product - use comprehensiveAdminTransaction to get full context
-    const product = await comprehensiveAdminTransaction(
-      async (ctx) => {
-        const result = await insertProduct(
-          {
-            name: `Test Product ${nanoid}`,
-            organizationId: organization.id,
-            livemode,
-            pricingModelId: pricingModel.id,
-            active: true,
-            slug: `test-product-${nanoid}`,
-          },
-          ctx
-        )
-        return Result.ok(result)
-      },
-      { livemode }
-    )
+    // Create product - use adminTransaction to get full context
+    const product = (
+      await adminTransaction(
+        async (ctx) => {
+          const result = await insertProduct(
+            {
+              name: `Test Product ${nanoid}`,
+              organizationId: organization.id,
+              livemode,
+              pricingModelId: pricingModel.id,
+              active: true,
+              slug: `test-product-${nanoid}`,
+            },
+            ctx
+          )
+          return Result.ok(result)
+        },
+        { livemode }
+      )
+    ).unwrap()
 
     // Create initial price with billing interval from dependency
     const initialPrice = await setupPrice({
@@ -273,22 +274,26 @@ export const setupSubscriptionBehavior = defineBehavior({
     }
 
     // Create customer
-    const customer = await adminTransaction(
-      async ({ transaction }) => {
-        return insertCustomer(
-          {
-            email: `customer-${nanoid}@test.flowglad.com`,
-            name: `Test Customer ${nanoid}`,
-            organizationId: organization.id,
-            livemode,
-            externalId: `external-${nanoid}`,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
-      },
-      { livemode }
-    )
+    const customer = (
+      await adminTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await insertCustomer(
+              {
+                email: `customer-${nanoid}@test.flowglad.com`,
+                name: `Test Customer ${nanoid}`,
+                organizationId: organization.id,
+                livemode,
+                externalId: `external-${nanoid}`,
+                pricingModelId: pricingModel.id,
+              },
+              transaction
+            )
+          )
+        },
+        { livemode }
+      )
+    ).unwrap()
 
     // Create payment method
     const paymentMethod = await setupPaymentMethod({
@@ -385,15 +390,19 @@ export const setupSubscriptionBehavior = defineBehavior({
     }
 
     // Get subscription items
-    const subscriptionItems = await adminTransaction(
-      async ({ transaction }) => {
-        return selectSubscriptionItems(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-      },
-      { livemode }
-    )
+    const subscriptionItems = (
+      await adminTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectSubscriptionItems(
+              { subscriptionId: subscription.id },
+              transaction
+            )
+          )
+        },
+        { livemode }
+      )
+    ).unwrap()
 
     return {
       ...prev,
@@ -438,24 +447,26 @@ export const setupTargetPriceBehavior = defineBehavior({
       initialPrice.unitPrice * adjustmentTypeDep.priceMultiplier
     )
 
-    // Create target product - use comprehensiveAdminTransaction to get full context
-    const targetProduct = await comprehensiveAdminTransaction(
-      async (ctx) => {
-        const result = await insertProduct(
-          {
-            name: `Target Product ${nanoid}`,
-            organizationId: organization.id,
-            livemode,
-            pricingModelId: pricingModel.id,
-            active: true,
-            slug: `target-product-${nanoid}`,
-          },
-          ctx
-        )
-        return Result.ok(result)
-      },
-      { livemode }
-    )
+    // Create target product - use adminTransaction to get full context
+    const targetProduct = (
+      await adminTransaction(
+        async (ctx) => {
+          const result = await insertProduct(
+            {
+              name: `Target Product ${nanoid}`,
+              organizationId: organization.id,
+              livemode,
+              pricingModelId: pricingModel.id,
+              active: true,
+              slug: `target-product-${nanoid}`,
+            },
+            ctx
+          )
+          return Result.ok(result)
+        },
+        { livemode }
+      )
+    ).unwrap()
 
     // Create target price
     const targetPrice = await setupPrice({
@@ -579,10 +590,10 @@ export const adjustSubscriptionBehavior = defineBehavior({
     }
 
     // Call adjustSubscription within a transaction
-    // adjustSubscription requires TransactionEffectsContext, which comprehensiveAdminTransaction provides
+    // adjustSubscription requires TransactionEffectsContext, which adminTransaction provides
     // Note: adjustSubscription returns Result<AdjustSubscriptionResult, Error> so we return it directly
-    const adjustmentResult =
-      await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
+    const adjustmentResult = (
+      await adminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
           return adjustSubscription(
             {
@@ -595,6 +606,7 @@ export const adjustSubscriptionBehavior = defineBehavior({
         },
         { livemode }
       )
+    ).unwrap()
 
     return {
       ...prev,
