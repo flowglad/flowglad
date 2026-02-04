@@ -6,6 +6,7 @@ import {
   it,
   mock,
 } from 'bun:test'
+import type { CustomerBillingDetails } from '@flowglad/shared'
 import {
   QueryClient,
   QueryClientProvider,
@@ -26,47 +27,53 @@ const mockCheckoutSessionResponse = {
 }
 
 // Create mock billing data for dev mode
-const createMockBillingData = () => ({
-  customer: {
-    id: 'cust_123',
-    email: 'test@example.com',
-    name: 'Test Customer',
-    externalId: 'ext_123',
+const createMockBillingData = (): CustomerBillingDetails => {
+  const now = Date.now()
+  const pricingModel: CustomerBillingDetails['pricingModel'] = {
+    id: 'pm_123',
+    createdAt: now,
+    isDefault: true,
     livemode: false,
+    name: 'Default Pricing Model',
     organizationId: 'org_123',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    catalog: null,
-  },
-  subscriptions: [],
-  currentSubscription: null,
-  currentSubscriptions: [],
-  purchases: [],
-  invoices: [],
-  paymentMethods: [],
-  billingPortalUrl: 'https://billing.example.com',
-  pricingModel: {
-    id: 'pm_123',
     products: [],
-    prices: [],
+    updatedAt: now,
     usageMeters: [],
-    features: [],
-    resources: [],
-  },
-  catalog: {
-    id: 'pm_123',
-    products: [],
-    prices: [],
-    usageMeters: [],
-    features: [],
-    resources: [],
-  },
-})
+  }
+
+  return {
+    billingPortalUrl: 'https://billing.example.com',
+    catalog: pricingModel,
+    customer: {
+      id: 'cust_123',
+      archived: false,
+      createdAt: now,
+      domain: null,
+      email: 'test@example.com',
+      externalId: 'ext_123',
+      iconURL: null,
+      invoiceNumberBase: null,
+      livemode: false,
+      logoURL: null,
+      name: 'Test Customer',
+      organizationId: 'org_123',
+      pricingModelId: 'pm_123',
+      updatedAt: now,
+      userId: null,
+      billingAddress: null,
+    },
+    invoices: [],
+    paymentMethods: [],
+    pricingModel,
+    purchases: [],
+    subscriptions: [],
+  }
+}
 
 // Create wrapper for hooks
 const createWrapper = (
   devMode = false,
-  billingMocks?: ReturnType<typeof createMockBillingData>,
+  billingMocks?: CustomerBillingDetails,
   betterAuthBasePath?: string
 ) => {
   const queryClient = new QueryClient({
@@ -83,7 +90,7 @@ const createWrapper = (
         baseURL="https://test.example.com"
         betterAuthBasePath={betterAuthBasePath}
         __devMode={devMode}
-        billingMocks={billingMocks as never}
+        billingMocks={billingMocks}
       >
         {children}
       </FlowgladConfigProvider>
