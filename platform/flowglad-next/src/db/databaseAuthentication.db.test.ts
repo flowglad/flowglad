@@ -1259,6 +1259,118 @@ describe('Customer Role vs Merchant Role Authentication', () => {
   })
 })
 
+describe('CliSession API Key Authentication', () => {
+  /**
+   * These tests verify that CliSession API keys (used by the CLI tool) are
+   * properly authenticated through the same code paths as Secret API keys.
+   *
+   * CliSession keys are short-lived tokens generated during `flowglad link`
+   * and used for CLI operations like push/pull.
+   */
+
+  it('should authenticate CliSession API key type via dbAuthInfoForSecretApiKeyResult', async () => {
+    // CliSession keys should work the same way as Secret keys
+    const verifyKeyResult = {
+      keyType: FlowgladApiKeyType.CliSession,
+      userId: secretUser.id,
+      ownerId: secretOrg.id,
+      environment: 'test',
+      metadata: {
+        type: FlowgladApiKeyType.CliSession,
+        userId: secretUser.id,
+        organizationId: secretOrg.id,
+        pricingModelId: secretOrgTestPricingModelId,
+      },
+    }
+    const result = await dbAuthInfoForSecretApiKeyResult(
+      verifyKeyResult as any
+    )
+    expect(result.userId).toEqual(secretUser.id)
+    expect(result.livemode).toEqual(false)
+    expect(result.jwtClaim.sub).toEqual(secretUser.id)
+    expect(result.jwtClaim.organization_id).toEqual(secretOrg.id)
+    expect(result.jwtClaim.auth_type).toEqual('api_key')
+    expect(result.jwtClaim.pricing_model_id).toEqual(
+      secretOrgTestPricingModelId
+    )
+    expect(result.jwtClaim.app_metadata.provider).toEqual('apiKey')
+  })
+
+  it('should authenticate CliSession API key type via databaseAuthenticationInfoForApiKeyResult', async () => {
+    // The top-level dispatcher should accept CliSession type
+    const verifyKeyResult = {
+      keyType: FlowgladApiKeyType.CliSession,
+      userId: secretUser.id,
+      ownerId: secretOrg.id,
+      environment: 'live',
+      metadata: {
+        type: FlowgladApiKeyType.CliSession,
+        userId: secretUser.id,
+        organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
+      },
+    }
+    const result = await databaseAuthenticationInfoForApiKeyResult(
+      verifyKeyResult as any
+    )
+    expect(result.jwtClaim.organization_id).toEqual(secretOrg.id)
+    expect(result.userId).toEqual(secretUser.id)
+    expect(result.livemode).toEqual(true)
+    expect(result.jwtClaim.pricing_model_id).toEqual(
+      secretOrgLivePricingModelId
+    )
+  })
+
+  it('should reject non-Secret and non-CliSession API key types', async () => {
+    // Only Secret and CliSession are valid; other types should throw
+    const invalidResult = {
+      keyType: 'some_other_type' as any,
+      userId: secretUser.id,
+      ownerId: secretOrg.id,
+      environment: 'test',
+      metadata: {
+        type: 'some_other_type' as any,
+        userId: secretUser.id,
+        organizationId: secretOrg.id,
+        pricingModelId: secretOrgTestPricingModelId,
+      },
+    }
+    await expect(
+      databaseAuthenticationInfoForApiKeyResult(invalidResult)
+    ).rejects.toThrow(/invalid API key type/)
+  })
+
+  it('should map environment correctly for CliSession keys', async () => {
+    // environment "live" -> livemode true, "test" -> livemode false
+    const liveResult = await dbAuthInfoForSecretApiKeyResult({
+      keyType: FlowgladApiKeyType.CliSession,
+      userId: secretUser.id,
+      ownerId: secretOrg.id,
+      environment: 'live',
+      metadata: {
+        type: FlowgladApiKeyType.CliSession,
+        userId: secretUser.id,
+        organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
+      },
+    } as any)
+    const testResult = await dbAuthInfoForSecretApiKeyResult({
+      keyType: FlowgladApiKeyType.CliSession,
+      userId: secretUser.id,
+      ownerId: secretOrg.id,
+      environment: 'test',
+      metadata: {
+        type: FlowgladApiKeyType.CliSession,
+        userId: secretUser.id,
+        organizationId: secretOrg.id,
+        pricingModelId: secretOrgTestPricingModelId,
+      },
+    } as any)
+    expect(liveResult.livemode).toEqual(true)
+    expect(testResult.livemode).toEqual(false)
+  })
+})
+
 describe('Focused membership consistency between databaseAuthentication and trpcContext', () => {
   /**
    * This test suite verifies that databaseAuthentication.ts and trpcContext.ts

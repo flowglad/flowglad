@@ -3,6 +3,17 @@
  *
  * Note: These tests use vitest-specific APIs (vi.stubGlobal, vi.mock).
  * Run with `bun run test`, not `bun test` directly.
+ *
+ * MOCKING RATIONALE: This test file mocks @clack/prompts for interactive
+ * terminal input. While the project guidelines discourage mocking non-network
+ * functions, CLI testing is a special case where:
+ * 1. Interactive prompts cannot be programmatically controlled in automated tests
+ * 2. The prompt library is an I/O boundary, similar to network calls
+ * 3. The core business logic (API calls, credential storage) uses real implementations
+ *
+ * An alternative would be dependency injection for prompt functions, but the
+ * added complexity is not warranted for a CLI tool where the prompts are
+ * thin wrappers around user selection.
  */
 import { mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
