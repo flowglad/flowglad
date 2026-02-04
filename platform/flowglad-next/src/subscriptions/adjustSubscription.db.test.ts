@@ -4107,19 +4107,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-1', 'user-2', 'user-3'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -4276,19 +4274,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    quantity: 8,
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 8,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -4441,19 +4437,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-1', 'user-2', 'user-3'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -4613,19 +4607,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    quantity: 3,
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 3,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -4782,19 +4774,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    quantity: 5,
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 5,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -4955,19 +4945,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    quantity: 5,
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 5,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -5117,19 +5105,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-1', 'user-2', 'user-3'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -5350,19 +5336,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    quantity: 4,
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 4,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -5531,19 +5515,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    quantity: 2,
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 2,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -5670,19 +5652,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-1', 'user-2'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -5760,18 +5740,20 @@ describe('adjustSubscription Integration Tests', async () => {
             expect(claimsAfterAdjustment.length).toBe(2)
 
             // Claim 2 more resources with new subscription items
-            const newClaimResult = await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: resource.slug,
-                  subscriptionId: subscription.id,
-                  externalIds: ['user-3', 'user-4'],
+            const newClaimResult = (
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-3', 'user-4'],
+                  },
                 },
-              },
-              transaction
-            )
+                transaction
+              )
+            ).unwrap()
 
             expect(newClaimResult.claims.length).toBe(2)
 
@@ -5845,19 +5827,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-1', 'user-2', 'user-3'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2', 'user-3'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -6022,19 +6002,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-1', 'user-2'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -6134,25 +6112,21 @@ describe('adjustSubscription Integration Tests', async () => {
             expect(usageAfterDowngrade.available).toBe(0)
 
             // Step 4: Attempt to claim a 3rd seat - should fail
-            try {
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    quantity: 1,
-                  },
+            const claimResult = await claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 1,
                 },
-                transaction
-              )
-              expect.unreachable(
-                'Expected claimResourceTransaction to throw'
-              )
-            } catch (error) {
-              expect(error).toBeInstanceOf(Error)
-              expect((error as Error).message).toContain(
+              },
+              transaction
+            )
+            expect(Result.isError(claimResult)).toBe(true)
+            if (Result.isError(claimResult)) {
+              expect(claimResult.error.message).toContain(
                 'No available capacity'
               )
             }
@@ -6220,19 +6194,17 @@ describe('adjustSubscription Integration Tests', async () => {
         ;(
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: resource.slug,
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-1', 'user-2'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-1', 'user-2'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -6342,18 +6314,20 @@ describe('adjustSubscription Integration Tests', async () => {
 
             // Step 4: During interim period, claim a 3rd seat
             // This SUCCEEDS because validation uses currently active items (old capacity=3)
-            const thirdClaimResult = await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: resource.slug,
-                  subscriptionId: subscription.id,
-                  externalIds: ['user-3'],
+            const thirdClaimResult = (
+              await claimResourceTransaction(
+                {
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  input: {
+                    resourceSlug: resource.slug,
+                    subscriptionId: subscription.id,
+                    externalIds: ['user-3'],
+                  },
                 },
-              },
-              transaction
-            )
+                transaction
+              )
+            ).unwrap()
             expect(thirdClaimResult.claims.length).toBe(1)
 
             // Verify 3 claims now exist

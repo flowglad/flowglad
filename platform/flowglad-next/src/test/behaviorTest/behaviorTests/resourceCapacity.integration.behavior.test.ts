@@ -208,19 +208,17 @@ describe('Resource Capacity Integration Tests', () => {
     const firstResult = (
       await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalId,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalId,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -235,19 +233,17 @@ describe('Resource Capacity Integration Tests', () => {
     const secondResult = (
       await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalId,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalId,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -356,19 +352,17 @@ describe('Resource Capacity Integration Tests', () => {
     const result = (
       await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalIds,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalIds,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -398,19 +392,17 @@ describe('Resource Capacity Integration Tests', () => {
     const namedClaim = (
       await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalId: 'named-claim',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalId: 'named-claim',
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -423,19 +415,17 @@ describe('Resource Capacity Integration Tests', () => {
     const anonymousClaims = (
       await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  quantity: 2,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                quantity: 2,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
