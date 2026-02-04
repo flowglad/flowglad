@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  buildWelcomeMessage,
   getDiscordConfig,
   parseCohortNumber,
   sanitizeChannelName,
@@ -181,6 +182,38 @@ describe('discord', () => {
       ])
 
       expect(result).toEqual({ action: 'create_new', cohortNum: 6 })
+    })
+  })
+
+  describe('buildWelcomeMessage', () => {
+    it('includes @here mention and onboarding link', () => {
+      const message = buildWelcomeMessage('Acme Corp')
+
+      expect(message).toContain('@here')
+      expect(message).toContain('https://app.flowglad.com/onboarding')
+    })
+
+    it('includes all four onboarding steps', () => {
+      const message = buildWelcomeMessage('Acme Corp')
+
+      expect(message).toContain('Copy API Key')
+      expect(message).toContain('Define Your Pricing')
+      expect(message).toContain('Enable Payments')
+      expect(message).toContain('Install MCP Server')
+    })
+
+    it('mentions the Flowglad team role when role ID is provided', () => {
+      const message = buildWelcomeMessage('Acme Corp', '123456789')
+
+      expect(message).toContain('<@&123456789>')
+      expect(message).not.toContain('the Flowglad team')
+    })
+
+    it('falls back to text when no role ID is provided', () => {
+      const message = buildWelcomeMessage('Acme Corp')
+
+      expect(message).toContain('the Flowglad team')
+      expect(message).not.toContain('<@&')
     })
   })
 

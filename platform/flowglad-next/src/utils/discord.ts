@@ -2,11 +2,13 @@ import { REST } from '@discordjs/rest'
 import {
   type APIChannel,
   type APIExtendedInvite,
+  type APIMessage,
   type APIOverwrite,
   ChannelType,
   OverwriteType,
   PermissionFlagsBits,
   type RESTPostAPIChannelInviteJSONBody,
+  type RESTPostAPIChannelMessageJSONBody,
   type RESTPostAPIGuildChannelJSONBody,
   Routes,
 } from 'discord-api-types/v10'
@@ -272,6 +274,52 @@ async function createPrivateChannel(
 }
 
 /**
+ * Build the welcome message content for a new concierge channel.
+ */
+export function buildWelcomeMessage(
+  orgName: string,
+  flowgladTeamRoleId?: string
+): string {
+  const teamMention = flowgladTeamRoleId
+    ? `<@&${flowgladTeamRoleId}>`
+    : 'the Flowglad team'
+
+  return `@here Welcome to your private concierge channel with ${teamMention}! Ask us any questions about onboarding, we're here to help 🙌
+
+**To finish setup, head to <https://app.flowglad.com/onboarding>:**
+
+1️⃣ **Copy API Key** — Add your secret key to \`.env\`
+2️⃣ **Define Your Pricing** — Set up products, plans, and features
+3️⃣ **Enable Payments** — Connect Stripe to process payments
+4️⃣ **Install MCP Server** — Use our MCP server for easy integrations with your codebase
+
+We typically respond within 2 minutes during business hours. Drop your questions here anytime!`
+}
+
+/**
+ * Post a welcome message to a newly created channel.
+ */
+async function postWelcomeMessage(
+  rest: REST,
+  channelId: string,
+  orgName: string,
+  config: DiscordConfig
+): Promise<APIMessage> {
+  const content = buildWelcomeMessage(
+    orgName,
+    config.flowgladTeamRoleId
+  )
+
+  const body: RESTPostAPIChannelMessageJSONBody = {
+    content,
+  }
+
+  return (await rest.post(Routes.channelMessages(channelId), {
+    body,
+  })) as APIMessage
+}
+
+/**
  * Get channel invites and find a valid one, or create a new invite.
  */
 async function getOrCreateInvite(
@@ -348,6 +396,7 @@ export async function getOrCreateConciergeChannel(
   }
 
   // Create if doesn't exist
+  let isNewChannel = false
   if (!channel) {
     console.log('[Discord] Creating new channel:', channelName)
     channel = await createPrivateChannel(
@@ -356,7 +405,17 @@ export async function getOrCreateConciergeChannel(
       channelName,
       config
     )
+    isNewChannel = true
     console.log('[Discord] Created channel with ID:', channel.id)
+  }
+
+  // Post welcome message for newly created channels
+  if (isNewChannel) {
+    console.log(
+      '[Discord] Posting welcome message to channel:',
+      channel.id
+    )
+    await postWelcomeMessage(rest, channel.id, orgName, config)
   }
 
   // Get or create invite
