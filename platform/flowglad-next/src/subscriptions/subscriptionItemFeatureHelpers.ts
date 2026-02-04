@@ -26,7 +26,10 @@ import { and, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectFeatureById } from '@/db/tableMethods/featureMethods'
+import {
+  selectFeatureById,
+  selectFeatures,
+} from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
@@ -37,11 +40,9 @@ import {
   updateSubscriptionItemFeature,
   upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
-  selectSubscriptionItemById,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
-import {
+  assertSubscriptionNotTerminal,
   derivePricingModelIdFromSubscription,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -364,16 +365,6 @@ export const createSubscriptionFeatureItems = async (
   return Result.ok([])
 }
 
-const ensureSubscriptionItemIsActive = (
-  subscriptionItem: SubscriptionItem.Record
-) => {
-  if (subscriptionItem.expiredAt !== null) {
-    panic(
-      `Subscription item ${subscriptionItem.id} is expired and cannot accept new features.`
-    )
-  }
-}
-
 const ensureFeatureIsEligible = (feature: Feature.Record) => {
   if (!feature.active) {
     panic(
@@ -384,21 +375,14 @@ const ensureFeatureIsEligible = (feature: Feature.Record) => {
 
 const ensureOrganizationAndLivemodeMatch = ({
   subscription,
-  subscriptionItem,
   feature,
 }: {
   subscription: Subscription.Record
-  subscriptionItem: SubscriptionItem.Record
   feature: Feature.Record
 }) => {
   if (subscription.organizationId !== feature.organizationId) {
     panic(
       `Feature ${feature.id} does not belong to the same organization as subscription ${subscription.id}.`
-    )
-  }
-  if (subscriptionItem.livemode !== feature.livemode) {
-    panic(
-      'Feature livemode does not match subscription item livemode.'
     )
   }
   if (subscription.livemode !== feature.livemode) {
@@ -626,6 +610,40 @@ const findOrCreateManualSubscriptionItem = async (
   return existingManualItems[0]
 }
 
+/**
+ * Resolves a feature from the input, which can specify either featureId or featureSlug.
+ * When featureSlug is provided, the feature is looked up by slug within the subscription's pricing model.
+ */
+const resolveFeatureFromInput = async (
+  input: AddFeatureToSubscriptionInput,
+  pricingModelId: string,
+  transaction: DbTransaction
+): Promise<Feature.Record> => {
+  if (input.featureId) {
+    return (
+      await selectFeatureById(input.featureId, transaction)
+    ).unwrap()
+  }
+
+  if (!input.featureSlug) {
+    panic('Either featureId or featureSlug must be provided')
+  }
+
+  // Resolve by slug within the pricing model
+  const features = await selectFeatures(
+    { slug: input.featureSlug, pricingModelId },
+    transaction
+  )
+
+  if (features.length === 0) {
+    panic(
+      `No feature found with slug "${input.featureSlug}" in the subscription's pricing model`
+    )
+  }
+
+  return features[0]
+}
+
 export const addFeatureToSubscriptionItem = async (
   input: AddFeatureToSubscriptionInput,
   ctx: TransactionEffectsContext
@@ -639,34 +657,28 @@ export const addFeatureToSubscriptionItem = async (
 > => {
   try {
     const { transaction } = ctx
-    const {
-      subscriptionItemId,
-      featureId,
-      grantCreditsImmediately = false,
-    } = input
-
-    const providedSubscriptionItem = (
-      await selectSubscriptionItemById(
-        subscriptionItemId,
-        transaction
-      )
-    ).unwrap()
-    ensureSubscriptionItemIsActive(providedSubscriptionItem)
+    const { id, grantCreditsImmediately = false } = input
 
     const subscription = (
-      await selectSubscriptionById(
-        providedSubscriptionItem.subscriptionId,
-        transaction
-      )
+      await selectSubscriptionById(id, transaction)
     ).unwrap()
 
-    const feature = (
-      await selectFeatureById(featureId, transaction)
-    ).unwrap()
+    // Prevent adding features to canceled or incomplete_expired subscriptions
+    assertSubscriptionNotTerminal(subscription)
+
+    const pricingModelId = await derivePricingModelIdFromSubscription(
+      subscription.id,
+      transaction
+    )
+
+    const feature = await resolveFeatureFromInput(
+      input,
+      pricingModelId,
+      transaction
+    )
     ensureFeatureIsEligible(feature)
     ensureOrganizationAndLivemodeMatch({
       subscription,
-      subscriptionItem: providedSubscriptionItem,
       feature,
     })
 
