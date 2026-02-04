@@ -50,6 +50,7 @@ import {
   createTestStripeCustomer,
   describeIfStripeKey,
 } from '@/test/stripeIntegrationHelpers'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import { executeBillingRun } from './billingRunHelpers'
 
 /**
@@ -128,7 +129,6 @@ describeIfStripeKey(
         quantity: 1,
         unitPrice: staticPrice.unitPrice,
         type: SubscriptionItemType.Static,
-        livemode: false,
       })
 
       billingPeriod = await setupBillingPeriod({
@@ -229,30 +229,16 @@ describeIfStripeKey(
 
       // Remove Stripe payment method ID
       ;(
-        await adminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            await safelyUpdatePaymentMethod(
-              {
-                id: paymentMethod.id,
-                stripePaymentMethodId: null,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache: invalidateCache!,
-                emitEvent: emitEvent!,
-                enqueueLedgerCommand: enqueueLedgerCommand!,
-              }
-            )
-            return Result.ok(undefined)
-          }
-        )
+        await adminTransaction(async (params) => {
+          await safelyUpdatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            createProcessingEffectsContext(params)
+          )
+          return Result.ok(undefined)
+        })
       ).unwrap()
 
       const newSubscriptionItems = [
@@ -346,7 +332,6 @@ describeIfStripeKey(
         quantity: 1,
         unitPrice: staticPrice.unitPrice,
         type: SubscriptionItemType.Static,
-        livemode: false,
       })
 
       billingPeriod = await setupBillingPeriod({
@@ -663,11 +648,11 @@ describeIfStripeKey(
       )
 
       // Verify invoice was created
-      expect(typeof result?.invoice?.id).toBe('string')
-      expect(typeof result?.invoice?.status).toBe('string')
+      expect(result?.invoice.id).toMatch(/^inv_/)
+      expect(result?.invoice.status).toMatch(/^[a-z_]+$/)
 
       // Verify payment was created
-      expect(typeof result?.payment?.id).toBe('string')
+      expect(result?.payment?.id).toMatch(/^pym_/)
     })
 
     it('should not run billing when billing run is not in Scheduled status', async () => {

@@ -113,12 +113,12 @@ describe('DiscountFormFields', () => {
   }
 
   beforeEach(() => {
-    ;(useAuthenticatedContext as Mock).mockReturnValue({
+    ;(useAuthenticatedContext as Mock<any>).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,
     })
-    ;(useAuthContext as Mock).mockReturnValue({
+    ;(useAuthContext as Mock<any>).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,

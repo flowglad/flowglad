@@ -189,8 +189,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
       role: 'merchant',
     } as unknown as BetterAuthUserWithRole
     const result = await databaseAuthenticationInfoForWebappRequest(
-      mockBetterAuthUser,
-      undefined
+      mockBetterAuthUser
     )
     expect(result.userId).toEqual(webMemB.userId)
     expect(result.livemode).toEqual(true)
@@ -320,7 +319,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
         // Deactivate the membership
         await transaction
           .update(memberships)
-          .set({ deactivatedAt: new Date() })
+          .set({ deactivatedAt: Date.now() })
           .where(eq(memberships.id, membership.id))
         return Result.ok(undefined)
       })
@@ -422,7 +421,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
           organizationId: testOrg.id,
           focused: true,
           livemode: false,
-          deactivatedAt: new Date(), // Deactivated at current time
+          deactivatedAt: Date.now(), // Deactivated at current time
           focusedPricingModelId: testPm.id,
         })
         return Result.ok(undefined)

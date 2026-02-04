@@ -18,7 +18,7 @@ import {
 } from '@/db/tableMethods/apiKeyMethods'
 import { updateMembership } from '@/db/tableMethods/membershipMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
+import { withDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import core from '@/utils/core'
 import {
   createSecretApiKeyTransaction,
@@ -69,7 +69,7 @@ describe('apiKeyHelpers', () => {
           return Result.ok(
             await createSecretApiKeyTransaction(
               input,
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: false,
@@ -115,7 +115,7 @@ describe('apiKeyHelpers', () => {
           try {
             const response = await createSecretApiKeyTransaction(
               input,
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: false,
@@ -168,7 +168,7 @@ describe('apiKeyHelpers', () => {
           try {
             const response = await createSecretApiKeyTransaction(
               input,
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: true,
@@ -221,7 +221,7 @@ describe('apiKeyHelpers', () => {
           return Result.ok(
             await createSecretApiKeyTransaction(
               input,
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: false,
@@ -265,7 +265,7 @@ describe('apiKeyHelpers', () => {
           try {
             const response = await createSecretApiKeyTransaction(
               input,
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: true,
@@ -338,7 +338,7 @@ describe('apiKeyHelpers', () => {
         await adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: secretApiKey.id },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               userId,
               livemode: true,
@@ -370,7 +370,7 @@ describe('apiKeyHelpers', () => {
           try {
             await deleteSecretApiKeyTransaction(
               { id: nonExistentId },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: true,
@@ -416,7 +416,7 @@ describe('apiKeyHelpers', () => {
           try {
             await deleteSecretApiKeyTransaction(
               { id: publishableApiKey.id },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: true,
@@ -469,7 +469,7 @@ describe('apiKeyHelpers', () => {
         await adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: legacyApiKey.id },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               userId,
               livemode: true,
@@ -520,7 +520,7 @@ describe('apiKeyHelpers', () => {
         await adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: apiKeyNoHash.id },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               userId,
               livemode: true,
@@ -576,7 +576,7 @@ describe('apiKeyHelpers', () => {
           try {
             await deleteSecretApiKeyTransaction(
               { id: apiKeyWithUnkeyId.id },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 userId,
                 livemode: true,

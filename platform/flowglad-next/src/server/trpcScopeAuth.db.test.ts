@@ -153,8 +153,10 @@ beforeEach(async () => {
       emailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as ReturnType<
-      typeof betterAuthSchemaMethods.selectBetterAuthUserById
+    } as Awaited<
+      ReturnType<
+        typeof betterAuthSchemaMethods.selectBetterAuthUserById
+      >
     >)
   )
 })
