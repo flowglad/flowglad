@@ -52,7 +52,7 @@ describe('requestDeviceCode', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://flowglad.com/api/auth/device/code',
+      'https://flowglad.com/api/auth/merchant/device/code',
       {
         method: 'POST',
         headers: {
@@ -153,7 +153,7 @@ describe('pollForToken', () => {
     expect(mockFetch).toHaveBeenCalledTimes(2)
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
-      'https://flowglad.com/api/auth/device/token',
+      'https://flowglad.com/api/auth/merchant/device/token',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -165,7 +165,7 @@ describe('pollForToken', () => {
     )
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
-      'https://flowglad.com/api/auth/get-session',
+      'https://flowglad.com/api/auth/merchant/get-session',
       expect.objectContaining({
         method: 'GET',
         headers: {

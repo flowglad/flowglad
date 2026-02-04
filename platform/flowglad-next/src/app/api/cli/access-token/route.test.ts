@@ -57,7 +57,7 @@ describe('POST /api/cli/access-token', () => {
     const data: AccessTokenResponse = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data.accessToken).toContain('cli_test_')
+    expect(data.accessToken).toContain('cli_t_')
     expect(typeof data.expiresAt).toBe('string')
 
     // Verify expiration is roughly 10 minutes from now

@@ -4,6 +4,10 @@
  * organization and pricing model.
  */
 
+// Import and re-export StoredCredentials from config.ts for backward compatibility
+import type { StoredCredentials } from './config'
+export type { StoredCredentials }
+
 export interface AccessTokenRequest {
   organizationId: string
   pricingModelId: string
@@ -13,25 +17,6 @@ export interface AccessTokenRequest {
 export interface AccessTokenResponse {
   accessToken: string
   expiresAt: string // ISO date
-}
-
-export interface StoredCredentials {
-  // Refresh token (Better Auth session) - user identity
-  refreshToken: string
-  refreshTokenExpiresAt: string // ISO date (~90 days from login)
-  userId: string
-  email: string
-  name?: string
-
-  // Access token (Unkey API key) - scoped to org + PM
-  // These are populated after `flowglad link`
-  accessToken?: string
-  accessTokenExpiresAt?: string // ISO date (10 minutes from creation)
-  organizationId?: string
-  organizationName?: string
-  pricingModelId?: string
-  pricingModelName?: string
-  livemode?: boolean
 }
 
 /**
@@ -72,19 +57,16 @@ export const requestAccessToken = async (
 /**
  * Check if an access token is expired or will expire within the buffer period.
  *
- * @param expiresAt - ISO date string of when the token expires
+ * @param expiresAt - Epoch milliseconds of when the token expires
  * @param bufferSeconds - Buffer time in seconds before expiry to consider expired (default: 30)
  * @returns true if the token is expired or will expire within the buffer period
  */
 export const isAccessTokenExpired = (
-  expiresAt: string,
+  expiresAt: number,
   bufferSeconds: number = 30
 ): boolean => {
-  const expiresAtDate = new Date(expiresAt)
-  const now = new Date()
   const bufferMs = bufferSeconds * 1000
-
-  return expiresAtDate.getTime() - now.getTime() <= bufferMs
+  return expiresAt - Date.now() <= bufferMs
 }
 
 /**
@@ -136,10 +118,11 @@ export const ensureValidAccessToken = async (
   )
 
   // Update credentials with new access token
+  // Convert ISO date to epoch ms for storage
   const updatedCredentials: StoredCredentials = {
     ...credentials,
     accessToken: response.accessToken,
-    accessTokenExpiresAt: response.expiresAt,
+    accessTokenExpiresAt: new Date(response.expiresAt).getTime(),
   }
 
   await saveCredentials(updatedCredentials)

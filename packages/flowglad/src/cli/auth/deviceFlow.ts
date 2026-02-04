@@ -85,7 +85,7 @@ const sleep = (ms: number): Promise<void> =>
 export const requestDeviceCode = async (
   baseUrl: string
 ): Promise<DeviceCodeResponse> => {
-  const url = new URL('/api/auth/device/code', baseUrl)
+  const url = new URL('/api/auth/merchant/device/code', baseUrl)
 
   const response = await fetch(url.toString(), {
     method: 'POST',
@@ -138,7 +138,7 @@ const pollTokenOnce = async (
   baseUrl: string,
   deviceCode: string
 ): Promise<DeviceTokenResponse> => {
-  const url = new URL('/api/auth/device/token', baseUrl)
+  const url = new URL('/api/auth/merchant/device/token', baseUrl)
 
   const response = await fetch(url.toString(), {
     method: 'POST',
@@ -200,7 +200,7 @@ const fetchSession = async (
   baseUrl: string,
   accessToken: string
 ): Promise<SessionResponse> => {
-  const url = new URL('/api/auth/get-session', baseUrl)
+  const url = new URL('/api/auth/merchant/get-session', baseUrl)
 
   const response = await fetch(url.toString(), {
     method: 'GET',
