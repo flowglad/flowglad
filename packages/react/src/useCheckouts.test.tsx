@@ -213,7 +213,7 @@ describe('useCheckouts', () => {
     expect(options.method).toBe('POST')
   })
 
-  it('createAddPaymentMethodCheckoutSession works with no params', async () => {
+  it('createAddPaymentMethodCheckoutSession sends required URLs in request body', async () => {
     mockFetch.mockResolvedValueOnce({
       json: () => Promise.resolve(mockCheckoutSessionResponse),
     })
@@ -229,12 +229,18 @@ describe('useCheckouts', () => {
     >
     await act(async () => {
       response =
-        await result.current.createAddPaymentMethodCheckoutSession()
+        await result.current.createAddPaymentMethodCheckoutSession({
+          successUrl: 'https://example.com/success',
+          cancelUrl: 'https://example.com/cancel',
+        })
     })
 
     const [, options] = mockFetch.mock.calls[0]
     const body = JSON.parse(options.body)
-    expect(body).toEqual({})
+    expect(body).toEqual({
+      successUrl: 'https://example.com/success',
+      cancelUrl: 'https://example.com/cancel',
+    })
 
     expect(response!).toEqual({
       id: 'cs_test_123',

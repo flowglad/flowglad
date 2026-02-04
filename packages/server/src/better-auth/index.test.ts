@@ -336,6 +336,8 @@ describe('flowgladPlugin', () => {
       'getFeatureAccess',
       'getPaymentMethods',
       'getCustomerDetails',
+      'getInvoices',
+      'getPurchases',
       'getPricingModel',
     ]
 
