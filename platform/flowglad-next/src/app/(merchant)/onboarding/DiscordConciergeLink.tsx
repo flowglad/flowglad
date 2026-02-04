@@ -42,7 +42,8 @@ export function DiscordConciergeLink() {
       </p>
       <div className="flex flex-col gap-1">
         <Button
-          className="w-full bg-[#717BF7] hover:bg-[#5865F2] text-white"
+          variant="secondary"
+          className="w-full"
           onClick={handleClick}
           disabled={isLoading}
         >

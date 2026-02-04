@@ -93,7 +93,7 @@ async function fetchChannelById(
  * Parse cohort number from category name. Returns null if can't parse.
  * E.g., "Concierge Cohort 3" -> 3
  */
-function parseCohortNumber(
+export function parseCohortNumber(
   name: string,
   prefix: string
 ): number | null {
@@ -101,6 +101,42 @@ function parseCohortNumber(
   const suffix = name.slice(prefix.length).trim()
   const num = parseInt(suffix, 10)
   return isNaN(num) ? null : num
+}
+
+export interface CategoryInfo {
+  id: string
+  cohortNum: number
+  childCount: number
+}
+
+export type CategorySelectionResult =
+  | { action: 'use_existing'; id: string }
+  | { action: 'create_new'; cohortNum: number }
+
+/**
+ * Pure function to select which category to use for a new channel.
+ * Returns either an existing category ID or instructions to create a new one.
+ * Prefers lower cohort numbers when multiple categories have space.
+ */
+export function selectCategoryForChannel(
+  categories: CategoryInfo[],
+  limit: number = DISCORD_CATEGORY_CHANNEL_LIMIT
+): CategorySelectionResult {
+  const sorted = [...categories].sort(
+    (a, b) => a.cohortNum - b.cohortNum
+  )
+  const available = sorted.find((c) => c.childCount < limit)
+
+  if (available) {
+    return { action: 'use_existing', id: available.id }
+  }
+
+  const nextCohortNum =
+    categories.length > 0
+      ? Math.max(...categories.map((c) => c.cohortNum)) + 1
+      : 1
+
+  return { action: 'create_new', cohortNum: nextCohortNum }
 }
 
 /**
@@ -119,12 +155,7 @@ async function getOrCreateCategoryWithSpace(
   )) as APIChannel[]
 
   // Find all concierge categories and count their children
-  const categories: Array<{
-    id: string
-    name: string
-    cohortNum: number
-    childCount: number
-  }> = []
+  const categories: CategoryInfo[] = []
 
   for (const channel of channels) {
     if (
@@ -140,34 +171,25 @@ async function getOrCreateCategoryWithSpace(
       ).length
       categories.push({
         id: channel.id,
-        name: channel.name,
         cohortNum: cohortNum ?? categories.length + 1, // Fallback to count if can't parse
         childCount,
       })
     }
   }
 
-  // Sort by cohort number and find one with space
-  categories.sort((a, b) => a.cohortNum - b.cohortNum)
-  const categoryWithSpace = categories.find(
-    (c) => c.childCount < DISCORD_CATEGORY_CHANNEL_LIMIT
-  )
+  // Use pure function to determine category selection
+  const selection = selectCategoryForChannel(categories)
 
-  if (categoryWithSpace) {
-    return categoryWithSpace.id
+  if (selection.action === 'use_existing') {
+    return selection.id
   }
 
-  // No category with space, create a new one
-  const nextCohortNum =
-    categories.length > 0
-      ? Math.max(...categories.map((c) => c.cohortNum)) + 1
-      : 1
-
+  // Create new category
   const newCategory = (await rest.post(
     Routes.guildChannels(guildId),
     {
       body: {
-        name: `${config.conciergeCategoryPrefix} ${nextCohortNum}`,
+        name: `${config.conciergeCategoryPrefix} ${selection.cohortNum}`,
         type: ChannelType.GuildCategory,
       },
     }
