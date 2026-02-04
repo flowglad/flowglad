@@ -48,21 +48,30 @@ const mockDocsWithText = [
   },
 ]
 
+// Type for turbopuffer doc results - text is optional since some docs may not have it
+type TurbopufferDoc = {
+  id: string
+  $dist: number
+  path: string
+  title?: string
+  text?: string
+}
+
+// Type for AI response
+type AIResponse = { text: string | undefined }
+
 // Mutable mock functions that tests can configure
-let mockQueryTurbopuffer = mock(() =>
+let mockQueryTurbopuffer: () => Promise<TurbopufferDoc[]> = () =>
   Promise.resolve(mockDocsWithText)
-)
-let mockGenerateText = mock(() =>
+let mockGenerateText: (args: unknown) => Promise<AIResponse> = () =>
   Promise.resolve({ text: 'Here is how to install the SDK...' })
-)
 
 mock.module('@/utils/turbopuffer', () => ({
-  queryTurbopuffer: (...args: unknown[]) =>
-    mockQueryTurbopuffer(...args),
+  queryTurbopuffer: (...args: unknown[]) => mockQueryTurbopuffer(),
 }))
 
 mock.module('ai', () => ({
-  generateText: (...args: unknown[]) => mockGenerateText(...args),
+  generateText: (args: unknown) => mockGenerateText(args),
 }))
 
 import type { User } from '@db-core/schema/users'
@@ -73,8 +82,8 @@ import type { TRPCContext } from '@/server/trpcContext'
 // Since sendMessage doesn't interact with the database, we don't need a real user
 const mockUser: User.Record = {
   id: 'usr_test123',
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
   createdByCommit: null,
   updatedByCommit: null,
   position: 1,
@@ -96,6 +105,9 @@ const createAuthenticatedCaller = (testUser: User.Record) => {
     organization: undefined,
     isApi: false,
     apiKey: undefined,
+    session: null,
+    focusedPricingModelId: undefined,
+    authScope: 'merchant',
   }
   return supportChatRouter.createCaller(ctx)
 }
@@ -104,10 +116,9 @@ beforeEach(() => {
   globalThis.__mockedAuthSession = null
 
   // Reset mock functions to default behavior
-  mockQueryTurbopuffer = mock(() => Promise.resolve(mockDocsWithText))
-  mockGenerateText = mock(() =>
+  mockQueryTurbopuffer = () => Promise.resolve(mockDocsWithText)
+  mockGenerateText = () =>
     Promise.resolve({ text: 'Here is how to install the SDK...' })
-  )
 })
 
 afterEach(() => {
@@ -138,10 +149,10 @@ describe('sendMessage', () => {
     it('includes conversation history in the AI request', async () => {
       // Capture the arguments passed to generateText
       let capturedArgs: unknown = null
-      mockGenerateText = mock((args: unknown) => {
+      mockGenerateText = (args: unknown) => {
         capturedArgs = args
         return Promise.resolve({ text: 'Follow up response' })
-      })
+      }
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -176,16 +187,14 @@ describe('sendMessage', () => {
   describe('when Turbopuffer returns docs without text content', () => {
     it('filters out docs without text and returns empty sources', async () => {
       // Configure mock to return docs without text property
-      mockQueryTurbopuffer = mock(() =>
+      mockQueryTurbopuffer = () =>
         Promise.resolve([
           { id: 'doc1', $dist: 0.1, path: '/a', title: 'A' },
           { id: 'doc2', $dist: 0.2, path: '/b', title: 'B' },
           { id: 'doc3', $dist: 0.3, path: '/c', title: 'C' },
         ])
-      )
-      mockGenerateText = mock(() =>
+      mockGenerateText = () =>
         Promise.resolve({ text: 'Response without context' })
-      )
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -202,7 +211,7 @@ describe('sendMessage', () => {
   describe('when Turbopuffer returns mixed docs (some with text, some without)', () => {
     it('only includes docs with text in sources', async () => {
       // Configure mock to return mixed docs - some with text, some without
-      mockQueryTurbopuffer = mock(() =>
+      mockQueryTurbopuffer = () =>
         Promise.resolve([
           {
             id: 'doc1',
@@ -226,7 +235,6 @@ describe('sendMessage', () => {
           },
           { id: 'doc4', $dist: 0.4, path: '/docs/faq', title: 'FAQ' }, // no text
         ])
-      )
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -247,12 +255,10 @@ describe('sendMessage', () => {
   describe('when Turbopuffer query fails', () => {
     it('gracefully degrades and returns response without sources when Turbopuffer fails', async () => {
       // Configure mock to throw an error (simulating network failure)
-      mockQueryTurbopuffer = mock(() =>
+      mockQueryTurbopuffer = () =>
         Promise.reject(new Error('Network error'))
-      )
-      mockGenerateText = mock(() =>
+      mockGenerateText = () =>
         Promise.resolve({ text: 'I can help with that' })
-      )
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -269,7 +275,7 @@ describe('sendMessage', () => {
 
   describe('when AI returns empty or undefined text', () => {
     it('returns fallback message when AI response text is empty string', async () => {
-      mockGenerateText = mock(() => Promise.resolve({ text: '' }))
+      mockGenerateText = () => Promise.resolve({ text: '' })
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -284,9 +290,7 @@ describe('sendMessage', () => {
     })
 
     it('returns fallback message when AI response text is undefined', async () => {
-      mockGenerateText = mock(() =>
-        Promise.resolve({ text: undefined })
-      )
+      mockGenerateText = () => Promise.resolve({ text: undefined })
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -304,7 +308,7 @@ describe('sendMessage', () => {
   describe('when more than 3 docs have text', () => {
     it('limits sources to first 3 docs', async () => {
       // Configure mock to return 5 docs, all with text
-      mockQueryTurbopuffer = mock(() =>
+      mockQueryTurbopuffer = () =>
         Promise.resolve([
           {
             id: 'doc1',
@@ -342,7 +346,6 @@ describe('sendMessage', () => {
             text: 'Content E',
           },
         ])
-      )
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -366,10 +369,9 @@ describe('sendMessage', () => {
 
   describe('when Turbopuffer returns no docs', () => {
     it('returns response with empty sources when no docs are found', async () => {
-      mockQueryTurbopuffer = mock(() => Promise.resolve([]))
-      mockGenerateText = mock(() =>
+      mockQueryTurbopuffer = () => Promise.resolve([])
+      mockGenerateText = () =>
         Promise.resolve({ text: 'I can still help' })
-      )
 
       const caller = createAuthenticatedCaller(mockUser)
 
@@ -386,7 +388,7 @@ describe('sendMessage', () => {
   describe('when docs have optional title field', () => {
     it('includes title in source when present, omits when absent', async () => {
       // Configure mock to return docs with and without titles
-      mockQueryTurbopuffer = mock(() =>
+      mockQueryTurbopuffer = () =>
         Promise.resolve([
           {
             id: 'doc1',
@@ -403,7 +405,6 @@ describe('sendMessage', () => {
             text: 'Other content',
           },
         ])
-      )
 
       const caller = createAuthenticatedCaller(mockUser)
 
