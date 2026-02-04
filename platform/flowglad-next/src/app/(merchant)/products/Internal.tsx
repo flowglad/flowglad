@@ -6,22 +6,33 @@ import PageContainer from '@/components/PageContainer'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { ProductsDataTable } from './data-table'
 
-function Internal() {
+interface InternalProps {
+  /** Optional pricing model ID from URL params. Falls back to focused membership if not provided. */
+  pricingModelId?: string
+}
+
+function Internal({ pricingModelId }: InternalProps) {
   const [isCreateProductOpen, setIsCreateProductOpen] =
     useState(false)
 
-  // Get focused pricing model for filtering
+  // Get focused pricing model for filtering (used as fallback)
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
   const focusedPricingModelId =
     focusedMembership.data?.pricingModel?.id ?? ''
+
+  // Use URL param if provided, otherwise fall back to focused membership
+  const effectivePricingModelId =
+    pricingModelId || focusedPricingModelId
 
   return (
     <>
       <PageContainer>
         <PageHeaderNew title="Products" hideBorder className="pb-2" />
         <ProductsDataTable
-          externalFilters={{ pricingModelId: focusedPricingModelId }}
+          externalFilters={{
+            pricingModelId: effectivePricingModelId,
+          }}
           onCreateProduct={() => setIsCreateProductOpen(true)}
           hiddenColumns={['productId']}
         />
@@ -29,7 +40,7 @@ function Internal() {
       <CreateProductModal
         isOpen={isCreateProductOpen}
         setIsOpen={setIsCreateProductOpen}
-        defaultPricingModelId={focusedPricingModelId}
+        defaultPricingModelId={effectivePricingModelId}
         hidePricingModelSelect
       />
     </>

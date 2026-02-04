@@ -255,7 +255,7 @@ function InnerPricingModelDetailsPage({
             activeFilter={activeProductFilter}
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
-            viewAllHref="/products"
+            viewAllHref={`/products?pricingModelId=${pricingModel.id}`}
           />
         </ExpandSection>
         <ExpandSection
