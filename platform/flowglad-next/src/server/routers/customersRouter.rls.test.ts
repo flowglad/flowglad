@@ -32,7 +32,7 @@ const createCaller = (
   apiKeyToken: string,
   livemode: boolean = true
 ) => {
-  const ctx: TRPCApiContext = {
+  const ctx = {
     organizationId: organization.id,
     organization,
     apiKey: apiKeyToken,
@@ -42,7 +42,7 @@ const createCaller = (
       | 'test',
     isApi: true,
     path: '',
-  }
+  } as unknown as TRPCApiContext
   return customersRouter.createCaller(ctx)
 }
 

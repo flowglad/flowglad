@@ -124,6 +124,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           const paymentMethod =
             await paymentMethodForStripePaymentMethodId(
@@ -138,6 +139,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
 
@@ -194,6 +196,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           const paymentMethod =
             await paymentMethodForStripePaymentMethodId(
@@ -208,6 +211,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
 

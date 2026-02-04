@@ -176,7 +176,12 @@ export function PageHeaderNew({
                       <TooltipTrigger asChild>
                         {badgeContent}
                       </TooltipTrigger>
-                      <TooltipContent side="bottom">
+                      <TooltipContent
+                        side="bottom"
+                        align="start"
+                        variant="muted"
+                        className="max-w-xs px-3 py-2 text-sm font-medium"
+                      >
                         <p>{badge.tooltip}</p>
                       </TooltipContent>
                     </Tooltip>

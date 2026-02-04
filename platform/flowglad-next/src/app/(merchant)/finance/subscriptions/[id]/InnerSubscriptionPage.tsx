@@ -41,6 +41,7 @@ import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { AdjustSubscriptionModal } from './AdjustSubscriptionModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
+import { ScheduledChangesSection } from './ScheduledChangesSection'
 
 /**
  * Formats the description for a feature item based on its type and renewal frequency.
@@ -304,6 +305,7 @@ const InnerSubscriptionPage = ({
             href={`/customers/${customer.id}`}
           />
         </ExpandSection>
+        <ScheduledChangesSection subscription={subscription} />
         <ExpandSection
           title="Features Granted"
           defaultExpanded={false}

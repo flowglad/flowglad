@@ -2,7 +2,6 @@
 
 import { IntervalUnit } from '@db-core/enums'
 import type { CreatePricingModelInput } from '@db-core/schema/pricingModels'
-import { Controller } from 'react-hook-form'
 import {
   FormControl,
   FormField,
@@ -19,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 
 /**
  * Sentinel value representing non-renewing (one-time payment) behavior.
@@ -103,33 +101,6 @@ export default function PricingModelFormFields({
             </Select>
           </FormControl>
         </FormItem>
-      )}
-      {!edit && (
-        <Controller
-          name="pricingModel.isDefault"
-          control={form.control}
-          render={({ field }: { field: any }) => (
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is-default"
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="is-default"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  Make Default
-                </label>
-                <p className="text-sm text-muted-foreground">
-                  New customers will be assigned to this pricing model
-                  by default.
-                </p>
-              </div>
-            </div>
-          )}
-        />
       )}
     </div>
   )

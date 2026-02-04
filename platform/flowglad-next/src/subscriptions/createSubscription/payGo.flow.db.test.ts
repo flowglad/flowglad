@@ -153,6 +153,7 @@ describe('Pay as You Go Workflow E2E', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           const result = await createCustomerBookkeeping(
             {
@@ -171,6 +172,7 @@ describe('Pay as You Go Workflow E2E', () => {
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             })
           )
           return Result.ok(result)

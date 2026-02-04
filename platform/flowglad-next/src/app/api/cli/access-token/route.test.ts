@@ -33,7 +33,6 @@ describe('POST /api/cli/access-token', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     const requestBody: AccessTokenRequest = {
@@ -77,7 +76,6 @@ describe('POST /api/cli/access-token', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     const requestBody: AccessTokenRequest = {
@@ -114,7 +112,6 @@ describe('POST /api/cli/access-token', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     // Try to use the other org's pricing model with our org
@@ -178,7 +175,6 @@ describe('POST /api/cli/access-token', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     const request = new Request(
@@ -204,7 +200,6 @@ describe('POST /api/cli/access-token', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     // Request with livemode=true but using testmode pricing model
@@ -237,7 +232,6 @@ describe('POST /api/cli/access-token', () => {
     // Mock the auth session
     globalThis.__mockedAuthSession = {
       user: { id: betterAuthUserId, email: user.email },
-      session: { id: 'session_123' },
     }
 
     const requestBody: AccessTokenRequest = {

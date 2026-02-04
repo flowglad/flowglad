@@ -3304,7 +3304,7 @@ describe('updatePricingModelTransaction', () => {
             )
           }),
         ])
-      ).map((r) => r.unwrap())
+      ).map((r) => r.unwrap()) as [any[], any[], any[], any[]]
 
       // Verify usage meters
       expect(usageMeters).toHaveLength(1)

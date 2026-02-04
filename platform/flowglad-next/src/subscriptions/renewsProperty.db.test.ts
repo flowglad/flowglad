@@ -398,27 +398,12 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Transition billing period
         const result = (
-          await adminTransaction(
-            async ({
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }) => {
-              const ctx = {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              }
-              return attemptToTransitionSubscriptionBillingPeriod(
-                currentBillingPeriod,
-                ctx
-              )
-            }
-          )
+          await adminTransaction(async (params) => {
+            return attemptToTransitionSubscriptionBillingPeriod(
+              currentBillingPeriod,
+              createProcessingEffectsContext(params)
+            )
+          })
         ).unwrap()
 
         // Verify new billing period was created
@@ -486,27 +471,12 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = (
-          await adminTransaction(
-            async ({
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }) => {
-              const ctx = {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              }
-              return attemptToTransitionSubscriptionBillingPeriod(
-                billingPeriod,
-                ctx
-              )
-            }
-          )
+          await adminTransaction(async (params) => {
+            return attemptToTransitionSubscriptionBillingPeriod(
+              billingPeriod,
+              createProcessingEffectsContext(params)
+            )
+          })
         ).unwrap()
         // Verify billing run was created
         ;(
@@ -555,27 +525,12 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = (
-          await adminTransaction(
-            async ({
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }) => {
-              const ctx = {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              }
-              return attemptToTransitionSubscriptionBillingPeriod(
-                billingPeriod,
-                ctx
-              )
-            }
-          )
+          await adminTransaction(async (params) => {
+            return attemptToTransitionSubscriptionBillingPeriod(
+              billingPeriod,
+              createProcessingEffectsContext(params)
+            )
+          })
         ).unwrap()
 
         // Verify subscription transitioned to PastDue
@@ -631,27 +586,12 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         const result = (
-          await adminTransaction(
-            async ({
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }) => {
-              const ctx = {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              }
-              return attemptToTransitionSubscriptionBillingPeriod(
-                billingPeriod,
-                ctx
-              )
-            }
-          )
+          await adminTransaction(async (params) => {
+            return attemptToTransitionSubscriptionBillingPeriod(
+              billingPeriod,
+              createProcessingEffectsContext(params)
+            )
+          })
         ).unwrap()
 
         // Verify subscription was canceled
@@ -732,23 +672,10 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Attempting to transition should return error for non-renewing subscription
         const transitionResult = await adminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            const ctx = {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }
+          async (params) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              ctx
+              createProcessingEffectsContext(params)
             )
           }
         )

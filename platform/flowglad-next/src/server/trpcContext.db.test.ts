@@ -70,6 +70,7 @@ describe('context type structure', () => {
       isApi: false,
       apiKey: undefined,
       authScope: 'merchant',
+      focusedPricingModelId: undefined,
     }
     expect(mockContext.authScope).toBe('merchant')
   })

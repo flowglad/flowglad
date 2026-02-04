@@ -109,6 +109,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             // Wrap emitEvent to capture events
             const capturingEmitEvent = (event: Event.Insert) => {
@@ -131,6 +132,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent: capturingEmitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -227,6 +229,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -245,6 +248,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -317,6 +321,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const capturingEmitEvent = (event: Event.Insert) => {
               emittedEvents.push(event)
@@ -339,6 +344,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent: capturingEmitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -429,6 +435,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const capturingEmitEvent = (event: Event.Insert) => {
               emittedEvents.push(event)
@@ -451,6 +458,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent: capturingEmitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -505,6 +513,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -522,6 +531,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -603,6 +613,7 @@ describe('createCustomerBookkeeping', () => {
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }) => {
               await createCustomerBookkeeping(
                 {
@@ -620,6 +631,7 @@ describe('createCustomerBookkeeping', () => {
                   invalidateCache,
                   emitEvent,
                   enqueueLedgerCommand,
+                  enqueueTriggerTask,
                 })
               )
               return Result.ok(null)
@@ -651,6 +663,7 @@ describe('createCustomerBookkeeping', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await createCustomerBookkeeping(
             {
@@ -668,6 +681,7 @@ describe('createCustomerBookkeeping', () => {
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             })
           )
           return Result.ok(null)
@@ -693,6 +707,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -710,6 +725,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -764,6 +780,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -781,6 +798,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -893,6 +911,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -911,6 +930,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -978,6 +998,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -996,6 +1017,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -1086,6 +1108,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -1106,6 +1129,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -1129,6 +1153,7 @@ describe('createCustomerBookkeeping', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           }) => {
             const output = await createCustomerBookkeeping(
               {
@@ -1148,6 +1173,7 @@ describe('createCustomerBookkeeping', () => {
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               })
             )
             return Result.ok(output)
@@ -2443,6 +2469,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updatePurchaseStatusToReflectLatestPayment(payment, {
             transaction,
@@ -2450,6 +2477,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           })
 
           // Verify purchase status was updated to Paid
@@ -2487,6 +2515,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updatePurchaseStatusToReflectLatestPayment(payment, {
             transaction,
@@ -2494,6 +2523,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           })
 
           // Verify purchase status was updated to Failed
@@ -2528,6 +2558,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updatePurchaseStatusToReflectLatestPayment(payment, {
             transaction,
@@ -2535,6 +2566,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           })
 
           // Verify purchase status was updated to Pending
@@ -2570,6 +2602,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updatePurchaseStatusToReflectLatestPayment(
             paymentWithoutPurchase,
@@ -2579,6 +2612,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
 
@@ -2652,6 +2686,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updateInvoiceStatusToReflectLatestPayment(payment, {
             transaction,
@@ -2659,6 +2694,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           })
 
           // Verify invoice status was updated to Paid
@@ -2692,6 +2728,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updateInvoiceStatusToReflectLatestPayment(payment, {
             transaction,
@@ -2699,6 +2736,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           })
 
           // Verify invoice status was NOT updated (should remain Draft)
@@ -2740,6 +2778,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updateInvoiceStatusToReflectLatestPayment(payment, {
             transaction,
@@ -2747,6 +2786,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
+            enqueueTriggerTask,
           })
 
           // Verify invoice status is still Paid (no change)
@@ -2790,6 +2830,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updateInvoiceStatusToReflectLatestPayment(
             partialPayment,
@@ -2799,6 +2840,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
 
@@ -2855,6 +2897,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
+          enqueueTriggerTask,
         }) => {
           await updateInvoiceStatusToReflectLatestPayment(
             secondPayment,
@@ -2864,6 +2907,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
+              enqueueTriggerTask,
             }
           )
 
